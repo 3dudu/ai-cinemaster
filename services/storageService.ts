@@ -1,8 +1,9 @@
-import { ProjectState } from '../types';
+import { AIModelConfig, ProjectState } from '../types';
 
 const DB_NAME = 'CineGenDB';
 const DB_VERSION = 2;
 const STORE_NAME = 'projects';
+const MODEL_STORE_NAME = 'aiModels';
 
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -13,7 +14,9 @@ const openDB = (): Promise<IDBDatabase> => {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        db.createObjectStore('aiModels', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(MODEL_STORE_NAME)) {
+        db.createObjectStore(MODEL_STORE_NAME, { keyPath: 'id' });
       }
     };
   });
@@ -71,6 +74,59 @@ export const deleteProjectFromDB = async (id: string): Promise<void> => {
     request.onerror = () => reject(request.error);
   });
 };
+
+// ==================== AI Model Config Functions ====================
+
+export const saveModelConfig = async (config: AIModelConfig): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MODEL_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(MODEL_STORE_NAME);
+    const request = store.put(config);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const loadModelConfig = async (id: string): Promise<AIModelConfig> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MODEL_STORE_NAME, 'readonly');
+    const store = tx.objectStore(MODEL_STORE_NAME);
+    const request = store.get(id);
+    request.onsuccess = () => {
+      if (request.result) resolve(request.result);
+      else reject(new Error("Model config not found"));
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const getAllModelConfigs = async (): Promise<AIModelConfig[]> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MODEL_STORE_NAME, 'readonly');
+    const store = tx.objectStore(MODEL_STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const configs = request.result as AIModelConfig[];
+      resolve(configs);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const deleteModelConfig = async (id: string): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MODEL_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(MODEL_STORE_NAME);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
 
 // Initial template for new projects
 export const createNewProjectState = (): ProjectState => {

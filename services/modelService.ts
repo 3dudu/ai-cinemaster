@@ -3,8 +3,9 @@
 
 import { ScriptData, Shot } from "../types";
 import { uploadFileToService } from "../utils/fileUploadUtils";
-import { getAllModelConfigs, getEnabledConfigByType } from "./modelConfigService";
+import { getEnabledConfigByType } from "./modelConfigService";
 import { PROMPT_TEMPLATES } from "./promptTemplates";
+import { getAllModelConfigs } from "./storageService";
 
 // DeepSeek 方法
 import {

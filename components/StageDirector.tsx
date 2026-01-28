@@ -1,8 +1,8 @@
 import { AlertCircle, Aperture, ChevronLeft, ChevronRight, Clock, Edit, Film, Image as ImageIcon, LayoutGrid, Loader2, MapPin, MessageSquare, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
-import { getAllModelConfigs } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
+import { getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Keyframe, ProjectState, Scene, Shot } from '../types';
 import FileUploadModal from './FileUploadModal';
 import SceneEditModal from './SceneEditModal';
