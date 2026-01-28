@@ -35,6 +35,7 @@
 - **样式方案**: Tailwind CSS (索尼工业设计风格)
 - **数据存储**: IndexedDB (本地浏览器数据库，数据隐私安全，无后端依赖)
 - **构建工具**: Vite
+- **桌面应用**: Electron (支持 Windows/macOS/Linux)
 
 ---
 
@@ -119,6 +120,31 @@
 ---
 
 ## 技术架构
+
+### Electron 桌面应用支持
+
+项目现已支持打包为独立的桌面应用程序，可在 Windows、macOS 和 Linux 上运行。
+
+**特性**：
+- 🖥️ 跨平台支持（Windows/macOS/Linux）
+- ⚡ 离线运行（除 AI 生成功能外）
+- 🎨 本地数据存储，数据隐私安全
+- ⌨️ 完整的菜单栏和快捷键支持
+- 🔄 热重载开发体验
+
+**快速开始**：
+```bash
+# 安装 Electron 依赖
+npm install electron electron-builder concurrently wait-on electron-is-dev --save-dev
+
+# 开发模式运行
+npm run dev:electron
+
+# 打包桌面应用
+npm run build:electron
+```
+
+详细文档请参考 [ELECTRON.md](./ELECTRON.md) 和 [QUICKSTART_ELECTRON.md](./QUICKSTART_ELECTRON.md)。
 
 ### 前端架构
 
