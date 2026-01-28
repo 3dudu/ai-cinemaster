@@ -21,9 +21,12 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: false, // 允许加载本地文件和外部资源
+      allowRunningInsecureContent: true // 允许混合内容
     },
     icon: path.join(__dirname, '../assets/icon.png'),
+    webSecurity: false,
     show: false
   });
 
@@ -32,7 +35,15 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // 在打包环境中，正确处理文件路径
+    // 判断是否在asar包内
+    if (__dirname.includes('app.asar')) {
+      // 在asar包内，使用相对路径
+      mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    } else {
+      // 不在asar包内，使用应用根目录
+      mainWindow.loadFile(path.join(process.cwd(), 'dist/index.html'));
+    }
   }
 
   // Show window when ready to prevent visual flash
