@@ -225,7 +225,7 @@ const ImageSelectorModal: React.FC<Props> = ({
         </div>
 
         {/* 项目选择器和搜索框 */}
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-4 border-b border-slate-600 bg-slate-700">
           <div className="flex gap-4 md:flex-row flex-col">
             {/* 项目选择器 */}
             <div
@@ -295,7 +295,7 @@ const ImageSelectorModal: React.FC<Props> = ({
         </div>
 
         {/* 标签页 */}
-        <div className="flex gap-2 p-4 border-b border-slate-700 h-12 items-center">
+        <div className="flex gap-2 p-4 border-b border-slate-600 h-12 items-center bg-slate-700">
           {(['all', 'character', 'scene', 'keyframe'] as const).map(tab => {
             const labels = {
               all: '全部',
@@ -309,7 +309,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                 onClick={() => setActiveTab(tab)}
                 className={`px-2 h-8 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
                   activeTab === tab
-                    ? 'bg-slate-700 text-slate-100'
+                    ? 'bg-slate-800 text-slate-100'
                     : 'text-slate-400 hover:bg-slate-800'
                 }`}
               >
@@ -345,8 +345,8 @@ const ImageSelectorModal: React.FC<Props> = ({
                   {/* 悬停遮罩 */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="absolute bottom-0 left-0 right-0 p-2">
-                      <p className="text-xs font-medium text-slate-100 truncate">{image.title}</p>
-                      <p className="text-[10px] text-slate-300 truncate">{image.subtitle}</p>
+                      <p className="text-xs font-medium text-white truncate">{image.title}</p>
+                      <p className="text-[10px] text-white truncate">{image.subtitle}</p>
                     </div>
                   </div>
                 </button>

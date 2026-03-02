@@ -92,6 +92,7 @@ const FileUploadModal: React.FC<Props> = ({
   const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
   const [isFromGallery, setIsFromGallery] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Reset state when modal opens/closes
   React.useEffect(() => {
@@ -170,6 +171,15 @@ const FileUploadModal: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+            {/* Image Preview Modal */}
+            {previewImage && (
+              <div className="fixed inset-0 z-50 bg-slate-700/95 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
+                <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 p-2 bg-slate-800/10 hover:bg-slate-800/20 rounded-full transition-colors">
+                  <X className="w-6 h-6 text-slate-50" />
+                </button>
+                <img src={previewImage} alt="Preview" className="max-w-[90vw] max-h-[90vh] object-contain" />
+              </div>
+            )}
       <div className="bg-slate-800 border border-slate-600 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
@@ -214,6 +224,7 @@ const FileUploadModal: React.FC<Props> = ({
                 <div className="relative aspect-video bg-slate-900 rounded-lg overflow-hidden">
                   <img
                     src={previewUrl}
+                    onClick={(e) => {setPreviewImage(previewUrl); }}
                     alt="Preview"
                     className="w-full h-full object-contain"
                   />
@@ -231,12 +242,14 @@ const FileUploadModal: React.FC<Props> = ({
                     <p className="text-sm text-slate-50 font-medium truncate">
                       {selectedFile?.name}
                     </p>
+                    {!isFromGallery && (
                     <p className="text-xs text-slate-500">
                       {(selectedFile?.size || 0) / 1024 < 1024
                         ? `${((selectedFile?.size || 0) / 1024).toFixed(1)} KB`
                         : `${((selectedFile?.size || 0) / (1024 * 1024)).toFixed(2)} MB`
                       }
                     </p>
+                    )}
                   </div>
                   {!uploadSuccess && (
                     <button
