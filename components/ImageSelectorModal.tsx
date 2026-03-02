@@ -1,7 +1,8 @@
-import { ChevronDown, Images, Search, X } from 'lucide-react';
+import { ChevronDown, Download, Images, Search, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getAllProjectsMetadata } from '../services/storageService';
 import { ProjectState } from '../types';
+import { downloadImage } from './FileUploadModal';
 
 interface ImageItem {
   id: string;
@@ -11,6 +12,7 @@ interface ImageItem {
   type: 'character' | 'scene' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full';
   projectId: string;
   projectName: string;
+  downname: string;
 }
 
 interface Props {
@@ -62,6 +64,9 @@ const ImageSelectorModal: React.FC<Props> = ({
 
     loadProjects();
   }, [isOpen, project]);
+  const handleDownloadImage = async (imageUrl: string, charName: string) => {
+    await downloadImage(imageUrl, `${charName}.png`, null);
+  };
 
   // 延迟关闭下拉列表
   const handleMouseLeave = useCallback(() => {
@@ -107,7 +112,8 @@ const ImageSelectorModal: React.FC<Props> = ({
             subtitle: `角色 - ${char.name}`,
             type: 'character',
             projectId: selectedProject.id,
-            projectName: selectedProject.title || '未命名项目'
+            projectName: selectedProject.title || '未命名项目',
+            downname: `${project.scriptData?.title}-角色-${char.name}`
           });
         }
 
@@ -122,7 +128,8 @@ const ImageSelectorModal: React.FC<Props> = ({
                 subtitle: `角色造型 - ${char.name}`,
                 type: 'character',
                 projectId: selectedProject.id,
-                projectName: selectedProject.title || '未命名项目'
+                projectName: selectedProject.title || '未命名项目',
+                downname: `${project.scriptData?.title}-角色-${char.name}-造型 ${idx + 1}`
               });
             }
           });
@@ -141,7 +148,8 @@ const ImageSelectorModal: React.FC<Props> = ({
             subtitle: `场景 - ${scene.id}`,
             type: 'scene',
             projectId: selectedProject.id,
-            projectName: selectedProject.title || '未命名项目'
+            projectName: selectedProject.title || '未命名项目',
+            downname: `${project.scriptData?.title}-场景-${scene.id}`
           });
         }
       });
@@ -167,7 +175,8 @@ const ImageSelectorModal: React.FC<Props> = ({
                 subtitle: `${kf.type === 'full' ? '宫格图' : kf.type === 'start' ? '起始帧' : '结束帧'} - ${shot.actionSummary.substring(0, 30)}...`,
                 type,
                 projectId: selectedProject.id,
-                projectName: selectedProject.title || '未命名项目'
+                projectName: selectedProject.title || '未命名项目',
+                downname: `${project.scriptData?.title}-镜头-${shot.id}-${kf.type}`
               });
             }
           });
@@ -329,27 +338,41 @@ const ImageSelectorModal: React.FC<Props> = ({
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {displayImages.map((image) => (
-                <button
+                <div
                   key={image.id}
-                  onClick={() => {
-                    onSelectImage(image.imageUrl);
-                    onClose();
-                  }}
                   className="group relative aspect-square bg-slate-800 rounded-lg overflow-hidden border border-slate-700 hover:border-slate-500 transition-all hover:shadow-lg"
                 >
-                  <img
-                    src={image.imageUrl}
-                    alt={image.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
-                  {/* 悬停遮罩 */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="absolute bottom-0 left-0 right-0 p-2">
-                      <p className="text-xs font-medium text-white truncate">{image.title}</p>
-                      <p className="text-[10px] text-white truncate">{image.subtitle}</p>
+                  <button
+                    onClick={() => {
+                      onSelectImage(image.imageUrl);
+                      onClose();
+                    }}
+                    className="w-full h-full"
+                  >
+                    <img
+                      src={image.imageUrl}
+                      alt={image.title}
+                      className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200"
+                    />
+                    {/* 悬停遮罩 */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-0 left-0 right-0 p-2">
+                        <p className="text-xs font-medium text-white truncate">{image.title}</p>
+                        <p className="text-[10px] text-white truncate">{image.subtitle}</p>
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  {/* 下载按钮 */}
+                  <button
+                    onClick={(e) => {
+                      handleDownloadImage(image.imageUrl!, image.downname);
+                    }}
+                    className="absolute top-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur opacity-0 group-hover:opacity-100"
+                    title="下载图片"
+                  >
+                    <Download className="w-3 h-3" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
