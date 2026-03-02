@@ -1,6 +1,7 @@
 import { GenerateContentResponse, GoogleGenAI, Type } from "@google/genai";
-import { Scene, ScriptData, Shot } from "../types";
-import { PROMPT_TEMPLATES } from "./promptTemplates";
+import { Scene, ScriptData, Shot } from "../../types";
+import { PROMPT_TEMPLATES } from "../promptTemplates";
+import { retryOperation, cleanJsonString } from "../../utils/apiHelper";
 
 // Module-level variable to store the key at runtime
 let runtimeApiKey: string = "";
@@ -13,35 +14,6 @@ export const setApiKey = (key: string) => {
 const getAiClient = () => {
   if (!runtimeApiKey) throw new Error("API Key missing. Please configure your Gemini API Key.");
   return new GoogleGenAI({ apiKey: runtimeApiKey });
-};
-
-// Helper for retry logic on 429 errors
-const retryOperation = async <T>(operation: () => Promise<T>, maxRetries: number = 1, baseDelay: number = 2000): Promise<T> => {
-  let lastError;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (e: any) {
-      lastError = e;
-      // Check for quota/rate limit errors (429)
-      if (e.status === 429 || e.code === 429 || e.message?.includes('429') || e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) {
-        const delay = baseDelay * Math.pow(2, i);
-        console.warn(`Hit rate limit, retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      throw e; // Throw other errors immediately
-    }
-  }
-  throw lastError;
-};
-
-// Helper to clean JSON string from Markdown fences or accidental text
-const cleanJsonString = (str: string): string => {
-  if (!str) return "{}";
-  // Remove ```json ... ``` or ``` ... ```
-  let cleaned = str.replace(/```json\n?/g, '').replace(/```/g, '');
-  return cleaned.trim();
 };
 
 /**

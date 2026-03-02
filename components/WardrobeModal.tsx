@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { PROMPT_TEMPLATES } from '../services/promptTemplates';
 import { Character, CharacterVariation, ProjectState } from '../types';
-import FileUploadModal from './FileUploadModal';
+import FileUploadModal, { downloadImage } from './FileUploadModal';
 import { useDialog } from './dialog';
 
 interface Props {
@@ -123,23 +123,7 @@ const WardrobeModal: React.FC<Props> = ({
   };
 
   const handleDownloadImage = async (imageUrl: string, name: string) => {
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${name}.png`;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Download failed:', error);
-      await dialog.alert({ title: '错误', message: '下载失败，请重试。'+error?.message, type: 'error' });
-    }
+    await downloadImage(imageUrl, `${name}.png`, dialog);
   };
 
   const handleFileUploadClick = (varId: string) => {

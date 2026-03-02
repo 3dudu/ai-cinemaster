@@ -3,6 +3,62 @@ import React, { useRef, useState } from 'react';
 import { uploadBase64File } from '../utils/fileUploadUtils';
 import { useDialog } from './dialog';
 
+// 导出下载工具函数供其他组件使用
+export const downloadImage = async (imageUrl: string, filename: string, dialogInstance: ReturnType<typeof useDialog>) => {
+  try {
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Download failed:', error);
+    await dialogInstance.alert({ title: '错误', message: '下载失败，请重试。'+error?.message, type: 'error' });
+  }
+};
+
+export const downloadVideo = async (videoUrl: string, filename: string, dialogInstance: ReturnType<typeof useDialog>) => {
+  try {
+    const response = await fetch(videoUrl);
+    if (!response.ok) {
+      throw new Error(`下载失败: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.download = filename;
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    await dialogInstance.alert({
+      title: '成功',
+      message: '视频下载已开始',
+      type: 'success',
+    });
+  } catch (error: any) {
+    console.error('下载视频失败:', error);
+    await dialogInstance.alert({
+      title: '错误',
+      message: `下载视频失败: ${error.message}`,
+      type: 'error',
+    });
+  }
+};
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;

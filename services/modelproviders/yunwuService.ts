@@ -1,7 +1,8 @@
-// services/yunwuService.ts
+// services/modelproviders/yunwuService.ts
 
-import { ScriptData, Shot } from "../types";
-import { PROMPT_TEMPLATES } from "./promptTemplates";
+import { ScriptData, Shot } from "../../types";
+import { PROMPT_TEMPLATES } from "../promptTemplates";
+import { retryOperation, fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 
 // 云雾API配置
 const YUNWU_CONFIG = {
@@ -57,73 +58,20 @@ const getAuthHeaders = () => {
   };
 };
 
-// Helper for retry logic
-const retryOperation = async <T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 1,
-  baseDelay: number = 2000
-): Promise<T> => {
-  let lastError: Error | null = null;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (e: any) {
-      lastError = e;
-      // Check for quota/rate limit errors (429)
-      if (
-        e.status === 429 ||
-        e.code === 429 ||
-        e.message?.includes("429") ||
-        e.message?.includes("quota") ||
-        e.message?.includes("RATE_LIMIT")
-      ) {
-        const delay = baseDelay * Math.pow(2, i);
-        console.warn(
-          `Hit rate limit, retrying in ${delay}ms... (Attempt ${
-            i + 1
-          }/${maxRetries})`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
-      }
-      throw e;
-    }
-  }
-  throw lastError;
-};
-
 // Helper to make HTTP requests to Yunwu API
 const fetchWithRetry = async (
   endpoint: string,
   options: RequestInit,
   retries: number = 1
 ): Promise<any> => {
-  return retryOperation(async () => {
-    const response = await fetch(endpoint, {
-      ...options,
-      headers: {
-        ...getAuthHeaders(),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `API Error (${response.status}): ${error.error?.message || error.message || error.error}`
-      );
-    }
-
-    return response.json();
-  }, retries);
-};
-
-// Helper to clean JSON string from Markdown fences
-const cleanJsonString = (str: string): string => {
-  if (!str) return "{}";
-  // Remove ```json ... ``` or ``` ... ```
-  let cleaned = str.replace(/```json\n?/g, "").replace(/```/g, "");
-  return cleaned.trim();
+  const requestOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options.headers,
+    },
+  };
+  return apiFetchWithRetry(endpoint, requestOptions, retries, true);
 };
 
 /**

@@ -1,5 +1,7 @@
-// services/bigmoreService.ts
+// services/modelproviders/bigmoreService.ts
 // BigMore AI 视频生成服务
+
+import { fetchWithRetry, pollTask } from '../../utils/apiHelper';
 
 const BIGMORE_CONFIG = {
   // 视频生成模型
@@ -101,28 +103,25 @@ export async function generateVideo(
       requestBody.translation = false;
     }
     // 处理起始图片（图生视频）
+    const refImages: string[] = [];
+
     if (startImageBase64) {
-      const match = startImageBase64.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+      if (startImageBase64.startsWith('http')) {
+        // URL 格式
+        refImages.push(startImageBase64);
+      }
+    }
+    if (endImageBase64 && !fullFrame) {
+      if (endImageBase64.startsWith('http')) {
+        // URL 格式
+        refImages.push(endImageBase64);
+      }
+    }
+    if(refImages.length > 0){
       if(runtimeVideoModel.includes('sora')){
-        if (match) {
-          // base64 格式 - 需要上传到服务器获取 URL，这里简化处理
-          requestBody.imageList = [startImageBase64];
-        } else if (startImageBase64.startsWith('http')) {
-          // URL 格式
-          requestBody.imageList = [startImageBase64];
-        } else {
-          requestBody.imageList = [startImageBase64];
-        }
+        requestBody.imageList = refImages;
       }else{
-        if (match) {
-          // base64 格式 - 需要上传到服务器获取 URL，这里简化处理
-          requestBody.images = [startImageBase64];
-        } else if (startImageBase64.startsWith('http')) {
-          // URL 格式
-          requestBody.images = [startImageBase64];
-        } else {
-          requestBody.images = [startImageBase64];
-        }
+        requestBody.images = refImages;
       }
     }
 
@@ -134,7 +133,7 @@ export async function generateVideo(
       endpoint = '/ai/sora/video/generate';
     }
     const aikey = runtimeApiKey.split(':')[0];
-    const generateResponse = await fetch(runtimeApiUrl+endpoint, {
+    const generateData = await fetchWithRetry(runtimeApiUrl+endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -143,18 +142,11 @@ export async function generateVideo(
       body: JSON.stringify(requestBody)
     });
 
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
-      throw new Error(`BigMore 生成请求失败: ${generateResponse.status} - ${errorText}`);
-    }
-
-    const generateData = await generateResponse.json();
-    
     // 根据响应格式获取任务ID
     if (generateData.code !== 0) {
       throw new Error(`BigMore 生成请求失败: ${generateData.info || '未知错误'}`);
     }
-    
+
     const taskId = generateData.result?.taskCode;
 
     if (!taskId) {
@@ -188,18 +180,12 @@ async function getTaskStatus(taskId: string): Promise<any> {
 
   const statusUrl = `${runtimeApiUrl}${endpoint}?accountPass=${accountPass}&code=${taskId}`;
 
-  const response = await fetch(statusUrl, {
+  return fetchWithRetry(statusUrl, {
     method: 'GET',
     headers: {
       'AIKey': aikey
     }
   });
-
-  if (!response.ok) {
-    throw new Error(`BigMore 查询任务状态失败: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 /**
@@ -208,46 +194,34 @@ async function getTaskStatus(taskId: string): Promise<any> {
  * @returns 视频URL
  */
 async function pollTaskStatus(taskId: string): Promise<string> {
-  const maxAttempts = 300; // 最多等待5分钟（每次1秒）
-  const pollInterval = 10000; // 1秒
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const taskData = await getTaskStatus(taskId);
-
-      console.log('查询任务状态:', taskData);
-      // 检查响应状态码
-      if (taskData.code !== 0) {
-        throw new Error(`BigMore 查询失败: ${taskData.info || '未知错误'}`);
+  const videoUrl = await pollTask(
+    () => getTaskStatus(taskId),
+    (data) => {
+      if (data.code !== 0) {
+        throw new Error(`BigMore 查询失败: ${data.info || '未知错误'}`);
       }
-
-      // 检查任务状态
-      const result = taskData.result;
-      const status = result?.status;
-
-      if (status === 1) {
-        // 任务完成
-        const videoUrl = result?.videoUrl;
-        if (videoUrl) {
-          console.log('BigMore 视频生成成功:', videoUrl);
-          return videoUrl;
-        }
-      } else {
-        // 其他状态，继续等待
-        console.log(`BigMore 任务状态: ${status}`);
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      const status = data.result?.status;
+      return status === 1 ? 'success' : 'pending';
+    },
+    (data) => data.result?.videoUrl,
+    (data) => {
+      if (data.code !== 0) {
+        return data.info || '未知错误';
       }
-    } catch (error) {
-      if (attempt === maxAttempts - 1) {
-        throw error;
-      }
-      if (error instanceof Error){
-        throw error;
-      }
-      console.warn(`BigMore 查询任务状态失败 (尝试 ${attempt + 1}/${maxAttempts}):`, error);
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      return data.result?.error || '未知错误';
+    },
+    {
+      maxAttempts: 300,
+      pollInterval: 10000,
+      successStatuses: ['success'],
+      failedStatuses: [],
+      pendingStatuses: ['pending']
     }
+  );
+
+  if (videoUrl) {
+    return videoUrl;
   }
 
-  throw new Error('BigMore 视频生成超时，请稍后重试');
+  throw new Error('BigMore 视频生成失败，无法获取视频URL');
 }

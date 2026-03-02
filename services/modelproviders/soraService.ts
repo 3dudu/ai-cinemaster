@@ -1,7 +1,8 @@
-// services/soraService.ts
+// services/modelproviders/soraService.ts
 // Sora 视频生成服务
 
-import { mapStyleToEnglish } from '../utils/styleMapping';
+import { fetchWithRetry, pollTask } from '../../utils/apiHelper';
+import { mapStyleToEnglish } from '../../utils/styleMapping';
 
 const SORA_CONFIG = {
   // 视频生成模型
@@ -132,22 +133,16 @@ export async function generateVideo(
         formData.append('input_reference', blob, 'input.png');
       }
     }
-
     // console.log('调用 Sora 视频生成:', formData);
-
     // 发送生成请求
-    const generateResponse = await fetch(runtimeApiUrl, {
+    const generateResponse = await fetchWithRetry(runtimeApiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${runtimeApiKey}`
+        'Authorization': `Bearer ${runtimeApiKey}`,
+        'Content-Type': 'multipart/form-data'
       },
       body: formData
-    });
-
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
-      throw new Error(`Sora 生成请求失败: ${generateResponse.status} - ${errorText}`);
-    }
+    }, 1, false);
 
     const generateData = await generateResponse.json();
     const taskId = generateData.id || generateData.task_id;
@@ -175,19 +170,13 @@ export async function generateVideo(
 async function getTaskStatus(taskId: string): Promise<any> {
   const statusUrl = `${runtimeApiUrl}/${taskId}`;
 
-  const response = await fetch(statusUrl, {
+  return fetchWithRetry(statusUrl, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
       'Authorization': `Bearer ${runtimeApiKey}`
     }
   });
-
-  if (!response.ok) {
-    throw new Error(`Sora 查询任务状态失败: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 /**
@@ -198,19 +187,13 @@ async function getTaskStatus(taskId: string): Promise<any> {
 async function getVideoContentUrl(taskId: string): Promise<string> {
   const contentUrl = `${runtimeApiUrl}/${taskId}/content`;
 
-  const response = await fetch(contentUrl, {
+  const data = await fetchWithRetry(contentUrl, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
       'Authorization': `Bearer ${runtimeApiKey}`
     }
   });
-
-  if (!response.ok) {
-    throw new Error(`Sora 获取视频内容失败: ${response.status}`);
-  }
-
-  const data = await response.json();
   // 根据接口返回格式获取视频URL
   return data.url || data.video_url || data.data?.url || data.data?.video_url;
 }
@@ -221,58 +204,41 @@ async function getVideoContentUrl(taskId: string): Promise<string> {
  * @returns 视频URL
  */
 async function pollTaskStatus(taskId: string): Promise<string> {
-  const maxAttempts = 120; // 最多等待3分钟（每次1秒）
-  const pollInterval = 10000; // 1秒
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const taskData = await getTaskStatus(taskId);
-
-      // 检查任务状态
-      // Sora 可能的状态: 'processing', 'succeeded', 'failed', 'canceled'
-      const status = taskData.status || taskData.data?.status;
-
-      if (status === 'succeeded' || status === 'completed' || status === 'Success') {
-        // 任务完成，调用 content 接口获取视频URL
-        try {
-          const videoUrl = await getVideoContentUrl(taskId);
-          if (videoUrl) {
-            // console.log('Sora 视频生成成功:', videoUrl);
-            return videoUrl;
-          }
-        } catch (contentError) {
-          console.error('获取视频内容URL失败:', contentError);
-          // 如果 content 接口失败，尝试从状态接口返回的数据中获取
-          const fallbackUrl = taskData?.video_url;
-          if (fallbackUrl) {
-            return fallbackUrl;
-          }
-          throw contentError;
-        }
-      } else if (status === 'failed' || status === 'error' || status === 'Failed' || status === 'canceled' || status === 'Cancelled') {
-        // 任务失败
-        const errorMsg = taskData.error?.message ||
-                      taskData.error_msg ||
-                      taskData.message ||
-                      '未知错误';
-        throw new Error(`Sora 视频生成失败: ${errorMsg}`);
-      } else if (status === 'processing' || status === 'in_progress' || status === 'pending' || status === 'Pending' || status === 'Running' || status === 'Waiting') {
-        // 任务进行中，继续等待
-        // console.log(`Sora 任务进行中... (${attempt + 1}/${maxAttempts})`);
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-      } else {
-        // 其他状态，继续等待
-        // console.log(`Sora 任务状态: ${status}`);
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-      }
-    } catch (error) {
-      if (attempt === maxAttempts - 1) {
-        throw error;
-      }
-      console.warn(`Sora 查询任务状态失败 (尝试 ${attempt + 1}/${maxAttempts}):`, error);
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+  const taskData = await pollTask(
+    () => getTaskStatus(taskId),
+    (data) => data.status || data.data?.status,
+    (data) => {
+      // 从状态数据中获取视频URL
+      const url = data.url || data.video_url || data.data?.url || data.data?.video_url;
+      return url;
+    },
+    (data) => {
+      // 获取错误信息
+      return data.error?.message || data.error_msg || data.message || '未知错误';
+    },
+    {
+      maxAttempts: 120,
+      pollInterval: 10000,
+      successStatuses: ['succeeded', 'completed', 'Success'],
+      failedStatuses: ['failed', 'error', 'Failed', 'canceled', 'Cancelled'],
+      pendingStatuses: ['processing', 'in_progress', 'pending', 'Pending', 'Running', 'Waiting']
     }
+  );
+
+  // 任务完成后，尝试通过 content 接口获取视频URL
+  try {
+    const videoUrl = await getVideoContentUrl(taskId);
+    if (videoUrl) {
+      return videoUrl;
+    }
+  } catch (contentError) {
+    console.warn('获取视频内容URL失败，使用轮询返回的URL:', contentError);
   }
 
-  throw new Error('Sora 视频生成超时，请稍后重试');
+  // 返回轮询获取的URL
+  if (taskData) {
+    return taskData;
+  }
+
+  throw new Error('Sora 视频生成失败，无法获取视频URL');
 }

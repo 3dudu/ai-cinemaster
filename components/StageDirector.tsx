@@ -4,7 +4,7 @@ import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Keyframe, ProjectState, Scene, Shot } from '../types';
-import FileUploadModal from './FileUploadModal';
+import FileUploadModal, { downloadVideo } from './FileUploadModal';
 import SceneEditModal from './SceneEditModal';
 import ShotEditModal from './ShotEditModal';
 import WardrobeModal from './WardrobeModal';
@@ -357,39 +357,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       return;
     }
 
-    try {
-      const response = await fetch(shot.interval.videoUrl);
-      if (!response.ok) {
-        throw new Error(`下载失败: ${response.statusText}`);
-      }
+    // 生成文件名：shot_id_序号_标题.mp4
+    const shotNumber = project.shots.findIndex(s => s.id === shot.id) + 1;
+    const filename = `shot_${shotNumber.toString().padStart(3, '0')}.mp4`;
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.target = '_blank';
-      // 生成文件名：shot_id_序号_标题.mp4
-      const shotNumber = project.shots.findIndex(s => s.id === shot.id) + 1;
-      a.download = `shot_${shotNumber.toString().padStart(3, '0')}.mp4`;
-
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      await dialog.alert({
-        title: '成功',
-        message: '视频下载已开始',
-        type: 'success',
-      });
-    } catch (error: any) {
-      console.error('下载视频失败:', error);
-      await dialog.alert({
-        title: '错误',
-        message: `下载视频失败: ${error.message}`,
-        type: 'error',
-      });
-    }
+    await downloadVideo(shot.interval.videoUrl, filename, dialog);
   };
 
   const deleteShot = async (shotId: string) => {

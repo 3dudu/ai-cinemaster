@@ -1,5 +1,7 @@
-// services/minimaxService.ts
+// services/modelproviders/minimaxService.ts
 // MiniMax 海螺视频生成服务
+
+import { fetchWithRetry, pollTask } from '../../utils/apiHelper';
 
 const MINIMAX_CONFIG = {
   // 视频生成模型
@@ -98,7 +100,7 @@ export async function generateVideo(
     //console.log('调用 MiniMax 海螺视频生成:', requestBody);
 
     // 发送生成请求
-    const generateResponse = await fetch(runtimeApiUrl, {
+    const generateData = await fetchWithRetry(runtimeApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -107,12 +109,6 @@ export async function generateVideo(
       body: JSON.stringify(requestBody)
     });
 
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
-      throw new Error(`MiniMax 生成请求失败: ${generateResponse.status} - ${errorText}`);
-    }
-
-    const generateData = await generateResponse.json();
     const taskId = generateData.task_id;
 
     if (!taskId) {
@@ -138,18 +134,12 @@ export async function generateVideo(
 async function getTaskStatus(taskId: string): Promise<any> {
   const statusUrl = `${runtimeApiUrl.replace('/video_generation', '')}/query/video_generation`;
 
-  const response = await fetch(`${statusUrl}?task_id=${taskId}`, {
+  return fetchWithRetry(`${statusUrl}?task_id=${taskId}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${runtimeApiKey}`
     }
   });
-
-  if (!response.ok) {
-    throw new Error(`MiniMax 查询任务状态失败: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 /**

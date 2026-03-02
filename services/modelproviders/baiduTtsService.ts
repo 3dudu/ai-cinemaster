@@ -1,10 +1,11 @@
-
+// services/modelproviders/baiduTtsService.ts
 // 百度语音合成服务
+import { fetchWithRetry } from '../../utils/apiHelper';
+
 const TTS_URL = 'https://tsn.baidu.com';
 
 let runtimeApiKey: string = '';
 let runtimeApiUrl: string = TTS_URL;
-
 
 /**
  * 设置 API Key 和 Secret Key
@@ -16,83 +17,6 @@ export function setApiKey(apiKeyParam: string) {
 export function setApiUrl(url: string): void {
   runtimeApiUrl = url || TTS_URL;
 }
-
-/**
- * URL 编码（RFC 3986）
- */
-function encodeURIComponentRFC3986(str: string): string {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
-    return '%' + c.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-
-
-// Helper for retry logic
-const retryOperation = async <T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 1,
-  baseDelay: number = 2000
-): Promise<T> => {
-  let lastError: Error | null = null;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (e: any) {
-      lastError = e;
-      // Check for quota/rate limit errors (429)
-      if (
-        e.status === 429 ||
-        e.code === 429 ||
-        e.message?.includes("429") ||
-        e.message?.includes("quota") ||
-        e.message?.includes("RATE_LIMIT")
-      ) {
-        const delay = baseDelay * Math.pow(2, i);
-        console.warn(
-          `Hit rate limit, retrying in ${delay}ms... (Attempt ${
-            i + 1
-          }/${maxRetries})`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
-      }
-      throw e;
-    }
-  }
-  throw lastError;
-};
-
-const getAuthHeaders = () => {
-  return {
-    "Authorization": `Bearer ${runtimeApiKey}`,
-    "Content-Type": "application/json",
-  };
-};
-
-const fetchWithRetry = async (
-  endpoint: string,
-  options: RequestInit,
-  retries: number = 1
-): Promise<any> => {
-  return retryOperation(async () => {
-    const response = await fetch(endpoint, {
-      ...options,
-      headers: {
-        ...getAuthHeaders(),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `API Error (${response.status}): ${error.error?.message || error.message}`
-      );
-    }
-
-    return response;
-  }, retries);
-};
 
 /**
  * 文本转语音
@@ -159,7 +83,7 @@ export async function textToSpeech(
         'Authorization': `Bearer ${runtimeApiKey}`,
       },
       body: formData.toString(),
-    });
+    }, 1, false);
     // 检查 Content-Type
     const contentType = response.headers.get('Content-Type');
 

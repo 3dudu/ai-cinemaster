@@ -1,5 +1,7 @@
-// services/skyreelsService.ts
+// services/modelproviders/skyreelsService.ts
 // SkyReels 视频生成服务
+
+import { fetchWithRetry, pollTask } from '../../utils/apiHelper';
 
 const SKYREELS_CONFIG = {
   // 视频生成模型
@@ -89,17 +91,12 @@ export async function generateVideo(
     if (startImageBase64) {
       if (startImageBase64.startsWith('http')) {
         refImages.push(startImageBase64);
-      } else {
-        // base64 格式，直接使用
-        refImages.push(startImageBase64);
       }
     }
 
     // 处理结束图片（如果不是宫格模式）
     if (endImageBase64 && !fullFrame) {
       if (endImageBase64.startsWith('http')) {
-        refImages.push(endImageBase64);
-      } else {
         refImages.push(endImageBase64);
       }
     }
@@ -123,7 +120,7 @@ export async function generateVideo(
     };
 
     // 发送生成请求
-    const generateResponse = await fetch(runtimeApiUrl, {
+    const generateData = await fetchWithRetry(runtimeApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -131,12 +128,6 @@ export async function generateVideo(
       body: JSON.stringify(requestBody)
     });
 
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
-      throw new Error(`SkyReels 生成请求失败: ${generateResponse.status} - ${errorText}`);
-    }
-
-    const generateData = await generateResponse.json();
     const taskId = generateData.task_id;
 
     if (!taskId) {
@@ -160,18 +151,12 @@ export async function generateVideo(
 async function getTaskStatus(taskId: string): Promise<any> {
   const statusUrl = `${SKYREELS_CONFIG.TASK_ENDPOINT}/${taskId}`;
 
-  const response = await fetch(statusUrl, {
+  return fetchWithRetry(statusUrl, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
     }
   });
-
-  if (!response.ok) {
-    throw new Error(`SkyReels 查询任务状态失败: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 /**
@@ -180,45 +165,38 @@ async function getTaskStatus(taskId: string): Promise<any> {
  * @returns 视频URL
  */
 async function pollTaskStatus(taskId: string): Promise<string> {
-  const maxAttempts = 120; // 最多等待20分钟（每次10秒）
-  const pollInterval = 10000; // 10秒
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const taskData = await getTaskStatus(taskId);
-
-      // 检查任务状态
-      // SkyReels 可能的状态: 'pending', 'processing', 'completed', 'failed'
-      const status = taskData.status;
-      if (taskData.code !== 200){
-        throw new Error(`SkyReels 获取任务状态失败: ${taskData.message}`);
+  const videoUrl = await pollTask(
+    () => getTaskStatus(taskId),
+    (data) => {
+      if (data.code !== 200) {
+        throw new Error(`SkyReels 获取任务状态失败: ${data.message}`);
       }
-
-      if (taskData.data) {
-        // 任务完成
-        const videoUrl = taskData.data?.video_url;
-        if (videoUrl) {
-          return videoUrl;
-        }
-      } else if (status === 'failed') {
-        // 任务失败
-        const errorMsg = taskData.error_message || taskData.message || '未知错误';
-        throw new Error(`SkyReels 视频生成失败: ${errorMsg}`);
-      } else if (status === 'pending' || status === 'running' || status === 'unknown' || status === 'submitted') {
-        // 任务进行中，继续等待
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-      } else {
-        // 其他状态，继续等待
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      return data.data ? 'success' : data.status;
+    },
+    (data) => {
+      if (data.data) {
+        return data.data?.video_url;
       }
-    } catch (error) {
-      if (attempt === maxAttempts - 1) {
-        throw error;
+      return undefined;
+    },
+    (data) => {
+      if (data.code !== 200) {
+        return data.message;
       }
-      console.warn(`SkyReels 查询任务状态失败 (尝试 ${attempt + 1}/${maxAttempts}):`, error);
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      return data.error_message || data.message || '未知错误';
+    },
+    {
+      maxAttempts: 120,
+      pollInterval: 10000,
+      successStatuses: ['success'],
+      failedStatuses: ['failed'],
+      pendingStatuses: ['pending', 'running', 'unknown', 'submitted']
     }
+  );
+
+  if (videoUrl) {
+    return videoUrl;
   }
 
-  throw new Error('SkyReels 视频生成超时，请稍后重试');
+  throw new Error('SkyReels 视频生成失败，无法获取视频URL');
 }

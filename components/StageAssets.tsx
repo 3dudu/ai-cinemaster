@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { VOICE_LIBRARY } from '../config/voiceLibrary';
 import { ModelService } from '../services/modelService';
 import { ProjectState } from '../types';
-import FileUploadModal from './FileUploadModal';
+import FileUploadModal, { downloadImage } from './FileUploadModal';
 import WardrobeModal from './WardrobeModal';
 import { useDialog } from './dialog';
 
@@ -225,28 +225,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   };
 
   const handleDownloadImage = async (imageUrl: string, charName: string) => {
-    try {
-      // Fetch the image
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${charName}.png`;
-      link.target = "_blank";
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Download failed:', error);
-      await dialog.alert({ title: '错误', message: '下载失败，请重试。'+error?.message, type: 'error' });
-    }
+    await downloadImage(imageUrl, `${charName}.png`, dialog);
   };
 
   if (!project.scriptData) return (

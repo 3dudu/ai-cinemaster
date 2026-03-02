@@ -1,5 +1,7 @@
-// services/klingService.ts
+// services/modelproviders/klingService.ts
 // Kling 可灵视频生成服务
+
+import { fetchWithRetry, pollTask } from '../../utils/apiHelper';
 
 const KLING_CONFIG = {
   // 视频生成模型
@@ -115,7 +117,7 @@ export async function generateVideo(
     //console.log('调用 Kling 可灵视频生成:', requestBody);
 
     // 发送生成请求
-    const generateResponse = await fetch(runtimeApiUrl, {
+    const generateData = await fetchWithRetry(runtimeApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -124,12 +126,6 @@ export async function generateVideo(
       body: JSON.stringify(requestBody)
     });
 
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
-      throw new Error(`Kling 生成请求失败: ${generateResponse.status} - ${errorText}`);
-    }
-
-    const generateData = await generateResponse.json();
     const taskId = generateData.task_id;
 
     if (!taskId) {
@@ -156,18 +152,12 @@ async function getTaskStatus(taskId: string): Promise<any> {
   // 从生成URL推断查询URL
   const queryUrl = runtimeApiUrl;
 
-  const response = await fetch(`${queryUrl}/${taskId}`, {
+  return fetchWithRetry(`${queryUrl}/${taskId}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${runtimeApiKey}`
     }
   });
-
-  if (!response.ok) {
-    throw new Error(`Kling 查询任务状态失败: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 /**
@@ -176,45 +166,23 @@ async function getTaskStatus(taskId: string): Promise<any> {
  * @returns 视频URL
  */
 async function pollTaskStatus(taskId: string): Promise<string> {
-  const maxAttempts = 120; // 最多等待2分钟（每次1秒）
-  const pollInterval = 10000; // 1秒
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const taskData = await getTaskStatus(taskId);
-
-      // 检查任务状态
-      // 根据云雾API的响应格式，状态可能在 data.data.status 或 data.status
-      const status = taskData.data?.data?.status || taskData.data?.status;
-
-      if (status === 'Succeeded' || status === 'Success') {
-        // 任务完成
-        const videoUrl = taskData.data?.data?.file?.download_url || taskData.data?.file?.download_url || taskData.data?.data?.video_url || taskData.data?.video_url;
-        if (videoUrl) {
-          //console.log('Kling 视频生成成功:', videoUrl);
-          return videoUrl;
-        }
-      } else if (status === 'Failed' || status === 'Error') {
-        // 任务失败
-        const errorMsg = taskData.error_msg || taskData.message || taskData.data?.error_msg || '未知错误';
-        throw new Error(`Kling 视频生成失败: ${errorMsg}`);
-      } else if (status === 'Processing' || status === 'Running' || status === 'Pending') {
-        // 任务进行中，继续等待
-        //console.log(`Kling 任务进行中... (${attempt + 1}/${maxAttempts})`);
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-      } else {
-        // 其他状态，继续等待
-        //console.log(`Kling 任务状态: ${status}`);
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-      }
-    } catch (error) {
-      if (attempt === maxAttempts - 1) {
-        throw error;
-      }
-      console.warn(`Kling 查询任务状态失败 (尝试 ${attempt + 1}/${maxAttempts}):`, error);
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+  const videoUrl = await pollTask(
+    () => getTaskStatus(taskId),
+    (data) => data.data?.data?.status || data.data?.status,
+    (data) => data.data?.data?.file?.download_url || data.data?.file?.download_url || data.data?.data?.video_url || data.data?.video_url,
+    (data) => data.error_msg || data.message || data.data?.error_msg || '未知错误',
+    {
+      maxAttempts: 120,
+      pollInterval: 10000,
+      successStatuses: ['Succeeded', 'Success'],
+      failedStatuses: ['Failed', 'Error'],
+      pendingStatuses: ['Processing', 'Running', 'Pending']
     }
+  );
+
+  if (videoUrl) {
+    return videoUrl;
   }
 
-  throw new Error('Kling 视频生成超时，请稍后重试');
+  throw new Error('Kling 视频生成失败，无法获取视频URL');
 }

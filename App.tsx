@@ -10,8 +10,8 @@ import StageExport from './components/StageExport';
 import StageScript from './components/StageScript';
 import { DialogProvider } from './components/dialog';
 
-import { initializeCozeConfig } from './services/cozeService';
-import { setGlobalApiKey } from './services/doubaoService';
+import { initializeCozeConfig } from './services/modelproviders/cozeService';
+import { setGlobalApiKey } from './services/modelproviders/doubaoService';
 import { ModelService } from './services/modelService';
 import { saveProjectToDB } from './services/storageService';
 import { ProjectState } from './types';

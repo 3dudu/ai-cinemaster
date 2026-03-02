@@ -1,6 +1,6 @@
 import { AlertCircle, BarChart3, Check, CheckCircle, Download, Film, Loader2, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { initializeCozeConfig, submitWorkflow } from '../services/cozeService';
+import { initializeCozeConfig, submitWorkflow } from '../services/modelproviders/cozeService';
 import { ProjectState } from '../types';
 import { uploadFileToService } from "../utils/fileUploadUtils";
 

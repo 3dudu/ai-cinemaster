@@ -18,7 +18,7 @@ import {
   setApiKey as setDeepseekApiKey,
   setApiUrl as setDeepseekApiUrl,
   setModel as setDeepseekModel
-} from "./deepseekService";
+} from "./modelproviders/deepseekService";
 
 // Gemini 方法
 import {
@@ -30,7 +30,7 @@ import {
   generateVisualPrompts as generateVisualPromptsGemini,
   parseScriptToData as parseScriptToDataGemini,
   setApiKey as setGeminiApiKey
-} from "./geminiService";
+} from "./modelproviders/geminiService";
 
 // Yunwu 方法
 import {
@@ -44,7 +44,7 @@ import {
   setApiKey as setYunwuApiKey,
   setApiUrl as setYunwuApiUrl,
   setModel as setYunwuModel
-} from "./yunwuService";
+} from "./modelproviders/yunwuService";
 
 // OpenAI 方法
 import {
@@ -57,7 +57,7 @@ import {
   parseScriptToData as parseScriptToDataOpenai,
   setApiKey as setOpenaiApiKey,
   setModel as setOpenaiModel
-} from "./openaiService";
+} from "./modelproviders/openaiService";
 
 // Doubao 方法
 import {
@@ -71,7 +71,7 @@ import {
   setApiKey as setDoubaoApiKey,
   setApiUrl as setDoubaoApiUrl,
   setModel as setDoubaoModel
-} from "./doubaoService";
+} from "./modelproviders/doubaoService";
 
 // MiniMax 方法
 import {
@@ -79,7 +79,7 @@ import {
   setApiKey as setMinimaxApiKey,
   setApiUrl as setMinimaxApiUrl,
   setModel as setMinimaxModel
-} from "./minimaxService";
+} from "./modelproviders/minimaxService";
 
 // Kling 方法
 import {
@@ -87,7 +87,7 @@ import {
   setApiKey as setKlingApiKey,
   setApiUrl as setKlingApiUrl,
   setModel as setKlingModel
-} from "./klingService";
+} from "./modelproviders/klingService";
 
 // Sora 方法
 import {
@@ -95,7 +95,7 @@ import {
   setApiKey as setSoraApiKey,
   setApiUrl as setSoraApiUrl,
   setModel as setSoraModel
-} from "./soraService";
+} from "./modelproviders/soraService";
 
 // Wan 方法
 import {
@@ -103,7 +103,7 @@ import {
   setApiKey as setWanApiKey,
   setApiUrl as setWanApiUrl,
   setModel as setWanModel
-} from "./wanService";
+} from "./modelproviders/wanService";
 
 // BigMore 方法
 import {
@@ -111,7 +111,7 @@ import {
   setApiKey as setBigmoreApiKey,
   setApiUrl as setBigmoreApiUrl,
   setModel as setBigmoreModel
-} from "./bigmoreService";
+} from "./modelproviders/bigmoreService";
 
 // SkyReels 方法
 import {
@@ -119,7 +119,7 @@ import {
   setApiKey as setSkyreelsApiKey,
   setApiUrl as setSkyreelsApiUrl,
   setModel as setSkyreelsModel
-} from "./skyreelsService";
+} from "./modelproviders/skyreelsService";
 
 // Baidu TTS 方法
 import {
@@ -127,7 +127,7 @@ import {
   setApiKey as setBaiduApiKey,
   setApiUrl as setBaiduApiUrl,
   textToSpeech as textToSpeechBaidu
-} from "./baiduTtsService";
+} from "./modelproviders/baiduTtsService";
 
 const IMAGE_X = [
   '1','1x1','1x2','1x3','2x2','2x3','2x3','3x3','3x3','3x3'

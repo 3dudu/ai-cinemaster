@@ -1,5 +1,7 @@
-// services/wanService.ts
+// services/modelproviders/wanService.ts
 // Wan 视频生成服务 (通义万象)
+
+import { fetchWithRetry, pollTask } from '../../utils/apiHelper';
 
 const WAN_CONFIG = {
   // 视频生成模型
@@ -87,30 +89,16 @@ export async function generateVideo(
       },
       parameters: {
         resolution: '720P',
-        prompt_extend: true,
-        audio: true
+        prompt_extend: false,
+        audio: false
       }
     };
-
+    if (runtimeVideoModel.includes('wan2.5-i2v-preview')){
+      requestBody.parameters.audio = true;
+    }
     // 处理起始图片
     if (startImageBase64) {
-      if (startImageBase64.startsWith('http')) {
-        // URL 格式
         requestBody.input.img_url = startImageBase64;
-      } else {
-        // base64 格式，需要上传到图床或直接使用（根据API支持情况）
-        // 这里假设 API 支持 base64 或需要转换为 URL
-        requestBody.input.img_url = startImageBase64;
-      }
-    }
-
-    // 处理结束图片（如果不是宫格模式）
-    if (endImageBase64 && !fullFrame) {
-      if (endImageBase64.startsWith('http')) {
-        requestBody.input.end_img_url = endImageBase64;
-      } else {
-        requestBody.input.end_img_url = endImageBase64;
-      }
     }
 
     // 设置时长（如果 API 支持）
@@ -121,7 +109,7 @@ export async function generateVideo(
     // console.log('调用 Wan 视频生成:', requestBody);
 
     // 发送生成请求
-    const generateResponse = await fetch(runtimeApiUrl, {
+    const generateData = await fetchWithRetry(runtimeApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -130,12 +118,6 @@ export async function generateVideo(
       body: JSON.stringify(requestBody)
     });
 
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
-      throw new Error(`Wan 生成请求失败: ${generateResponse.status} - ${errorText}`);
-    }
-
-    const generateData = await generateResponse.json();
     const taskId = generateData.output?.task_id;
 
     if (!taskId) {
@@ -159,20 +141,14 @@ export async function generateVideo(
  * @returns 任务状态
  */
 async function getTaskStatus(taskId: string): Promise<any> {
-  const statusUrl = `${runtimeApiUrl.replace('/video-synthesis', '')}/video-synthesis/${taskId}`;
+  const statusUrl = `${runtimeApiUrl.replace('/services/aigc/video-generation/video-synthesis', '')}/tasks/${taskId}`;
 
-  const response = await fetch(statusUrl, {
+  return fetchWithRetry(statusUrl, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${runtimeApiKey}`
     }
   });
-
-  if (!response.ok) {
-    throw new Error(`Wan 查询任务状态失败: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 /**
@@ -181,48 +157,23 @@ async function getTaskStatus(taskId: string): Promise<any> {
  * @returns 视频URL
  */
 async function pollTaskStatus(taskId: string): Promise<string> {
-  const maxAttempts = 120; // 最多等待3分钟（每次1秒）
-  const pollInterval = 10000; // 1秒
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const taskData = await getTaskStatus(taskId);
-
-      // 检查任务状态
-      // Wan 可能的状态: 'PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED'
-      const status = taskData.output?.task_status || taskData.task_status;
-
-      if (status === 'SUCCEEDED' || status === 'SUCCESS' || status === 'Success') {
-        // 任务完成
-        const videoUrl = taskData.output?.video_url ||
-                      taskData.output?.url ||
-                      taskData.video_url ||
-                      taskData.url;
-        if (videoUrl) {
-          // console.log('Wan 视频生成成功:', videoUrl);
-          return videoUrl;
-        }
-      } else if (status === 'FAILED' || status === 'Failed' || status === 'CANCELLED' || status === 'Cancelled') {
-        // 任务失败
-        const errorMsg = taskData.message || taskData.error?.message || '未知错误';
-        throw new Error(`Wan 视频生成失败: ${errorMsg}`);
-      } else if (status === 'PENDING' || status === 'RUNNING' || status === 'Pending' || status === 'Running') {
-        // 任务进行中，继续等待
-        // console.log(`Wan 任务进行中... (${attempt + 1}/${maxAttempts})`);
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-      } else {
-        // 其他状态，继续等待
-        // console.log(`Wan 任务状态: ${status}`);
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-      }
-    } catch (error) {
-      if (attempt === maxAttempts - 1) {
-        throw error;
-      }
-      console.warn(`Wan 查询任务状态失败 (尝试 ${attempt + 1}/${maxAttempts}):`, error);
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+  const videoUrl = await pollTask(
+    () => getTaskStatus(taskId),
+    (data) => data.output?.task_status || data.task_status,
+    (data) => data.output?.video_url || data.output?.url || data.video_url || data.url,
+    (data) => data.message || data.error?.message || '未知错误',
+    {
+      maxAttempts: 120,
+      pollInterval: 10000,
+      successStatuses: ['SUCCEEDED', 'SUCCESS', 'Success'],
+      failedStatuses: ['FAILED', 'Failed', 'CANCELLED', 'Cancelled'],
+      pendingStatuses: ['PENDING', 'RUNNING', 'Pending', 'Running']
     }
+  );
+
+  if (videoUrl) {
+    return videoUrl;
   }
 
-  throw new Error('Wan 视频生成超时，请稍后重试');
+  throw new Error('Wan 视频生成失败，无法获取视频URL');
 }

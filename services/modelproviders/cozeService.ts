@@ -1,4 +1,4 @@
-// services/cozeService.ts
+// services/modelproviders/cozeService.ts
 
 // Coze API 配置
 const COZE_CONFIG = {
