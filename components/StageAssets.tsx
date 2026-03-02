@@ -165,7 +165,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   };
 
   const handleDownloadImage = async (imageUrl: string, charName: string) => {
-    await downloadImage(imageUrl, `${charName}.png`, dialog);
+    await downloadImage(imageUrl, `${project.scriptData?.title}-${charName}.png`, dialog);
   };
 
   if (!project.scriptData) return (
@@ -402,7 +402,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       </button>
                       {/* Download Button */}
                       <button
-                        onClick={(e) => { handleDownloadImage(char.referenceImage!, char.name); }}
+                        onClick={(e) => { handleDownloadImage(char.referenceImage!, '角色-'+char.name); }}
                         className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
                         title="下载图片"
                       >
@@ -523,7 +523,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       </button>
                       {/* Download Button */}
                       <button
-                        onClick={(e) => { handleDownloadImage(scene.referenceImage!, scene.location); }}
+                        onClick={(e) => { handleDownloadImage(scene.referenceImage!, '场景-'+scene.location); }}
                         className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
                         title="下载图片"
                       >

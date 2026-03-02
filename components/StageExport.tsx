@@ -257,7 +257,25 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       const videoUrl = shot.interval?.videoUrl;
       if (!videoUrl) continue;
 
+      const response = await fetch(videoUrl);
+      if (!response.ok) {
+        throw new Error(`下载失败: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.download = `${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}.mp4`;
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
       // 创建下载链接
+      /*
       const link = document.createElement('a');
       link.href = videoUrl;
       link.target = '_blank';
@@ -265,7 +283,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
+      */
       // 添加小延迟避免浏览器阻塞
       if (i < shotsToDownload.length - 1) {
         await new Promise(r => setTimeout(r, 500));

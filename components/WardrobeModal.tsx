@@ -123,7 +123,7 @@ const WardrobeModal: React.FC<Props> = ({
   };
 
   const handleDownloadImage = async (imageUrl: string, name: string) => {
-    await downloadImage(imageUrl, `${name}.png`, dialog);
+    await downloadImage(imageUrl, `${project.scriptData?.title}-${character.name}-造型-${name}.png`, dialog);
   };
 
   const handleFileUploadClick = (varId: string) => {

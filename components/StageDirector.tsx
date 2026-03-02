@@ -4,7 +4,7 @@ import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Keyframe, ProjectState, Scene, Shot } from '../types';
-import FileUploadModal, { downloadVideo } from './FileUploadModal';
+import FileUploadModal, { downloadImage, downloadVideo } from './FileUploadModal';
 import SceneEditModal from './SceneEditModal';
 import ShotEditModal from './ShotEditModal';
 import WardrobeModal from './WardrobeModal';
@@ -401,7 +401,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
     // 生成文件名：shot_id_序号_标题.mp4
     const shotNumber = project.shots.findIndex(s => s.id === shot.id) + 1;
-    const filename = `shot_${shotNumber.toString().padStart(3, '0')}.mp4`;
+    const filename = `${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}.mp4`;
 
     await downloadVideo(shot.interval.videoUrl, filename, dialog);
   };
@@ -1464,6 +1464,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                        </div>
                                    </div>
                                    <div className="aspect-video bg-slate-800/50 rounded-lg border border-slate-600 overflow-hidden relative group">
+                                       {fullKf?.imageUrl && (
+                                           <button
+                                               onClick={(e) => { e.stopPropagation(); downloadImage(fullKf.imageUrl!, `${project.scriptData?.title}-Shot-${activeShotIndex + 1}-full.png`, dialog); }}
+                                               disabled={!!processingState || !!batchProgress}
+                                               className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10"
+                                               title="下载宫格图"
+                                           >
+                                               <Download className="w-3 h-3" />
+                                           </button>
+                                       )}
                                        <button
                                            onClick={(e) => { e.stopPropagation(); handleFileUploadClick(activeShot.id, 'full'); }}
                                            disabled={!!processingState || !!batchProgress}
@@ -1541,6 +1551,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            </div>
                                        </div>
                                        <div className="aspect-video bg-slate-800/50 rounded-lg border border-slate-600 overflow-hidden relative group">
+                                           {startKf?.imageUrl && (
+                                               <button
+                                                   onClick={(e) => { e.stopPropagation(); downloadImage(startKf.imageUrl!, `${project.scriptData?.title}-Shot-${activeShotIndex + 1}-start.png`, dialog); }}
+                                                   disabled={!!processingState || !!batchProgress}
+                                                   className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10"
+                                                   title="下载起始帧"
+                                               >
+                                                   <Download className="w-3 h-3" />
+                                               </button>
+                                           )}
                                            <button
                                                onClick={(e) => { e.stopPropagation(); handleFileUploadClick(activeShot.id, 'start'); }}
                                                disabled={!!processingState || !!batchProgress}
@@ -1616,6 +1636,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            </div>
                                        </div>
                                        <div className="aspect-video bg-slate-800/50 rounded-lg border border-slate-600 overflow-hidden relative group">
+                                           {endKf?.imageUrl && (
+                                               <button
+                                                   onClick={(e) => { e.stopPropagation(); downloadImage(endKf.imageUrl!, `${project.scriptData?.title}-Shot-${activeShotIndex + 1}-end.png`, dialog); }}
+                                                   disabled={!!processingState || !!batchProgress}
+                                                   className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10"
+                                                   title="下载结束帧"
+                                               >
+                                                   <Download className="w-3 h-3" />
+                                               </button>
+                                           )}
                                            <button
                                                onClick={(e) => { e.stopPropagation(); handleFileUploadClick(activeShot.id, 'end'); }}
                                                disabled={!!processingState || !!batchProgress}
