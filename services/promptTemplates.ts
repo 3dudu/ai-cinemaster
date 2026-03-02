@@ -75,7 +75,7 @@ export const PROMPT_TEMPLATES = {
     - id（字符串类型）
     - sceneId（字符串类型）
     - actionSummary（字符串类型）
-    - dialogue（字符串类型，可选）
+    - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
     - cameraMovement（字符串类型）
     - shotSize（字符串类型）
     - characters（字符串数组类型）

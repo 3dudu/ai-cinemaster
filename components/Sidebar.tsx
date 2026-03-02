@@ -134,6 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             </button>
 
             {/* 社交媒体链接 */}
+            {process.env.HIDE_GITHUB!='true' && (
             <div className="pt-2 border-t border-slate-900/50">
               <div className="flex items-center justify-center gap-3">
                 <a
@@ -147,7 +148,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
                 </a>
                 <ThemeToggle size="sm"  />
               </div>
-            </div>
+            </div>)}
           </>
         ) : (
           <>
@@ -166,6 +167,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
           </button>
 
           {/* 社交媒体链接 - 折叠状态 */}
+          {process.env.HIDE_GITHUB!='true' && (
           <div className="pt-2 border-t border-slate-900/50">
             <div className="flex flex-col items-center gap-2">
               <a
@@ -180,6 +182,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
               <ThemeToggle size="sm" />
             </div>
           </div>
+          )}
           </>
         )}
       </div>

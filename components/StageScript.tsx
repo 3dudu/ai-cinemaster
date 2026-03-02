@@ -381,7 +381,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
         id: `shot-${Date.now()}`,
         sceneId: addingShotForSceneId,
         actionSummary: updatedShot.actionSummary || '',
-        dialogue: updatedShot.dialogue || '',
+        dialogue: updatedShot.dialogue || [],
         cameraMovement: updatedShot.cameraMovement || '固定',
         shotSize: updatedShot.shotSize || 'MED',
         interval:{duration: updatedShot.duration || 5},
@@ -1353,9 +1353,13 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                    <p className="text-slate-200 text-sm leading-7 font-medium max-w-2xl">
                                      {shot.actionSummary}
                                    </p>
-                                   {shot.dialogue && (
+                                   {shot.dialogue && shot.dialogue instanceof Array && shot.dialogue.length > 0 && (
                                       <div className="pl-6 border-l-2 border-slate-600 group-hover:border-slate-300 transition-colors py-1">
-                                         <p className="text-slate-400 font-serif italic text-sm">"{shot.dialogue}"</p>
+                                         {shot.dialogue.map((dlg, idx) => (
+                                           <p key={idx} className="text-slate-400 font-serif italic text-sm mb-1">
+                                             {dlg.character ? <span className="text-slate-300 font-medium">{dlg.character}:</span> : null} {dlg.value}
+                                           </p>
+                                         ))}
                                       </div>
                                    )}
                                    {/* Tags/Characters */}
@@ -1423,7 +1427,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
         id: '',
         sceneId: addingShotForSceneId,
         actionSummary: '',
-        dialogue: '',
+        dialogue: [],
         cameraMovement: '固定',
         shotSize: 'MED',
         duration: 5,

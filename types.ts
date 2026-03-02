@@ -47,7 +47,7 @@ export interface Shot {
   id: string;
   sceneId: string;
   actionSummary: string;
-  dialogue?: string;
+  dialogue?: Dialogue[];
   cameraMovement: string;
   shotSize?: string;
   characters: string[]; // Character IDs
@@ -61,6 +61,19 @@ export interface Shot {
     text2image?: string; // Text-to-image model config ID
     image2video?: string; // Image-to-video model config ID
   };
+}
+
+export interface Props {
+  shot: Shot;
+  characters: Character[];
+  onSave: (updatedShot: Partial<Shot>) => void;
+  onClose: () => void;
+  imageCount: number;
+}
+
+export interface Dialogue {
+  character: string;
+  value: string;
 }
 
 export interface ScriptData {

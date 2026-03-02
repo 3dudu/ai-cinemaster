@@ -69,6 +69,7 @@ export default defineConfig(({ mode }) => {
         'process.env.VOLCENGINE_API_KEY': JSON.stringify(env.VOLCENGINE_API_KEY),
         'process.env.OSS_UP_ENDPOINT': JSON.stringify(env.OSS_UP_ENDPOINT),
         'process.env.OSS_ACCESS_ENDPOINT': JSON.stringify(env.OSS_ACCESS_ENDPOINT),
+        'process.env.HIDE_GITHUB': JSON.stringify(env.HIDE_GITHUB),
       },
       resolve: {
         alias: {

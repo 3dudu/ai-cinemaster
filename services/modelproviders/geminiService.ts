@@ -1,7 +1,7 @@
 import { GenerateContentResponse, GoogleGenAI, Type } from "@google/genai";
 import { Scene, ScriptData, Shot } from "../../types";
+import { cleanJsonString, retryOperation } from "../../utils/apiHelper";
 import { PROMPT_TEMPLATES } from "../promptTemplates";
-import { retryOperation, cleanJsonString } from "../../utils/apiHelper";
 
 // Module-level variable to store the key at runtime
 let runtimeApiKey: string = "";
@@ -156,7 +156,17 @@ export const generateShotListForScene = async (
               id: { type: Type.STRING },
               sceneId: { type: Type.STRING },
               actionSummary: { type: Type.STRING },
-              dialogue: { type: Type.STRING, description: "本镜头中的台词。若无台词则留空。" },
+              dialogue: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    character: { type: Type.STRING, description: "角色名。" },
+                    value: Type.STRING, description: "本镜头中该角色的台词。若无台词则不需要。"
+                  },
+                  required: ["character", "value"]
+                }
+              },
               cameraMovement: { type: Type.STRING },
               shotSize: { type: Type.STRING, description: "例如：广角镜头、特写镜头" },
               characters: { type: Type.ARRAY, items: { type: Type.STRING } },

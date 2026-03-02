@@ -1,4 +1,4 @@
-import { AlertCircle, Aperture, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Edit, Film, Image, Image as ImageIcon, Loader2, MapPin, MessageSquare, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, Aperture, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Edit, Film, Image, Image as ImageIcon, Loader2, MapPin, MessageSquare, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
@@ -111,6 +111,44 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       }
       return { ...s, keyframes: newKeyframes };
     });
+  };
+
+  const copyStartToPreviousShotEndImage = () => {
+    if (activeShotIndex <= 0) return;
+    const previousShot = project.shots[activeShotIndex - 1];
+    const previousEndKf = previousShot?.keyframes?.find(k => k.type === 'end');
+    const activeShot = project.shots[activeShotIndex];
+    const activeShotKf = activeShot?.keyframes?.find(k => k.type === 'start');
+
+    if (activeShotKf?.imageUrl && previousEndKf) {
+      updateShot(previousShot.id, (s) => {
+        const newKeyframes = [...(s.keyframes || [])];
+        const endKfIdx = newKeyframes.findIndex(k => k.type === 'end');
+        if (endKfIdx >= 0) {
+          newKeyframes[endKfIdx] = { ...newKeyframes[endKfIdx], imageUrl: activeShotKf.imageUrl };
+        }
+        return { ...s, keyframes: newKeyframes };
+      });
+    }
+  };
+
+  const copyEndToNextShotStartImage = () => {
+    if (activeShotIndex >= project.shots.length) return;
+    const previousShot = project.shots[activeShotIndex + 1];
+    const previousEndKf = previousShot?.keyframes?.find(k => k.type === 'start');
+    const activeShot = project.shots[activeShotIndex];
+    const activeShotKf = activeShot?.keyframes?.find(k => k.type === 'end');
+
+    if (activeShotKf?.imageUrl && previousEndKf) {
+      updateShot(previousShot.id, (s) => {
+        const newKeyframes = [...(s.keyframes || [])];
+        const endKfIdx = newKeyframes.findIndex(k => k.type === 'start');
+        if (endKfIdx >= 0) {
+          newKeyframes[endKfIdx] = { ...newKeyframes[endKfIdx], imageUrl: activeShotKf.imageUrl };
+        }
+        return { ...s, keyframes: newKeyframes };
+      });
+    }
   };
 
   const startEditShot = (shot: Shot) => {
@@ -288,8 +326,12 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const handleGenerateVideo = async (shot: Shot) => {
     ////console.log("Generating Video for Shot:", shot);
     if (!shot.interval) return;
-    
-    let prompt = "景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n 剧情描述："+shot.actionSummary+""+ (shot.characters?" \n 角色："+shot.characters:"") + (shot.dialogue?" \n对白："+shot.dialogue:"");
+
+    let dialogueText = '';
+    if (shot.dialogue && shot.dialogue instanceof Array && shot.dialogue.length > 0) {
+      dialogueText = shot.dialogue.map(d => d.character ? `${d.character}: ${d.value}` : d.value).join('\n');
+    }
+    let prompt = "景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:"") + (dialogueText?" \n对白：\n "+dialogueText:"");
     ////console.log("Generating Video for Shot:", shot, "with Prompt:", prompt);
     let sImageiurl = null;
     let eImageiurl = null;
@@ -1250,13 +1292,17 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                <div className="bg-slate-800 p-4 rounded-lg border border-slate-600">
                                    <p className="text-slate-200 text-sm leading-relaxed">{activeShot.actionSummary}</p>
                                </div>
-                               
-                               {activeShot.dialogue && (
+
+                               {activeShot.dialogue && activeShot.dialogue instanceof Array && activeShot.dialogue.length > 0 && (
                                   <div className="bg-slate-800 p-4 rounded-lg border border-slate-600 flex gap-3">
                                       <MessageSquare className="w-4 h-4 text-slate-600 mt-0.5" />
                                       <div className="flex-1">
                                           <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">对白</p>
-                                          <p className="text-slate-200 font-serif italic text-sm mb-2">"{activeShot.dialogue}"</p>
+                                          {activeShot.dialogue.map((dlg, idx) => (
+                                            <p key={idx} className="text-slate-200 font-serif italic text-sm mb-2">
+                                              {dlg.character ? <span className="text-slate-300 font-medium">{dlg.character}:</span> : null} "{dlg.value}"
+                                            </p>
+                                          ))}
                                           {activeShot.audioUrl && (
                                               <audio
                                                   controls
@@ -1370,7 +1416,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                    <Aperture className="w-4 h-4 text-slate-500" />
                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">视觉制作</h4>
                                </div>
-                               {imageCount > 0 && (                                
+                               {imageCount > 0 && (
                                <button
                                    onClick={() => handleOneClickProduction(activeShot)}
                                    disabled={!!processingState || !!batchProgress || oneClickProcessing?.shotId === activeShot.id}
@@ -1475,6 +1521,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                        <Trash className="w-3 h-3" />
                                                    </button>
                                                )}
+                                               {startKf?.imageUrl && activeShotIndex > 0 && (
+                                                   <button
+                                                       onClick={copyStartToPreviousShotEndImage}
+                                                       disabled={!!processingState || !!batchProgress}
+                                                       className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                       title="作为前一个镜头的结束帧"
+                                                   >
+                                                       <ArrowLeft className="w-3 h-3" />
+                                                   </button>
+                                               )}
                                            <button
                                                onClick={() => handleGenerateKeyframe(activeShot, 'start')}
                                                disabled={!!processingState || !!batchProgress}
@@ -1538,6 +1594,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                        title="删除尾帧图片"
                                                    >
                                                        <Trash className="w-3 h-3" />
+                                                   </button>
+                                               )}
+                                              {endKf?.imageUrl && activeShotIndex < project.shots.length-1 && (
+                                                   <button
+                                                       onClick={copyEndToNextShotStartImage}
+                                                       disabled={!!processingState || !!batchProgress}
+                                                       className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                       title="作为下一个镜头的起始帧"
+                                                   >
+                                                       <ArrowRight className="w-3 h-3" />
                                                    </button>
                                                )}
                                                <button

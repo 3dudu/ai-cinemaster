@@ -2,46 +2,7 @@ import { Aperture, Check, ChevronRight, Plus, RefreshCw, Trash, X } from 'lucide
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { getAllModelConfigs } from '../services/storageService';
-import { AIModelConfig, Character } from '../types';
-
-interface Keyframe {
-  id?: string;
-  type: 'start' | 'end' | 'full';
-  visualPrompt: string;
-  status?: 'pending' | 'generating' | 'completed' | 'failed';
-}
-
-interface Shot {
-  id: string;
-  sceneId: string;
-  actionSummary: string;
-  dialogue?: string;
-  cameraMovement: string;
-  shotSize?: string;
-  characters: string[];
-  keyframes: Keyframe[];
-  interval?: {
-    id: string;
-    startKeyframeId: string;
-    endKeyframeId: string;
-    duration: number;
-    motionStrength: number;
-    videoUrl?: string;
-    status: 'pending' | 'generating' | 'completed' | 'failed';
-  };
-  modelProviders?: {
-    text2image?: string;
-    image2video?: string;
-  };
-}
-
-interface Props {
-  shot: Shot;
-  characters: Character[];
-  onSave: (updatedShot: Partial<Shot>) => void;
-  onClose: () => void;
-  imageCount: number;
-}
+import { AIModelConfig, Keyframe, Props, Shot } from '../types';
 
 const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, imageCount }) => {
   const [tempShot, setTempShot] = useState<Partial<Shot>>({ ...shot });
@@ -150,13 +111,56 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           {/* Dialogue */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">对白 (可选)</label>
-            <textarea
-              value={tempShot.dialogue || ''}
-              onChange={(e) => setTempShot({ ...tempShot, dialogue: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md focus:border-slate-600 focus:outline-none transition-all resize-none"
-              rows={2}
-              placeholder="镜头中的对白..."
-            />
+            <div className="space-y-2">
+              {(tempShot.dialogue || []).map((dlg, index) => (
+                <div key={index} className="flex gap-2 items-start">
+                  <select value={dlg.character || ''}
+                    onChange={(e) => {
+                      const updatedDialogue = [...(tempShot.dialogue || [])];
+                      updatedDialogue[index] = { ...updatedDialogue[index], character: e.target.value };
+                      setTempShot({ ...tempShot, dialogue: updatedDialogue });
+                    }}
+                    className="bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md focus:border-slate-600 focus:outline-none transition-all cursor-pointer shrink-0 w-[140px]"
+                  >
+                    <option value="">选择角色</option>
+                    {characters.map(char => (
+                      <option key={char.name} value={char.name}>{char.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={dlg.value || ''}
+                    onChange={(e) => {
+                      const updatedDialogue = [...(tempShot.dialogue || [])];
+                      updatedDialogue[index] = { ...updatedDialogue[index], value: e.target.value };
+                      setTempShot({ ...tempShot, dialogue: updatedDialogue });
+                    }}
+                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md focus:border-slate-600 focus:outline-none transition-all"
+                    placeholder="输入对话内容..."
+                  />
+                  <button
+                    onClick={() => {
+                      const updatedDialogue = (tempShot.dialogue || []).filter((_: any, i: number) => i !== index);
+                      setTempShot({ ...tempShot, dialogue: updatedDialogue });
+                    }}
+                    className="p-2 hover:bg-red-900/20 text-slate-600 hover:text-red-400 rounded transition-colors shrink-0"
+                    title="删除对话"
+                  >
+                    <Trash className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newDialogue = { character: '', value: '' };
+                  setTempShot({ ...tempShot, dialogue: [...(tempShot.dialogue || []), newDialogue] });
+                }}
+                className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-50 bg-slate-900 border border-slate-600 rounded hover:border-slate-300 transition-all flex items-center justify-center gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                添加对话
+              </button>
+            </div>
           </div>
 
           {/* Shot Size & Camera Movement & Duration */}
