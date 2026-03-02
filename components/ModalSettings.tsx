@@ -338,11 +338,11 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
         if (e.target === e.currentTarget && !showAddModal) onClose();
       }}
     >
-      <div className="bg-slate-600/80 bg-bg-input border border-slate-600 rounded-lg w-[800px] max-w-[90vw] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+      <div className="bg-slate-600/80 bg-bg-input border border-slate-600 rounded-2xl w-[800px] max-w-[90vw] h-[85vh] overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-text-primary tracking-wide flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-slate-500" />
+        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
+          <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-slate-500" />
             模型管理
           </h3>
           <button

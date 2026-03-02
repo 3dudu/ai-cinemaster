@@ -1,7 +1,9 @@
-import { Check, Loader2, Upload, X } from 'lucide-react';
+import { Check, Images, Loader2, Upload, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
+import { ProjectState } from '../types';
 import { uploadBase64File } from '../utils/fileUploadUtils';
 import { useDialog } from './dialog';
+import ImageSelectorModal from './ImageSelectorModal';
 
 // 导出下载工具函数供其他组件使用
 export const downloadImage = async (imageUrl: string, filename: string, dialogInstance: ReturnType<typeof useDialog>) => {
@@ -67,6 +69,8 @@ interface Props {
   acceptTypes?: string;
   title?: string;
   projectid?: string;
+  project?: ProjectState;
+  filterType?: 'character' | 'scene' | 'keyframe' | 'all';
 }
 
 const FileUploadModal: React.FC<Props> = ({
@@ -76,13 +80,17 @@ const FileUploadModal: React.FC<Props> = ({
   fileType = 'image',
   acceptTypes = 'image/png,image/jpeg,image/jpg',
   title = '上传图片',
-  projectid
+  projectid,
+  project,
+  filterType = 'all'
 }) => {
   const dialog = useDialog();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
+  const [isFromGallery, setIsFromGallery] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state when modal opens/closes
@@ -91,6 +99,7 @@ const FileUploadModal: React.FC<Props> = ({
       setSelectedFile(null);
       setPreviewUrl(null);
       setUploadSuccess(false);
+      setIsFromGallery(false);
     }
   }, [isOpen]);
 
@@ -113,6 +122,7 @@ const FileUploadModal: React.FC<Props> = ({
 
     setSelectedFile(file);
     setUploadSuccess(false);
+    setIsFromGallery(false);
 
     // Create preview
     const reader = new FileReader();
@@ -244,13 +254,18 @@ const FileUploadModal: React.FC<Props> = ({
 
         {/* Footer */}
         <div className="h-16 px-6 border-t border-slate-600 flex items-center justify-between bg-slate-600/80">
-          <button
-            onClick={handleRemoveFile}
-            disabled={!previewUrl || uploadSuccess || uploading}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            重新选择
-          </button>
+          <div className="flex gap-2">
+            {project && (
+              <button
+                onClick={() => setIsImageSelectorOpen(true)}
+                disabled={uploading}
+                className="px-4 py-2 text-sm bg-slate-600 hover:bg-slate-800 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Images className="w-3.5 h-3.5" />
+                图库
+              </button>
+            )}
+          </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
@@ -260,27 +275,57 @@ const FileUploadModal: React.FC<Props> = ({
               取消
             </button>
             {previewUrl && !uploadSuccess && (
-              <button
-                onClick={handleUpload}
-                disabled={uploading}
-                className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-slate-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    上传中...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    上传
-                  </>
-                )}
-              </button>
+              isFromGallery ? (
+                <button
+                  onClick={() => {
+                    onUploadSuccess(previewUrl!);
+                    onClose();
+                  }}
+                  className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-slate-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  确认选择
+                </button>
+              ) : (
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-slate-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      上传中...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      上传
+                    </>
+                  )}
+                </button>
+              )
             )}
           </div>
         </div>
       </div>
+
+      {/* Image Selector Modal */}
+      <ImageSelectorModal
+        isOpen={isImageSelectorOpen}
+        onClose={() => setIsImageSelectorOpen(false)}
+        project={project}
+        onSelectImage={(imageUrl) => {
+          setPreviewUrl(imageUrl);
+          setSelectedFile(null);
+          setIsFromGallery(true);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          setUploadSuccess(false);
+        }}
+        filterType={filterType}
+      />
     </div>
   );
 };

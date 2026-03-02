@@ -1817,6 +1817,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         acceptTypes="image/png,image/jpeg,image/jpg"
         title={uploadingKeyframe?.type === 'full' ? '上传宫格图' : uploadingKeyframe?.type === 'start' ? '上传起始帧' : '上传尾帧'}
         projectid={project.id}
+        project={project}
+        filterType={'keyframe'}
       />
     </div>
     </div>

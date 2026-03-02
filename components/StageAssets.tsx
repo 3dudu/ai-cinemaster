@@ -587,6 +587,8 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
         acceptTypes="image/png,image/jpeg,image/jpg"
         title={uploadingItem?.type === 'scene' ? '上传场景图片' : '上传角色图片'}
         projectid={project.id}
+        project={project}
+        filterType={uploadingItem?.type === 'scene' ? 'scene' : 'character'}
       />
 
       {/* Fullscreen Image Preview Modal */}

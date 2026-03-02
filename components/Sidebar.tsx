@@ -134,9 +134,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             </button>
 
             {/* 社交媒体链接 */}
-            {process.env.HIDE_GITHUB!='true' && (
             <div className="pt-2 border-t border-slate-900/50">
               <div className="flex items-center justify-center gap-3">
+                {process.env.HIDE_GITHUB!='true' && (
                 <a
                   href="https://github.com/3dudu/comic_master/issues"
                   target="_blank"
@@ -146,9 +146,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
                 >
                   <GithubIcon className="w-4 h-4" />
                 </a>
+                )}
                 <ThemeToggle size="sm"  />
               </div>
-            </div>)}
+            </div>
           </>
         ) : (
           <>

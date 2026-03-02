@@ -58,10 +58,11 @@ const SceneEditModal: React.FC<Props> = ({ scene, storyParagraphs, onSave, onClo
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-slate-800 border border-slate-600 rounded-lg w-[600px] max-w-[90vw] max-h-[85vh] overflow-y-auto shadow-2xl">
-        <div className="p-6 border-b border-slate-600 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-50 tracking-wide flex items-center gap-2">
-            <span className="text-slate-400">📍</span>
+      <div className="bg-slate-600/80 border border-slate-600 rounded-2xl w-[600px] max-w-[90vw] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col select-text">
+        {/* 标题栏 */}
+        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
+          <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+            <span className="w-5 h-5 text-slate-400">📍</span>
             编辑场景
           </h3>
           <button
@@ -72,7 +73,8 @@ const SceneEditModal: React.FC<Props> = ({ scene, storyParagraphs, onSave, onClo
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        {/* 主内容区域 */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-700">
           {/* Location */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">场景名称</label>
@@ -122,7 +124,8 @@ const SceneEditModal: React.FC<Props> = ({ scene, storyParagraphs, onSave, onClo
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-600 flex gap-3 bg-slate-600/80">
+        {/* 按钮栏 */}
+        <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
           <button
             onClick={onClose}
             className="flex-1 py-3 bg-slate-900 text-slate-400 hover:text-slate-50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"

@@ -168,7 +168,7 @@ const WardrobeModal: React.FC<Props> = ({
             </div>
             
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 overflow-y-auto p-8 bg-slate-700">
                 <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-8">
                     {/* Base Look */}
                     <div>
@@ -310,6 +310,8 @@ const WardrobeModal: React.FC<Props> = ({
           acceptTypes="image/png,image/jpeg,image/jpg"
           title="上传造型图片"
           projectid={project.id}
+          project={project}
+          filterType='character'
         />
     </div>
   );

@@ -78,7 +78,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
       />
 
       {/* Modal */}
-      <div className="w-full max-w-md bg-slate-600/80 border border-slate-600 p-8 rounded-xl shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-300">
+      <div className="w-full max-w-md bg-slate-600/80 border border-slate-600 p-8 rounded-2xl shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-300">
         
         {/* Close Button */}
         <button

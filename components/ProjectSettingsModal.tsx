@@ -133,10 +133,10 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-slate-600/80 border border-slate-600 rounded-lg w-[480px] max-w-[90vw] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col select-text">
-        <div className="p-6 border-b border-slate-600 flex items-center justify-between shrink-0">
-          <h3 className="text-sm font-bold text-slate-50 tracking-wide flex items-center gap-2">
-            <Settings className="w-4 h-4 text-slate-400" />
+      <div className="bg-slate-600/80 border border-slate-600 w-[480px] max-w-[90vw] h-[85vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col select-text">
+        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
+          <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-slate-400" />
             项目设置
           </h3>
           <button
