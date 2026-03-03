@@ -1,4 +1,4 @@
-import { AlertCircle, Aperture, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Edit, Film, Image, Image as ImageIcon, Loader2, MapPin, MessageSquare, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, Aperture, ArrowLeft, ArrowRight, ArrowRightLeft, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Edit, Film, Image, Image as ImageIcon, Loader2, MapPin, MessageSquare, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
@@ -30,6 +30,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [videoPlayingShots, setVideoPlayingShots] = useState<Set<string>>(new Set());
   const [videoReadyShots, setVideoReadyShots] = useState<Set<string>>(new Set());
+  const [playingTransition, setPlayingTransition] = useState<Record<string, boolean>>({});
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
   const [uploadingKeyframe, setUploadingKeyframe] = useState<{shotId: string, type: 'start'|'end'|'full'} | null>(null);
 
@@ -401,9 +402,89 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
     // 生成文件名：shot_id_序号_标题.mp4
     const shotNumber = project.shots.findIndex(s => s.id === shot.id) + 1;
-    const filename = `${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}.mp4`;
+    const filename = `${project.title}-${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}.mp4`;
 
     await downloadVideo(shot.interval.videoUrl, filename, dialog);
+  };
+
+  const handleDownloadTransition = async (shot: Shot) => {
+    if (!shot.transitionUrl) {
+      await dialog.alert({
+        title: '提示',
+        message: '转场视频尚未生成或不可用',
+        type: 'warning',
+      });
+      return;
+    }
+
+    // 生成文件名：shot_id_序号_转场.mp4
+    const shotNumber = project.shots.findIndex(s => s.id === shot.id) + 1;
+    const filename = `${project.title}-${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}-transition.mp4`;
+
+    await downloadVideo(shot.transitionUrl, filename, dialog);
+  };
+
+  const handleGenerateTransition = async (shot: Shot) => {
+    const currentIndex = project.shots.findIndex(s => s.id === shot.id);
+    if (currentIndex === -1 || currentIndex === project.shots.length - 1) {
+      await dialog.alert({
+        title: '提示',
+        message: '只能在两个分镜之间生成转场',
+        type: 'warning',
+      });
+      return;
+    }
+
+    const nextShot = project.shots[currentIndex + 1];
+
+    // 获取当前 shot 的尾帧和下一个 shot 的首帧
+    const endKf = shot.keyframes?.find(k => k.type === 'end');
+    const nextStartKf = nextShot.keyframes?.find(k => k.type === 'start');
+
+    // 构建转场提示词
+    const transitionPrompt = `故事从 ${shot.actionSummary} 过渡到 ${nextShot.actionSummary}。制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
+    \n镜头开始：${endKf.visualPrompt}；
+    \n镜头结束：${nextStartKf.visualPrompt}；
+    `;
+
+    try {
+      setProcessingState({ id: shot.id, type: 'video' });
+
+      // 调用 ModelService 生成转场视频
+      const transitionUrl = await ModelService.generateVideo(
+        transitionPrompt,
+        endKf.imageUrl,  // 当前 shot 的尾帧作为起始帧
+        nextStartKf.imageUrl,  // 下一个 shot 的首帧作为结束帧
+        5,  // 转场时长 3 秒
+        false,  // not full frame
+        shot.modelProviders?.image2video,
+        project.id,
+        imageSize,
+        localStyle,
+        shot.id
+      );
+
+      // 保存转场视频 URL
+      updateShot(shot.id, (s) => ({
+        ...s,
+        transitionUrl: transitionUrl
+      }));
+
+      await dialog.alert({
+        title: '成功',
+        message: '转场视频生成成功',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('生成转场失败:', error);
+      await dialog.alert({
+        title: '错误',
+        message: `生成转场失败: ${error}`,
+        type: 'error',
+      });
+    } finally {
+      setProcessingState(null);
+    }
   };
 
   const deleteShot = async (shotId: string) => {
@@ -1694,8 +1775,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                <h4 className="text-xs font-bold text-slate-50 uppercase tracking-widest flex items-center gap-2">
                                   <Video className="w-3 h-3 text-slate-500" />
                                   视频生成
-                               </h4>
-                               <div className="flex items-center gap-3">
                                    {activeShot.interval?.status === 'completed' && (
                                        <button
                                            onClick={() => handleDownloadVideo(activeShot)}
@@ -1707,12 +1786,55 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                        </button>
                                    )}
                                    {activeShot.interval?.duration && <span className="text-[12px] text-slate-400 font-mono flex items-center gap-1">{activeShot.interval?.duration}s</span>}
+                               </h4>
+                               <div className="flex items-center gap-3">
+                                   <button
+                                       onClick={() => handleGenerateTransition(activeShot)}
+                                       disabled={!!processingState || !!batchProgress}
+                                       className={`text-[12px] font-mono flex items-center gap-1 transition-colors cursor-pointer bg-transparent border-0 p-0 ${
+                                           activeShot.transitionUrl
+                                               ? 'text-purple-500 hover:text-purple-400'
+                                               : 'text-slate-400 hover:text-slate-300'
+                                       } ${(!!processingState || !!batchProgress) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                       title="生成转场动画"
+                                   >
+                                       <ArrowRightLeft className="w-3 h-3" />
+                                       {activeShot.transitionUrl ? '重新生成转场' : '生成转场动画'}
+                                   </button>
+                                   {activeShot.transitionUrl && (
+                                       <button
+                                           onClick={() => handleDownloadTransition(activeShot)}
+                                           className="text-[12px] text-purple-500 font-mono flex items-center gap-1 hover:text-purple-400 transition-colors cursor-pointer bg-transparent border-0 p-0"
+                                           title="点击下载转场视频"
+                                       >
+                                           <Download className="w-3 h-3" />
+                                       </button>
+                                   )}
+                                   {activeShot.transitionUrl && activeShot.interval?.videoUrl && (
+                                       <button
+                                           onClick={() => setPlayingTransition(prev => ({ ...prev, [activeShot.id]: !prev[activeShot.id] }))}
+                                           className="text-[12px] font-mono flex items-center gap-1 transition-colors cursor-pointer bg-transparent border-0 p-0 text-cyan-500 hover:text-cyan-400"
+                                           title={playingTransition[activeShot.id] ? '切换到主视频' : '切换到转场动画'}
+                                       >
+                                           {playingTransition[activeShot.id] ? <Film className="w-3 h-3" /> : <ArrowRightLeft className="w-3 h-3" />}
+                                           {playingTransition[activeShot.id] ? 'MAIN' : 'TRANS'}
+                                       </button>
+                                   )}
                                </div>
                            </div>
-                           
-                           {activeShot.interval?.videoUrl ? (
+
+                           {(activeShot.interval?.videoUrl || activeShot.transitionUrl) ? (
                                <div className="w-full aspect-video bg-slate-800/50 rounded-lg overflow-hidden border border-slate-600 relative shadow-lg">
-                                   <video src={activeShot.interval.videoUrl} controls className="w-full h-full" />
+                                   <video
+                                       src={activeShot.transitionUrl && playingTransition[activeShot.id] ? activeShot.transitionUrl : activeShot.interval?.videoUrl}
+                                       controls
+                                       className="w-full h-full object-cover"
+                                   />
+                                   {activeShot.transitionUrl && playingTransition[activeShot.id] && (
+                                       <div className="absolute top-2 right-2 px-2 py-1 bg-purple-500/80 text-white text-xs font-bold rounded">
+                                           转场动画
+                                       </div>
+                                   )}
                                </div>
                            ) : (
                                <div className="w-full aspect-video bg-slate-800/50 rounded-lg border border-dashed border-slate-600 flex items-center justify-center">

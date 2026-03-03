@@ -55,7 +55,7 @@ export interface Shot {
   keyframes: Keyframe[];
   interval?: VideoInterval;
   audioUrl?: string; // 语音合成音频 URL
-
+  transitionUrl?: string; // 视频转场 URL
   // AI Model Providers configuration (stores config IDs)
   modelProviders?: {
     text2image?: string; // Text-to-image model config ID

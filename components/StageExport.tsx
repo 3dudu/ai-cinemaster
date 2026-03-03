@@ -1,4 +1,4 @@
-import { AlertCircle, BarChart3, Check, CheckCircle, Download, Film, Loader2, X } from 'lucide-react';
+import { AlertCircle, ArrowRightLeft, BarChart3, Check, CheckCircle, Download, Film, Loader2, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { initializeCozeConfig, submitWorkflow } from '../services/modelproviders/cozeService';
 import { ProjectState } from '../types';
@@ -36,8 +36,20 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
   // Get selected shots in order for playback
   const selectedShots = project.shots.filter(s => selectedShotIds.has(s.id) && s.interval?.videoUrl);
 
-  // Calculate total duration of all selected videos
-  const totalDuration = selectedShots.reduce((acc, shot) => acc + (shot.interval?.duration || 5), 0);
+  // 构建播放序列（包含主视频和转场视频）
+  const playSequence: Array<{ shot: typeof project.shots[0], url: string, type: 'main' | 'transition' }> = [];
+  selectedShots.forEach((shot, index) => {
+    playSequence.push({ shot, url: shot.interval!.videoUrl!, type: 'main' });
+    if (shot.transitionUrl && index < selectedShots.length - 1) {
+      playSequence.push({ shot, url: shot.transitionUrl, type: 'transition' });
+    }
+  });
+
+  // Calculate total duration of all selected videos (including transitions)
+  const totalDuration = playSequence.reduce((acc, item) => {
+    const duration = item.type === 'main' ? (item.shot.interval?.duration || 5) : 5; // 转场默认 3 秒
+    return acc + duration;
+  }, 0);
 
   // Calculate current position in total timeline
   const calculateTotalCurrentTime = () => {
@@ -86,7 +98,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
 
   // Jump to next video
   const handleNext = () => {
-    if (currentPlayingShotIndex < selectedShots.length - 1) {
+    if (currentPlayingShotIndex < playSequence.length - 1) {
       setCurrentPlayingShotIndex(currentPlayingShotIndex + 1);
     }
   };
@@ -102,33 +114,35 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
     const targetTime = percentage * totalDuration;
     let accumulatedTime = 0;
 
-    for (let i = 0; i < selectedShots.length; i++) {
-      const shotDuration = selectedShots[i]?.interval?.duration || 5;
-      if (accumulatedTime + shotDuration >= targetTime) {
+    for (let i = 0; i < playSequence.length; i++) {
+      const item = playSequence[i];
+      const itemDuration = item.type === 'main' ? (item.shot.interval?.duration || 5) : 3;
+      if (accumulatedTime + itemDuration >= targetTime) {
         setCurrentPlayingShotIndex(i);
         const timeInVideo = targetTime - accumulatedTime;
         videoRef.current.currentTime = timeInVideo;
         return;
       }
-      accumulatedTime += shotDuration;
+      accumulatedTime += itemDuration;
     }
   };
 
   // Handle video ended event - auto play next video
   const handleVideoEnded = () => {
     if (!isPlayingSelected) return;
-    if (currentPlayingShotIndex < selectedShots.length - 1) {
+    if (currentPlayingShotIndex < playSequence.length - 1) {
       setCurrentPlayingShotIndex(prev => prev + 1);
     } else {
       // All videos played, stop at end
       //setIsPlayingSelected(false);
       setCurrentPlayingShotIndex(0);
+      setIsPlayingSelected(false);
     }
   };
 
   // Start playing selected shots sequentially
   const handlePlaySelected = () => {
-    if (selectedShots.length === 0) return;
+    if (playSequence.length === 0) return;
     setIsPlayingSelected(true);
     setCurrentPlayingShotIndex(0);
     setCurrentTime(0);
@@ -149,11 +163,11 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
 
   // Auto play when currentPlayingShotIndex changes
   React.useEffect(() => {
-    if (isPlayingSelected && videoRef.current && selectedShots[currentPlayingShotIndex]) {
+    if (isPlayingSelected && videoRef.current && playSequence[currentPlayingShotIndex]) {
       setIsPaused(false);
       //setCurrentTime(0);
     }
-  }, [currentPlayingShotIndex, isPlayingSelected, selectedShots]);
+  }, [currentPlayingShotIndex, isPlayingSelected, playSequence]);
 
 
   // Toggle shot selection
@@ -194,11 +208,20 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
     setMergeError(null);
 
     try {
-      // 收集选中镜头的视频 URL
+      // 收集选中镜头的视频 URL（包含转场视频）
       const selectedShots = project.shots.filter(s => selectedShotIds.has(s.id) && s.interval?.videoUrl);
-      const videoUrls = selectedShots
-        .map(shot => shot.interval?.videoUrl)
-        .filter((url): url is string => !!url);
+      const videoUrls: string[] = [];
+
+      selectedShots.forEach((shot, index) => {
+        // 添加主视频
+        if (shot.interval?.videoUrl) {
+          videoUrls.push(shot.interval.videoUrl);
+        }
+        // 如果有转场视频且不是最后一个镜头，添加转场视频
+        if (shot.transitionUrl && index < selectedShots.length - 1) {
+          videoUrls.push(shot.transitionUrl);
+        }
+      });
 
       //console.log("开始合并视频...", videoUrls.length, "个视频片段");
 
@@ -257,6 +280,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       const videoUrl = shot.interval?.videoUrl;
       if (!videoUrl) continue;
 
+      // 下载主视频
       const response = await fetch(videoUrl);
       if (!response.ok) {
         throw new Error(`下载失败: ${response.statusText}`);
@@ -272,6 +296,23 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      // 下载转场视频（如果存在）
+      if (shot.transitionUrl) {
+        const transitionResponse = await fetch(shot.transitionUrl);
+        if (transitionResponse.ok) {
+          const transitionBlob = await transitionResponse.blob();
+          const transitionUrl = window.URL.createObjectURL(transitionBlob);
+          const transitionA = document.createElement('a');
+          transitionA.href = transitionUrl;
+          transitionA.target = '_blank';
+          transitionA.download = `${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}-transition.mp4`;
+
+          document.body.appendChild(transitionA);
+          transitionA.click();
+          document.body.removeChild(transitionA);
+        }
+      }
       window.URL.revokeObjectURL(url);
 
       // 创建下载链接
@@ -432,9 +473,16 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                              {/* Hover Tooltip */}
                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 whitespace-nowrap">
                                 <div className="bg-slate-700 text-slate-50 text-[12px] px-2 py-1 rounded border border-slate-600 shadow-xl">
-                                    镜头 {idx + 1}{isDone ? ' ✓' : ''}
+                                    镜头 {idx + 1}{isDone ? ' ✓' : ''}{shot.transitionUrl ? ' 🔄' : ''}
                                 </div>
                              </div>
+
+                             {/* Transition Marker */}
+                             {shot.transitionUrl && (
+                               <div className="absolute top-1 right-1 z-10">
+                                 <ArrowRightLeft className="w-3 h-3 text-purple-400" />
+                               </div>
+                             )}
                           </div>
                         )
                       })
@@ -511,10 +559,10 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                      controls
                      autoPlay
                      className="w-full h-full object-cover"
-                     src={isPlayingSelected ? selectedShots[currentPlayingShotIndex]?.interval?.videoUrl : project.mergedVideoUrl}
+                     src={isPlayingSelected ? playSequence[currentPlayingShotIndex]?.url : project.mergedVideoUrl}
                      onEnded={isPlayingSelected ? handleVideoEnded : undefined}
                      onTimeUpdate={isPlayingSelected ? handleTimeUpdate : undefined}
-                     key={isPlayingSelected ? selectedShots[currentPlayingShotIndex]?.id : 'merged'}
+                     key={isPlayingSelected ? `${playSequence[currentPlayingShotIndex]?.shot.id}-${playSequence[currentPlayingShotIndex]?.type}` : 'merged'}
                    >
                      您的浏览器不支持视频播放。
                    </video>
@@ -527,7 +575,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                          <div className="flex items-center gap-2">
                            <Film className="w-3 h-3 text-slate-400" />
                            <span className="text-xs font-bold text-slate-400 font-mono uppercase tracking-widest">
-                             镜头 {project.shots.indexOf(selectedShots[currentPlayingShotIndex]) + 1}
+                             {playSequence[currentPlayingShotIndex]?.type === 'transition' ? '转场' : `镜头 ${project.shots.indexOf(playSequence[currentPlayingShotIndex]?.shot!) + 1}`}
                            </span>
                          </div>
                        </div>
@@ -536,14 +584,17 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                        <div className="space-y-1 relative">
                          {/* Individual Video Markers */}
                          <div className="h-1.5 bg-slate-700 rounded-full relative cursor-pointer overflow-hidden">
-                           {selectedShots.map((shot, idx) => {
-                             const startTime = selectedShots.slice(0, idx).reduce((acc, s) => acc + (s.interval?.duration || 5), 0);
-                             const shotDuration = shot.interval?.duration || 5;
-                             const widthPercent = (shotDuration / totalDuration) * 100;
+                           {playSequence.map((item, idx) => {
+                             const startTime = playSequence.slice(0, idx).reduce((acc, s) => {
+                               const duration = s.type === 'main' ? (s.shot.interval?.duration || 5) : 3;
+                               return acc + duration;
+                             }, 0);
+                             const itemDuration = item.type === 'main' ? (item.shot.interval?.duration || 5) : 3;
+                             const widthPercent = (itemDuration / totalDuration) * 100;
                              const leftPercent = (startTime / totalDuration) * 100;
                              return (
                                <div
-                                 key={shot.id}
+                                 key={`${item.shot.id}-${item.type}`}
                                  className={`absolute h-full rounded-l-sm rounded-r-sm ${
                                    idx < currentPlayingShotIndex
                                      ? 'bg-slate-500'
@@ -575,10 +626,12 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                      </div>
                    )}
                  </div>
-                 {isPlayingSelected && selectedShots[currentPlayingShotIndex] && (
+                 {isPlayingSelected && playSequence[currentPlayingShotIndex] && (
                    <div className="mt-2 bg-slate-800 border border-slate-600 rounded-lg p-3">
                      <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">
-                       {selectedShots[currentPlayingShotIndex].actionSummary}
+                       {playSequence[currentPlayingShotIndex].type === 'transition'
+                         ? '转场动画'
+                         : playSequence[currentPlayingShotIndex].shot.actionSummary}
                      </p>
                    </div>
                  )}
@@ -592,16 +645,16 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                </div>
              )}
 
-             {/* Action Buttons */}
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               <button
-                  onClick={handlePlaySelected}
-                  disabled={selectedShotIds.size === 0 || isPlayingSelected}
-                  className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border ${
-                    selectedShotIds.size > 0 && !isPlayingSelected
-                      ? 'bg-slate-600 text-slate-50 hover:bg-slate-500 border-slate-500 shadow-lg shadow-slate-600/20'
-                      : 'bg-slate-900 text-slate-600 border-slate-600 cursor-not-allowed'
-                  }`}>
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <button
+                 onClick={handlePlaySelected}
+                 disabled={playSequence.length === 0 || isPlayingSelected}
+                 className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border ${
+                   playSequence.length > 0 && !isPlayingSelected
+                     ? 'bg-slate-600 text-slate-50 hover:bg-slate-500 border-slate-500 shadow-lg shadow-slate-600/20'
+                     : 'bg-slate-900 text-slate-600 border-slate-600 cursor-not-allowed'
+                 }`}>
                  {isPlayingSelected ? (
                    <>
                      <Loader2 className="w-4 h-4 animate-spin" />
