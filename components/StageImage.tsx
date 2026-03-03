@@ -1,18 +1,20 @@
-import { ChevronDown, Download, Images, Search, X } from 'lucide-react';
+import { ArrowRightLeft, ChevronDown, Download, Images, Search, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getAllProjectsMetadata } from '../services/storageService';
+import { deleteSingleMediaFile, getAllProjectsMetadata, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
 import { ProjectState } from '../types';
-import { downloadImage } from './FileUploadModal';
+import { downloadImage, downloadVideo } from './FileUploadModal';
 
 interface ImageItem {
   id: string;
   imageUrl: string;
   title: string;
   subtitle: string;
-  type: 'character' | 'scene' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full';
+  type: 'character' | 'scene' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
   projectId: string;
   projectName: string;
   downname: string;
+  mediaType?: 'image' | 'video';
+  ishistory: boolean;
 }
 
 interface Props {
@@ -21,7 +23,7 @@ interface Props {
 
 const StageImage: React.FC<Props> = ({ project }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video'>('all');
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [loadingProjects, setLoadingProjects] = useState(false);
@@ -29,6 +31,8 @@ const StageImage: React.FC<Props> = ({ project }) => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [showVideo, setShowVideo] = useState(true);
+  const [mediaHistory, setMediaHistory] = useState<Record<string, MediaFile[]>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -46,6 +50,19 @@ const StageImage: React.FC<Props> = ({ project }) => {
         } else if (projects.length > 0) {
           setSelectedProjectId(projects[0].id);
         }
+
+        // 加载所有项目的媒体历史
+        const historyMap: Record<string, MediaFile[]> = {};
+        for (const p of projects) {
+          try {
+            const history = await getProjectMediaHistory(p.id);
+            historyMap[p.id] = history;
+          } catch (error) {
+            console.error(`Failed to load media history for project ${p.id}:`, error);
+            historyMap[p.id] = [];
+          }
+        }
+        setMediaHistory(historyMap);
       } catch (error) {
         console.error('Failed to load projects:', error);
       } finally {
@@ -58,6 +75,27 @@ const StageImage: React.FC<Props> = ({ project }) => {
 
   const handleDownloadImage = async (imageUrl: string, charName: string) => {
     await downloadImage(imageUrl, `${charName}.png`, null);
+  };
+
+  const handleDeleteHistory = async (image: ImageItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!image.ishistory) return;
+
+    try {
+      const mediaFileId = image.id.split('-').pop();
+      if (!mediaFileId) return;
+
+      await deleteSingleMediaFile(image.projectId, mediaFileId);
+
+      const history = await getProjectMediaHistory(image.projectId);
+      setMediaHistory(prev => ({
+        ...prev,
+        [image.projectId]: history
+      }));
+    } catch (error) {
+      console.error('Failed to delete media history:', error);
+    }
   };
 
   // 延迟关闭下拉列表
@@ -87,97 +125,227 @@ const StageImage: React.FC<Props> = ({ project }) => {
   }, []);
 
   // 收集所有图片数据
-  const allImages = useMemo(() => {
-    const images: ImageItem[] = [];
-    const selectedProject = allProjects.find(p => p.id === selectedProjectId);
+  const [allImages, setAllImages] = useState<ImageItem[]>([]);
 
-    if (!selectedProject) return images;
+  useEffect(() => {
+    const loadAllImages = async () => {
+      const images: ImageItem[] = [];
+      const urlHashSet = new Set<string>();
+      const selectedProject = allProjects.find(p => p.id === selectedProjectId);
 
-    // 角色图片（包含所有造型）
-    if (selectedProject.scriptData?.characters) {
-      selectedProject.scriptData.characters.forEach(char => {
-        if (char.referenceImage) {
-          images.push({
-            id: `char-${selectedProject.id}-${char.id}`,
-            imageUrl: char.referenceImage,
-            title: char.name,
-            subtitle: `角色 - ${char.name}`,
-            type: 'character',
-            projectId: selectedProject.id,
-            projectName: selectedProject.title || '未命名项目',
-            downname: `${selectedProject.scriptData?.title}-角色-${char.name}`
-          });
-        }
+      if (!selectedProject) {
+        setAllImages([]);
+        return;
+      }
 
-        // 添加角色的所有造型图片
-        if (char.variations) {
-          char.variations.forEach((outfit, idx) => {
-            if (outfit.referenceImage) {
+      // 角色图片（包含所有造型）
+      if (selectedProject.scriptData?.characters) {
+        for (const char of selectedProject.scriptData.characters) {
+          if (char.referenceImage) {
+            const hash = await md5Hash(char.referenceImage);
+            if (!urlHashSet.has(hash)) {
+              urlHashSet.add(hash);
               images.push({
-                id: `char-${selectedProject.id}-${char.id}-outfit-${idx}`,
-                imageUrl: outfit.referenceImage,
-                title: `${char.name} - ${outfit.name || `造型 ${idx + 1}`}`,
-                subtitle: `角色造型 - ${char.name}`,
+                id: `char-${selectedProject.id}-${char.id}`,
+                imageUrl: char.referenceImage,
+                title: char.name,
+                subtitle: `角色 - ${char.name}`,
                 type: 'character',
                 projectId: selectedProject.id,
                 projectName: selectedProject.title || '未命名项目',
-                downname: `${selectedProject.scriptData?.title}-角色-${char.name}-造型 ${idx + 1}`
+                downname: `${selectedProject.scriptData?.title}-角色-${char.name}`,
+                mediaType: 'image',
+                ishistory: false
               });
             }
-          });
+          }
+
+          // 添加角色的所有造型图片
+          if (char.variations) {
+            for (let idx = 0; idx < char.variations.length; idx++) {
+              const outfit = char.variations[idx];
+              if (outfit.referenceImage) {
+                const hash = await md5Hash(outfit.referenceImage);
+                if (!urlHashSet.has(hash)) {
+                  urlHashSet.add(hash);
+                  images.push({
+                    id: `char-${selectedProject.id}-${char.id}-outfit-${idx}`,
+                    imageUrl: outfit.referenceImage,
+                    title: `${char.name} - ${outfit.name || `造型 ${idx + 1}`}`,
+                    subtitle: `角色造型 - ${char.name}`,
+                    type: 'character',
+                    projectId: selectedProject.id,
+                    projectName: selectedProject.title || '未命名项目',
+                    downname: `${selectedProject.scriptData?.title}-角色-${char.name}-造型 ${idx + 1}`,
+                    mediaType: 'image',
+                    ishistory: false
+                  });
+                }
+              }
+            }
+          }
         }
-      });
-    }
+      }
 
-    // 场景图片
-    if (selectedProject.scriptData?.scenes) {
-      selectedProject.scriptData.scenes.forEach(scene => {
-        if (scene.referenceImage) {
-          images.push({
-            id: `scene-${selectedProject.id}-${scene.id}`,
-            imageUrl: scene.referenceImage,
-            title: scene.location,
-            subtitle: `场景 - ${scene.id}`,
-            type: 'scene',
-            projectId: selectedProject.id,
-            projectName: selectedProject.title || '未命名项目',
-            downname: `${selectedProject.scriptData?.title}-场景-${scene.id}`
-          });
-        }
-      });
-    }
-
-    // 关键帧图片
-    if (selectedProject.shots) {
-      selectedProject.shots.forEach((shot, shotIdx) => {
-        const shotLabel = `镜头 ${shotIdx + 1}`;
-
-        if (shot.keyframes) {
-          shot.keyframes.forEach(kf => {
-            if (kf.imageUrl) {
-              let type: 'keyframe-start' | 'keyframe-end' | 'keyframe-full';
-              if (kf.type === 'start') type = 'keyframe-start';
-              else if (kf.type === 'end') type = 'keyframe-end';
-              else type = 'keyframe-full';
-
+      // 场景图片
+      if (selectedProject.scriptData?.scenes) {
+        for (const scene of selectedProject.scriptData.scenes) {
+          if (scene.referenceImage) {
+            const hash = await md5Hash(scene.referenceImage);
+            if (!urlHashSet.has(hash)) {
+              urlHashSet.add(hash);
               images.push({
-                id: `kf-${selectedProject.id}-${shot.id}-${kf.type}`,
-                imageUrl: kf.imageUrl,
-                title: shotLabel,
-                subtitle: `${kf.type === 'full' ? '宫格图' : kf.type === 'start' ? '起始帧' : '结束帧'} - ${shot.actionSummary.substring(0, 30)}...`,
-                type,
+                id: `scene-${selectedProject.id}-${scene.id}`,
+                imageUrl: scene.referenceImage,
+                title: scene.location,
+                subtitle: `场景 - ${scene.id}`,
+                type: 'scene',
                 projectId: selectedProject.id,
                 projectName: selectedProject.title || '未命名项目',
-                downname: `${selectedProject.scriptData?.title}-镜头-${shot.id}-${kf.type}`
+                downname: `${selectedProject.scriptData?.title}-场景-${scene.id}`,
+                mediaType: 'image',
+                ishistory: false
               });
             }
+          }
+        }
+      }
+
+      // 关键帧图片
+      if (selectedProject.shots) {
+        for (let shotIdx = 0; shotIdx < selectedProject.shots.length; shotIdx++) {
+          const shot = selectedProject.shots[shotIdx];
+          const shotLabel = `镜头 ${shotIdx + 1}`;
+
+          if (shot.keyframes) {
+            for (const kf of shot.keyframes) {
+              if (kf.imageUrl) {
+                const hash = await md5Hash(kf.imageUrl);
+                if (!urlHashSet.has(hash)) {
+                  urlHashSet.add(hash);
+                  let type: 'keyframe-start' | 'keyframe-end' | 'keyframe-full';
+                  if (kf.type === 'start') type = 'keyframe-start';
+                  else if (kf.type === 'end') type = 'keyframe-end';
+                  else type = 'keyframe-full';
+
+                  images.push({
+                    id: `kf-${selectedProject.id}-${shot.id}-${kf.type}`,
+                    imageUrl: kf.imageUrl,
+                    title: shotLabel,
+                    subtitle: `${kf.type === 'full' ? '宫格图' : kf.type === 'start' ? '起始帧' : '结束帧'} - ${shot.actionSummary.substring(0, 30)}...`,
+                    type,
+                    projectId: selectedProject.id,
+                    projectName: selectedProject.title || '未命名项目',
+                    downname: `${selectedProject.scriptData?.title}-镜头-${shot.id}-${kf.type}`,
+                    mediaType: 'image',
+                    ishistory: false
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 添加视频
+      if (selectedProject.shots && showVideo) {
+        for (let shotIdx = 0; shotIdx < selectedProject.shots.length; shotIdx++) {
+          const shot = selectedProject.shots[shotIdx];
+          const shotLabel = `镜头 ${shotIdx + 1}`;
+
+          // 添加主视频
+          if (shot.interval?.videoUrl) {
+            const hash = await md5Hash(shot.interval.videoUrl);
+            if (!urlHashSet.has(hash)) {
+              urlHashSet.add(hash);
+              images.push({
+                id: `shot-video-${selectedProject.id}-${shot.id}`,
+                imageUrl: shot.interval.videoUrl,
+                title: shotLabel,
+                subtitle: `镜头视频 - ${shot.actionSummary.substring(0, 30)}...`,
+                type: 'video',
+                projectId: selectedProject.id,
+                projectName: selectedProject.title || '未命名项目',
+                downname: `${selectedProject.scriptData?.title || ''}-镜头-${shot.id}`,
+                mediaType: 'video',
+                ishistory: false
+              });
+            }
+          }
+
+          // 添加转场视频
+          if (shot.transitionUrl) {
+            const hash = await md5Hash(shot.transitionUrl);
+            if (!urlHashSet.has(hash)) {
+              urlHashSet.add(hash);
+              images.push({
+                id: `shot-transition-${selectedProject.id}-${shot.id}`,
+                imageUrl: shot.transitionUrl,
+                title: shotLabel,
+                subtitle: `转场视频 - ${shot.actionSummary.substring(0, 30)}...`,
+                type: 'video-transition',
+                projectId: selectedProject.id,
+                projectName: selectedProject.title || '未命名项目',
+                downname: `${selectedProject.scriptData?.title || ''}-镜头-${shot.id}-转场`,
+                mediaType: 'video',
+                ishistory: false
+              });
+            }
+          }
+        }
+      }
+
+      // 添加 MediaHistory 中的文件
+      const historyFiles = mediaHistory[selectedProject.id] || [];
+      for (const file of historyFiles) {
+        // 如果不显示视频且当前文件是视频，则跳过
+        if (!showVideo && file.fileType === 'video') {
+          continue;
+        }
+
+        if (!urlHashSet.has(file.id)) {
+          urlHashSet.add(file.id);
+
+          let type: 'character' | 'scene' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
+          let subtitle = '';
+
+          if (file.mediaType === 'character') {
+            type = 'character';
+            subtitle = `角色历史 - ${file.fileName}`;
+          } else if (file.mediaType === 'scene') {
+            type = 'scene';
+            subtitle = `场景历史 - ${file.fileName}`;
+          } else if (file.fileType === 'video') {
+            type = file.mediaType === 'video' ? 'video' : 'video-transition';
+            subtitle = `场景视频 - ${file.fileName}`;
+          } else {
+            // keyframe 类型
+            if (file.fileName.startsWith('start_')) type = 'keyframe-start';
+            else if (file.fileName.startsWith('end_')) type = 'keyframe-end';
+            else type = 'keyframe-full';
+            subtitle = `关键帧历史 - ${file.fileName}`;
+          }
+
+          images.push({
+            id: `history-${selectedProject.id}-${file.id}`,
+            imageUrl: file.fileUrl,
+            title: file.fileName,
+            subtitle: subtitle,
+            type,
+            projectId: selectedProject.id,
+            projectName: selectedProject.title || '未命名项目',
+            downname: file.fileName,
+            mediaType: file.fileType,
+            ishistory: true
           });
         }
-      });
-    }
+      }
 
-    return images;
-  }, [allProjects, selectedProjectId]);
+      setAllImages(images);
+    };
+
+    loadAllImages();
+  }, [allProjects, selectedProjectId, mediaHistory, showVideo]);
 
   // 根据搜索词过滤图片
   const filteredImages = useMemo(() => {
@@ -201,11 +369,13 @@ const StageImage: React.FC<Props> = ({ project }) => {
     all: filteredImages.length,
     character: filteredImages.filter(i => i.type === 'character').length,
     scene: filteredImages.filter(i => i.type === 'scene').length,
+    video: filteredImages.filter(i => i.type.startsWith('video')).length,
     keyframe: filteredImages.filter(i => i.type.startsWith('keyframe')).length
   }), [filteredImages]);
 
   // 处理图片点击预览
   const handleImageClick = (image: ImageItem) => {
+    if (image.mediaType === 'video') return;
     const allImageUrls = displayImages.map(img => img.imageUrl || '');
     setPreviewImages(allImageUrls);
     setPreviewIndex(allImageUrls.indexOf(image.imageUrl || ''));
@@ -223,8 +393,18 @@ const StageImage: React.FC<Props> = ({ project }) => {
           </h2>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowVideo(!showVideo)}
+            className={`px-3 py-1 rounded text-[12px] font-mono uppercase transition-colors ${
+              showVideo
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-900 text-slate-400 hover:bg-slate-800'
+            }`}
+          >
+            视频 {showVideo ? '开启' : '关闭'}
+          </button>
           <span className="px-2 py-1 bg-slate-900 border border-slate-600 rounded text-[12px] text-slate-400 font-mono uppercase">
-            {displayImages.length} 图片
+            {displayImages.length} 媒体
           </span>
         </div>
       </div>
@@ -232,7 +412,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
       {/* 固定的控制区域 */}
       <div className="border-b border-slate-600 bg-slate-800 space-y-1 p-2 shrink-0">
         {/* 项目选择器和搜索框 */}
-        <div className="bg-slate-800 border border-slate-600 rounded-xl p-2">
+        <div className="bg-slate-800 border border-slate-600 rounded-xl p-1">
           <div className="flex gap-2 md:flex-row flex-col">
             {/* 项目选择器 */}
             <div
@@ -302,20 +482,25 @@ const StageImage: React.FC<Props> = ({ project }) => {
         </div>
 
         {/* 标签页 */}
-        <div className="bg-slate-800 border border-slate-600 rounded-xl p-2">
+        <div className="bg-slate-800 border border-slate-600 rounded-xl p-1">
           <div className="flex gap-0">
-            {(['all', 'character', 'scene', 'keyframe'] as const).map(tab => {
+            {(
+              showVideo
+                ? ['all', 'character', 'scene', 'keyframe', 'video'] as const
+                : ['all', 'character', 'scene', 'keyframe'] as const
+            ).map(tab => {
               const labels = {
                 all: '全部',
                 character: '角色',
                 scene: '场景',
-                keyframe: '关键帧'
+                keyframe: '关键帧',
+                video: '视频'
               };
               return (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-2 h-9 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
+                  className={`px-1 h-9 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
                     activeTab === tab
                       ? 'bg-slate-900 text-slate-100'
                       : 'text-slate-400 hover:bg-slate-900'
@@ -347,30 +532,65 @@ const StageImage: React.FC<Props> = ({ project }) => {
                   onClick={() => handleImageClick(image)}
                   className="w-full h-full"
                 >
-                  <img
-                    src={image.imageUrl}
-                    alt={image.title}
-                    className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200"
-                  />
+                  {image.mediaType === 'video' ? (
+                    <video
+                      src={image.imageUrl}
+                      className="w-full object-cover"
+                      controls
+                      muted
+                      onMouseLeave={(e) => e.currentTarget.pause()}
+                    />
+                  ) : (
+                    <img
+                      src={image.imageUrl}
+                      alt={image.title}
+                      className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200"
+                    />
+                  )}
                   {/* 悬停遮罩 */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     <div className="absolute bottom-0 left-0 right-0 p-2">
                       <p className="text-xs font-medium text-white truncate">{image.title}</p>
                       <p className="text-[10px] text-white truncate">{image.subtitle}</p>
                     </div>
                   </div>
                 </button>
-                {/* 下载按钮 */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownloadImage(image.imageUrl!, image.downname);
-                  }}
-                  className="absolute top-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur opacity-0 group-hover:opacity-100"
-                  title="下载图片"
-                >
-                  <Download className="w-3 h-3" />
-                </button>
+                {/* 按钮组 */}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  {/* 删除历史记录按钮 - 仅历史记录显示 */}
+                  {image.ishistory && (
+                    <button
+                      onClick={(e) => handleDeleteHistory(image, e)}
+                      className="pointer-events-auto p-2 bg-red-600/80 text-slate-50 rounded-full hover:bg-red-700 transition-colors border border-white/10 backdrop-blur"
+                      title="删除历史记录"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                  {/* 下载按钮 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (image.mediaType === 'video') {
+                        downloadVideo(image.imageUrl!, image.downname, null);
+                      } else {
+                        handleDownloadImage(image.imageUrl!, image.downname);
+                      }
+                    }}
+                    className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                    title={image.mediaType === 'video' ? '下载视频' : '下载图片'}
+                  >
+                    <Download className="w-3 h-3" />
+                  </button>
+                  {image.type.includes('transition') && (
+                    <button
+                      className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                      title="转场视频"
+                    >
+                      <ArrowRightLeft className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
