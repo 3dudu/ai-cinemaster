@@ -296,7 +296,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors"
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="font-medium">{currentTemplate?.name}</span>
                 <ChevronDown className={`w-4 h-4 ml-2 flex-shrink-0 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />

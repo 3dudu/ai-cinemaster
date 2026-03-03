@@ -241,7 +241,7 @@ const ImageSelectorModal: React.FC<Props> = ({
             {/* 项目选择器 */}
             <div
               ref={dropdownRef}
-              className="relative min-w-64"
+              className="relative lg:w-72 md:w-full"
               onMouseLeave={handleMouseLeave}
               onMouseEnter={handleMouseEnter}
             >
@@ -306,7 +306,7 @@ const ImageSelectorModal: React.FC<Props> = ({
         </div>
 
         {/* 标签页 */}
-        <div className="flex gap-2 p-4 border-b border-slate-600 h-12 items-center bg-slate-700">
+        <div className="flex md:gap-0 lg:gap-2 py-1 px-2 border-b border-slate-600 h-12 items-center bg-slate-700">
           {(['all', 'character', 'scene', 'keyframe'] as const).map(tab => {
             const labels = {
               all: '全部',
@@ -318,7 +318,7 @@ const ImageSelectorModal: React.FC<Props> = ({
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-2 h-8 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
+                className={`px-1 lg:px-2 h-8 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
                   activeTab === tab
                     ? 'bg-slate-800 text-slate-100'
                     : 'text-slate-400 hover:bg-slate-800'
