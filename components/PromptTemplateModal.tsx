@@ -326,28 +326,14 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
             </div>
 
             {/* 操作按钮 */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleExport}
-                className="px-4 py-2 bg-slate-600 text-slate-50 rounded-lg hover:bg-slate-500 transition-colors flex items-center gap-2 text-sm font-medium"
-              >
-                <Download className="w-4 h-4" />
-                导出
-              </button>
-              <button
-                onClick={handleImport}
-                className="px-4 py-2 bg-slate-600 text-slate-50 rounded-lg hover:bg-slate-500 transition-colors flex items-center gap-2 text-sm font-medium"
-              >
-                <Upload className="w-4 h-4" />
-                导入
-              </button>
+            <div className="flex gap-2 items-center">
               {/* 状态指示 */}
-            {isCustomized && (
-              <div className="flex items-center gap-2 text-sm text-emerald-400 bg-slate-900/20 px-3 py-2 rounded-lg border border-emerald-700/30">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full" />
-                <span>已使用自定义模板</span>
-              </div>
-            )}
+              {isCustomized && (
+                <div className="flex items-center gap-2 text-sm text-emerald-400 bg-slate-900/20 px-3 py-2 rounded-lg border border-emerald-700/30">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+                  <span>已使修改</span>
+                </div>
+              )}
               <div className="flex-1" />
               {isCustomized && (
                 <button
@@ -355,15 +341,15 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
                   className="px-4 py-2 bg-slate-600 text-slate-50 rounded-lg hover:bg-slate-500 transition-colors flex items-center gap-2 text-sm font-medium"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  重置默认
+                  重置
                 </button>
               )}
-<button
+              <button
                 onClick={handleSave}
                 className="px-4 py-2 bg-emerald-600 text-slate-50 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 text-sm font-medium"
               >
                 <Save className="w-4 h-4" />
-                保存修改
+                保存
               </button>
             </div>
 
@@ -392,8 +378,26 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
         {/* 底部信息 */}
         <div className="p-4 border-t border-slate-700 flex justify-between items-center text-sm text-slate-400 bg-slate-700 shrink-0">
-          <span>字符数：{currentContent.length}</span>
-          <span>提示词变量请使用 {`{variableName}`} 格式</span>
+          <div className="flex items-center ajustify-between gap-3">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors"
+              title="导出模板"
+              >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleImport}
+              className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors"
+              title="导入模板"
+              >
+              <Upload className="w-4 h-4" />
+            </button>
+            <span>变量使用 {`{var}`} 格式</span>
+          </div>
+            <div className='flex items-center justify-end'>
+            <span>字符数：{currentContent.length}</span>
+            </div>
         </div>
       </div>
     </div>

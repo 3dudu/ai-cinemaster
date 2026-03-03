@@ -1,8 +1,9 @@
-import { Aperture, ChevronLeft, Clapperboard, Edit, Film, Group, Images, List, Settings, Sparkles } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Edit, Film, Group, Images, List, Settings, Sparkles, Type } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import ModalSettings from './ModalSettings';
 import ProjectSettingsModal from './ProjectSettingsModal';
+import PromptTemplateModal from './PromptTemplateModal';
 import { ThemeToggle } from './ThemeToggle';
 
 interface SidebarMobileProps {
@@ -18,6 +19,8 @@ interface SidebarMobileProps {
 const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, onExit, onOpenSettings, projectName, project, updateProject }) => {
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showPromptTemplates, setShowPromptTemplates] = useState(false);
+  
 
   const navItems = [
     { id: 'script', label: '分镜', icon: List },
@@ -69,6 +72,13 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
             <Sparkles className="w-4 h-4" />
           </button>
           <button
+            onClick={() => setShowPromptTemplates(true)}
+            className="text-slate-400 hover:text-slate-50 transition-colors p-1"
+            title="提示词"
+          >
+            <Type className="w-4 h-4" />
+          </button>
+          <button
              onClick={onOpenSettings}
             className="text-slate-400 hover:text-slate-50 transition-colors p-1"
             title="系统设置"
@@ -110,7 +120,11 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
         onClose={() => setShowModelSettings(false)}
         isMobile={true}
       />
-
+      {/* Prompt Template Modal */}
+      <PromptTemplateModal
+        isOpen={showPromptTemplates}
+        onClose={() => setShowPromptTemplates(false)}
+      />
       {/* Project Settings Modal */}
       <ProjectSettingsModal
         isOpen={showProjectSettings}
