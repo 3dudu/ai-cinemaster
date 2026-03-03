@@ -1,4 +1,4 @@
-import { Aperture, ChevronLeft, Clapperboard, Edit, Film, Group, List, Settings, Sparkles } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Edit, Film, Group, Images, List, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import ModalSettings from './ModalSettings';
@@ -7,7 +7,7 @@ import { ThemeToggle } from './ThemeToggle';
 
 interface SidebarMobileProps {
   currentStage: string;
-  setStage: (stage: 'script' | 'assets' | 'director' | 'export') => void;
+  setStage: (stage: 'script' | 'assets' | 'director' | 'export' | 'images') => void;
   onExit: () => void;
   onOpenSettings : () => void;
   projectName?: string;
@@ -23,6 +23,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
     { id: 'script', label: '分镜', icon: List },
     { id: 'assets', label: '素材', icon: Group },
     { id: 'director', label: '导演', icon: Clapperboard },
+    { id: 'images', label: '图库', icon: Images },
     { id: 'export', label: '成片', icon: Film },
   ];
 
@@ -70,7 +71,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
           <button
              onClick={onOpenSettings}
             className="text-slate-400 hover:text-slate-50 transition-colors p-1"
-            title="模型管理"
+            title="系统设置"
           >
             <Settings className="w-4 h-4" />
           </button>

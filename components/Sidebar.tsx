@@ -1,6 +1,7 @@
-import { Aperture, ChevronLeft, Clapperboard, Edit, FileText, Film, Github as GithubIcon, PanelLeft, PanelRight, Settings, Sparkles, Users } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Edit, FileText, Film, Github as GithubIcon, Image, PanelLeft, PanelRight, Settings, Sparkles, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
+import ImageSelectorModal from './ImageSelectorModal';
 import ModalSettings from './ModalSettings';
 import ProjectSettingsModal from './ProjectSettingsModal';
 import { ThemeToggle } from './ThemeToggle';
@@ -25,6 +26,10 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpenSettings, onToggleSidebar, collapsed = false, projectName, project, updateProject }) => {
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showImageBrowser, setShowImageBrowser] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
 
   const navItems = [
     { id: 'script', label: '剧本与故事', icon: FileText, sub: '制作脚本' },
@@ -118,6 +123,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       <div className="p-4 border-t border-slate-900 space-y-2">
         {!collapsed ? (
           <>
+          <button
+            onClick={() => setShowImageBrowser(true)}
+            className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
+          >
+              <span className="font-mono text-[12px] uppercase tracking-widest">浏览图片</span>
+              <Image className="w-4 h-4" />
+            </button>
             <button
               onClick={() => setShowModelSettings(true)}
               className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
@@ -154,6 +166,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         ) : (
           <>
           <button
+            onClick={() => setShowImageBrowser(true)}
+            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full py-2 hover:bg-slate-900/30 rounded-lg"
+            title="浏览图片"
+          >
+            <Image className="w-4 h-4" />
+          </button>
+          <button
             onClick={() => setShowModelSettings(true)}
             className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full py-2 hover:bg-slate-900/30 rounded-lg"
             title="模型管理"
@@ -168,9 +187,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
           </button>
 
           {/* 社交媒体链接 - 折叠状态 */}
-          {process.env.HIDE_GITHUB!='true' && (
           <div className="pt-2 border-t border-slate-900/50">
             <div className="flex flex-col items-center gap-2">
+          {process.env.HIDE_GITHUB!='true' && (
               <a
                 href="https://github.com/3dudu/comic_master/issues"
                 target="_blank"
@@ -180,10 +199,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
               >
                 <GithubIcon className="w-4 h-4" />
               </a>
+            )}
               <ThemeToggle size="sm" />
             </div>
           </div>
-          )}
           </>
         )}
       </div>
@@ -210,6 +229,86 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         project={project}
         updateProject={updateProject}
       />
+
+      {/* Image Browser Modal */}
+      {project && (
+        <ImageSelectorModal
+          isOpen={showImageBrowser}
+          onClose={() => setShowImageBrowser(false)}
+          project={project}
+          onSelectImage={(imageUrl, allImages) => {
+            // 在浏览模式下，点击图片是预览而不是选择
+            setPreviewImage(imageUrl);
+            setPreviewImages(allImages || []);
+            setPreviewIndex(allImages ? allImages.indexOf(imageUrl) : 0);
+          }}
+          filterType="all"
+          previewMode={true}
+        />
+      )}
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-slate-700/95 flex items-center justify-center backdrop-blur-sm"
+          onClick={() => setPreviewImage(null)}
+        >
+          {/* 左导航按钮 */}
+          {previewImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const newIndex = previewIndex > 0 ? previewIndex - 1 : previewImages.length - 1;
+                setPreviewIndex(newIndex);
+                setPreviewImage(previewImages[newIndex]);
+              }}
+              className="absolute left-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          <img
+            src={previewImage}
+            alt="Preview"
+            className="max-w-[95vw] max-h-[95vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* 右导航按钮 */}
+          {previewImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const newIndex = previewIndex < previewImages.length - 1 ? previewIndex + 1 : 0;
+                setPreviewIndex(newIndex);
+                setPreviewImage(previewImages[newIndex]);
+              }}
+              className="absolute right-16 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* 图片信息 */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900/80 text-slate-50 rounded-full text-sm">
+            {previewImages.length > 1 ? `${previewIndex + 1} / ${previewImages.length}` : '预览'}
+          </div>
+        </div>
+      )}
     </aside>
   );
 };

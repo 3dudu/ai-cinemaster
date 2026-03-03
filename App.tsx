@@ -2,14 +2,15 @@ import { CheckCircle, Save } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ApiKeyModal from './components/ApiKeyModal'; // 新增
 import Dashboard from './components/Dashboard';
+import { DialogProvider } from './components/dialog';
 import Sidebar from './components/Sidebar';
 import SidebarMobile from './components/SidebarMobile';
 import StageAssets from './components/StageAssets';
 import StageDirector from './components/StageDirector';
 import StageExport from './components/StageExport';
 import StageScript from './components/StageScript';
-import { DialogProvider } from './components/dialog';
 
+import StageImage from './components/StageImage';
 import { initializeCozeConfig } from './services/modelproviders/cozeService';
 import { setGlobalApiKey } from './services/modelproviders/doubaoService';
 import { ModelService } from './services/modelService';
@@ -140,6 +141,8 @@ function App() {
         return <StageDirector project={project} updateProject={updateProject} isMobile={isMobile} />;
       case 'export':
         return <StageExport project={project} updateProject={updateProject} />;
+      case 'images':
+        return <StageImage project={project} />;
       default:
         return <div className="text-slate-50">未知阶段</div>;
     }
