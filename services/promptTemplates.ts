@@ -3,6 +3,119 @@
  * 集中管理所有 AI 服务使用的提示词,便于维护和更新
  */
 
+// 获取自定义模板（从 localStorage）
+export const getCustomTemplate = (key: string): string | null => {
+  try {
+    const saved = localStorage.getItem('promptTemplates');
+    if (saved) {
+      const customContent = JSON.parse(saved);
+      return customContent[key] || null;
+    }
+  } catch (e) {
+    console.error('Failed to load custom template:', e);
+  }
+  return null;
+};
+
+// 模板变量替换函数
+const replaceVariables = (template: string, variables: Record<string, any>): string => {
+  let result = template;
+  Object.entries(variables).forEach(([key, value]) => {
+    // 处理简单变量替换 {key}
+    result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value));
+
+    // 处理嵌套属性 {key.prop}
+    result = result.replace(
+      new RegExp(`\\{${key}\\.(\\w+)(\\.(\\w+))*\\}`, 'g'),
+      (match) => {
+        const parts = match.slice(1, -1).split('.');
+        let current: any = variables;
+        for (const part of parts) {
+          if (current && current[part] !== undefined) {
+            current = current[part];
+          } else {
+            return match;
+          }
+        }
+        return String(current);
+      }
+    );
+  });
+  return result;
+};
+
+// 渲染模板（支持自定义和默认模板）
+export const renderTemplate = (key: string, ...args: any[]): string => {
+  const customTemplate = getCustomTemplate(key);
+
+  if (customTemplate) {
+    // 如果有自定义模板，尝试替换变量
+    // 需要根据不同的模板类型提取变量
+    const variables = extractVariablesForTemplate(key, args);
+    return replaceVariables(customTemplate, variables);
+  }
+
+  // 使用默认模板函数
+  const defaultFn = PROMPT_TEMPLATES[key as keyof typeof PROMPT_TEMPLATES] as Function;
+  if (defaultFn && typeof defaultFn === 'function') {
+    return defaultFn(...args);
+  }
+
+  return customTemplate || '';
+};
+
+// 根据模板 key 提取变量
+const extractVariablesForTemplate = (key: string, args: any[]): Record<string, any> => {
+  switch (key) {
+    case 'PARSE_SCRIPT':
+      return { rawText: args[0] || '', language: args[1] || '中文' };
+    case 'GENERATE_SHOTS':
+      const [, scene, paragraphs, genre, targetDuration, characters, lang] = args;
+      return {
+        sceneIndex: args[0] || 0,
+        scene: scene || {},
+        paragraphs: paragraphs || '',
+        genre: genre || '',
+        targetDuration: targetDuration || 'Standard',
+        characters: characters || [],
+        lang: lang || '中文'
+      };
+    case 'GENERATE_SCRIPT':
+      return {
+        prompt: args[0] || '',
+        targetDuration: args[1] || '',
+        genre: args[2] || '',
+        language: args[3] || '中文'
+      };
+    case 'GENERATE_VISUAL_PROMPT':
+      return {
+        type: args[0] || 'character',
+        data: args[1] || {},
+        genre: args[2] || '',
+        visualStyle: args[3] || '真人写实'
+      };
+    case 'JOIN_IMAGES':
+      return {
+        imageCount: args[0] || 4,
+        imageSize: args[1] || '2560x1440'
+      };
+    case 'IMAGE_GENERATION_WITH_REFERENCE':
+      return {
+        prompt: args[0] || '',
+        localStyle: args[1] || '真人写实'
+      };
+    case 'GENERATE_CHARACTER_VARIATION':
+      return {
+        characterName: args[0] || '',
+        localStyle: args[1] || '真人写实',
+        variationPrompt: args[2] || '',
+        baseCharacterPrompt: args[3] || ''
+      };
+    default:
+      return {};
+  }
+};
+
 export const PROMPT_TEMPLATES = {
   // ============ 系统提示词 ============
   SYSTEM_SCRIPT_ANALYZER: "你是一名专业的剧本分析员。请始终以有效的 JSON 格式进行回复。",

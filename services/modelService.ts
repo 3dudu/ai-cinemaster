@@ -5,7 +5,7 @@ import { AIModelConfig, ScriptData, Shot } from "../types";
 import { uploadFileToService } from "../utils/fileUploadUtils";
 import { imageUrlToBase64 } from "../utils/imageUtils";
 import { getEnabledConfigByType } from "./modelConfigService";
-import { PROMPT_TEMPLATES } from "./promptTemplates";
+import { renderTemplate } from "./promptTemplates";
 import { getAllModelConfigs } from "./storageService";
 
 // DeepSeek 方法
@@ -623,7 +623,7 @@ export class ModelService {
       data.variations=[];
     }
 
-    const prompt = PROMPT_TEMPLATES.GENERATE_VISUAL_PROMPT(type, data, genre,visualStyle);
+    const prompt = renderTemplate('GENERATE_VISUAL_PROMPT', type, data, genre, visualStyle);
 
     switch (provider.provider) {
       case 'deepseek':
@@ -850,7 +850,7 @@ export class ModelService {
     let new_prompt = prompt;
     if(imageType=='start' || imageType=='end' || imageType=='full' ){
       new_prompt = prompt + (imageCount > 1 ? " \n 连环画规格："+IMAGE_X[imageCount]+"连环画图，包含 "+imageCount+" 张连续且风格统一的图片，每张长宽比 "+image_rate+"，白色背景，铺满整张图。" : "");
-      new_prompt = PROMPT_TEMPLATES.IMAGE_GENERATION_WITH_REFERENCE(new_prompt,localStyle);
+      new_prompt = renderTemplate('IMAGE_GENERATION_WITH_REFERENCE', new_prompt, localStyle);
     }
 
     if(imageType=='character'){

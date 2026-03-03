@@ -1,9 +1,10 @@
-import { Aperture, ChevronLeft, Clapperboard, Edit, FileText, Film, Github as GithubIcon, Image, PanelLeft, PanelRight, Settings, Sparkles, Users } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Edit, FileText, Film, Github as GithubIcon, Image, PanelLeft, PanelRight, Settings, Sparkles, Type, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import ImageSelectorModal from './ImageSelectorModal';
 import ModalSettings from './ModalSettings';
 import ProjectSettingsModal from './ProjectSettingsModal';
+import PromptTemplateModal from './PromptTemplateModal';
 import { ThemeToggle } from './ThemeToggle';
 
 interface Props {
@@ -27,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showImageBrowser, setShowImageBrowser] = useState(false);
+  const [showPromptTemplates, setShowPromptTemplates] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -44,7 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       {/* Header */}
       <div className="p-6 border-b border-slate-900">
         {!collapsed ? (
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-slate-700 text-slate-50 flex items-center justify-center flex-shrink-0">
               <Aperture className="w-5 h-5" />
             </div>
@@ -53,18 +55,17 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             </div>
           </div>
         ) : (
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-4">
             <div className="w-8 h-8 bg-slate-800 text-slate-50 flex items-center justify-center flex-shrink-0">
               <Aperture className="w-5 h-5" />
             </div>
           </div>
         )}
-
         <button
           onClick={onExit}
-          className="flex items-center gap-2 hover:scale-110 transition-transform text-slate-500 hover:text-slate-50 transition-colors text-xs font-mono uppercase tracking-wide group w-full"
+          className={`flex ${collapsed ? 'flex-col' : 'flex-row'} items-center gap-2 hover:scale-110 transition-transform text-slate-500 hover:text-slate-50 transition-colors text-xs font-mono uppercase tracking-wide group w-full`}
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-5 h-5" />
           {!collapsed && <span>返回项目列表</span>}
         </button>
       </div>
@@ -77,14 +78,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
              <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide uppercase">{projectName || '未命名项目'}</h1>
            <button
                 onClick={() => setShowProjectSettings(true)}
-                className="text-xs font-bold  text-slate-400 hover:text-slate-50 items-center gap-2 px-2 py-2 "
+                className="text-xs font-bold text-slate-400 hover:text-slate-50 items-center gap-2 px-2 py-2 "
                 >
                 <Edit className="w-4 h-4" />
            </button>
           </div>
         </div>
       ):(
-        <div className="px-6 py-2 border-b border-slate-900">
+        <div className="px-6 py-2 border-b border-slate-900 flex items-center flex-col">
           <button
                 onClick={() => setShowProjectSettings(true)}
                 className="text-xs font-bold text-slate-500 hover:text-slate-50"
@@ -102,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             <button
               key={item.id}
               onClick={() => setStage(item.id as any)}
-              className={`w-full flex items-center justify-between px-6 py-4 transition-all duration-200 group relative border-l-2 ${
+              className={`w-full flex ${collapsed ? 'flex-col' : 'flex-row'} flex-col items-center justify-between px-6 py-4 transition-all duration-200 group relative border-l-2 ${
                 isActive
                   ? 'border-white bg-slate-700 text-slate-50 font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'
@@ -129,6 +130,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
           >
               <span className="font-mono text-[12px] uppercase tracking-widest">浏览图片</span>
               <Image className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowPromptTemplates(true)}
+              className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
+            >
+              <span className="font-mono text-[12px] uppercase tracking-widest">提示词模板</span>
+              <Type className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowModelSettings(true)}
@@ -164,24 +172,31 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             </div>
           </>
         ) : (
-          <>
+            <div className="flex flex-col items-center gap-2">
           <button
             onClick={() => setShowImageBrowser(true)}
-            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full py-2 hover:bg-slate-900/30 rounded-lg"
+            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
             title="浏览图片"
           >
             <Image className="w-4 h-4" />
           </button>
           <button
+            onClick={() => setShowPromptTemplates(true)}
+            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
+            title="提示词模板"
+          >
+            <Type className="w-4 h-4" />
+          </button>
+          <button
             onClick={() => setShowModelSettings(true)}
-            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full py-2 hover:bg-slate-900/30 rounded-lg"
+            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
             title="模型管理"
           >
             <Sparkles className="w-4 h-4" />
           </button>
           <button
               onClick={onOpenSettings} title="系统设置"
-              className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full py-2 hover:bg-slate-900/30 rounded-lg"
+              className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
             >
             <Settings className="w-4 h-4" />
           </button>
@@ -203,7 +218,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
               <ThemeToggle size="sm" />
             </div>
           </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -216,10 +231,16 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         {collapsed ? <PanelRight className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
       </button>
 
-      {/* Model Settings Modal */}
+          {/* Model Settings Modal */}
       <ModalSettings
         isOpen={showModelSettings}
         onClose={() => setShowModelSettings(false)}
+      />
+
+      {/* Prompt Template Modal */}
+      <PromptTemplateModal
+        isOpen={showPromptTemplates}
+        onClose={() => setShowPromptTemplates(false)}
       />
 
       {/* Project Settings Modal */}

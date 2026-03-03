@@ -1,7 +1,7 @@
 import { Download, Loader2, Plus, RefreshCw, Shirt, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
-import { PROMPT_TEMPLATES } from '../services/promptTemplates';
+import { renderTemplate } from '../services/promptTemplates';
 import { Character, CharacterVariation, ProjectState } from '../types';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
 import { useDialog } from './dialog';
@@ -78,7 +78,7 @@ const WardrobeModal: React.FC<Props> = ({
           const prompt = character.visualPrompt || await ModelService.generateVisualPrompts('character', character, project.scriptData?.genre || '剧情片',project.visualStyle);
 
           // Enhance prompt to emphasize character consistency
-          const enhancedPrompt = PROMPT_TEMPLATES.GENERATE_CHARACTER_VARIATION(
+          const enhancedPrompt = renderTemplate('GENERATE_CHARACTER_VARIATION',
             character.name,
             localStyle,
             variation.visualPrompt,
