@@ -2,6 +2,7 @@ import { Download, Loader2, Plus, RefreshCw, Shirt, Upload, User, X } from 'luci
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from '../services/promptTemplates';
+import { addMediaHistory } from '../services/storageService';
 import { Character, CharacterVariation, ProjectState } from '../types';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
 import { useDialog } from './dialog';
@@ -86,6 +87,13 @@ const WardrobeModal: React.FC<Props> = ({
           );
 
           const imageUrl = await ModelService.generateImage(enhancedPrompt, refImages, "variation", localStyle, '1728x2304',1,{},project.id);
+
+          // Save to media history
+          if (imageUrl) {
+            const variation = character.variations?.find(v => v.id === varId);
+            const fileName = variation ? `${variation.name}_${character.name}` : `造型_${varId}_${character.name}`;
+            await addMediaHistory(project.id, imageUrl, fileName, 'image', 'character');
+          }
 
           const newData = { ...project.scriptData! };
           const c = newData.characters.find(c => c.id === character.id);

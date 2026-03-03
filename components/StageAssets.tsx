@@ -1,6 +1,7 @@
 import { AlertCircle, Check, Download, Expand, Group, Image, Loader2, MapPin, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
+import { addMediaHistory } from '../services/storageService';
 import { ProjectState } from '../types';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
 import WardrobeModal from './WardrobeModal';
@@ -61,6 +62,14 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
 
       // Real API Call
       imageUrl = await ModelService.generateImage(prompt, [], type, localStyle, imagesize,1,null,project.id,id);
+
+      // Save to media history
+      if (imageUrl) {
+        const fileName = type === 'character'
+          ? `角色_${project.scriptData?.characters.find(c => String(c.id) === String(id))?.name || id}`
+          : `场景_${project.scriptData?.scenes.find(s => String(s.id) === String(id))?.id || id}`;
+        await addMediaHistory(project.id, imageUrl, fileName, 'image', type);
+      }
 
     } catch (e) {
       console.error(e);
