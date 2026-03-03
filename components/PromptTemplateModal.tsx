@@ -377,18 +377,18 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
         </div>
 
         {/* 底部信息 */}
-        <div className="p-4 border-t border-slate-700 flex justify-between items-center text-sm text-slate-400 bg-slate-700 shrink-0">
-          <div className="flex items-center ajustify-between gap-3">
+        <div className="p-4 border-t border-slate-700 flex justify-between items-center text-sm text-slate-400 bg-slate-600/80 shrink-0">
+          <div className="flex items-center ajustify-between gap-2">
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors"
+              className="flex items-center p-1 bg-slate-700 text-slate-100 rounded hover:bg-slate-600 transition-colors"
               title="导出模板"
               >
               <Download className="w-4 h-4" />
             </button>
             <button
               onClick={handleImport}
-              className="flex items-center gap-2 text-slate-400 hover:text-slate-100 transition-colors"
+              className="flex items-center p-1 bg-slate-700 text-slate-100 rounded hover:bg-slate-600 transition-colors"
               title="导入模板"
               >
               <Upload className="w-4 h-4" />
