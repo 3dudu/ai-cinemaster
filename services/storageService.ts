@@ -153,7 +153,7 @@ export interface MediaFile {
 }
 
 // Simple MD5 hash function for file URLs
-async function md5Hash(str: string): Promise<string> {
+export async function md5Hash(str: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(str);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -286,6 +286,37 @@ export const deleteMediaHistory = async (id: string): Promise<void> => {
     const request = store.delete(id);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
+  });
+};
+
+export const deleteSingleMediaFile = async (
+  projectId: string,
+  mediaFileId: string
+): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_HISTORY_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(MEDIA_HISTORY_STORE_NAME);
+    const getRequest = store.get(projectId);
+    getRequest.onsuccess = () => {
+      const projectHistory = getRequest.result as MediaHistoryItem | undefined;
+      if (!projectHistory) {
+        resolve();
+        return;
+      }
+
+      // 从所有分类中查找并删除指定文件
+      projectHistory.character = projectHistory.character.filter(f => f.id !== mediaFileId);
+      projectHistory.scene = projectHistory.scene.filter(f => f.id !== mediaFileId);
+      projectHistory.keyframe = projectHistory.keyframe.filter(f => f.id !== mediaFileId);
+      projectHistory.video = projectHistory.video.filter(f => f.id !== mediaFileId);
+
+      // 保存更新后的历史记录
+      const putRequest = store.put(projectHistory);
+      putRequest.onsuccess = () => resolve();
+      putRequest.onerror = () => reject(putRequest.error);
+    };
+    getRequest.onerror = () => reject(getRequest.error);
   });
 };
 

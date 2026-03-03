@@ -1221,7 +1221,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   {project.scriptData?.scenes.map((scene, index) => {
                     const sceneShots = project.shots.filter(s => s.sceneId === scene.id);
                 return (
-                  <>
+                  <div key={scene.id}>
  <div className="flex items-center gap-2 pb-1 border-b border-slate-600 mb-2">
                     <MapPin className="w-4 h-4 text-slate-500" />
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">场景{scene.id}：{scene?.location || '未知场景'}
@@ -1355,8 +1355,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                     )}
 
                                     {/* Badges */}
-                                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                                    <div className="absolute top-2 right-2 flex flex-row gap-1 items-end">
                                         {hasVideo && <div className="p-1 bg-green-500 text-slate-50 rounded shadow-lg backdrop-blur"><Video className="w-3 h-3" /></div>}
+                                        {shot.transitionUrl && <div className="p-1 bg-cyan-500 text-slate-50 rounded shadow-lg backdrop-blur"><ArrowRightLeft className="w-3 h-3" /></div>}
                                     </div>
 
                                     {!activeShotId && !hasImage && !hasVideo && (
@@ -1375,7 +1376,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                             </div>
                         );
                     })}
-                </div></>
+                </div></div>
                 );
               })}
           </div>

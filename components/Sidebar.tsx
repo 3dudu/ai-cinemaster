@@ -128,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             onClick={() => setShowImageBrowser(true)}
             className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
           >
-              <span className="font-mono text-[12px] uppercase tracking-widest">浏览图片</span>
+              <span className="font-mono text-[12px] uppercase tracking-widest">图片视频库</span>
               <Image className="w-4 h-4" />
             </button>
             <button
@@ -176,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
           <button
             onClick={() => setShowImageBrowser(true)}
             className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
-            title="浏览图片"
+            title="图片视频库"
           >
             <Image className="w-4 h-4" />
           </button>
@@ -265,6 +265,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
           }}
           filterType="all"
           previewMode={true}
+          showVideo={true}
         />
       )}
 
