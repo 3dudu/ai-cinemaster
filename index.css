@@ -131,6 +131,15 @@
     background: var(--border-primary); 
   }
   ::selection {
-    background-color: var(--bg-selected);  
+    background-color: var(--bg-selected);
+  }
+
+  /* Hide scrollbar on mobile devices */
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
   }
 }

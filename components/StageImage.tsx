@@ -389,7 +389,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-bold text-slate-50 flex items-center gap-3">
             <Images className="w-5 h-5 text-slate-500" />
-            图库浏览
+            媒体库
           </h2>
         </div>
         <div className="flex items-center gap-3">
@@ -409,10 +409,10 @@ const StageImage: React.FC<Props> = ({ project }) => {
         </div>
       </div>
 
-      {/* 固定的控制区域 */}
-      <div className="border-b border-slate-600 bg-slate-800 space-y-1 p-2 shrink-0">
-        {/* 项目选择器和搜索框 */}
-        <div className="bg-slate-800 border border-slate-600 rounded-xl p-1">
+      {/* 可滚动的内容区域 */}
+      <div className="flex-1 overflow-y-auto">
+        {/* 控制区域（包含项目选择器和搜索框） */}
+        <div className="border-b border-slate-600 bg-slate-700 space-y-1 p-2">
           <div className="flex gap-2 md:flex-row flex-col">
             {/* 项目选择器 */}
             <div
@@ -424,7 +424,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
               <button
                 onClick={() => setShowProjectDropdown(!showProjectDropdown)}
                 disabled={loadingProjects || allProjects.length === 0}
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="truncate">
                   {loadingProjects ? '加载项目...' : (
@@ -440,7 +440,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                 <div
                   onMouseLeave={handleMouseLeave}
                   onMouseEnter={handleMouseEnter}
-                  className="absolute z-10 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto"
+                  className="absolute z-30 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto"
                 >
                   {allProjects.map(proj => (
                     <button
@@ -475,47 +475,48 @@ const StageImage: React.FC<Props> = ({ project }) => {
                 placeholder="搜索角色、场景或镜头..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:border-slate-500 transition-colors"
+                className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:border-slate-500 transition-colors"
               />
             </div>
           </div>
         </div>
 
-        {/* 标签页 */}
-        <div className="bg-slate-800 border border-slate-600 rounded-xl p-1">
-          <div className="flex gap-0">
-            {(
-              showVideo
-                ? ['all', 'character', 'scene', 'keyframe', 'video'] as const
-                : ['all', 'character', 'scene', 'keyframe'] as const
-            ).map(tab => {
-              const labels = {
-                all: '全部',
-                character: '角色',
-                scene: '场景',
-                keyframe: '关键帧',
-                video: '视频'
-              };
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-1 h-9 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
-                    activeTab === tab
-                      ? 'bg-slate-900 text-slate-100'
-                      : 'text-slate-400 hover:bg-slate-900'
-                  }`}
-                >
-                  {labels[tab]} ({tabCounts[tab]})
-                </button>
-              );
-            })}
+        {/* 标签页 - 固定在滚动容器的顶部 */}
+        <div className="sticky top-0 z-20 p-1 border-b border-slate-600 bg-slate-700">
+          <div className="bg-slate-700 rounded-xl p-1">
+            <div className="flex gap-1">
+              {(
+                showVideo
+                  ? ['all', 'character', 'scene', 'keyframe', 'video'] as const
+                  : ['all', 'character', 'scene', 'keyframe'] as const
+              ).map(tab => {
+                const labels = {
+                  all: '全部',
+                  character: '角色',
+                  scene: '场景',
+                  keyframe: '关键帧',
+                  video: '视频'
+                };
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-1 lg:px-2 h-8 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
+                      activeTab === tab
+                       ? 'bg-slate-800 text-slate-100'
+                       : 'text-slate-400 hover:bg-slate-800'
+                    }`}
+                  >
+                    {labels[tab]} ({tabCounts[tab]})
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 图片网格 - 可滚动 */}
-      <div className="flex-1 overflow-y-auto p-2">
+        {/* 图片网格 */}
+        <div className="p-2">
         {displayImages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <Search className="w-12 h-12 mb-4 opacity-50" />
@@ -556,7 +557,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                   </div>
                 </button>
                 {/* 按钮组 */}
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <div className="absolute top-2 right-2 flex gap-1 opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none">
                   {/* 删除历史记录按钮 - 仅历史记录显示 */}
                   {image.ishistory && (
                     <button
@@ -595,6 +596,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
             ))}
           </div>
         )}
+      </div>
       </div>
 
       {/* Image Preview Modal */}

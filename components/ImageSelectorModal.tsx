@@ -397,7 +397,7 @@ const ImageSelectorModal: React.FC<Props> = ({
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
             <Images className="w-5 h-5 text-slate-500" />
-            图库
+            {showVideo ? '媒体' : '图片'}库
           </h3>
           <button
             onClick={onClose}
@@ -558,7 +558,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                     </div>
                   </button>
                   {/* 按钮组 */}
-                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none">
                     {/* 删除历史记录按钮 - 仅历史记录显示 */}
                     {image.ishistory && (
                       <button
