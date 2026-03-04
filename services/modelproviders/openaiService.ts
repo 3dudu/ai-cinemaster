@@ -1,8 +1,8 @@
 // services/modelproviders/openaiService.ts
 
 import { ScriptData, Shot } from "../../types";
-import { renderTemplate } from "../promptTemplates";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
+import { renderTemplate } from "../promptTemplates";
 
 // OpenAI 配置
 const OPENAI_CONFIG = {
@@ -101,8 +101,7 @@ export const parseScriptToData = async (
         },
       ],
       temperature: 0.7,
-      max_tokens: 4096,
-      response_format: { type: "json_object" },
+      max_tokens: 8192,
     }),
   });
 
@@ -195,7 +194,6 @@ export const generateShotListForScene = async (
         ],
         temperature: 0.7,
         max_tokens: 4096,
-        response_format: { type: "json_object" },
       }),
     });
 

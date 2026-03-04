@@ -129,13 +129,9 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
     setLocalImageSize(project.imageSize || '1440x2560');
     setLocalImageCount(project.imageCount || 1);
 
-    // 初始化模型服务
-    ModelService.initialize();
-
     // 加载模型配置
     loadModelConfigs();
     initSystemModelProviders();
-    ModelService.setCurrentProjectProviders(project.modelProviders);
   }, [project.id, project.title, project.targetDuration, project.language, project.visualStyle, project.imageSize, project.imageCount]);
 
   const initSystemModelProviders = async () => {
@@ -466,14 +462,25 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
     setIsGeneratingScript(true);
     try {
+      ModelService.setCurrentProjectProviders(project.modelProviders);
       const generatedScript = await ModelService.generateScript(
         scriptPrompt,
         project.scriptData?.genre || '剧情片',
         getFinalDuration(),
         localLanguage
       );
-      setLocalScript(generatedScript);
+      if(generatedScript){
+        setLocalScript(generatedScript);
+      }else{
+        dialog.alert({
+          title: '错误',
+          message: '生成剧本失败。请检查模型是否正常。',
+          type: 'error',
+        });
+      }
+      setIsGeneratingScript(false);
     } catch (err: any) {
+      setIsGeneratingScript(false);
       console.error(err);
       dialog.alert({
         title: '错误',
@@ -517,7 +524,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
         imageSize: localImageSize,
         imageCount: localImageCount
       });
-
+      ModelService.setCurrentProjectProviders(project.modelProviders);
       const scriptData = await ModelService.parseScriptToData(localScript, localLanguage);
       console.log('scriptData', scriptData);
       if(scriptData.scenes.length > 0){

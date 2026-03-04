@@ -1,9 +1,9 @@
 // services/modelproviders/deepseekService.ts
 
 import { ScriptData, Shot } from "../../types";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 import { getEnabledConfigByType } from "../modelConfigService";
 import { renderTemplate } from "../promptTemplates";
-import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 
 // DeepSeek 配置
 const DEEPSEEK_CONFIG = {
@@ -100,7 +100,6 @@ export const parseScriptToData = async (
       ],
       temperature: 0.7,
       max_tokens: 8192,
-      response_format: { type: "json_object" },
     }),
   });
 
@@ -194,7 +193,6 @@ export const generateShotListForScene = async (
         ],
         temperature: 0.7,
         max_tokens: 8192,
-        response_format: { type: "json_object" },
       }),
     });
 

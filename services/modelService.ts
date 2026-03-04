@@ -2,6 +2,7 @@
 // 模型调用包装类，根据启用的配置动态选择模型提供商
 
 import { AIModelConfig, ScriptData, Shot } from "../types";
+import { cleanJsonString } from "../utils/apiHelper";
 import { uploadFileToService } from "../utils/fileUploadUtils";
 import { imageUrlToBase64 } from "../utils/imageUtils";
 import { getEnabledConfigByType } from "./modelConfigService";
@@ -588,21 +589,27 @@ export class ModelService {
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成剧本`);
-
+    let script = '';
     switch (provider.provider) {
       case 'deepseek':
-        return await generateScriptDeepseek(prompt, genre, targetDuration, language);
+        script =  await generateScriptDeepseek(prompt, genre, targetDuration, language);
+        break;
       case 'doubao':
-        return await generateScriptDoubao(prompt, genre, targetDuration, language);
+        script =  await generateScriptDoubao(prompt, genre, targetDuration, language);
+        break;
       case 'gemini':
-        return await generateScriptGemini(prompt, genre, targetDuration, language);
+        script =  await generateScriptGemini(prompt, genre, targetDuration, language);
+        break;
       case 'yunwu':
-        return await generateScriptYunwu(prompt, genre, targetDuration, language);
+        script =  await generateScriptYunwu(prompt, genre, targetDuration, language);
+        break;
       case 'openai':
-        return await generateScriptOpenai(prompt, genre, targetDuration, language);
+        script =  await generateScriptOpenai(prompt, genre, targetDuration, language);
+        break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的剧本生成`);
     }
+    return cleanJsonString(script);
   }
 
   /**
@@ -628,21 +635,27 @@ export class ModelService {
     }
 
     const prompt = renderTemplate('GENERATE_VISUAL_PROMPT', type, data, genre, visualStyle);
-
+    let visualPrompt = '';
     switch (provider.provider) {
       case 'deepseek':
-        return await generateVisualPromptsDeepseek(prompt);
+        visualPrompt = await generateVisualPromptsDeepseek(prompt);
+        break;
       case 'doubao':
-        return await generateVisualPromptsDoubao(prompt);
+        visualPrompt = await generateVisualPromptsDoubao(prompt);
+        break;
       case 'gemini':
-        return await generateVisualPromptsGemini(prompt);
+        visualPrompt = await generateVisualPromptsGemini(prompt);
+        break;
       case 'yunwu':
-        return await generateVisualPromptsYunwu(prompt);
+        visualPrompt = await generateVisualPromptsYunwu(prompt);
+        break;
       case 'openai':
-        return await generateVisualPromptsOpenai(prompt);
+        visualPrompt = await generateVisualPromptsOpenai(prompt);
+        break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的视觉提示词生成`);
     }
+    return cleanJsonString(visualPrompt);
   }
 
   /**

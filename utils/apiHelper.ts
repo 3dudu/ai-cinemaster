@@ -101,12 +101,17 @@ export const fetchWithAuth = async (
 };
 
 /**
- * 清理JSON字符串，移除Markdown标记
+ * 清理JSON字符串，移除Markdown标记和思考模式内容
  */
 export const cleanJsonString = (str: string): string => {
   if (!str) return "{}";
-  // Remove ```json ... ``` or ``` ... ```
+
+  // 移除 ```json ... ``` 或 ``` ... ``` Markdown 标记
   let cleaned = str.replace(/```json\n?/g, "").replace(/```/g, "");
+
+  // 移除  标签及其内容（思考模式）
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/g, "");
+
   return cleaned.trim();
 };
 

@@ -1,9 +1,9 @@
 // services/modelproviders/doubaoService.ts
 
 import { ScriptData, Shot } from "../../types";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 import { getEnabledConfigByType } from "../modelConfigService";
 import { renderTemplate } from "../promptTemplates";
-import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 
 // 火山引擎配置
 const DOUBAO_CONFIG = {
@@ -145,7 +145,6 @@ export const parseScriptToData = async (
       ],
       temperature: 0.7,
       max_tokens: 8192,
-      response_format: { type: "json_object" }, // 结构化输出
     }),
   });
 
@@ -238,7 +237,6 @@ export const generateShotListForScene = async (
         ],
         temperature: 0.7,
         max_tokens: 8192,
-        response_format: { type: "json_object" },
       }),
     });
 

@@ -57,10 +57,13 @@ export const renderTemplate = (key: string, ...args: any[]): string => {
 
   // 使用默认模板函数
   const defaultFn = PROMPT_TEMPLATES[key as keyof typeof PROMPT_TEMPLATES] as Function;
-  if (defaultFn && typeof defaultFn === 'function') {
-    return defaultFn(...args);
+  if (defaultFn) {
+    if(typeof defaultFn === 'function'){
+      return defaultFn(...args);
+    }else{
+      return defaultFn;
+    }
   }
-
   return customTemplate || '';
 };
 
