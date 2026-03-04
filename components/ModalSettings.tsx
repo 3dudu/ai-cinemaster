@@ -536,7 +536,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={handleCancelAdd}
-                  className="flex-1 py-3 bg-slate-700 text-slate-400 hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"
+                  className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"
                 >
                   取消
                 </button>

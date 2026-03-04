@@ -603,7 +603,7 @@ const ImageSelectorModal: React.FC<Props> = ({
           <span>共 {displayImages.length} 张图片</span>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-700 text-slate-100 rounded-lg hover:bg-slate-600 transition-colors"
+            className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors"
           >
             取消
           </button>

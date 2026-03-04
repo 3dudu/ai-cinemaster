@@ -429,7 +429,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
         <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-slate-900 text-slate-400 hover:text-slate-50 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"
+            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"
           >
             取消
           </button>
