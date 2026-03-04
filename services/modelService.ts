@@ -56,6 +56,7 @@ import {
   generateVisualPrompts as generateVisualPromptsOpenai,
   parseScriptToData as parseScriptToDataOpenai,
   setApiKey as setOpenaiApiKey,
+  setApiUrl as setOpenaiApiUrl,
   setModel as setOpenaiModel
 } from "./modelproviders/openaiService";
 
@@ -214,6 +215,9 @@ export class ModelService {
 
         case 'openai':
           setOpenaiApiKey(config.apiKey);
+          if (config.apiUrl) {
+            setOpenaiApiUrl(config.apiUrl);
+          }
           if (config.model) {
             switch (config.modelType) {
               case 'llm':
@@ -704,6 +708,7 @@ export class ModelService {
         break;
       case 'openai':
         // TODO: 实现 OpenAI
+        setOpenaiApiUrl(apiUrl);
         break;
       case 'gemini':
         // Gemini 使用 GoogleGenAI 的默认端点，不支持自定义 apiUrl

@@ -134,7 +134,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
     // 加载模型配置
     loadModelConfigs();
-    //initSystemModelProviders();
+    initSystemModelProviders();
+    ModelService.setCurrentProjectProviders(project.modelProviders);
   }, [project.id, project.title, project.targetDuration, project.language, project.visualStyle, project.imageSize, project.imageCount]);
 
   const initSystemModelProviders = async () => {
@@ -455,12 +456,15 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
   const handleGenerateScript = async () => {
     if (!scriptPrompt.trim()) {
-      setError("请输入剧本提示词。");
+      dialog.alert({
+        title: '错误',
+        message: '请输入剧本提示词。',
+        type: 'error',
+      });
       return;
     }
 
     setIsGeneratingScript(true);
-    setError(null);
     try {
       const generatedScript = await ModelService.generateScript(
         scriptPrompt,
@@ -471,7 +475,11 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
       setLocalScript(generatedScript);
     } catch (err: any) {
       console.error(err);
-      setError(`剧本生成失败: ${err.message || "AI 连接失败"}`);
+      dialog.alert({
+        title: '错误',
+        message: `剧本生成失败: ${err.message || "AI 连接失败"}`,
+        type: 'error',
+      });
     } finally {
       setIsGeneratingScript(false);
     }
@@ -479,18 +487,25 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
   const handleAnalyze = async () => {
     if (!localScript.trim()) {
-      setError("请输入剧本内容。");
+      dialog.alert({
+        title: '错误',
+        message: '请输入剧本内容。',
+        type: 'error',
+      });
       return;
     }
 
     const finalDuration = getFinalDuration();
     if (!finalDuration) {
-      setError("请选择目标时长。");
+      dialog.alert({
+        title: '错误',
+        message: '请选择目标时长。',
+        type: 'error',
+      });
       return;
     }
 
     setIsProcessing(true);
-    setError(null);
     setProcessingStep('正在分析剧本结构...');
     try {
       updateProject({
@@ -504,59 +519,73 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
       });
 
       const scriptData = await ModelService.parseScriptToData(localScript, localLanguage);
-
-      updateProject({ isParsingScript: true });
-
-      scriptData.targetDuration = finalDuration;
-      scriptData.language = localLanguage;
-
-      if (localTitle && localTitle !== "未命名项目") {
-        scriptData.title = localTitle;
-      }
-
-      // 逐场景生成分镜
-      const allShots: any[] = [];
-      const totalScenes = scriptData.scenes.length;
-
-      for (let i = 0; i < totalScenes; i++) {
-        const scene = scriptData.scenes[i];
-        setProcessingStep(`正在生成第 ${i + 1}/${totalScenes} 场的分镜...`);
-
-        const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i);
-        allShots.push(...sceneShots);
-
-        // 短暂延迟，避免请求过快
-        if (i < totalScenes - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('scriptData', scriptData);
+      if(scriptData.scenes.length > 0){
+        updateProject({ isParsingScript: true });
+  
+        scriptData.targetDuration = finalDuration;
+        scriptData.language = localLanguage;
+  
+        if (localTitle && localTitle !== "未命名项目") {
+          scriptData.title = localTitle;
         }
+  
+        // 逐场景生成分镜
+        const allShots: any[] = [];
+        const totalScenes = scriptData.scenes.length;
+  
+        for (let i = 0; i < totalScenes; i++) {
+          const scene = scriptData.scenes[i];
+          setProcessingStep(`正在生成第 ${i + 1}/${totalScenes} 场的分镜...`);
+  
+          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i);
+          allShots.push(...sceneShots);
+  
+          // 短暂延迟，避免请求过快
+          if (i < totalScenes - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
+        }
+  
+        // 重新索引 shots
+        const shots = allShots.map((s, idx) => ({
+          ...s,
+          id: `shot-${idx + 1}`,
+          keyframes: Array.isArray(s.keyframes)
+            ? s.keyframes.map((k: any) => ({
+                ...k,
+                id: `kf-${idx + 1}-${k.type}`,
+                status: "pending",
+              }))
+            : [],
+        }));
+  
+        setProcessingStep('正在保存分镜数据...');
+        updateProject({
+          scriptData,
+          shots,
+          title: scriptData.title
+        });
+  
+        setActiveTab('script');
+        setProcessingStep('');
+      }else{
+        setProcessingStep('');
+        await dialog.alert({
+          title: '错误',
+          message: `分析剧本失败`,
+          type: 'error',
+        });
+        return;
       }
-
-      // 重新索引 shots
-      const shots = allShots.map((s, idx) => ({
-        ...s,
-        id: `shot-${idx + 1}`,
-        keyframes: Array.isArray(s.keyframes)
-          ? s.keyframes.map((k: any) => ({
-              ...k,
-              id: `kf-${idx + 1}-${k.type}`,
-              status: "pending",
-            }))
-          : [],
-      }));
-
-      setProcessingStep('正在保存分镜数据...');
-      updateProject({
-        scriptData,
-        shots,
-        title: scriptData.title
-      });
-
-      setActiveTab('script');
-      setProcessingStep('');
 
     } catch (err: any) {
       console.error(err);
-      setError(`错误: ${err.message || "AI 连接失败"}`);
+      dialog.alert({
+        title: '错误',
+        message: `错误: ${err.message || "AI 连接失败"}`,
+        type: 'error',
+      });
       setProcessingStep('');
     } finally {
       setIsProcessing(false);

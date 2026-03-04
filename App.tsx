@@ -101,6 +101,9 @@ function App() {
   const updateProject = (updates: Partial<ProjectState>) => {
     if (!project) return;
     setProject(prev => prev ? ({ ...prev, ...updates }) : null);
+    if(project.stage=='script'){
+      ModelService.setCurrentProjectProviders(project.modelProviders);
+    }
   };
 
   const setStage = (stage: 'script' | 'assets' | 'director' | 'export') => {
