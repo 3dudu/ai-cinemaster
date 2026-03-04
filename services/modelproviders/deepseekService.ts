@@ -2,7 +2,7 @@
 
 import { ScriptData, Shot } from "../../types";
 import { getEnabledConfigByType } from "../modelConfigService";
-import { PROMPT_TEMPLATES } from "../promptTemplates";
+import { renderTemplate } from "../promptTemplates";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 
 // DeepSeek 配置
@@ -82,7 +82,7 @@ export const parseScriptToData = async (
 ): Promise<ScriptData> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
 
-  const prompt = PROMPT_TEMPLATES.PARSE_SCRIPT(rawText, language);
+  const prompt = renderTemplate('PARSE_SCRIPT', rawText, language);
 
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
@@ -91,7 +91,7 @@ export const parseScriptToData = async (
       messages: [
         {
           role: "system",
-          content: PROMPT_TEMPLATES.SYSTEM_SCRIPT_ANALYZER,
+          content: renderTemplate('SYSTEM_SCRIPT_ANALYZER'),
         },
         {
           role: "user",
@@ -166,7 +166,7 @@ export const generateShotListForScene = async (
 
   if (!paragraphs.trim()) return [];
 
-  const prompt = PROMPT_TEMPLATES.GENERATE_SHOTS(
+  const prompt = renderTemplate('GENERATE_SHOTS',
     index,
     scene,
     paragraphs,
@@ -185,7 +185,7 @@ export const generateShotListForScene = async (
         messages: [
           {
             role: "system",
-            content: PROMPT_TEMPLATES.SYSTEM_PHOTOGRAPHER,
+            content: renderTemplate('SYSTEM_PHOTOGRAPHER'),
           },
           {
             role: "user",
@@ -259,7 +259,7 @@ export const generateScript = async (
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
 
-  const generationPrompt = PROMPT_TEMPLATES.GENERATE_SCRIPT(prompt, targetDuration, genre, language);
+  const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language);
 
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
@@ -268,7 +268,7 @@ export const generateScript = async (
       messages: [
         {
           role: "system",
-          content: PROMPT_TEMPLATES.SYSTEM_SCREENWRITER,
+          content: renderTemplate('SYSTEM_SCREENWRITER'),
         },
         {
           role: "user",
@@ -299,7 +299,7 @@ export const generateVisualPrompts = async (
       messages: [
         {
             role: "system",
-            content: PROMPT_TEMPLATES.SYSTEM_VISUAL_DESIGNER,
+            content: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
         },
         {
           role: "user",

@@ -1,7 +1,7 @@
 // services/modelproviders/yunwuService.ts
 
 import { ScriptData, Shot } from "../../types";
-import { PROMPT_TEMPLATES } from "../promptTemplates";
+import { renderTemplate } from "../promptTemplates";
 import { retryOperation, fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 
 // 云雾API配置
@@ -84,13 +84,13 @@ export const parseScriptToData = async (
 ): Promise<ScriptData> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
 
-  const prompt = PROMPT_TEMPLATES.PARSE_SCRIPT(rawText, language);
+  const prompt = renderTemplate('PARSE_SCRIPT', rawText, language);
 
   const requestBody = {
     systemInstruction: {
       parts: [
         {
-          text: PROMPT_TEMPLATES.SYSTEM_SCRIPT_ANALYZER,
+          text: renderTemplate('SYSTEM_SCRIPT_ANALYZER'),
         },
       ],
     },
@@ -335,13 +335,13 @@ export const generateScript = async (
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
 
-  const generationPrompt = PROMPT_TEMPLATES.GENERATE_SCRIPT(prompt, targetDuration, genre, language);
+  const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language);
 
   const requestBody = {
     systemInstruction: {
       parts: [
         {
-          text: PROMPT_TEMPLATES.SYSTEM_SCREENWRITER,
+          text: renderTemplate('SYSTEM_SCREENWRITER'),
         },
       ],
     },
@@ -381,7 +381,7 @@ export const generateVisualPrompts = async (
     systemInstruction: {
       parts: [
         {
-          text: PROMPT_TEMPLATES.SYSTEM_VISUAL_DESIGNER,
+          text: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
         },
       ],
     },
@@ -429,7 +429,7 @@ export const generateShotListForScene = async (
 
   if (!paragraphs.trim()) return [];
 
-  const prompt = PROMPT_TEMPLATES.GENERATE_SHOTS(
+  const prompt = renderTemplate('GENERATE_SHOTS',
     index,
     scene,
     paragraphs,
@@ -445,7 +445,7 @@ export const generateShotListForScene = async (
       systemInstruction: {
         parts: [
           {
-            text: PROMPT_TEMPLATES.SYSTEM_PHOTOGRAPHER,
+            text: renderTemplate('SYSTEM_PHOTOGRAPHER'),
           },
         ],
       },

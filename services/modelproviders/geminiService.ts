@@ -1,7 +1,7 @@
 import { GenerateContentResponse, GoogleGenAI, Type } from "@google/genai";
 import { Scene, ScriptData, Shot } from "../../types";
 import { cleanJsonString, retryOperation } from "../../utils/apiHelper";
-import { PROMPT_TEMPLATES } from "../promptTemplates";
+import { renderTemplate } from "../promptTemplates";
 
 // Module-level variable to store the key at runtime
 let runtimeApiKey: string = "";
@@ -22,7 +22,7 @@ const getAiClient = () => {
  */
 export const parseScriptToData = async (rawText: string, language: string = '中文'): Promise<ScriptData> => {
   const ai = getAiClient();
-  const prompt = PROMPT_TEMPLATES.PARSE_SCRIPT(rawText, language);
+  const prompt = renderTemplate('PARSE_SCRIPT', rawText, language);
 
   const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
     model: 'gemini-2.5-flash',
@@ -131,7 +131,7 @@ export const generateShotListForScene = async (
 
   if (!paragraphs.trim()) return [];
 
-  const prompt = PROMPT_TEMPLATES.GENERATE_SHOTS(
+  const prompt = renderTemplate('GENERATE_SHOTS',
     index,
     scene,
     paragraphs,
@@ -250,13 +250,13 @@ export const generateScript = async (
 ): Promise<string> => {
   const ai = getAiClient();
 
-  const generationPrompt = PROMPT_TEMPLATES.GENERATE_SCRIPT(prompt, targetDuration, genre, language);
+  const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language);
 
   const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: generationPrompt,
     config: {
-      systemInstruction: PROMPT_TEMPLATES.SYSTEM_SCREENWRITER,
+      systemInstruction: renderTemplate('SYSTEM_SCREENWRITER'),
       maxOutputTokens: 8192,
     }
   }));
@@ -273,7 +273,7 @@ export const generateVisualPrompts = async (prompt: string): Promise<string> => 
      model: 'gemini-2.5-flash',
      contents: prompt,
      config: {
-      systemInstruction: PROMPT_TEMPLATES.SYSTEM_VISUAL_DESIGNER,
+      systemInstruction: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
       maxOutputTokens: 8192,
      }
    }));
