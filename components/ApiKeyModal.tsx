@@ -83,7 +83,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="p-2 absolute top-4 right-4 text-slate-400 hover:bg-slate-800 rounded-full transition-colors"
+          className="p-2 absolute top-4 right-4 text-slate-400 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors"
         >
           <X className="w-5 h-5 text-slate-500" />
         </button>
@@ -232,7 +232,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
            <button
              onClick={handleSave}
              disabled={!inputKey.trim()}
-             className="w-full py-3 bg-slate-700 text-slate-50 font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-slate-400 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+             className="w-full py-3 bg-slate-600 text-slate-300 font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
            >
              保存配置 <ArrowRight className="w-3 h-3" />
            </button>

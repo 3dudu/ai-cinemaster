@@ -542,7 +542,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                 </button>
                 <button
                   onClick={editingConfig ? handleUpdate : handleAdd}
-                  className="flex-1 py-3 bg-slate-500 text-slate-50 hover:bg-slate-400 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-slate-600/20"
+                  className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-slate-600/20"
                 >
                   {editingConfig ? '更新配置' : '添加配置'}
                 </button>
