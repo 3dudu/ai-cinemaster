@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Download, Expand, Group, Image, Loader2, MapPin, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Check, Download, Drama, Expand, Image, Loader2, MapPin, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { addMediaHistory } from '../services/storageService';
@@ -316,7 +316,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
       <div className="h-14 border-b border-slate-600 bg-slate-700 md:px-6 px-2 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
               <h2 className="text-lg font-bold text-slate-50 flex items-center gap-3">
-                  <Group className="w-5 h-5 text-slate-500" />
+                  <Drama className="w-5 h-5 text-slate-500" />
                   角色与场景
               </h2>
           </div>

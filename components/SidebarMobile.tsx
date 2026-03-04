@@ -1,4 +1,4 @@
-import { Aperture, ChevronLeft, Clapperboard, Edit, Film, Group, Images, List, Settings, Sparkles, Type } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, Images, List, Settings, Sparkles, Type } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import ModalSettings from './ModalSettings';
@@ -24,9 +24,9 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
 
   const navItems = [
     { id: 'script', label: '分镜', icon: List },
-    { id: 'assets', label: '素材', icon: Group },
+    { id: 'assets', label: '素材', icon: Drama },
     { id: 'director', label: '导演', icon: Clapperboard },
-    { id: 'images', label: '图库', icon: Images },
+    { id: 'images', label: '媒体', icon: Images },
     { id: 'export', label: '成片', icon: Film },
   ];
 
