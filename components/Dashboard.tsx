@@ -270,7 +270,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             </h1>
 <div className='flex items-center justify-between gap-3'>
             <ThemeToggle size="sm" className={`text-[12px] text-slate-600 hover:text-red-500 transition-colors uppercase font-mono tracking-widest`}/>
-            <button onClick={handleClearKey} className={`z-50 text-[12px] flex items-center justify-center text-text-secondary w-8 h-8 p-1.5 transition-all duration-200 ease-in-out bg-bg-button rounded-lg text-slate-600 hover:text-red-500 transition-colors uppercase font-mono tracking-widest`}>
+            <button onClick={handleClearKey} className={`z-50 text-[12px] flex items-center justify-center text-text-secondary w-8 h-8 p-1.5 transition-all duration-200 ease-in-out bg-bg-button rounded-lg text-slate-600 hover:text-red-500 transition-colors uppercase font-mono tracking-widest cursor-pointer`}>
             <Power className="w-4 h-4" />
             </button>
 </div>
@@ -278,7 +278,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
           <div className="flex gap-3 flex-end justify-end">
             <button
               onClick={handleCreate}
-              className="group flex items-center gap-3 px-6 py-3 bg-slate-600/50 text-slate-50 hover:bg-slate-600 transition-colors"
+              className="group flex items-center gap-3 px-6 py-3 bg-slate-600/50 text-slate-50 hover:bg-slate-600 transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">新建项目</span>}
@@ -286,14 +286,14 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             <button
               onClick={handleImport}
               disabled={importing}
-              className="group flex items-center gap-3 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group flex items-center gap-3 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <Upload className="w-4 h-4" />
               {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">{importing ? '导入中...' : '导入项目'}</span>}
             </button>
             <button
               onClick={() => setShowModelSettings(true)}
-              className="group flex items-center gap-3 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-slate-50 transition-colors"
+              className="group flex items-center gap-3 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-slate-50 transition-colors cursor-pointer"
               title="模型管理"
             >
               <Sparkles className="w-4 h-4" />
@@ -301,7 +301,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             </button>
             <button
               onClick={() => setApiKeyModalOpen(true)}
-              className="group flex items-center gap-3 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-slate-50 transition-colors"
+              className="group flex items-center gap-3 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-slate-50 transition-colors cursor-pointer"
               title="系统设置"
             >
               <Settings className="w-4 h-4" />
@@ -352,13 +352,13 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                         <div className="flex gap-2 w-full pt-2">
                             <button 
                                 onClick={cancelDelete}
-                                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-50 text-[12px] font-bold uppercase tracking-wider transition-colors border border-slate-600"
+                                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-50 text-[12px] font-bold uppercase tracking-wider transition-colors border border-slate-600 cursor-pointer"
                             >
                                 取消
                             </button>
                             <button 
                                 onClick={(e) => confirmDelete(e, proj.id)}
-                                className="flex-1 py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 hover:text-red-200 text-[12px] font-bold uppercase tracking-wider transition-colors border border-red-900/30"
+                                className="flex-1 py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 hover:text-red-200 text-[12px] font-bold uppercase tracking-wider transition-colors border border-red-900/30 cursor-pointer"
                             >
                                 删除
                             </button>
@@ -373,7 +373,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      {editingProjectId !== proj.id ? (
                      <button
                         onClick={(e) => openProjectSettings(e, proj)}
-                        className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-slate-400 transition-all rounded-sm z-10"
+                        className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-slate-400 transition-all rounded-sm z-10 cursor-pointer"
                         title="编辑项目"
                      >
                         <Edit className="w-4 h-4" />
@@ -384,7 +384,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      {editingProjectId === null ? (
                      <button
                         onClick={(e) => handleDuplicate(e, proj)}
-                        className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-slate-400 transition-all rounded-sm z-10"
+                        className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-slate-400 transition-all rounded-sm z-10 cursor-pointer"
                         title="复制项目"
                      >
                         <Copy className="w-4 h-4" />
@@ -395,7 +395,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      {editingProjectId === null ? (
                      <button
                         onClick={(e) => handleExport(e, proj)}
-                        className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-slate-400 transition-all rounded-sm z-10"
+                        className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-slate-400 transition-all rounded-sm z-10 cursor-pointer"
                         title="导出项目"
                      >
                         <Download className="w-4 h-4" />
@@ -406,7 +406,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      {editingProjectId === null ? (
                      <button
                         onClick={(e) => requestDelete(e, proj.id)}
-                        className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-all rounded-sm z-10"
+                        className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-all rounded-sm z-10 cursor-pointer"
                         title="删除项目"
                      >
                         <Trash2 className="w-4 h-4" />
@@ -427,7 +427,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                             />
                             <button
                               onClick={(e) => saveTitle(e, proj)}
-                              className="p-1.5 hover:bg-slate-800 text-slate-500 hover:text-green-400 transition-all rounded-sm"
+                              className="p-1.5 hover:bg-slate-800 text-slate-500 hover:text-green-400 transition-all rounded-sm cursor-pointer"
                               title="保存"
                             >
                               <Check className="w-3.5 h-3.5" />

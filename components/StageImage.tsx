@@ -395,7 +395,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowVideo(!showVideo)}
-            className={`px-3 py-1 rounded text-[12px] font-mono uppercase transition-colors ${
+            className={`px-3 py-1 rounded text-[12px] font-mono uppercase transition-colors cursor-pointer ${
               showVideo
                 ? 'bg-blue-600 text-white'
                 : 'bg-slate-900 text-slate-400 hover:bg-slate-800'
@@ -424,7 +424,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
               <button
                 onClick={() => setShowProjectDropdown(!showProjectDropdown)}
                 disabled={loadingProjects || allProjects.length === 0}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <span className="truncate">
                   {loadingProjects ? '加载项目...' : (
@@ -449,7 +449,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                         setSelectedProjectId(proj.id);
                         setShowProjectDropdown(false);
                       }}
-                      className={`w-full px-4 py-2 text-left text-sm transition-colors ${
+                      className={`w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer ${
                         proj.id === selectedProjectId
                           ? 'bg-slate-700 text-slate-100'
                           : 'text-slate-300 hover:bg-slate-600'
@@ -501,7 +501,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-1 lg:px-2 h-8 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center ${
+                    className={`px-1 lg:px-2 h-8 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center cursor-pointer ${
                       activeTab === tab
                        ? 'bg-slate-800 text-slate-100'
                        : 'text-slate-400 hover:bg-slate-800'
@@ -531,7 +531,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
               >
                 <button
                   onClick={() => handleImageClick(image)}
-                  className="w-full h-full"
+                  className="w-full h-full cursor-pointer"
                 >
                   {image.mediaType === 'video' ? (
                     <video
@@ -562,7 +562,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                   {image.ishistory && (
                     <button
                       onClick={(e) => handleDeleteHistory(image, e)}
-                      className="pointer-events-auto p-2 bg-red-600/80 text-slate-50 rounded-full hover:bg-red-700 transition-colors border border-white/10 backdrop-blur"
+                      className="pointer-events-auto p-2 bg-red-600/80 text-slate-50 rounded-full hover:bg-red-700 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                       title="删除历史记录"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -578,14 +578,14 @@ const StageImage: React.FC<Props> = ({ project }) => {
                         handleDownloadImage(image.imageUrl!, image.downname);
                       }
                     }}
-                    className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                    className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                     title={image.mediaType === 'video' ? '下载视频' : '下载图片'}
                   >
                     <Download className="w-3 h-3" />
                   </button>
                   {image.type.includes('transition') && (
                     <button
-                      className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                      className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                       title="转场视频"
                     >
                       <ArrowRightLeft className="w-3 h-3" />
@@ -614,7 +614,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                 setPreviewIndex(newIndex);
                 setPreviewImage(previewImages[newIndex]);
               }}
-              className="absolute left-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors"
+              className="absolute left-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -638,7 +638,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                 setPreviewIndex(newIndex);
                 setPreviewImage(previewImages[newIndex]);
               }}
-              className="absolute right-16 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors"
+              className="absolute right-16 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -648,7 +648,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
 
           <button
             onClick={() => setPreviewImage(null)}
-            className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors"
+            className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
           >
             <X className="w-6 h-6" />
           </button>

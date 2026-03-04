@@ -1121,7 +1121,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                          )}
                                          <button
                                              onClick={() => setSelectedCharId(char.id)}
-                                             className="p-1.5 bg-slate-700/50 text-slate-400 hover:text-slate-50 rounded-full hover:bg-slate-800/20 transition-all border border-white/10"
+                                             className="p-1.5 bg-slate-700/50 text-slate-400 hover:text-slate-50 rounded-full hover:bg-slate-800/20 transition-all border border-white/10 cursor-pointer"
                                              title="管理造型"
                                          >
                                         <Shirt className="w-3 h-3" />
@@ -1192,11 +1192,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               <button
                   onClick={handleBatchGenerateImages}
                   disabled={!!batchProgress || !!batchVideoProgress}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
                       allStartFramesGenerated
                         ? 'bg-slate-700 text-slate-50 border border-slate-600 hover:text-slate-50 hover:border-slate-300'
                         : 'bg-slate-700 text-slate-50 hover:bg-slate-600 shadow-lg shadow-white/5 border border-slate-600'
-                  }`}
+                  } ${(!!batchProgress || !!batchVideoProgress) ? 'cursor-not-allowed' : ''}`}
               >
                   <Image className="w-3 h-3" />
                   {allStartFramesGenerated ? '重新生图' : '批量生图'}
@@ -1205,7 +1205,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               <button
                   onClick={handleBatchGenerateVideos}
                   disabled={!!batchProgress || !!batchVideoProgress}
-                  className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                  className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
               >
                   <Video className="w-3 h-3" />
                   {project.shots.every(s => s.interval?.videoUrl) ? '重新生成' : '批量视频'}
@@ -1228,7 +1228,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     </span>
                     <button
                     onClick={() => setEditingSceneInMain(scene!)}
-                    className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all"
+                    className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all cursor-pointer"
                     title="编辑场景"
                  >
                     <Edit className="w-3.5 h-3.5" />
@@ -1237,7 +1237,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     <button
                         onClick={() => handleSceneBatchGenerateImages(scene.id)}
                         disabled={!!batchProgress || !!batchVideoProgress}
-                        className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all flex items-center gap-1"
+                        className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all flex items-center gap-1 cursor-pointer"
                         title="批量生成图片"
                     >
                         <Image className="w-3 h-3" />
@@ -1246,7 +1246,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     <button
                         onClick={() => handleSceneBatchGenerateVideos(scene.id)}
                         disabled={!!batchProgress || !!batchVideoProgress}
-                        className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all flex items-center gap-1"
+                        className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all flex items-center gap-1 cursor-pointer"
                         title="批量生成视频"
                     >
                         <Video className="w-3 h-3" />
@@ -1280,14 +1280,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                     <div className="flex items-center gap-0.5 md:gap-1">
                                         <button
                                           onClick={(e) => { e.stopPropagation(); startEditShot(shot); }}
-                                          className="p-1 md:p-1.5 hover:bg-slate-700 text-slate-500 hover:text-slate-50 rounded transition-colors"
+                                          className="p-1 md:p-1.5 hover:bg-slate-700 text-slate-500 hover:text-slate-50 rounded transition-colors cursor-pointer"
                                           title="编辑镜头"
                                         >
                                           <Edit className="w-3 h-3" />
                                         </button>
                                         <button
                                           onClick={(e) => {e.stopPropagation();deleteShot(shot.id)}}
-                                          className="p-1 md:p-1.5 hover:bg-red-900/20 text-slate-600 group-hover:text-red-400 rounded transition-colors"
+                                          className="p-1 md:p-1.5 hover:bg-red-900/20 text-slate-600 group-hover:text-red-400 rounded transition-colors cursor-pointer"
                                           title="删除"
                                         >
                                           <Trash className="w-3 h-3" />
@@ -1406,14 +1406,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                        </div>
                        
                        <div className="flex items-center gap-1">
-                           <button onClick={goToPrevShot} disabled={activeShotIndex === 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors">
+                           <button onClick={goToPrevShot} disabled={activeShotIndex === 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
                                <ChevronLeft className="w-4 h-4" />
                            </button>
-                           <button onClick={goToNextShot} disabled={activeShotIndex === project.shots.length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors">
+                           <button onClick={goToNextShot} disabled={activeShotIndex === project.shots.length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
                                <ChevronRight className="w-4 h-4" />
                            </button>
                            <div className="w-px h-4 bg-slate-700 mx-2"></div>
-                           <button onClick={() => setActiveShotId(null)} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors">
+                           <button onClick={() => setActiveShotId(null)} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer">
                                <X className="w-4 h-4" />
                            </button>
                        </div>
@@ -1475,7 +1475,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            console.error('刷新模型配置失败:', error);
                                        }
                                    }}
-                                   className="text-[11px] text-slate-400 hover:text-slate-50 transition-colors flex items-center gap-1"
+                                   className="text-[11px] text-slate-400 hover:text-slate-50 transition-colors flex items-center gap-1 cursor-pointer"
                                    title="刷新模型配置"
                                >
                                    <RefreshCw className="w-3 h-3" />
@@ -1562,7 +1562,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                <button
                                    onClick={() => handleOneClickProduction(activeShot)}
                                    disabled={!!processingState || !!batchProgress || oneClickProcessing?.shotId === activeShot.id}
-                                   className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold uppercase tracking-wider rounded transition-all flex items-center gap-1.5 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                                   className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold uppercase tracking-wider rounded transition-all flex items-center gap-1.5 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                                >
                                    {oneClickProcessing?.shotId === activeShot.id ? (
                                        <>
@@ -1590,7 +1590,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                    <button
                                                        onClick={() => deleteKeyframeImage(activeShot.id, 'full')}
                                                        disabled={!!processingState || !!batchProgress}
-                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                        title="删除起始帧图片"
                                                    >
                                                        <Trash className="w-3 h-3" />
@@ -1599,7 +1599,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                        <button
                                            onClick={() => handleGenerateKeyframe(activeShot, 'full')}
                                            disabled={!!processingState || !!batchProgress}
-                                           className="text-[12px] text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                           className="text-[12px] text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                        >
                                            {processingState?.type === 'kf_full' && (processingState?.id === fullKf?.id || (!fullKf && processingState?.type === 'kf_full')) ? '生成中...' : fullKf?.imageUrl ? '重新生成' : '生成'}
                                        </button>
@@ -1610,7 +1610,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            <button
                                                onClick={(e) => { e.stopPropagation(); downloadImage(fullKf.imageUrl!, `${project.scriptData?.title}-Shot-${activeShotIndex + 1}-full.png`, dialog); }}
                                                disabled={!!processingState || !!batchProgress}
-                                               className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10"
+                                               className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
                                                title="下载宫格图"
                                            >
                                                <Download className="w-3 h-3" />
@@ -1619,7 +1619,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                        <button
                                            onClick={(e) => { e.stopPropagation(); handleFileUploadClick(activeShot.id, 'full'); }}
                                            disabled={!!processingState || !!batchProgress}
-                                           className="absolute bottom-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10"
+                                           className="absolute bottom-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
                                            title="上传图片"
                                        >
                                            <Upload className="w-3 h-3" />
@@ -1667,7 +1667,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                    <button
                                                        onClick={() => deleteKeyframeImage(activeShot.id, 'start')}
                                                        disabled={!!processingState || !!batchProgress}
-                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                        title="删除起始帧图片"
                                                    >
                                                        <Trash className="w-3 h-3" />
@@ -1677,7 +1677,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                    <button
                                                        onClick={copyStartToPreviousShotEndImage}
                                                        disabled={!!processingState || !!batchProgress}
-                                                       className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                       className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                        title="作为前一个镜头的结束帧"
                                                    >
                                                        <ArrowLeft className="w-3 h-3" />
@@ -1686,7 +1686,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            <button
                                                onClick={() => handleGenerateKeyframe(activeShot, 'start')}
                                                disabled={!!processingState || !!batchProgress}
-                                               className="text-[12px] text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                               className="text-[12px] text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                            >
                                                {processingState?.type === 'kf_start' && (processingState?.id === startKf?.id || (!startKf && processingState?.type === 'kf_start')) ? '生成中...' : startKf?.imageUrl ? '重新生成' : '生成'}
                                            </button>
@@ -1697,7 +1697,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                <button
                                                    onClick={(e) => { e.stopPropagation(); downloadImage(startKf.imageUrl!, `${project.scriptData?.title}-Shot-${activeShotIndex + 1}-start.png`, dialog); }}
                                                    disabled={!!processingState || !!batchProgress}
-                                                   className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10"
+                                                   className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
                                                    title="下载起始帧"
                                                >
                                                    <Download className="w-3 h-3" />
@@ -1706,7 +1706,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            <button
                                                onClick={(e) => { e.stopPropagation(); handleFileUploadClick(activeShot.id, 'start'); }}
                                                disabled={!!processingState || !!batchProgress}
-                                               className="absolute bottom-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10"
+                                               className="absolute bottom-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
                                                title="上传图片"
                                            >
                                                <Upload className="w-3 h-3" />
@@ -1752,7 +1752,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                    <button
                                                        onClick={() => deleteKeyframeImage(activeShot.id, 'end')}
                                                        disabled={!!processingState || !!batchProgress}
-                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                        title="删除尾帧图片"
                                                    >
                                                        <Trash className="w-3 h-3" />
@@ -1762,7 +1762,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                    <button
                                                        onClick={copyEndToNextShotStartImage}
                                                        disabled={!!processingState || !!batchProgress}
-                                                       className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                       className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                        title="作为下一个镜头的起始帧"
                                                    >
                                                        <ArrowRight className="w-3 h-3" />
@@ -1771,7 +1771,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                <button
                                                    onClick={() => handleGenerateKeyframe(activeShot, 'end')}
                                                    disabled={!!processingState || !!batchProgress}
-                                                   className="text-[12px] text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                   className="text-[12px] text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                >
                                                    {processingState?.type === 'kf_end' && (processingState?.id === endKf?.id || (!endKf && processingState?.type === 'kf_end')) ? '生成中...' : endKf?.imageUrl ? '重新生成' : '生成'}
                                                </button>
@@ -1782,7 +1782,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                <button
                                                    onClick={(e) => { e.stopPropagation(); downloadImage(endKf.imageUrl!, `${project.scriptData?.title}-Shot-${activeShotIndex + 1}-end.png`, dialog); }}
                                                    disabled={!!processingState || !!batchProgress}
-                                                   className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10"
+                                                   className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
                                                    title="下载结束帧"
                                                >
                                                    <Download className="w-3 h-3" />
@@ -1791,7 +1791,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            <button
                                                onClick={(e) => { e.stopPropagation(); handleFileUploadClick(activeShot.id, 'end'); }}
                                                disabled={!!processingState || !!batchProgress}
-                                               className="absolute bottom-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10"
+                                               className="absolute bottom-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
                                                title="上传图片"
                                            >
                                                <Upload className="w-3 h-3" />
@@ -1914,11 +1914,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                            <button
                              onClick={() => handleGenerateVideo(activeShot)}
                              disabled={!!processingState || !!batchProgress}
-                             className={`mx-6 m-3 py-2 rounded-lg font-bold border border-slate-600 xt-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                             className={`mx-6 m-3 py-2 rounded-lg font-bold border border-slate-600 xt-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer ${
                                activeShot.interval?.videoUrl
                                  ? 'bg-slate-600 text-slate-300 hover:bg-slate-700'
                                  : 'bg-slate-600 text-slate-50 hover:bg-slate-500 shadow-lg shadow-slate-600/20'
-                             } ${(!!processingState || !!batchProgress) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                             } ${(!!processingState || !!batchProgress) ? 'cursor-not-allowed' : ''}`}
                            >
                              {processingState?.type === 'video' ? (
                                 <>
@@ -1948,7 +1948,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               />
               <button
                 onClick={() => setPreviewImageUrl(null)}
-                className="absolute top-6 right-6 p-3 bg-slate-800/50/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors"
+                className="absolute top-6 right-6 p-3 bg-slate-800/50/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-6 h-6" />
               </button>

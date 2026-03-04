@@ -170,7 +170,7 @@ const WardrobeModal: React.FC<Props> = ({
                         <p className="text-xs text-slate-500 font-mono uppercase tracking-wider">服装造型</p>
                     </div>
                 </div>
-                <button onClick={onClose} className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors">
+                <button onClick={onClose} className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors cursor-pointer">
                     <X className="w-5 h-5 text-slate-500" />
                 </button>
             </div>
@@ -263,7 +263,7 @@ const WardrobeModal: React.FC<Props> = ({
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-2">
                                             <h5 className="font-bold text-slate-200 text-sm">{variation.name}</h5>
-                                            <button onClick={() => handleDeleteVariation(variation.id)} className="text-slate-600 hover:text-red-500"><X className="w-3 h-3"/></button>
+                                            <button onClick={() => handleDeleteVariation(variation.id)} className="text-slate-600 hover:text-red-500 cursor-pointer"><X className="w-3 h-3"/></button>
                                         </div>
                                         <p className="text-[12px] text-slate-500 line-clamp-2 mb-3 font-mono">{variation.visualPrompt}</p>
                                         <button

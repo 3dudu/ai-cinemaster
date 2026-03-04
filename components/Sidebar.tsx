@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         )}
         <button
           onClick={onExit}
-          className={`flex ${collapsed ? 'flex-col' : 'flex-row'} items-center gap-2 hover:scale-110 transition-transform text-slate-500 hover:text-slate-50 transition-colors text-xs font-mono uppercase tracking-wide group w-full`}
+          className={`flex ${collapsed ? 'flex-col' : 'flex-row'} cursor-pointer items-center gap-2 hover:scale-110 transition-transform text-slate-500 hover:text-slate-50 transition-colors text-xs font-mono uppercase tracking-wide group w-full`}
         >
           <ChevronLeft className="w-5 h-5" />
           {!collapsed && <span>返回项目列表</span>}
@@ -78,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
              <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide uppercase">{projectName || '未命名项目'}</h1>
            <button
                 onClick={() => setShowProjectSettings(true)}
-                className="text-xs font-bold text-slate-400 hover:text-slate-50 items-center gap-2 px-2 py-2 "
+                className="text-xs font-bold text-slate-400 hover:text-slate-50 items-center gap-2 px-2 py-2 cursor-pointer"
                 >
                 <Edit className="w-4 h-4" />
            </button>
@@ -88,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         <div className="px-6 py-2 border-b border-slate-900 flex items-center flex-col">
           <button
                 onClick={() => setShowProjectSettings(true)}
-                className="text-xs font-bold text-slate-500 hover:text-slate-50"
+                className="text-xs font-bold text-slate-500 hover:text-slate-50 cursor-pointer"
                 >
                 <Edit className="w-4 h-4 group-hover:-translate-1 transition-transform" />
            </button>
@@ -103,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             <button
               key={item.id}
               onClick={() => setStage(item.id as any)}
-              className={`w-full flex ${collapsed ? 'flex-col' : 'flex-row'} flex-col items-center justify-between px-6 py-4 transition-all duration-200 group relative border-l-2 ${
+              className={`w-full flex ${collapsed ? 'flex-col' : 'flex-row'} cursor-pointer flex-col items-center justify-between px-6 py-4 transition-all duration-200 group relative border-l-2 ${
                 isActive
                   ? 'border-white bg-slate-700 text-slate-50 font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'
@@ -225,7 +225,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       {/* Collapse Toggle Button */}
       <button
         onClick={onToggleSidebar}
-        className="md:hidden xl:block absolute -right-3 top-20 bg-slate-800 border border-slate-600 text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-all rounded-full p-1.5 z-50"
+        className="md:hidden xl:block absolute -right-3 top-20 bg-slate-800 border border-slate-600 text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-all rounded-full p-1.5 z-50 cursor-pointer"
         title={collapsed ? '展开侧边栏' : '折叠侧边栏'}
       >
         {collapsed ? <PanelRight className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}

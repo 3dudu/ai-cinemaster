@@ -418,7 +418,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                             <button
                                 onClick={selectAllCompleted}
                                 disabled={completedShots.length === 0}
-                                className="text-[11px] text-slate-500 hover:text-slate-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                                className="text-[11px] text-slate-500 hover:text-slate-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
                             >
                                 <Check className="w-3 h-3" />
                                 全选
@@ -426,7 +426,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                             <button
                                 onClick={deselectAll}
                                 disabled={selectedShotIds.size === 0}
-                                className="text-[11px] text-slate-500 hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                                className="text-[11px] text-slate-500 hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
                             >
                                 <X className="w-3 h-3" />
                                 取消
@@ -550,7 +550,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                    {isPlayingSelected && (
                      <button
                        onClick={handleStopPlayback}
-                       className="text-[11px] text-red-400 hover:text-red-300 font-mono bg-red-500/10 px-2 py-1 rounded transition-colors"
+                       className="text-[11px] text-red-400 hover:text-red-300 font-mono bg-red-500/10 px-2 py-1 rounded transition-colors cursor-pointer"
                      >
                        停止播放
                      </button>
@@ -653,7 +653,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
               <button
                  onClick={handlePlaySelected}
                  disabled={playSequence.length === 0 || isPlayingSelected}
-                 className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border ${
+                 className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border cursor-pointer ${
                    playSequence.length > 0 && !isPlayingSelected
                      ? 'bg-slate-600 text-slate-50 hover:bg-slate-500 border-slate-500 shadow-lg shadow-slate-600/20'
                      : 'bg-slate-900 text-slate-600 border-slate-600 cursor-not-allowed'
@@ -673,7 +673,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                <button
                   onClick={handleDownloadSelected}
                   disabled={selectedShotIds.size === 0}
-                  className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border ${
+                  className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border cursor-pointer ${
                     selectedShotIds.size > 0
                       ? 'bg-slate-700 text-slate-50 hover:bg-slate-600 border-slate-500 shadow-lg shadow-slate-600/20'
                       : 'bg-slate-900 text-slate-600 border-slate-600 cursor-not-allowed'
@@ -684,7 +684,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                <button
                   onClick={handleMerge}
                   disabled={selectedShotIds.size === 0 || isMerging}
-                  className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border ${
+                  className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border cursor-pointer ${
                  selectedShotIds.size > 0 && !isMerging
                    ? 'bg-slate-600 text-slate-50 hover:bg-slate-500 border-white shadow-lg shadow-white/5'
                    : 'bg-slate-700 text-slate-600 border-slate-600 cursor-not-allowed'
@@ -710,7 +710,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                <button
                   onClick={handleDownload}
                   disabled={!project.mergedVideoUrl}
-                  className={`h-12 bg-slate-700 hover:bg-slate-500 text-slate-300 border border-slate-600 hover:border-slate-300 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all ${
+                  className={`h-12 bg-slate-700 hover:bg-slate-500 text-slate-300 border border-slate-600 hover:border-slate-300 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer ${
                     !project.mergedVideoUrl ? 'cursor-not-allowed opacity-50' : ''
                   }`}>
                  <Download className="w-4 h-4" />

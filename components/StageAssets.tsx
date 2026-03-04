@@ -194,7 +194,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
       {/* Image Preview Modal */}
       {previewImage && (
         <div className="fixed inset-0 z-50 bg-slate-700/95 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
-          <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 p-2 bg-slate-800/10 hover:bg-slate-800/20 rounded-full transition-colors">
+          <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 p-2 bg-slate-800/10 hover:bg-slate-800/20 rounded-full transition-colors cursor-pointer">
             <X className="w-6 h-6 text-slate-50" />
           </button>
           <img src={previewImage} alt="Preview" className="max-w-[90vw] max-h-[90vh] object-contain" />
@@ -244,7 +244,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                     <h3 className="text-lg font-bold text-slate-50">{selectedScene.location}</h3>
                   </div>
                 </div>
-                <button onClick={() => setSelectedSceneId(null)} className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors">
+                <button onClick={() => setSelectedSceneId(null)} className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors cursor-pointer">
                   <X className="w-5 h-5 text-slate-500" />
                 </button>
               </div>
@@ -346,7 +346,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
             <button 
               onClick={() => handleBatchGenerate('character')}
               disabled={!!batchProgress}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
                   allCharactersReady
                     ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
                     : 'bg-slate-800 text-slate-50 hover:bg-slate-400 shadow-lg shadow-white/5'
@@ -373,7 +373,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                           <button
                             onClick={() => { setPreviewImage(char.referenceImage); }}
                             disabled={!!batchProgress || !!processingState}
-                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold uppercase flex items-center gap-2 tracking-wider rounded border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold uppercase flex items-center gap-2 tracking-wider rounded border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <Expand className="w-3 h-3" />
                             全屏预览
@@ -390,7 +390,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                        <button
                           onClick={() => handleGenerateAsset('character', char.id)}
                           disabled={processingState?.type === 'character' && processingState?.id === char.id || !!batchProgress || !!processingState}
-                          className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-bold transition-all border border-slate-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-bold transition-all border border-slate-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                        >
                          {processingState?.type === 'character' && processingState?.id === char.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Image className="w-3 h-3" />}
                          {processingState?.type === 'character' && processingState?.id === char.id ? '生成中...' : '生成'}
@@ -404,7 +404,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       {/* Preview Button */}
                       <button
                         onClick={(e) => handleGenerateAsset('character', char.id) }
-                        className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                        className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="重新生成"
                       >
                         <Image className="w-3 h-3" />
@@ -412,7 +412,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       {/* Download Button */}
                       <button
                         onClick={(e) => { handleDownloadImage(char.referenceImage!, '角色-'+char.name); }}
-                        className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                        className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="下载图片"
                       >
                         <Download className="w-3 h-3" />
@@ -422,13 +422,13 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                   <button
                             onClick={(e) => { handleFileUploadClick(char.id, 'character'); }}
                             disabled={!!batchProgress || !!processingState}
-                            className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                            className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                           >
                             <Upload className="w-3 h-3" />
                   </button>
                   <button
                      onClick={(e) => { setSelectedCharId(char.id); }}
-                     className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                     className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                      title="管理造型"
                   >
                       <Shirt className="w-3 h-3" />
@@ -468,7 +468,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
             <button 
               onClick={() => handleBatchGenerate('scene')}
               disabled={!!batchProgress}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
                   allScenesReady
                     ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
                     : 'bg-slate-800 text-slate-50 hover:bg-slate-600 shadow-lg shadow-white/5'
@@ -495,7 +495,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                           <button
                             onClick={(e) => {setPreviewImage(scene.referenceImage); }}
                             disabled={!!batchProgress || !!processingState}
-                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold uppercase tracking-wider rounded flex items-center gap-2 border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold uppercase tracking-wider rounded flex items-center gap-2 border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <Expand className="w-3 h-3" />
                             全屏预览
@@ -512,7 +512,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                        <button
                           onClick={(e) => { handleGenerateAsset('scene', scene.id); }}
                           disabled={processingState?.type === 'scene' && processingState?.id === scene.id || !!batchProgress || !!processingState}
-                          className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-bold transition-all border border-slate-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-bold transition-all border border-slate-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                        >
                           {processingState?.type === 'scene' && processingState?.id === scene.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Image className="w-3 h-3" />}
                           {processingState?.type === 'scene' && processingState?.id === scene.id ? '生成中...' : '生成'}
@@ -525,7 +525,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                           <>
                       <button
                         onClick={(e) => {handleGenerateAsset('scene', scene.id); }}
-                        className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                        className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="重新生成"
                       >
                         <Image className="w-3 h-3" />
@@ -533,7 +533,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       {/* Download Button */}
                       <button
                         onClick={(e) => { handleDownloadImage(scene.referenceImage!, '场景-'+scene.location); }}
-                        className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                        className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="下载图片"
                       >
                         <Download className="w-3 h-3" />
@@ -544,7 +544,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                     <button
                       onClick={(e) => { handleFileUploadClick(scene.id, 'scene'); }}
                       disabled={!!batchProgress || !!processingState}
-                      className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
+                      className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                       title="上传图片"
                       >
                       <Upload className="w-3 h-3" />
@@ -563,7 +563,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                         <p className="text-[12px] text-slate-300 font-mono line-clamp-2 flex-1">{scene.visualPrompt}</p>
                         <button
                           onClick={() => setSelectedSceneId(scene.id)}
-                          className="text-[11px] text-emerald-400 hover:text-emerald-300 flex-shrink-0 font-bold uppercase tracking-wider"
+                          className="text-[11px] text-emerald-400 hover:text-emerald-300 flex-shrink-0 font-bold uppercase tracking-wider cursor-pointer"
                         >
                           编辑
                         </button>
@@ -574,7 +574,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                     <div className="mt-2 pt-2 border-t border-slate-600/50">
                       <button
                         onClick={() => setSelectedSceneId(scene.id)}
-                        className="w-full text-[11px] text-slate-500 hover:text-emerald-400 font-mono text-center py-1 border border-dashed border-slate-600 rounded hover:border-emerald-500/50 transition-colors"
+                        className="w-full text-[11px] text-slate-500 hover:text-emerald-400 font-mono text-center py-1 border border-dashed border-slate-600 rounded hover:border-emerald-500/50 transition-colors cursor-pointer"
                       >
                         + 添加视觉提示
                       </button>
@@ -614,7 +614,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
           />
           <button
             onClick={() => setPreviewImage(null)}
-            className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors"
+            className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
           >
             <X className="w-6 h-6" />
           </button>

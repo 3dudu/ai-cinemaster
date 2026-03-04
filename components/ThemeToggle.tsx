@@ -69,7 +69,7 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
     <button
       onClick={handleToggle}
       className={`
-        bg-bg-button rounded-lg
+        bg-bg-button rounded-lg cursor-pointer
         hover:bg-bg-selected hover:border-slate-300
         transition-all duration-200 ease-in-out
         flex items-center justify-center text-text-secondary

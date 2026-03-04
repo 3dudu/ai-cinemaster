@@ -83,7 +83,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="p-2 absolute top-4 right-4 text-slate-400 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors"
+          className="p-2 absolute top-4 right-4 text-slate-400 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
         >
           <X className="w-5 h-5 text-slate-500" />
         </button>
@@ -116,7 +116,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                <button
                  type="button"
                  onClick={() => setShowApiKey(!showApiKey)}
-                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                  title={showApiKey ? "隐藏 API Key" : "显示 API Key"}
                >
                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -174,7 +174,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                <button
                  type="button"
                  onClick={() => setShowCozeApiKey(!showCozeApiKey)}
-                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                  title={showCozeApiKey ? "隐藏 API Key" : "显示 API Key"}
                >
                  {showCozeApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -232,7 +232,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
            <button
              onClick={handleSave}
              disabled={!inputKey.trim()}
-             className="w-full py-3 bg-slate-600 text-slate-300 font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+             className="w-full py-3 bg-slate-600 text-slate-300 font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
            >
              保存配置 <ArrowRight className="w-3 h-3" />
            </button>

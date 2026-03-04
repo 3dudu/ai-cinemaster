@@ -347,7 +347,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
           </h3>
           <button
             onClick={handleCancelAdd}
-            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-text-primary transition-colors disabled:opacity-50"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-text-primary transition-colors disabled:opacity-50 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -454,7 +454,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                   <button
                     type="button"
                     onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                     title={showApiKey ? "隐藏 API Key" : "显示 API Key"}
                   >
                     {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -513,7 +513,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, enabled: !formData.enabled })}
-                  className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-3 ${
+                  className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-3 cursor-pointer ${
                     formData.enabled
                       ? 'bg-yellow-300 text-slate-500'
                       : 'bg-slate-600 text-slate-400'
@@ -535,13 +535,13 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
         <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
                 <button
                   onClick={handleCancelAdd}
-                  className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"
+                  className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
                 >
                   取消
                 </button>
                 <button
                   onClick={editingConfig ? handleUpdate : handleAdd}
-                  className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-slate-600/20"
+                  className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-slate-600/20 cursor-pointer"
                 >
                   {editingConfig ? '更新配置' : '添加配置'}
                 </button>
@@ -620,21 +620,21 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                               triggerModelConfigChanged();
                             }}
                             disabled={!config.enabled && !config.apiKey}
-                            className={`p-2 transition-colors rounded-lg ${config.enabled ? 'text-slate-400 hover:text-slate-300 hover:bg-slate-950 bg-slate-900' : !config.apiKey ? 'text-slate-500 bg-slate-900 bg-transparent cursor-not-allowed' : 'bg-slate-900 text-slate-600 hover:text-slate-300 hover:bg-slate-950'}`}
+                            className={`p-2 transition-colors rounded-lg cursor-pointer ${config.enabled ? 'text-slate-400 hover:text-slate-300 hover:bg-slate-950 bg-slate-900' : !config.apiKey ? 'text-slate-500 bg-slate-900 bg-transparent cursor-not-allowed' : 'bg-slate-900 text-slate-600 hover:text-slate-300 hover:bg-slate-950'}`}
                             title={config.enabled ? '非默认' : config.apiKey ? '系统默认' : '请先配置 API Key'}
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleEdit(config)}
-                            className="p-2 hover:bg-slate-950 bg-slate-900 text-slate-600 hover:text-slate-300 transition-colors rounded-lg"
+                            className="p-2 hover:bg-slate-950 bg-slate-900 text-slate-600 hover:text-slate-300 transition-colors rounded-lg cursor-pointer"
                             title="编辑"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(config.id)}
-                            className="p-2 hover:bg-red-950 bg-slate-900 text-slate-600 hover:text-red-400 transition-colors rounded-lg"
+                            className="p-2 hover:bg-red-950 bg-slate-900 text-slate-600 hover:text-red-400 transition-colors rounded-lg cursor-pointer"
                             title="删除"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -654,14 +654,14 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
         <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
               <button
                 onClick={handleExport}
-                className="flex-1 py-3 bg-slate-700 text-slate-400 hover:bg-slate-800 hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-slate-700 text-slate-400 hover:bg-slate-800 hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 导出配置
               </button>
               <div className="relative flex-1 group">
                 <button
-                  className="w-full py-3 bg-slate-700 text-slate-400 group-hover:bg-slate-800 group-hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 relative"
+                  className="w-full py-3 bg-slate-700 text-slate-400 group-hover:bg-slate-800 group-hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 relative cursor-pointer"
                 >
                   <Upload className="w-4 h-4" />
                   导入配置
@@ -675,7 +675,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 添加新配置

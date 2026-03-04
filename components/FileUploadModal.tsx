@@ -174,7 +174,7 @@ const FileUploadModal: React.FC<Props> = ({
             {/* Image Preview Modal */}
             {previewImage && (
               <div className="fixed inset-0 z-50 bg-slate-700/95 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
-                <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 p-2 bg-slate-800/10 hover:bg-slate-800/20 rounded-full transition-colors">
+                <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 p-2 bg-slate-800/10 hover:bg-slate-800/20 rounded-full transition-colors cursor-pointer">
                   <X className="w-6 h-6 text-slate-50" />
                 </button>
                 <img src={previewImage} alt="Preview" className="max-w-[90vw] max-h-[90vh] object-contain" />
@@ -189,7 +189,7 @@ const FileUploadModal: React.FC<Props> = ({
           </h3>
           <button
             onClick={onClose}
-            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
             disabled={uploading}
           >
             <X className="w-5 h-5 text-slate-500" />
@@ -254,7 +254,7 @@ const FileUploadModal: React.FC<Props> = ({
                   {!uploadSuccess && (
                     <button
                       onClick={handleRemoveFile}
-                      className="p-2 hover:bg-red-500/20 rounded-full transition-colors"
+                      className="p-2 hover:bg-red-500/20 rounded-full transition-colors cursor-pointer"
                     >
                       <X className="w-4 h-4 text-slate-500 hover:text-red-500" />
                     </button>
@@ -272,7 +272,7 @@ const FileUploadModal: React.FC<Props> = ({
               <button
                 onClick={() => setIsImageSelectorOpen(true)}
                 disabled={uploading}
-                className="px-4 py-2 text-sm bg-slate-600 hover:bg-slate-800 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm bg-slate-600 hover:bg-slate-800 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Images className="w-3.5 h-3.5" />
                 图库
@@ -283,7 +283,7 @@ const FileUploadModal: React.FC<Props> = ({
             <button
               onClick={onClose}
               disabled={uploading}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               取消
             </button>
@@ -294,7 +294,7 @@ const FileUploadModal: React.FC<Props> = ({
                     onUploadSuccess(previewUrl!);
                     onClose();
                   }}
-                  className="px-6 py-2 bg-slate-600 text-slate-300 hover:bg-slate-800  rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  className="px-6 py-2 bg-slate-600 text-slate-300 hover:bg-slate-800  rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
                   确认选择
@@ -303,7 +303,7 @@ const FileUploadModal: React.FC<Props> = ({
                 <button
                   onClick={handleUpload}
                   disabled={uploading}
-                  className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-slate-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-slate-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {uploading ? (
                     <>

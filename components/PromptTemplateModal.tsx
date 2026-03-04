@@ -282,7 +282,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
           </h3>
           <button
             onClick={onClose}
-            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-50 transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-50 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -296,7 +296,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <span className="font-medium">{currentTemplate?.name}</span>
                 <ChevronDown className={`w-4 h-4 ml-2 flex-shrink-0 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
@@ -311,7 +311,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
                         setSelectedKey(template.key);
                         setShowDropdown(false);
                       }}
-                      className={`w-full px-4 py-2 text-left text-sm transition-colors ${
+                      className={`w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer ${
                         selectedKey === template.key
                           ? 'bg-slate-700 text-slate-100'
                           : 'text-slate-300 hover:bg-slate-600'
@@ -338,7 +338,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
               {isCustomized && (
                 <button
                   onClick={handleReset}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                  className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
                   重置
@@ -346,7 +346,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
               )}
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+                className="px-4 py-2 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
               >
                 <Save className="w-4 h-4" />
                 保存
@@ -381,14 +381,14 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
           <div className="flex items-center ajustify-between gap-2">
             <button
               onClick={handleExport}
-              className="flex items-center p-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded transition-colors"
+              className="flex items-center p-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded transition-colors cursor-pointer"
               title="导出模板"
               >
               <Download className="w-4 h-4" />
             </button>
             <button
               onClick={handleImport}
-              className="flex items-center p-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded transition-colors"
+              className="flex items-center p-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded transition-colors cursor-pointer"
               title="导入模板"
               >
               <Upload className="w-4 h-4" />
