@@ -244,7 +244,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                     <h3 className="text-lg font-bold text-slate-50">{selectedScene.location}</h3>
                   </div>
                 </div>
-                <button onClick={() => setSelectedSceneId(null)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <button onClick={() => setSelectedSceneId(null)} className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors">
                   <X className="w-5 h-5 text-slate-500" />
                 </button>
               </div>

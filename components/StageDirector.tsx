@@ -1854,7 +1854,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                        disabled={!!processingState || !!batchProgress}
                                        className={`text-[12px] font-mono flex items-center gap-1 transition-colors cursor-pointer bg-transparent border-0 p-0 ${
                                            activeShot.transitionUrl
-                                               ? 'text-purple-500 hover:text-purple-400'
+                                               ? 'text-cyan-500 hover:text-cyan-400'
                                                : 'text-slate-400 hover:text-slate-300'
                                        } ${(!!processingState || !!batchProgress) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                        title="生成转场动画"
@@ -1865,7 +1865,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                    {activeShot.transitionUrl && (
                                        <button
                                            onClick={() => handleDownloadTransition(activeShot)}
-                                           className="text-[12px] text-purple-500 font-mono flex items-center gap-1 hover:text-purple-400 transition-colors cursor-pointer bg-transparent border-0 p-0"
+                                           className="text-[12px] text-cyan-500 font-mono flex items-center gap-1 hover:text-cyan-400 transition-colors cursor-pointer bg-transparent border-0 p-0"
                                            title="点击下载转场视频"
                                        >
                                            <Download className="w-3 h-3" />

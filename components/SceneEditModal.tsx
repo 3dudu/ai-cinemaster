@@ -58,7 +58,7 @@ const SceneEditModal: React.FC<Props> = ({ scene, storyParagraphs, onSave, onClo
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-slate-600/80 border border-slate-600 rounded-2xl w-[600px] max-w-[90vw] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col select-text">
+      <div className="bg-slate-800 border border-slate-600 rounded-2xl w-[600px] max-w-[90vw] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col select-text">
         {/* 标题栏 */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
@@ -67,7 +67,7 @@ const SceneEditModal: React.FC<Props> = ({ scene, storyParagraphs, onSave, onClo
           </h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-50 transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-50 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

@@ -480,7 +480,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                              {/* Transition Marker */}
                              {shot.transitionUrl && (
                                <div className="absolute z-10 inset-0 p-1 flex items-end justify-center">
-                                 <ArrowRightLeft className="w-3 h-3 text-purple-400" />
+                                 <ArrowRightLeft className="w-3 h-3 text-cyan-500" />
                                </div>
                              )}
                           </div>
@@ -522,7 +522,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                             <Check className="w-3 h-3 text-green-400" />
                           )}
                           {displayShot.shot.transitionUrl && (
-                            <ArrowRightLeft className="w-3 h-3 text-purple-400" />
+                            <ArrowRightLeft className="w-3 h-3 text-cyan-500" />
                           )}
                         </div>
                         <p className="text-sm text-slate-300 leading-relaxed line-clamp-2">

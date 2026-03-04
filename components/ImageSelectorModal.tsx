@@ -401,7 +401,7 @@ const ImageSelectorModal: React.FC<Props> = ({
           </h3>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-full transition-colors"
+            className="p-2 text-slate-400 bg-slate-700 hover:text-slate-100 hover:bg-slate-800 rounded-full transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

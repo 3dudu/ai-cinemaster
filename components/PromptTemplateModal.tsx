@@ -273,7 +273,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-700/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
-      <div className="bg-slate-600/80 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl h-[80vh] flex flex-col">
+      <div className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl h-[80vh] flex flex-col">
         {/* 标题栏 */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
@@ -282,7 +282,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
           </h3>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-full transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-50 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -291,7 +291,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
         {/* 内容区域 */}
         <div className="flex-1 overflow-hidden flex flex-col bg-slate-700">
           {/* 工具栏 */}
-          <div className="p-4 border-b border-slate-600 bg-slate-700 space-y-3 shrink-0">
+          <div className="p-4 bg-slate-600/80 border-t border-slate-600 space-y-3 shrink-0">
             {/* 模板选择器 */}
             <div className="relative" ref={dropdownRef}>
               <button
@@ -338,7 +338,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
               {isCustomized && (
                 <button
                   onClick={handleReset}
-                  className="px-4 py-2 bg-slate-600 text-slate-50 rounded-lg hover:bg-slate-500 transition-colors flex items-center gap-2 text-sm font-medium"
+                  className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                 >
                   <RotateCcw className="w-4 h-4" />
                   重置
@@ -346,7 +346,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
               )}
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-emerald-600 text-slate-50 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 text-sm font-medium"
+                className="px-4 py-2 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
               >
                 <Save className="w-4 h-4" />
                 保存
@@ -381,14 +381,14 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
           <div className="flex items-center ajustify-between gap-2">
             <button
               onClick={handleExport}
-              className="flex items-center p-1 bg-slate-700 text-slate-100 rounded hover:bg-slate-600 transition-colors"
+              className="flex items-center p-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded transition-colors"
               title="导出模板"
               >
               <Download className="w-4 h-4" />
             </button>
             <button
               onClick={handleImport}
-              className="flex items-center p-1 bg-slate-700 text-slate-100 rounded hover:bg-slate-600 transition-colors"
+              className="flex items-center p-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded transition-colors"
               title="导入模板"
               >
               <Upload className="w-4 h-4" />

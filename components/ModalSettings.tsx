@@ -338,7 +338,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
         if (e.target === e.currentTarget && !showAddModal) onClose();
       }}
     >
-      <div className="bg-slate-600/80 bg-bg-input border border-slate-600 rounded-2xl w-[800px] max-w-[90vw] h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+      <div className="bg-slate-800 bg-bg-input border border-slate-600 rounded-2xl w-[800px] max-w-[90vw] h-[85vh] overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
@@ -347,7 +347,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
           </h3>
           <button
             onClick={handleCancelAdd}
-            className="p-2 hover:bg-slate-800 rounded-full text-slate-500 hover:text-text-primary transition-colors disabled:opacity-50"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-text-primary transition-colors disabled:opacity-50"
           >
             <X className="w-5 h-5" />
           </button>
@@ -532,8 +532,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
               {/* Action Buttons */}
             </div>
           </div>
-              <div className="p-6 border-t border-slate-800">
-              <div className="flex gap-3 pt-4">
+        <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
                 <button
                   onClick={handleCancelAdd}
                   className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"
@@ -546,7 +545,6 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                 >
                   {editingConfig ? '更新配置' : '添加配置'}
                 </button>
-              </div>
               </div>
               </>
         ) : (
@@ -653,37 +651,35 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
 
         {/* Footer */}
         {!showAddModal && (
-          <div className="p-6 border-t border-slate-800">
-            <div className="flex gap-3">
+        <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
               <button
                 onClick={handleExport}
-                className="flex-1 py-3 bg-slate-700 text-slate-400 hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-slate-700 text-slate-400 hover:bg-slate-800 hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 导出配置
               </button>
-              <div className="relative flex-1">
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImport}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
+              <div className="relative flex-1 group">
                 <button
-                  className="w-full py-3 bg-slate-700 text-slate-400 hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-slate-700 text-slate-400 group-hover:bg-slate-800 group-hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 relative"
                 >
                   <Upload className="w-4 h-4" />
                   导入配置
                 </button>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImport}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex-1 py-3 bg-slate-500 text-slate-50 hover:bg-slate-400 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 添加新配置
               </button>
-            </div>
           </div>
         )}
       </div>

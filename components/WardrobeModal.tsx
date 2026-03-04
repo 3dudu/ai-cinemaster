@@ -160,7 +160,7 @@ const WardrobeModal: React.FC<Props> = ({
     <div className="absolute inset-0 z-40 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
         <div className="bg-slate-800 border border-slate-600 w-full max-w-4xl max-h-[80vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
-            <div className="h-16 px-8 border-b border-slate-600 flex items-center justify-between shrink-0 bg-slate-600/80">
+            <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between shrink-0 bg-slate-600/80">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden border border-slate-600">
                         {character.referenceImage && <img src={character.referenceImage} className="w-full h-full object-cover"/>}
@@ -170,14 +170,14 @@ const WardrobeModal: React.FC<Props> = ({
                         <p className="text-xs text-slate-500 font-mono uppercase tracking-wider">服装造型</p>
                     </div>
                 </div>
-                <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <button onClick={onClose} className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors">
                     <X className="w-5 h-5 text-slate-500" />
                 </button>
             </div>
             
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-8 bg-slate-700">
-                <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-8">
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-700">
+                <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-6">
                     {/* Base Look */}
                     <div>
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -297,7 +297,7 @@ const WardrobeModal: React.FC<Props> = ({
                                     <button 
                                         onClick={handleAddVariation}
                                         disabled={!newVarName || !newVarPrompt}
-                                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                                        className="w-full py-2 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
                                     >
                                         <Plus className="w-3 h-3" /> 添加造型
                                     </button>

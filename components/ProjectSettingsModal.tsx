@@ -141,7 +141,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
           </h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-50 transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-50 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

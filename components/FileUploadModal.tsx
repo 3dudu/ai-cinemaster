@@ -189,7 +189,7 @@ const FileUploadModal: React.FC<Props> = ({
           </h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-full transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors"
             disabled={uploading}
           >
             <X className="w-5 h-5 text-slate-500" />
@@ -294,7 +294,7 @@ const FileUploadModal: React.FC<Props> = ({
                     onUploadSuccess(previewUrl!);
                     onClose();
                   }}
-                  className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-slate-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  className="px-6 py-2 bg-slate-600 text-slate-300 hover:bg-slate-800  rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                 >
                   <Check className="w-4 h-4" />
                   确认选择

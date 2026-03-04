@@ -1019,7 +1019,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                        <TextQuote className="w-3 h-3" /> 类型
                      </h3>
                      {!editingGenre && (
-                       <button onClick={startEditGenre} className="text-slate-600 hover:text-slate-50 transition-colors">
+                       <button onClick={startEditGenre} className="text-slate-500 hover:text-slate-50 transition-colors">
                          <Edit className="w-3 h-3" />
                        </button>
                      )}
@@ -1056,7 +1056,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                        <TextQuote className="w-3 h-3" /> 故事梗概
                      </h3>
                      {!editingLogline && (
-                       <button onClick={startEditLogline} className="text-slate-600 hover:text-slate-50 transition-colors">
+                       <button onClick={startEditLogline} className="text-slate-500 hover:text-slate-50 transition-colors">
                          <Edit className="w-3 h-3" />
                        </button>
                      )}
@@ -1087,7 +1087,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                       <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                          <Users className="w-3 h-3" /> 演员表
                       </h3>
-                      <button onClick={() => setShowAddCharacter(true)} className="text-slate-600 hover:text-slate-50 transition-colors">
+                      <button onClick={() => setShowAddCharacter(true)} className="text-slate-500 hover:text-slate-50 transition-colors">
                          <Plus className="w-3 h-3" />
                       </button>
                     </div>
@@ -1135,9 +1135,9 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                               <>
                                 <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{c.name}</span>
                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <span className="text-[12px] text-slate-600 font-mono">{c.gender}</span>
-                                  <button onClick={() => startEditCharacter(c)} className="text-slate-600 hover:text-slate-50"><Edit className="w-3 h-3" /></button>
-                                  <button onClick={() => deleteCharacter(c.id)} className="text-slate-600 hover:text-red-400"><Trash className="w-3 h-3" /></button>
+                                  <span className="text-[12px] text-slate-500 font-mono">{c.gender}</span>
+                                  <button onClick={() => startEditCharacter(c)} className="text-slate-500 hover:text-slate-50"><Edit className="w-3 h-3" /></button>
+                                  <button onClick={() => deleteCharacter(c.id)} className="text-slate-500 hover:text-red-400"><Trash className="w-3 h-3" /></button>
                                 </div>
                               </>
                             )}
@@ -1190,7 +1190,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                       <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                          <MapPin className="w-3 h-3" /> 场景列表
                       </h3>
-                      <button onClick={() => setShowAddScene(true)} className="text-slate-600 hover:text-slate-50 transition-colors">
+                      <button onClick={() => setShowAddScene(true)} className="text-slate-500 hover:text-slate-50 transition-colors">
                          <Plus className="w-3 h-3" />
                       </button>
                     </div>
@@ -1229,8 +1229,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                              <>
                                <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{s!.location}</span>
                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                 <button onClick={() => startEditScene(s!)} className="text-slate-600 hover:text-slate-50"><Edit className="w-3 h-3" /></button>
-                                 <button onClick={() => deleteScene(s!.id)} className="text-slate-600 hover:text-red-400"><Trash className="w-3 h-3" /></button>
+                                 <button onClick={() => startEditScene(s!)} className="text-slate-500 hover:text-slate-50"><Edit className="w-3 h-3" /></button>
+                                 <button onClick={() => deleteScene(s!.id)} className="text-slate-500 hover:text-red-400"><Trash className="w-3 h-3" /></button>
                                </div>
                              </>
                            )}
@@ -1292,7 +1292,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                               </div>
                               <div className="flex items-center justify-between md:gap-4 gap-1 text-[12px] font-mono uppercase tracking-widest text-slate-500">
                                  <span className="flex items-center gap-1.5 whitespace-nowrap"><Clock className="w-3 h-3"/> {scene.time}</span>
-                                 <span className="text-slate-600">|</span>
+                                 <span className="text-slate-500">|</span>
                                  <span>{scene.atmosphere}</span>
                               </div>
                            </div>
