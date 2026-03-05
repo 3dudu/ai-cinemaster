@@ -4,7 +4,7 @@ import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
 
-const DURATION_OPTIONS = [
+export const DURATION_OPTIONS = [
   { label: '30秒 (广告)', value: '30s' },
   { label: '60秒 (预告)', value: '60s' },
   { label: '2分钟 (片花)', value: '120s' },
@@ -12,7 +12,7 @@ const DURATION_OPTIONS = [
   { label: '自定义', value: 'custom' }
 ];
 
-const LANGUAGE_OPTIONS = [
+export const LANGUAGE_OPTIONS = [
   { label: '中文 (Chinese)', value: '中文' },
   { label: 'English (US)', value: 'English' },
   { label: '日本語 (Japanese)', value: 'Japanese' },
@@ -20,7 +20,7 @@ const LANGUAGE_OPTIONS = [
   { label: 'Español (Spanish)', value: 'Spanish' }
 ];
 
-const STYLE_OPTIONS = [
+export const STYLE_OPTIONS = [
   { label: '仙侠古装', value: '仙侠古装' },
   { label: '可爱卡通', value: '可爱卡通' },
   { label: '古典水墨', value: '古典水墨' },
@@ -29,15 +29,17 @@ const STYLE_OPTIONS = [
   { label: '二次元', value: '二次元' },
   { label: '真人写实', value: '真人写实' },
   { label: '蜡笔画风格', value: '蜡笔画风格' },
-  { label: '现代城市风', value: '现代城市风' }
+  { label: '现代城市风', value: '现代城市风' },
+  { label: '沙雕漫', value: '沙雕漫' },
+  { label: '自定义', value: 'custom' }
 ];
 
-const IMAGE_SIZE_OPTIONS = [
+export const IMAGE_SIZE_OPTIONS = [
   { label: '横屏 16:9 (2560x1440)', value: '2560x1440' },
   { label: '竖屏 9:16 (1440x2560)', value: '1440x2560' }
 ];
 
-const IMAGE_COUNT_OPTIONS = [
+export const IMAGE_COUNT_OPTIONS = [
   { label: '文生视频', value: 0 },
   { label: '首尾帧', value: 1 },
   { label: '4 张', value: 4 },
@@ -61,6 +63,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
   const [localImageSize, setLocalImageSize] = useState(project?.imageSize || '1440x2560');
   const [localImageCount, setLocalImageCount] = useState(project?.imageCount || 1);
   const [customDurationInput, setCustomDurationInput] = useState('');
+  const [customStyleInput, setCustomStyleInput] = useState('');
   const [modelConfigs, setModelConfigs] = useState<any[]>([]);
   const [localLlmProvider, setLocalLlmProvider] = useState(project?.modelProviders?.llm || '');
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project?.modelProviders?.text2image || '');
@@ -73,12 +76,21 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       //initSystemModelProviders();
       // Reset local state when opening modal
       setLocalTitle(project.title);
-      setLocalDuration(project.targetDuration || '60s');
       setLocalLanguage(project.language || '中文');
-      setLocalStyle(project.visualStyle || '真人写实');
+
+      const currentStyle = project.visualStyle || '真人写实';
+      const isCustomStyle = !STYLE_OPTIONS.some(opt => opt.value === currentStyle);
+      setCustomStyleInput(isCustomStyle ? currentStyle : '');
+      setLocalStyle(isCustomStyle?'custom':currentStyle);
+
       setLocalImageSize(project.imageSize || '1440x2560');
       setLocalImageCount(project.imageCount || 1);
-      setCustomDurationInput(project.targetDuration === 'custom' ? project.targetDuration : '');
+
+      const currentDuration = project.targetDuration || '60s';
+      const isCustomDuration = !DURATION_OPTIONS.some(opt => opt.value === project.targetDuration);
+      setLocalDuration(isCustomDuration?'custom':currentDuration);
+      setCustomDurationInput(isCustomDuration ? currentDuration : '');
+
     }
   }, [isOpen, project]);
 
@@ -101,6 +113,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
   const saveSettings = () => {
     const finalDuration = localDuration === 'custom' ? customDurationInput : localDuration;
+    const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
     const newModelProviders = {
       ...project.modelProviders,
       llm: localLlmProvider,
@@ -112,7 +125,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       title: localTitle,
       targetDuration: finalDuration,
       language: localLanguage,
-      visualStyle: localStyle,
+      visualStyle: finalStyle,
       imageSize: localImageSize,
       imageCount: localImageCount,
       modelProviders: newModelProviders
@@ -182,28 +195,6 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               </div>
             </div>
 
-            {/* Visual Style Selection */}
-            <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">画面风格</label>
-              <div className="relative">
-                <select
-                  value={localStyle}
-                  onChange={(e) => setLocalStyle(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {STYLE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Image Size and Image Count in one row */}
-          <div className="grid grid-cols-2 gap-3">
             {/* Image Size Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">图片尺寸</label>
@@ -221,6 +212,40 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                   <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Image Size and Image Count in one row */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Visual Style Selection */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">画面风格</label>
+              <div className="relative">
+                <select
+                  value={localStyle}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setLocalStyle(value);
+                  }}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                >
+                  {STYLE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-3 pointer-events-none">
+                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
+                </div>
+              </div>
+              {localStyle === 'custom' && (
+                <input
+                  type="text"
+                  value={customStyleInput}
+                  onChange={(e) => setCustomStyleInput(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all placeholder:text-slate-600"
+                  placeholder="输入自定义画面风格..."
+                />
+              )}
             </div>
 
             {/* Image Count Selection */}
@@ -253,7 +278,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                   onClick={() => setLocalDuration(opt.value)}
                   className={`px-2 py-2.5 text-xs font-medium rounded-md transition-all duration-200 transition-all text-center border cursor-pointer ${
                     localDuration === opt.value
-                    ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-md shadow-slate-500/25 scale-105'
+                    ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-md shadow-slate-500/25'
                     : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-300 hover:text-slate-300 hover:bg-slate-800'
                   }`}
                 >

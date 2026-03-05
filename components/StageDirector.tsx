@@ -648,7 +648,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                 const endKey = shot.keyframes?.find(k => k.type === 'end');
                 let full_prompt = shot.actionSummary;
                 if (startKey || endKey){
-                    full_prompt = `画面开始：${startKey.visualPrompt} 画面结束：${endKey.visualPrompt}`;
+                    full_prompt = `连环画开始：${startKey.visualPrompt} 连环画结束：${endKey.visualPrompt}`;
                 }
                 const existingFf = shot.keyframes?.find(k => k.type === 'full');
                 const ffId = existingFf?.id || `kf-${shot.id}-full-${Date.now()}`;

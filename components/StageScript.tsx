@@ -4,9 +4,10 @@ import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
 import { Character, ProjectState, Scene } from '../types';
+import { useDialog } from './dialog';
+import { DURATION_OPTIONS, IMAGE_COUNT_OPTIONS, IMAGE_SIZE_OPTIONS, LANGUAGE_OPTIONS, STYLE_OPTIONS } from './ProjectSettingsModal';
 import SceneEditModal from './SceneEditModal';
 import ShotEditModal from './ShotEditModal';
-import { useDialog } from './dialog';
 
 interface Props {
   project: ProjectState;
@@ -15,48 +16,6 @@ interface Props {
 }
 
 type TabMode = 'story' | 'script';
-
-const DURATION_OPTIONS = [
-  { label: '30秒 (广告)', value: '30s' },
-  { label: '60秒 (预告)', value: '60s' },
-  { label: '2分钟 (片花)', value: '120s' },
-  { label: '5分钟 (短片)', value: '300s' },
-  { label: '自定义', value: 'custom' }
-];
-
-const LANGUAGE_OPTIONS = [
-  { label: '中文 (Chinese)', value: '中文' },
-  { label: 'English (US)', value: 'English' },
-  { label: '日本語 (Japanese)', value: 'Japanese' },
-  { label: 'Français (French)', value: 'French' },
-  { label: 'Español (Spanish)', value: 'Spanish' }
-];
-
-const STYLE_OPTIONS = [
-  { label: '仙侠古装', value: '仙侠古装' },
-  { label: '可爱卡通', value: '可爱卡通' },
-  { label: '古典水墨', value: '古典水墨' },
-  { label: '赛博朋克', value: '赛博朋克' },
-  { label: '未来机甲', value: '未来机甲' },
-  { label: '二次元', value: '二次元' },
-  { label: '真人写实', value: '真人写实' },
-  { label: '蜡笔画风格', value: '蜡笔画风格' },
-  { label: '现代城市风', value: '现代城市风' }
-];
-
-const IMAGE_SIZE_OPTIONS = [
-  { label: '横屏 16:9 (2560x1440)', value: '2560x1440' },
-  { label: '竖屏 9:16 (1440x2560)', value: '1440x2560' }
-];
-
-const IMAGE_COUNT_OPTIONS = [
-  { label: '文生视频', value: 0 },
-  { label: '首尾帧', value: 1 },
-  { label: '4 张', value: 4 },
-  { label: '6 张', value: 6 },
-  { label: '8 张', value: 8 },
-  { label: '9 张', value: 9 }
-];
 
 const GENRE_OPTIONS = [
   { label: '剧情片', value: '剧情片' },
@@ -89,6 +48,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
   const [localImageSize, setLocalImageSize] = useState(project.imageSize || '1440x2560');
   const [localImageCount, setLocalImageCount] = useState(project.imageCount || 1);
   const [customDurationInput, setCustomDurationInput] = useState('');
+  const [customStyleInput, setCustomStyleInput] = useState('');
 
   const [modelConfigs, setModelConfigs] = useState<any[]>([]);
 
@@ -123,9 +83,19 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
   useEffect(() => {
     setLocalScript(project.rawScript);
     setLocalTitle(project.title);
-    setLocalDuration(project.targetDuration || '60s');
+
+    const currentDuration = project.targetDuration || '60s';
+    const isCustomDuration = !DURATION_OPTIONS.some(opt => opt.value === project.targetDuration);
+    setLocalDuration(isCustomDuration ? 'custom' : currentDuration);
+    setCustomDurationInput(isCustomDuration ? currentDuration : '');
+
     setLocalLanguage(project.language || '中文');
-    setLocalStyle(project.visualStyle || '真人写实');
+
+    const currentStyle = project.visualStyle || '真人写实';
+    const isCustomStyle = !STYLE_OPTIONS.some(opt => opt.value === currentStyle);
+    setLocalStyle(isCustomStyle ? 'custom' : currentStyle);
+    setCustomStyleInput(isCustomStyle ? currentStyle : '');
+
     setLocalImageSize(project.imageSize || '1440x2560');
     setLocalImageCount(project.imageCount || 1);
 
@@ -182,13 +152,18 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
   const handleDurationSelect = (val: string) => {
     setLocalDuration(val);
-    if (val === 'custom') {
-      setCustomDurationInput('');
-    }
   };
 
   const getFinalDuration = () => {
     return localDuration === 'custom' ? customDurationInput : localDuration;
+  };
+
+  const handleStyleSelect = (val: string) => {
+    setLocalStyle(val);
+  };
+
+  const getFinalStyle = () => {
+    return localStyle === 'custom' ? customStyleInput : localStyle;
   };
 
   // Logline editing
@@ -518,9 +493,9 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
       updateProject({
         title: localTitle,
         rawScript: localScript,
-        targetDuration: finalDuration,
+        targetDuration: getFinalDuration(),
         language: localLanguage,
-        visualStyle: localStyle,
+        visualStyle: getFinalStyle(),
         imageSize: localImageSize,
         imageCount: localImageCount
       });
@@ -662,7 +637,10 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
               <div className="relative">
                 <select
                   value={localStyle}
-                  onChange={(e) => setLocalStyle(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    handleStyleSelect(value);
+                  }}
                   className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                 >
                   {STYLE_OPTIONS.map(opt => (
@@ -673,6 +651,15 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                    <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
                 </div>
               </div>
+              {localStyle === 'custom' && (
+                <input
+                  type="text"
+                  value={customStyleInput}
+                  onChange={(e) => setCustomStyleInput(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all placeholder:text-slate-600"
+                  placeholder="输入自定义画面风格..."
+                />
+              )}
             </div>
 
             {/* Image Size Selection */}

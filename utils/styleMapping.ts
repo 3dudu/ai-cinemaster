@@ -11,6 +11,7 @@ export const STYLE_MAPPING: Record<string, string> = {
   '真人写实': 'selfie',
   '蜡笔画风格': 'comic',
   '现代城市风': 'news',
+  '沙雕漫': 'comic',
 };
 
 /**
@@ -19,7 +20,7 @@ export const STYLE_MAPPING: Record<string, string> = {
  * @returns 英文标签，如果没有映射则返回原值
  */
 export function mapStyleToEnglish(chineseStyle: string): string {
-  return STYLE_MAPPING[chineseStyle] || chineseStyle;
+  return STYLE_MAPPING[chineseStyle] || 'comic';
 }
 
 /**
