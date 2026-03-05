@@ -2,7 +2,7 @@
 
 import { ScriptData, Shot } from "../../types";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
-import { renderTemplate } from "../promptTemplates";
+import { renderTemplate, MODEL_GENERATION_CONFIG } from "../promptTemplates";
 
 // 云雾API配置
 const YUNWU_CONFIG = {
@@ -105,8 +105,7 @@ export const parseScriptToData = async (
       },
     ],
     generationConfig: {
-      temperature: 0.5,
-      topP: 0.95,
+      ...MODEL_GENERATION_CONFIG.GENERATE_SCRIPT,
     },
   };
 
@@ -356,8 +355,7 @@ export const generateScript = async (
       },
     ],
     generationConfig: {
-      temperature: 0.5,
-      topP: 0.95,
+      ...MODEL_GENERATION_CONFIG.GENERATE_SCRIPT,
     },
   };
 
@@ -396,8 +394,7 @@ export const generateVisualPrompts = async (
       },
     ],
     generationConfig: {
-      temperature: 0.8,
-      topP: 0.95,
+      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
     },
   };
 
@@ -460,8 +457,7 @@ export const generateShotListForScene = async (
         },
       ],
       generationConfig: {
-        temperature: 0.7,
-        topP: 0.95,
+        ...MODEL_GENERATION_CONFIG.GENERATE_SHOTS,
       },
     };
 

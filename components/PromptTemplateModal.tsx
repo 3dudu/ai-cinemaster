@@ -92,7 +92,7 @@ const PromptTemplateModal: React.FC<{
   // 获取函数类型模板的预览（带变量占位符）
   const getFunctionTemplatePreview = (key: string): string => {
     const previews: Record<string, string> = {
-      'PARSE_SCRIPT': `分析文本并以 {language} 语言输出一个 JSON 对象。
+      'PARSE_SCRIPT': `分析文本并输出一个 JSON 对象，字段值以 {language} 语言呈现。
 
 任务：
 提取title:标题、genre:类型、logline:故事梗概（以 {language} 语言呈现）。

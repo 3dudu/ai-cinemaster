@@ -119,11 +119,31 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
   }
 };
 
+// 模型生成参数配置
+export const MODEL_GENERATION_CONFIG = {
+  PARSE_SCRIPT: {
+    temperature: 0.5,
+    max_tokens: 8192
+  },
+  GENERATE_SHOTS: {
+    temperature: 0.5,
+    max_tokens: 8192
+  },
+  GENERATE_SCRIPT: {
+    temperature: 0.8,
+    max_tokens: 8192
+  },
+  GENERATE_VISUAL_PROMPT: {
+    temperature: 0.8,
+    max_tokens: 500
+  }
+};
+
 export const PROMPT_TEMPLATES = {
   // ============ 系统提示词 ============
-  SYSTEM_SCRIPT_ANALYZER: "你是一名专业的剧本分析员。请始终以有效的 JSON 格式进行回复。",
+  SYSTEM_SCRIPT_ANALYZER: "你是一名专业的剧本分析员。请始终以有效的 JSON 格式进行回复，无任何解释、注释、多余文字。",
 
-  SYSTEM_PHOTOGRAPHER: "你是一名专业的摄影师。请始终以有效的 JSON 数组格式进行回复。",
+  SYSTEM_PHOTOGRAPHER: "你是一名专业的摄影师。请始终以有效的 JSON 数组格式进行回复，无任何解释、注释、多余文字。",
 
   SYSTEM_SCREENWRITER: "你是一名专业的编剧，擅长创作各种类型的广告，短剧，影视剧本。请以MarkDown格式输出剧本故事概要，包含标题、时间、地点、角色、天气、场景、对话等。",
 
@@ -131,7 +151,7 @@ export const PROMPT_TEMPLATES = {
 
   // ============ 剧本解析 ============
   PARSE_SCRIPT: (rawText: string, language: string) => `
-    分析文本并以 ${language} 语言输出一个 JSON 对象。
+    分析文本并输出一个 JSON 对象，字段值以 ${language} 语言呈现。
 
     任务：
     提取title:标题、genre:类型、logline:故事梗概（以 ${language} 语言呈现）。

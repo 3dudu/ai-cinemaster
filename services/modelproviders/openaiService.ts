@@ -2,7 +2,7 @@
 
 import { ScriptData, Shot } from "../../types";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
-import { renderTemplate } from "../promptTemplates";
+import { renderTemplate, MODEL_GENERATION_CONFIG } from "../promptTemplates";
 
 // OpenAI 配置
 const OPENAI_CONFIG = {
@@ -100,8 +100,7 @@ export const parseScriptToData = async (
           content: prompt,
         },
       ],
-      temperature: 0.5,
-      max_tokens: 8192,
+      ...MODEL_GENERATION_CONFIG.PARSE_SCRIPT,
     }),
   });
 
@@ -192,8 +191,7 @@ export const generateShotListForScene = async (
             content: prompt,
           },
         ],
-        temperature: 0.5,
-        max_tokens: 4096,
+        ...MODEL_GENERATION_CONFIG.GENERATE_SHOTS,
       }),
     });
 
@@ -274,8 +272,7 @@ export const generateScript = async (
           content: generationPrompt,
         },
       ],
-      temperature: 0.8,
-      max_tokens: 4096,
+      ...MODEL_GENERATION_CONFIG.GENERATE_SCRIPT,
     }),
   });
 
@@ -304,8 +301,7 @@ export const generateVisualPrompts = async (
           content: prompt,
         },
       ],
-      temperature: 0.8,
-      max_tokens: 500,
+      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
     }),
   });
 
