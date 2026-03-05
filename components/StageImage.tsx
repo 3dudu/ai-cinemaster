@@ -14,7 +14,7 @@ interface ImageItem {
   projectId: string;
   projectName: string;
   downname: string;
-  mediaType?: 'image' | 'video';
+  mediaType?: 'image' | 'video' | 'audio';
   ishistory: boolean;
 }
 

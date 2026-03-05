@@ -1,9 +1,10 @@
-import { AlertCircle, Check, Download, Drama, Expand, Image, Loader2, MapPin, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Check, Download, Drama, Expand, Image, Loader2, MapPin, Mic, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { addMediaHistory } from '../services/storageService';
 import { ProjectState } from '../types';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
+import VoiceSynthesisModal from './VoiceSynthesisModal';
 import WardrobeModal from './WardrobeModal';
 import { useDialog } from './dialog';
 
@@ -24,6 +25,8 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
   const [uploadingItem, setUploadingItem] = useState<{id: string, type: 'character'|'scene'}|null>(null);
+  const [voiceSynthesisModalOpen, setVoiceSynthesisModalOpen] = useState(false);
+  const [selectedVoiceCharId, setSelectedVoiceCharId] = useState<string | null>(null);
 
   // Variation Form State
   const [editingSceneVisualPrompt, setEditingSceneVisualPrompt] = useState("");
@@ -419,7 +422,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                        </button>
                      </div>
                   )}
-                  <div className="absolute bottom-0 right-0 flex items-center justify-center gap-1 p-1"> 
+                  <div className="absolute bottom-0 right-0 flex flex-col md:flex-row items-end ajust-end gap-1 p-1"> 
                   {/* Action Buttons */}
                   {char.referenceImage && (
                     <>
@@ -454,6 +457,14 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                      title="管理造型"
                   >
                       <Shirt className="w-3 h-3" />
+                  </button>
+                  <button
+                     onClick={(e) => { setSelectedVoiceCharId(char.id); setVoiceSynthesisModalOpen(true); }}
+                     disabled={!!batchProgress || !!processingState}
+                     className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                     title="合成语音"
+                  >
+                      <Mic className="w-3 h-3" />
                   </button>
                   </div>
                 </div>
@@ -641,6 +652,17 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
             <X className="w-6 h-6" />
           </button>
         </div>
+      )}
+
+      {/* Voice Synthesis Modal */}
+      {voiceSynthesisModalOpen && selectedVoiceCharId && (
+        <VoiceSynthesisModal
+          isOpen={voiceSynthesisModalOpen}
+          onClose={() => { setVoiceSynthesisModalOpen(false); setSelectedVoiceCharId(null); }}
+          character={project.scriptData.characters.find(c => c.id === selectedVoiceCharId)!}
+          project={project}
+          updateProject={updateProject}
+        />
       )}
 
     </div>

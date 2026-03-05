@@ -14,6 +14,15 @@ export interface Character {
   visualPrompt?: string;
   referenceImage?: string; // Base URL
   variations: CharacterVariation[]; // Added: List of alternative looks
+  ttsParams?: TtsParams;
+  voiceUrl?: string;
+}
+
+export interface TtsParams {
+    spd: number,      // 语速 0-15，默认5
+    pit: number,      // 音调 0-15，默认5
+    vol: number,      // 音量，基础音库0-9，精品音库0-15，默认5
+    per: number,      // 发音人，默认0（度小美）
 }
 
 export interface Scene {

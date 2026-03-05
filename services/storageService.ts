@@ -148,7 +148,7 @@ export interface MediaFile {
   fileUrl: string;
   fileName: string;
   timestamp: number;
-  fileType: 'image' | 'video';
+  fileType: 'image' | 'video' | 'audio';
   mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition';
 }
 
@@ -166,7 +166,7 @@ export const addMediaHistory = async (
   projectId: string,
   fileUrl: string,
   fileName: string,
-  fileType: 'image' | 'video',
+  fileType: 'image' | 'video' | 'audio',
   mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition'
 ): Promise<void> => {
   const db = await openDB();

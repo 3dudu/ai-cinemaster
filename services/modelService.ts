@@ -771,7 +771,8 @@ export class ModelService {
       per?: number; // 发音人，默认0（度小美）
       aue?: number; // 音频格式，3=mp3(默认)，4=pcm-16k，5=pcm-8k，6=wav
     } = {},
-    projectId: string = ""
+    projectId: string = "",
+    preview: boolean = false
   ): Promise<string> {
     try {
       const provider = await this.getEnabledAudioProvider(shotprovider || this.currentProjectModelProviders);
@@ -793,6 +794,10 @@ export class ModelService {
       const audioDataUrl = `data:audio/mp3;base64,${audioBase64}`;
       //console.log('audioDataUrl:', audioDataUrl);
       // 上传到文件服务器
+      if(preview){
+        return audioDataUrl;
+      }
+
       const uploadResponse = await uploadFileToService({
         fileType: projectId + '/audio/tts',
         base64Data: audioBase64,
