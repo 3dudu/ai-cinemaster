@@ -530,7 +530,7 @@ const ImageSelectorModal: React.FC<Props> = ({
               <p>未找到匹配的图片</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5  gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {displayImages.map((image) => (
                 <div
                   key={image.id}
@@ -551,7 +551,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                       // 视频使用 video 标签
                       <video
                         src={image.imageUrl}
-                        className="w-full object-cover"
+                        className="w-full h-full object-cover"
                         controls
                         muted
                         onMouseLeave={(e) => e.currentTarget.pause()}

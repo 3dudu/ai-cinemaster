@@ -546,7 +546,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                   {image.mediaType === 'video' ? (
                     <video
                       src={image.imageUrl}
-                      className="w-full object-cover"
+                      className="w-full h-full object-cover"
                       controls
                       muted
                       onMouseLeave={(e) => e.currentTarget.pause()}
