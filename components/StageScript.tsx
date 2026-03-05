@@ -966,9 +966,6 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
     const seenLocations = new Set();
     const uniqueScenesList = (project.scriptData?.scenes || []).filter(scene => {
       const normalizedLoc = scene.location.trim().toLowerCase();
-      if (seenLocations.has(normalizedLoc)) {
-        return false;
-      }
       seenLocations.add(normalizedLoc);
       return true;
     });
@@ -1227,7 +1224,14 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                              </div>
                            ) : (
                              <>
-                               <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{s!.location}</span>
+                               <div className="flex flex-col gap-0.5">
+                                 <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{s!.location}</span>
+                                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                                   <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5"/> {s!.time}</span>
+                                   <span className="text-slate-600">|</span>
+                                   <span className="">{s!.atmosphere}</span>
+                                 </div>
+                               </div>
                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                  <button onClick={() => startEditScene(s!)} className="text-slate-500 hover:text-slate-50 cursor-pointer"><Edit className="w-3 h-3" /></button>
                                  <button onClick={() => deleteScene(s!.id)} className="text-slate-500 hover:text-red-400 cursor-pointer"><Trash className="w-3 h-3" /></button>
@@ -1290,10 +1294,10 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                     </h3>
                                  </div>
                               </div>
-                              <div className="flex items-center justify-between md:gap-4 gap-1 text-[12px] font-mono uppercase tracking-widest text-slate-500">
+                              <div className="flex items-center justify-between md:gap-4 gap-1 text-[11px] font-mono uppercase tracking-widest text-slate-500">
                                  <span className="flex items-center gap-1.5 whitespace-nowrap"><Clock className="w-3 h-3"/> {scene.time}</span>
-                                 <span className="text-slate-500">|</span>
-                                 <span>{scene.atmosphere}</span>
+                                 <span className="text-slate-600">|</span>
+                                 <span className="">{scene.atmosphere}</span>
                               </div>
                            </div>
 

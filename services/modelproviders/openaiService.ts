@@ -100,7 +100,7 @@ export const parseScriptToData = async (
           content: prompt,
         },
       ],
-      temperature: 0.7,
+      temperature: 0.5,
       max_tokens: 8192,
     }),
   });
@@ -192,7 +192,7 @@ export const generateShotListForScene = async (
             content: prompt,
           },
         ],
-        temperature: 0.7,
+        temperature: 0.5,
         max_tokens: 4096,
       }),
     });

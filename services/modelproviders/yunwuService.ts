@@ -1,8 +1,8 @@
 // services/modelproviders/yunwuService.ts
 
 import { ScriptData, Shot } from "../../types";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 import { renderTemplate } from "../promptTemplates";
-import { retryOperation, fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 
 // 云雾API配置
 const YUNWU_CONFIG = {
@@ -105,7 +105,7 @@ export const parseScriptToData = async (
       },
     ],
     generationConfig: {
-      temperature: 0.7,
+      temperature: 0.5,
       topP: 0.95,
     },
   };
@@ -356,7 +356,7 @@ export const generateScript = async (
       },
     ],
     generationConfig: {
-      temperature: 0.8,
+      temperature: 0.5,
       topP: 0.95,
     },
   };
