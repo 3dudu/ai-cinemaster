@@ -525,7 +525,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         nextStartKf.imageUrl,  // 下一个 shot 的首帧作为结束帧
         5,  // 转场时长 3 秒
         false,  // not full frame
-        shot.modelProviders?.image2video,
+        shot.modelProviders,
         project.id,
         imageSize,
         localStyle,
