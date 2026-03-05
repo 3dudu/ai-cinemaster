@@ -1450,7 +1450,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
           {/* Right Workbench - Optimized Interaction */}
           {activeShotId && activeShot && (
-              <div className={`${isMobile ? 'w-full' : 'md:w-[480px] lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 3xl:w-[720px]'} bg-slate-700/50 flex flex-col h-full shadow-2xl animate-in slide-in-from-right-10 duration-300 relative z-20`}>
+              <div className={`${isMobile ? 'w-full' : 'md:w-[55%] lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 3xl:w-[720px]'} bg-slate-700/50 flex flex-col h-full shadow-2xl animate-in slide-in-from-right-10 duration-300 relative z-20`}>
                   
                   {/* Workbench Header */}
                   <div className="h-16 md:px-6 px-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
