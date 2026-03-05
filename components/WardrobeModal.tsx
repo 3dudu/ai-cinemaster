@@ -185,12 +185,12 @@ const WardrobeModal: React.FC<Props> = ({
             </div>
             
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-700">
+            <div className="flex-1 overflow-y-auto p-2 md:p-6 bg-slate-700  space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-6">
                     {/* Base Look */}
                     <div>
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <User className="w-4 h-4" /> 基础形象
+                            <User className="w-4 h-4 text-slate-400" /> <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider">基础形象</h4>
                         </h4>
                         <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
                             <div className="aspect-[3/4] bg-slate-900 rounded-lg overflow-hidden mb-4 relative cursor-pointer" onClick={() =>  setPreviewImage(character.referenceImage)}>
@@ -223,7 +223,7 @@ const WardrobeModal: React.FC<Props> = ({
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <Shirt className="w-4 h-4" /> 服装造型
+                                <Shirt className="w-4 h-4 text-slate-400" /> <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider">服装造型</h4>
                             </h4>
                         </div>
 

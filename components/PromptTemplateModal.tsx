@@ -291,7 +291,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
         {/* 内容区域 */}
         <div className="flex-1 overflow-hidden flex flex-col bg-slate-700">
           {/* 工具栏 */}
-          <div className="p-4 bg-slate-600/80 border-t border-slate-600 space-y-3 shrink-0">
+          <div className="p-2 md:p-6 bg-slate-600/80 border-t border-slate-600 space-y-3 shrink-0">
             {/* 模板选择器 */}
             <div className="relative" ref={dropdownRef}>
               <button

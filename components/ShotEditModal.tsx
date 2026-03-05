@@ -95,7 +95,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-700">
+        <div className="flex-1 overflow-y-auto p-2 md:p-6 space-y-5 bg-slate-700">
           {/* Action Summary */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">动作描述</label>

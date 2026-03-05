@@ -356,7 +356,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
         {/* Content */}
         {showAddModal ? (
           <>
-          <div className="flex-1 overflow-y-auto p-6 bg-slate-700">
+          <div className="flex-1 overflow-y-auto p-2 md:p-6 bg-slate-700">
             <div className="space-y-6">
               <div className="text-center mb-6">
                 <h4 className="text-sm font-bold text-text-primary mb-2">

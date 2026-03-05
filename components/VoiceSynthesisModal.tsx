@@ -1,4 +1,4 @@
-import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, X } from 'lucide-react';
+import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, Speech, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { VOICE_LIBRARY, VOICE_LIBRARY_TYPE_NAMES } from '../config/voiceLibrary';
 import { ModelService } from '../services/modelService';
@@ -197,7 +197,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto md:p-6 p-2 bg-slate-700">
+        <div className="flex-1 overflow-y-auto md:p-6 p-2 bg-slate-700 space-y-5">
           <div className="space-y-4 md:space-y-6">
             {/* Character Info */}
             <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
@@ -223,7 +223,9 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
             {/* Dialogue Text Preview */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-300">角色台词</label>
+              <div className="flex items-center gap-2">
+                <Speech className="w-4 h-4 text-slate-400" /><label className="text-sm font-medium text-slate-300">
+角色台词</label></div>
                 <span className="text-xs text-slate-500">{dialogueText.length} 字符</span>
               </div>
               <div className="relative">

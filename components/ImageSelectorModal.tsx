@@ -402,7 +402,7 @@ const ImageSelectorModal: React.FC<Props> = ({
     <div className="fixed inset-0 z-50 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
 
       {/* Modal 内容 */}
-      <div className="relative bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-6xl h-[80vh] flex flex-col">
+      <div className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-6xl h-[80vh] flex flex-col">
         {/* 标题栏 */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
@@ -417,14 +417,14 @@ const ImageSelectorModal: React.FC<Props> = ({
           </button>
         </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto flex flex-col">
         {/* 项目选择器和搜索框 */}
-        <div className="p-2 lg:px-4 border-b border-slate-600 bg-slate-700">
-          <div className="flex gap-4 md:flex-row flex-col">
+        <div className="px-2 md:px-6 py-2 md:py-4 border-b border-slate-600 bg-slate-700">
+          <div className="flex md:gap-4 gap-2 md:flex-row flex-col">
             {/* 项目选择器 */}
             <div
               ref={dropdownRef}
-              className="relative lg:w-72 md:w-full"
+              className="relative md:w-72 w-full"
               onMouseLeave={handleMouseLeave}
               onMouseEnter={handleMouseEnter}
             >
@@ -490,8 +490,8 @@ const ImageSelectorModal: React.FC<Props> = ({
 
         {/* 标签页 - 固定在滚动容器的顶部 */}
         <div className="sticky top-0 z-20 p-1 border-b border-slate-600 bg-slate-700">
-          <div className="bg-slate-700 rounded-xl p-1">
-            <div className="flex gap-1 md:gap-0 lg:gap-2">
+          <div className="bg-slate-700 rounded-xl px-1 md:px-6">
+            <div className="flex gap-1 md:gap-2 py-2">
           {(
             showVideo
               ? ['all', 'character', 'scene', 'keyframe', 'video'] as const
@@ -508,7 +508,7 @@ const ImageSelectorModal: React.FC<Props> = ({
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-1 lg:px-2 h-8 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center cursor-pointer ${
+                className={`px-1 md:px-2 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center cursor-pointer ${
                   activeTab === tab
                     ? 'bg-slate-800 text-slate-100'
                     : 'text-slate-400 hover:bg-slate-800'
@@ -523,7 +523,7 @@ const ImageSelectorModal: React.FC<Props> = ({
         </div>
 
         {/* 图片网格 */}
-        <div className="flex-1 overflow-y-auto p-2 lg:px-4">
+        <div className="flex-1 md:overflow-y-auto p-2 md:px-6">
           {displayImages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400">
               <Search className="w-12 h-12 mb-4 opacity-50" />

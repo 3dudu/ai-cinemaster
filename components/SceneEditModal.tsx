@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { MapPin, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { Scene } from '../types';
 
@@ -62,7 +62,7 @@ const SceneEditModal: React.FC<Props> = ({ scene, storyParagraphs, onSave, onClo
         {/* 标题栏 */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
-            <span className="w-5 h-5 text-slate-400">📍</span>
+            <MapPin className="w-5 h-5 text-slate-400" />
             编辑场景
           </h3>
           <button
@@ -74,7 +74,7 @@ const SceneEditModal: React.FC<Props> = ({ scene, storyParagraphs, onSave, onClo
         </div>
 
         {/* 主内容区域 */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-700">
+        <div className="flex-1 overflow-y-auto p-2 md:p-6 space-y-5 bg-slate-700">
           {/* Location */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">场景名称</label>

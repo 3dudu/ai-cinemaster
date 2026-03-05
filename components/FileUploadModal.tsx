@@ -197,7 +197,7 @@ const FileUploadModal: React.FC<Props> = ({
         </div>
 
         {/* Body */}
-        <div className="p-6">
+        <div className="p-2 md:p-6">
           {!previewUrl ? (
             <>
               {/* Upload Area */}
