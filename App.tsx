@@ -182,7 +182,7 @@ function App() {
   // Workspace View
   return (
     <DialogProvider>
-      <div className={`${isMobile?'':'flex'} h-screen overflow-hidden bg-slate-600 min-h-screen font-sans text-slate-50`} style={{paddingTop: 'env(safe-area-inset-top)'}}>
+      <div className={`${isMobile?'':'flex'} h-full min-h-full overflow-hidden bg-slate-600 font-sans text-slate-50`} style={{paddingTop: 'env(safe-area-inset-top)'}}>
         {isMobile ? (
           <>
             <SidebarMobile
@@ -211,7 +211,7 @@ function App() {
           </>
         )}
 
-      <main className={`transition-allduration-300 ease-in-out ${isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-20' : 'xl:ml-72 md:ml-20')} flex-1 h-screen overflow-hidden relative`}
+      <main className={`transition-allduration-300 ease-in-out ${isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-20' : 'xl:ml-72 md:ml-20')} flex-1 overflow-hidden relative`}
       style={ isMobile ? { paddingBottom: 'calc(112px + env(safe-area-inset-top))'} : {}}>
         {renderStage()}
         {showSettings && (

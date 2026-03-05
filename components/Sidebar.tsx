@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
   ];
 
   return (
-    <aside className={`${collapsed ? 'w-20' : 'xl:w-72 md:w-20'} bg-slate-800 border-r border-slate-600 h-screen fixed left-0 top-0 flex flex-col z-50 select-none
+    <aside className={`${collapsed ? 'w-20' : 'xl:w-72 md:w-20'} bg-slate-800 border-r border-slate-600 h-full fixed left-0 top-0 flex flex-col z-50 select-none
     shadow-2xl animate-in slide-in-from-right-10 duration-300 transition-all ease-in-out`}>
       {/* Header */}
       <div className="p-6 border-b border-slate-900">
