@@ -36,7 +36,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     >
       <div className="absolute inset-0 bg-slate-700/60 backdrop-blur-sm" />
       <div
-        className="relative bg-slate-800 border border-slate-600/50 rounded-xl shadow-2xl max-w-md w-full mx-4 p-6"
+        className="relative bg-slate-700 border border-slate-600/50 rounded-xl shadow-2xl max-w-md w-full mx-4 p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col items-center text-center">
@@ -48,13 +48,13 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <div className="flex gap-3 w-full">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-lg transition-colors"
+              className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-500 text-slate-300 font-medium rounded-lg transition-colors"
             >
               {cancelText}
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 px-4 py-2.5 bg-slate-600 hover:bg-slate-700 text-slate-50 font-medium rounded-lg transition-colors"
+              className="flex-1 px-4 py-2.5 bg-slate-200 hover:bg-slate-500 text-slate-700 font-medium rounded-lg transition-colors"
             >
               {confirmText}
             </button>

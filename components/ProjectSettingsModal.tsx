@@ -358,13 +358,13 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
         <div className="p-6 border-t border-slate-600 flex gap-3 shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
           >
             取消
           </button>
           <button
             onClick={saveSettings}
-            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
           >
             保存设置
           </button>

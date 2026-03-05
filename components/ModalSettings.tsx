@@ -535,13 +535,13 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
         <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
                 <button
                   onClick={handleCancelAdd}
-                  className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+                  className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
                 >
                   取消
                 </button>
                 <button
                   onClick={editingConfig ? handleUpdate : handleAdd}
-                  className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-slate-600/20 cursor-pointer"
+                  className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-slate-600/20 cursor-pointer"
                 >
                   {editingConfig ? '更新配置' : '添加配置'}
                 </button>
@@ -675,7 +675,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 添加新配置

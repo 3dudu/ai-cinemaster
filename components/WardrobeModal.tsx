@@ -109,9 +109,18 @@ const WardrobeModal: React.FC<Props> = ({
       }
   };
 
-  const handleDeleteVariation = (varId: string) => {
+  const handleDeleteVariation = async (varId: string) => {
      if (!project.scriptData || !character) return;
-      const newData = { ...project.scriptData };
+
+     const confirmed = await dialog.confirm({
+       title: '确认删除',
+       message: '确定要删除此造型吗？此操作不可撤销。',
+       type: 'warning',
+     });
+
+     if (!confirmed) return;
+
+     const newData = { ...project.scriptData };
       const char = newData.characters.find(c => c.id === character.id);
       if (!char) return;
 
@@ -279,7 +288,7 @@ const WardrobeModal: React.FC<Props> = ({
                             ))}
 
                             {/* Add New */}
-                            <div className="p-4 border border-dashed border-slate-600 rounded-xl bg-slate-800/50">
+                            <div className="p-4 border border-dashed border-slate-600 rounded-xl bg-slate-800/20">
                                 <div className="space-y-3">
                                     <input 
                                         type="text" 
@@ -294,10 +303,10 @@ const WardrobeModal: React.FC<Props> = ({
                                         onChange={e => setNewVarPrompt(e.target.value)}
                                         className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:outline-none focus:border-slate-600 resize-none h-16"
                                     />
-                                    <button 
+                                    <button
                                         onClick={handleAddVariation}
                                         disabled={!newVarName || !newVarPrompt}
-                                        className="w-full py-2 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+                                        className="w-full py-2 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
                                     >
                                         <Plus className="w-3 h-3" /> 添加造型
                                     </button>

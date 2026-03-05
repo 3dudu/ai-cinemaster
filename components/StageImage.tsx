@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { deleteSingleMediaFile, getAllProjectsMetadata, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
 import { ProjectState } from '../types';
 import { downloadImage, downloadVideo } from './FileUploadModal';
+import { useDialog } from './dialog';
 
 interface ImageItem {
   id: string;
@@ -22,6 +23,7 @@ interface Props {
 }
 
 const StageImage: React.FC<Props> = ({ project }) => {
+  const dialog = useDialog();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video'>('all');
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
@@ -83,6 +85,14 @@ const StageImage: React.FC<Props> = ({ project }) => {
     if (!image.ishistory) return;
 
     try {
+      const confirmed = await dialog.confirm({
+        title: '确认删除',
+        message: `确定要删除此历史记录吗？此操作不可撤销。`,
+        type: 'warning',
+      });
+
+      if (!confirmed) return;
+
       const mediaFileId = image.id.split('-').pop();
       if (!mediaFileId) return;
 

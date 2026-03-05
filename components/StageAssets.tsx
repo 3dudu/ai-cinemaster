@@ -44,7 +44,29 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     }
   }, [selectedSceneId, project.scriptData]);
 
-  const handleGenerateAsset = async (type: 'character' | 'scene', id: string) => {
+  const handleGenerateAsset = async (type: 'character' | 'scene', id: string, skipConfirm?: boolean) => {
+    // Check if item already has a reference image (regenerate)
+    const existingImage = type === 'character'
+      ? project.scriptData?.characters.find(c => String(c.id) === String(id))?.referenceImage
+      : project.scriptData?.scenes.find(s => String(s.id) === String(id))?.referenceImage;
+
+    if (existingImage && !skipConfirm) {
+      const itemName = type === 'character'
+        ? project.scriptData?.characters.find(c => String(c.id) === String(id))?.name
+        : project.scriptData?.scenes.find(s => String(s.id) === String(id))?.location;
+
+      const confirmed = await dialog.confirm({
+        title: '确认重新生成',
+        message: `确定要重新生成${type === 'character' ? '角色' : '场景'}"${itemName}"的图片吗？`,
+        type: 'warning',
+      });
+
+      if (!confirmed) {
+        setProcessingState(null);
+        return;
+      }
+    }
+
     setProcessingState({ id, type });
     let imageUrl: string | null = null;
     let prompt = "";
@@ -128,8 +150,8 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     for (let i = 0; i < targetItems.length; i++) {
       // Rate Limit Mitigation: 3s delay
       if (i > 0) await new Promise(r => setTimeout(r, 3000));
-      
-      await handleGenerateAsset(type, targetItems[i].id);
+
+      await handleGenerateAsset(type, targetItems[i].id, true);
       setBatchProgress({ current: i + 1, total: targetItems.length });
     }
 

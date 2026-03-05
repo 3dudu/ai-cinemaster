@@ -103,7 +103,15 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     });
   };
 
-  const deleteKeyframeImage = (shotId: string, type: 'start' | 'end' | 'full') => {
+  const deleteKeyframeImage = async (shotId: string, type: 'start' | 'end' | 'full') => {
+    const confirmed = await dialog.confirm({
+      title: '确认删除',
+      message: '确定要删除此关键帧图片吗？',
+      type: 'warning',
+    });
+
+    if (!confirmed) return;
+
     updateShot(shotId, (s) => {
       const newKeyframes = [...(s.keyframes || [])];
       const idx = newKeyframes.findIndex(k => k.type === type);
@@ -114,7 +122,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     });
   };
 
-  const copyStartToPreviousShotEndImage = () => {
+  const copyStartToPreviousShotEndImage = async () => {
     if (activeShotIndex <= 0) return;
     const previousShot = project.shots[activeShotIndex - 1];
     const previousEndKf = previousShot?.keyframes?.find(k => k.type === 'end');
@@ -122,6 +130,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     const activeShotKf = activeShot?.keyframes?.find(k => k.type === 'start');
 
     if (activeShotKf?.imageUrl && previousEndKf) {
+      const confirmed = await dialog.confirm({
+        title: '确认复制',
+        message: '确定要将当前镜头的起始帧复制到上一个镜头的结束帧吗？',
+        type: 'info',
+      });
+      if (!confirmed) return;
+
       updateShot(previousShot.id, (s) => {
         const newKeyframes = [...(s.keyframes || [])];
         const endKfIdx = newKeyframes.findIndex(k => k.type === 'end');
@@ -133,7 +148,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     }
   };
 
-  const copyEndToNextShotStartImage = () => {
+  const copyEndToNextShotStartImage = async () => {
     if (activeShotIndex >= project.shots.length) return;
     const previousShot = project.shots[activeShotIndex + 1];
     const previousEndKf = previousShot?.keyframes?.find(k => k.type === 'start');
@@ -141,6 +156,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     const activeShotKf = activeShot?.keyframes?.find(k => k.type === 'end');
 
     if (activeShotKf?.imageUrl && previousEndKf) {
+      const confirmed = await dialog.confirm({
+        title: '确认复制',
+        message: '确定要将当前镜头的结束帧复制到下一个镜头的起始帧吗？',
+        type: 'info',
+      });
+      if (!confirmed) return;
+
       updateShot(previousShot.id, (s) => {
         const newKeyframes = [...(s.keyframes || [])];
         const endKfIdx = newKeyframes.findIndex(k => k.type === 'start');
@@ -262,6 +284,17 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     // Robustly handle missing keyframe object
     let existingKf = shot.keyframes?.find(k => k.type === type);
     const kfId = existingKf?.id || `kf-${shot.id}-${type}-${Date.now()}`;
+
+    // Check if already has an image (regenerate)
+    if (existingKf?.imageUrl) {
+      const confirmed = await dialog.confirm({
+        title: '确认重新生成',
+        message: `确定要重新生成${type === 'full' ? '连环画' : type === 'start' ? '起始帧' : '结束帧'}吗？`,
+        type: 'warning',
+      });
+      if (!confirmed) return;
+    }
+
     let prompt = shot.actionSummary;
     if(type === 'full'){
         const startKey = shot.keyframes?.find(k => k.type === 'start');
@@ -335,6 +368,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     ////console.log("Generating Video for Shot:", shot);
     if (!shot.interval) return;
 
+    // Check if already has video (regenerate)
+    if (shot.interval.videoUrl) {
+      const confirmed = await dialog.confirm({
+        title: '确认重新生成',
+        message: '确定要重新生成视频吗？',
+        type: 'warning',
+      });
+      if (!confirmed) return;
+    }
+
     let dialogueText = '';
     if (shot.dialogue && shot.dialogue instanceof Array && shot.dialogue.length > 0) {
       dialogueText = shot.dialogue.map(d => d.character ? `${d.character}: ${d.value}` : d.value).join('\n');
@@ -365,7 +408,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     prompt = prompt+"\n 按照上面描述生成视频！";
     // Fix: Remove logic that auto-grabs next shot's frame.
     // Prevent morphing artifacts by defaulting to Image-to-Video unless an End Frame is explicitly generated.
-    
+
     setProcessingState({ id: shot.interval.id, type: 'video' });
     try {
       const videoUrl = await ModelService.generateVideo(
@@ -446,6 +489,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         type: 'warning',
       });
       return;
+    }
+
+    // Check if already has transition (regenerate)
+    if (shot.transitionUrl) {
+      const confirmed = await dialog.confirm({
+        title: '确认重新生成',
+        message: '确定要重新生成转场视频吗？',
+        type: 'warning',
+      });
+      if (!confirmed) return;
     }
 
     const nextShot = project.shots[currentIndex + 1];
@@ -702,6 +755,18 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
   const handleOneClickProduction = async (shot: Shot) => {
       if (!!processingState || !!batchProgress) return;
+
+      // Check if this is a regenerate (existing images)
+      const isRegenerate = imageCount > 1 ? !!fullKf?.imageUrl : (!!startKf?.imageUrl && !!endKf?.imageUrl);
+
+      if (isRegenerate) {
+          const confirmed = await dialog.confirm({
+            title: '确认重新制作',
+            message: '确定要重新制作此镜头吗？这将覆盖现有的图片和视频。',
+            type: 'warning',
+          });
+          if (!confirmed) return;
+      }
 
       setOneClickProcessing({ shotId: shot.id, step: 'images' });
 
