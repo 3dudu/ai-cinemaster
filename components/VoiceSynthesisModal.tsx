@@ -220,52 +220,53 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-2">
-              {generatedVoiceUrl && (
-                <>
-                  <audio
-                    controls
-                    src={generatedVoiceUrl}
-                    className="h-8 flex-1 w-full"
-                    />
-                  <button
-                    onClick={() => downloadAudio(generatedVoiceUrl, `${character.name}_语音.mp3`)}
-                    className="px-3 py-2 bg-slate-500 hover:bg-slate-400 text-slate-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
-                    title="下载语音"
-                    >
-                    <Download className="w-4 h-4" />
-                  </button>
-                </>
-              )}
-              </div>
-              <button
-                onClick={handleGenerateVoice}
-                disabled={isGenerating}
-                className="px-3 py-2 bg-slate-500 hover:bg-slate-400 text-slate-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
-                title={generatedVoiceUrl ? "重新合成" : "合成语音"}
-              >
-                {isGenerating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <AudioLines className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-
             {/* Dialogue Text Preview */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-slate-300">角色台词</label>
                 <span className="text-xs text-slate-500">{dialogueText.length} 字符</span>
               </div>
-              <textarea
-                value={dialogueText}
-                onChange={(e) => setDialogueText(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 max-h-48 overflow-y-auto text-xs text-slate-300 whitespace-pre-wrap font-mono focus:border-slate-500 focus:outline-none transition-all resize-none"
-                placeholder="输入要合成的台词..."
-                rows={6}
-              />
+              <div className="relative">
+                <textarea
+                  value={dialogueText}
+                  onChange={(e) => setDialogueText(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 pb-12 max-h-48 overflow-y-auto text-xs text-slate-300 whitespace-pre-wrap font-mono focus:border-slate-500 focus:outline-none transition-all resize-none"
+                  placeholder="输入要合成的台词..."
+                  rows={6}
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border-t border-slate-600/50 rounded-b-lg flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2">
+                    {generatedVoiceUrl && (
+                      <>
+                        <audio
+                          controls
+                          src={generatedVoiceUrl}
+                          className="h-8 flex-1 w-full"
+                        />
+                        <button
+                          onClick={() => downloadAudio(generatedVoiceUrl, `${character.name}_语音.mp3`)}
+                          className="px-2 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 hover:text-slate-900 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                          title="下载语音"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleGenerateVoice}
+                    disabled={isGenerating}
+                    className="px-2 py-1.5 bg-slate-600 hover:bg-slate-400 text-slate-50 hover:text-slate-900 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                    title={generatedVoiceUrl ? "重新合成" : "合成语音"}
+                  >
+                    {isGenerating ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <AudioLines className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* TTS Settings */}
@@ -324,11 +325,11 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                 >
                   {isGenerating ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" />合成
                     </>
                   ) : (
                     <>
-                      <AudioWaveform className="w-4 h-4" />
+                      <AudioWaveform className="w-4 h-4" />试听
                     </>
                   )}
                 </button>
