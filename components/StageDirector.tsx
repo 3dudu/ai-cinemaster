@@ -382,7 +382,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     if (shot.dialogue && shot.dialogue instanceof Array && shot.dialogue.length > 0) {
       dialogueText = shot.dialogue.map(d => d.character ? `${d.character}: ${d.value}` : d.value).join('\n');
     }
-    let prompt = "景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:"") + (dialogueText?" \n对白：\n "+dialogueText:"");
+    let prompt = "视频风格："+localStyle+"；景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:"") + (dialogueText?" \n对白：\n "+dialogueText:"");
     ////console.log("Generating Video for Shot:", shot, "with Prompt:", prompt);
     let sImageiurl = null;
     let eImageiurl = null;
@@ -405,7 +405,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           prompt = prompt+"\n 参考图2，画面结束："+eKf?.visualPrompt+"；";
       }
     }
-    prompt = prompt+"\n 按照上面描述生成视频！";
+    prompt = prompt+"\n 按照上面描述生成 "+localStyle+" 风格的视频！";
     // Fix: Remove logic that auto-grabs next shot's frame.
     // Prevent morphing artifacts by defaulting to Image-to-Video unless an End Frame is explicitly generated.
 
@@ -420,6 +420,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           shot.modelProviders,
           project.id,
           project.imageSize,
+          localStyle,
           shot.id
       );
 
@@ -508,9 +509,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     const nextStartKf = nextShot.keyframes?.find(k => k.type === 'start');
 
     // 构建转场提示词
-    const transitionPrompt = `故事从 ${shot.actionSummary} 过渡到 ${nextShot.actionSummary}。制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
+    const transitionPrompt = `视频风格：${localStyle}；故事从 ${shot.actionSummary} 过渡到 ${nextShot.actionSummary}。景别变化：从 ${shot.shotSize} 到 ${nextShot.shotSize}；制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
     \n镜头开始：${endKf.visualPrompt}；
     \n镜头结束：${nextStartKf.visualPrompt}；
+    按照上面描述生成 ${localStyle} 风格的转场视频！
     `;
 
     try {

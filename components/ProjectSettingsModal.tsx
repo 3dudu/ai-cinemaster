@@ -150,15 +150,15 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
         <div className="p-6 space-y-5 flex-1 overflow-y-auto bg-slate-700">
           {/* Title Input */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">项目标题</label>
+            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">项目标题</label>
             <input
               type="text"
               value={localTitle}
               onChange={(e) => setLocalTitle(e.target.value)}
-              className="w-full bg-bg-input border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all"
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all"
               placeholder="输入项目名称..."
             />
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">id:{project.id}</label>
+            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">id:{project.id}</label>
           </div>
 
           {/* Language and Visual Style in one row */}
@@ -170,7 +170,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 <select
                   value={localLanguage}
                   onChange={(e) => setLocalLanguage(e.target.value)}
-                  className="w-full bg-bg-input border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                 >
                   {LANGUAGE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -189,7 +189,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 <select
                   value={localStyle}
                   onChange={(e) => setLocalStyle(e.target.value)}
-                  className="w-full bg-bg-input border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                 >
                   {STYLE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -211,7 +211,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 <select
                   value={localImageSize}
                   onChange={(e) => setLocalImageSize(e.target.value)}
-                  className="w-full bg-bg-input border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                 >
                   {IMAGE_SIZE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -230,7 +230,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 <select
                   value={localImageCount}
                   onChange={(e) => setLocalImageCount(Number(e.target.value))}
-                  className="w-full bg-bg-input border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                 >
                   {IMAGE_COUNT_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -251,10 +251,10 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 <button
                   key={opt.value}
                   onClick={() => setLocalDuration(opt.value)}
-                  className={`px-2 py-2.5 text-[11px] font-medium rounded-md transition-all text-center border cursor-pointer ${
+                  className={`px-2 py-2.5 text-xs font-medium rounded-md transition-all duration-200 transition-all text-center border cursor-pointer ${
                     localDuration === opt.value
-                      ? 'bg-slate-200/50 text-slate-50 border-slate-100 shadow-sm'
-                      : 'bg-transparent border-slate-600 text-slate-400 hover:border-slate-300 hover:text-slate-200'
+                    ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-md shadow-slate-500/25 scale-105'
+                    : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-300 hover:text-slate-300 hover:bg-slate-800'
                   }`}
                 >
                   {opt.label}
@@ -267,7 +267,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                   type="text"
                   value={customDurationInput}
                   onChange={(e) => setCustomDurationInput(e.target.value)}
-                  className="w-full bg-bg-input border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none font-mono placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none font-mono placeholder:text-slate-600"
                   placeholder="输入时长 (如: 90s, 3m)"
                 />
               </div>
@@ -289,7 +289,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               <select
                 value={localLlmProvider}
                 onChange={(e) => setLocalLlmProvider(e.target.value)}
-                className="w-full bg-bg-input border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
               >
                 <option value="">系统默认模型</option>
                 {modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => (
@@ -314,7 +314,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               <select
                 value={localText2imageProvider}
                 onChange={(e) => setLocalText2imageProvider(e.target.value)}
-                className="w-full bg-bg-input border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
               >
                 <option value="">系统默认模型</option>
                 {modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => (
@@ -339,7 +339,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               <select
                 value={localImage2videoProvider}
                 onChange={(e) => setLocalImage2videoProvider(e.target.value)}
-                className="w-full bg-bg-input border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
               >
                 <option value="">系统默认模型</option>
                 {modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => (

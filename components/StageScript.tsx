@@ -1036,8 +1036,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                          <ChevronRight className="w-3 h-3 text-slate-600 rotate-90" />
                        </div>
                        <div className="flex gap-2 mt-2">
-                         <button onClick={saveGenre} className="flex-1 py-1 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold rounded transition-colors cursor-pointer">保存</button>
-                         <button onClick={() => setEditingGenre(false)} className="flex-1 py-1 bg-slate-800 text-slate-300 text-[11px] font-bold rounded hover:bg-slate-700 transition-colors cursor-pointer">取消</button>
+                         <button onClick={saveGenre} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
+                         <button onClick={() => setEditingGenre(false)} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
                        </div>
                      </div>
                    ) : (
@@ -1067,8 +1067,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                          rows={3}
                        />
                        <div className="flex gap-2">
-                         <button onClick={saveLogline} className="flex-1 py-1.5 bg-slate-600 text-slate-300 text-[12px] font-bold rounded hover:bg-slate-800 transition-colors cursor-pointer">保存</button>
-                         <button onClick={() => setEditingLogline(false)} className="flex-1 py-1.5 bg-slate-800 text-slate-300 text-[12px] font-bold rounded hover:bg-slate-700 transition-colors cursor-pointer">取消</button>
+                         <button onClick={saveLogline} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
+                         <button onClick={() => setEditingLogline(false)} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
                        </div>
                      </div>
                    ) : (
@@ -1124,8 +1124,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                   placeholder="性格特点"
                                 />
                                 <div className="flex gap-1">
-                                  <button onClick={saveCharacter} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-800 cursor-pointer">保存</button>
-                                  <button onClick={() => { setEditingCharacterId(null); setTempCharacter({}); }} className="flex-1 py-1 bg-slate-800 text-slate-300 text-[11px] hover:bg-slate-700 rounded transition-colors cursor-pointer">取消</button>
+                                  <button onClick={saveCharacter} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
+                                  <button onClick={() => { setEditingCharacterId(null); setTempCharacter({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
                                 </div>
                               </div>
                             ) : (
@@ -1173,8 +1173,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                              placeholder="性格特点"
                            />
                            <div className="flex gap-1">
-                             <button onClick={addCharacter} className="flex-1 py-1 bg-slate-700 text-slate-300 text-[11px] rounded hover:bg-slate-600/100 cursor-pointer">添加</button>
-                             <button onClick={() => { setShowAddCharacter(false); setTempCharacter({}); }} className="flex-1 py-1 bg-slate-800 text-slate-300 text-[11px] hover:bg-slate-700 rounded transition-colors cursor-pointer">取消</button>
+                             <button onClick={addCharacter} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">添加</button>
+                             <button onClick={() => { setShowAddCharacter(false); setTempCharacter({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
                            </div>
                          </div>
                        )}
@@ -1218,8 +1218,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                  placeholder="氛围"
                                />
                                <div className="flex gap-1">
-                                 <button onClick={saveScene} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-800 cursor-pointer">保存</button>
-                                 <button onClick={() => { setEditingSceneId(null); setTempScene({}); }} className="flex-1 py-1 bg-slate-800 text-slate-300 text-[11px] rounded hover:bg-slate-700 transition-colors cursor-pointer">取消</button>
+                                 <button onClick={saveScene} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
+                                 <button onClick={() => { setEditingSceneId(null); setTempScene({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
                                </div>
                              </div>
                            ) : (
@@ -1264,8 +1264,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                              placeholder="氛围"
                            />
                            <div className="flex gap-1">
-                             <button onClick={addScene} className="flex-1 py-1 bg-slate-700 text-slate-300 text-[11px] rounded hover:bg-slate-600/100 cursor-pointer">添加</button>
-                             <button onClick={() => { setShowAddScene(false); setTempScene({}); }} className="flex-1 py-1 bg-slate-800 text-slate-300 text-[11px] rounded hover:bg-slate-700 transition-colors cursor-pointer">取消</button>
+                             <button onClick={addScene} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">添加</button>
+                             <button onClick={() => { setShowAddScene(false); setTempScene({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
                            </div>
                          </div>
                        )}

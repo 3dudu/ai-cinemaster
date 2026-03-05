@@ -447,7 +447,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                 <div
                   onMouseLeave={handleMouseLeave}
                   onMouseEnter={handleMouseEnter}
-                  className="absolute z-10 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto"
+                  className="absolute z-30 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto"
                 >
                   {allProjects.map(proj => (
                     <button
