@@ -422,7 +422,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                        </button>
                      </div>
                   )}
-                  <div className="absolute bottom-0 right-0 flex flex-col md:flex-row items-end ajust-end gap-1 p-1"> 
+                  <div className="absolute bottom-0 right-0 flex flex-col md:flex-row items-end gap-1 p-1"> 
                   {/* Action Buttons */}
                   {char.referenceImage && (
                     <>

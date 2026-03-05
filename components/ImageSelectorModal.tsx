@@ -14,7 +14,7 @@ interface ImageItem {
   projectId: string;
   projectName: string;
   downname: string;
-  mediaType?: 'image' | 'video';
+  mediaType?: 'image' | 'video' | 'audio';
   ishistory: boolean;
 }
 
@@ -39,7 +39,7 @@ const ImageSelectorModal: React.FC<Props> = ({
 }) => {
   const dialog = useDialog();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video'>(filterType);
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [loadingProjects, setLoadingProjects] = useState(false);
