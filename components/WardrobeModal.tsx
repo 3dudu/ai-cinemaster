@@ -92,7 +92,7 @@ const WardrobeModal: React.FC<Props> = ({
           if (imageUrl) {
             const variation = character.variations?.find(v => v.id === varId);
             const fileName = variation ? `${variation.name}_${character.name}` : `造型_${varId}_${character.name}`;
-            await addMediaHistory(project.id, imageUrl, fileName, 'image', 'character');
+            await addMediaHistory(project.id, imageUrl, fileName, 'image', 'character',enhancedPrompt);
           }
 
           const newData = { ...project.scriptData! };

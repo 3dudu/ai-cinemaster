@@ -1,6 +1,7 @@
 import { AlertCircle, Camera, Check, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
+import { renderTemplate } from "../services/promptTemplates";
 import { addMediaHistory } from '../services/storageService';
 import { ProjectState } from '../types';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
@@ -84,16 +85,24 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
         const scene = project.scriptData?.scenes.find(s => String(s.id) === String(id));
         if (scene) prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, project.scriptData?.genre || '剧情片',project.visualStyle);
       }
+      let new_prompt = prompt;
+      if(type=='character'){
+        new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', new_prompt, localStyle);
+      }
+
+      if(type=='scene'){
+        new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', new_prompt, localStyle);
+      }
 
       // Real API Call
-      imageUrl = await ModelService.generateImage(prompt, [], type, localStyle, imagesize,1,null,project.id,id);
+      imageUrl = await ModelService.generateImage(new_prompt, [], type, localStyle, imagesize,1,null,project.id,id);
 
       // Save to media history
       if (imageUrl) {
         const fileName = type === 'character'
           ? `角色_${project.scriptData?.characters.find(c => String(c.id) === String(id))?.name || id}`
           : `场景_${project.scriptData?.scenes.find(s => String(s.id) === String(id))?.id || id}`;
-        await addMediaHistory(project.id, imageUrl, fileName, 'image', type);
+        await addMediaHistory(project.id, imageUrl, fileName, 'image', type,new_prompt);
       }
 
     } catch (e) {

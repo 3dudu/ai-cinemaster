@@ -2,6 +2,7 @@ import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, ChevronLeft
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
+import { renderTemplate } from "../services/promptTemplates";
 import { addMediaHistory, getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Keyframe, ProjectState, Scene, Shot } from '../types';
 import FileUploadModal, { downloadImage, downloadVideo } from './FileUploadModal';
@@ -283,6 +284,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       return referenceImages.join("\n");
   };
 
+  const genKeyFramePrompt = async (prompt: string, imageType: 'start' | 'end' | 'full',imageSize:string) => { 
+      let new_prompt = prompt;
+      const image_rate = imageSize=="2560x1440" ? "16:9" : "9:16";
+      if(imageType=='start' || imageType=='end' || imageType=='full' ){
+        new_prompt = renderTemplate('GENERATE_KEYFRAME_PROMPT', prompt, imageCount, image_rate);
+        new_prompt = renderTemplate('IMAGE_GENERATION_WITH_REFERENCE', new_prompt, localStyle);
+      }
+      return new_prompt;
+  };
+
   const handleGenerateKeyframe = async (shot: Shot, type: 'start' | 'end' | 'full') => {
     // Robustly handle missing keyframe object
     let existingKf = shot.keyframes?.find(k => k.type === type);
@@ -323,12 +334,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     try {
       const referenceImages = getRefImagesForShot(shot);
       const referencePrompt = getRefImagesDescForShot(shot);
-      const url = await ModelService.generateImage(prompt + (referencePrompt?referencePrompt:""), referenceImages, type, localStyle, imageSize,type === 'full'?imageCount:1, shot.modelProviders,project.id,shot.id);
+      const new_prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), type,imageSize);
+      const url = await ModelService.generateImage(new_prompt, referenceImages, type, localStyle, imageSize,type === 'full'?imageCount:1, shot.modelProviders,project.id,shot.id);
 
       // Save to media history
       if (url) {
         const fileName = `Shot${shot.id}_${type}`;
-        await addMediaHistory(project.id, url, fileName, 'image', type);
+        await addMediaHistory(project.id, url, fileName, 'image', type,new_prompt);
       }
 
       existingKf.imageUrl = url;
@@ -426,8 +438,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     }
     prompt = prompt + (dialogueText?"\n###对白\n "+dialogueText:"");
     prompt = prompt+"\n\n##按照上面描述生成 "+localStyle+" 风格的视频！";
-    // Fix: Remove logic that auto-grabs next shot's frame.
-    // Prevent morphing artifacts by defaulting to Image-to-Video unless an End Frame is explicitly generated.
 
     setProcessingState({ id: shot.interval.id, type: 'video' });
     try {
@@ -447,7 +457,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       // Save to media history
       if (videoUrl) {
         const fileName = `Shot${shot.id}_video`;
-        await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video');
+        await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video',prompt);
       }
 
       updateShot(shot.id, (s) => ({
@@ -529,11 +539,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     const nextStartKf = nextShot.keyframes?.find(k => k.type === 'start');
 
     // 构建转场提示词
-    const transitionPrompt = `视频风格：${localStyle}；故事从 ${shot.actionSummary} 过渡到 ${nextShot.actionSummary}。景别变化：从 ${shot.shotSize} 到 ${nextShot.shotSize}；制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
-    \n镜头开始：${endKf.visualPrompt}；
-    \n镜头结束：${nextStartKf.visualPrompt}；
-    按照上面描述生成 ${localStyle} 风格的转场视频！
-    `;
+    const transitionPrompt = renderTemplate(
+      'GENERATE_TRANSITION_VIDEO',
+      shot.actionSummary,
+      nextShot.actionSummary,
+      shot.shotSize,
+      nextShot.shotSize,
+      localStyle,
+      endKf.visualPrompt,
+      nextStartKf.visualPrompt
+    );
 
     try {
       setTransitionGeneratingShotId(shot.id);
@@ -555,7 +570,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       // Save to media history
       if (transitionUrl) {
         const fileName = `Shot${shot.id}_to_Shot${nextShot.id}_transition`;
-        await addMediaHistory(project.id, transitionUrl, fileName, 'video', 'transition');
+        await addMediaHistory(project.id, transitionUrl, fileName, 'video', 'transition',transitionPrompt);
       }
 
       // 保存转场视频 URL
@@ -672,12 +687,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                 }
                 const existingFf = shot.keyframes?.find(k => k.type === 'full');
                 const ffId = existingFf?.id || `kf-${shot.id}-full-${Date.now()}`;
-                const full_url = await ModelService.generateImage(full_prompt + (referencePrompt?referencePrompt:""), referenceImages, "full", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+
+                const new_prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), "full",imageSize);
+                const full_url = await ModelService.generateImage(new_prompt, referenceImages, "full", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
 
                 // Save to media history
                 if (full_url) {
                   const fileName = `Shot${shot.id}_full`;
-                  await addMediaHistory(project.id, full_url, fileName, 'image', 'full');
+                  await addMediaHistory(project.id, full_url, fileName, 'image', 'full',new_prompt);
                 }
 
                 currentShots = currentShots.map(s => {
@@ -699,12 +716,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                 const existingKf = shot.keyframes?.find(k => k.type === 'start');
                 let prompt = existingKf?.visualPrompt || shot.actionSummary;
                 const kfId = existingKf?.id || `kf-${shot.id}-start-${Date.now()}`;
-                const url = await ModelService.generateImage(prompt + (referencePrompt?referencePrompt:""), referenceImages, "start", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+                const new_prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), "start",imageSize);
+                const url = await ModelService.generateImage(new_prompt, referenceImages, "start", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
 
                 // Save to media history
                 if (url) {
                   const fileName = `Shot${shot.id}_start`;
-                  await addMediaHistory(project.id, url, fileName, 'image', 'start');
+                  await addMediaHistory(project.id, url, fileName, 'image', 'start',new_prompt);
                 }
 
                 currentShots = currentShots.map(s => {
@@ -726,11 +744,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                 const existingEf = shot.keyframes?.find(k => k.type === 'end');
                 let end_prompt = existingEf?.visualPrompt || shot.actionSummary;
                 const efId = existingEf?.id || `kf-${shot.id}-end-${Date.now()}`;
-                const end_url = await ModelService.generateImage(end_prompt + (referencePrompt?referencePrompt:""), referenceImages, "end", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
-                
+                end_prompt = await genKeyFramePrompt(end_prompt + (referencePrompt?referencePrompt:""), "end",imageSize);
+                const end_url = await ModelService.generateImage(end_prompt, referenceImages, "end", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
                 if (end_url) {
                   const fileName = `Shot${shot.id}_end`;
-                  await addMediaHistory(project.id, end_url, fileName, 'image', 'end');
+                  await addMediaHistory(project.id, end_url, fileName, 'image', 'end',end_prompt);
                 }
 
                 currentShots = currentShots.map(s => {
@@ -974,12 +992,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   const existingFf = shot.keyframes?.find(k => k.type === 'full');
                   let full_prompt = existingFf?.visualPrompt || shot.actionSummary;
                   const ffId = existingFf?.id || `kf-${shot.id}-full-${Date.now()}`;
-                  const full_url = await ModelService.generateImage(full_prompt + (referencePrompt?referencePrompt:""), referenceImages, "full", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+
+                  full_prompt = await genKeyFramePrompt(full_prompt + (referencePrompt?referencePrompt:""), "full",imageSize);
+                  const full_url = await ModelService.generateImage(full_prompt, referenceImages, "full", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
 
                   // Save to media history
                   if (full_url) {
                     const fileName = `Shot${shot.id}_full`;
-                    await addMediaHistory(project.id, full_url, fileName, 'image', 'full');
+                    await addMediaHistory(project.id, full_url, fileName, 'image', 'full',full_prompt);
                   }
 
                   currentShots = currentShots.map(s => {
@@ -1001,12 +1021,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   const existingKf = shot.keyframes?.find(k => k.type === 'start');
                   let prompt = existingKf?.visualPrompt || shot.actionSummary;
                   const kfId = existingKf?.id || `kf-${shot.id}-start-${Date.now()}`;
-                  const url = await ModelService.generateImage(prompt + (referencePrompt?referencePrompt:""), referenceImages, "start", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+                  prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), "start",imageSize);
+                  const url = await ModelService.generateImage(prompt, referenceImages, "start", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
 
                   // Save to media history
                   if (url) {
                     const fileName = `Shot${shot.id}_start`;
-                    await addMediaHistory(project.id, url, fileName, 'image', 'start');
+                    await addMediaHistory(project.id, url, fileName, 'image', 'start',prompt);
                   }
 
                   currentShots = currentShots.map(s => {
@@ -1028,12 +1049,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   const existingEf = shot.keyframes?.find(k => k.type === 'end');
                   let end_prompt = existingEf?.visualPrompt || shot.actionSummary;
                   const efId = existingEf?.id || `kf-${shot.id}-end-${Date.now()}`;
-                  const end_url = await ModelService.generateImage(end_prompt + (referencePrompt?referencePrompt:""), referenceImages, "end", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+
+                  end_prompt = await genKeyFramePrompt(end_prompt + (referencePrompt?referencePrompt:""), "end",imageSize);
+                  const end_url = await ModelService.generateImage(end_prompt, referenceImages, "end", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
 
                   // Save to media history
                   if (end_url) {
                     const fileName = `Shot${shot.id}_end`;
-                    await addMediaHistory(project.id, end_url, fileName, 'image', 'end');
+                    await addMediaHistory(project.id, end_url, fileName, 'image', 'end',end_prompt);
                   }
 
                   currentShots = currentShots.map(s => {

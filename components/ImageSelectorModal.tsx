@@ -1,12 +1,14 @@
-import { ArrowRightLeft, ChevronDown, Download, Images, Search, Trash2, X } from 'lucide-react';
+import { ArrowRightLeft, ChevronDown, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteSingleMediaFile, getAllProjectsMetadata, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
 import { ProjectState } from '../types';
-import { downloadImage, downloadVideo } from './FileUploadModal';
 import { useDialog } from './dialog';
+import { downloadImage, downloadVideo } from './FileUploadModal';
+import PromptDetailModal from './PromptDetailModal';
 
 interface ImageItem {
   id: string;
+  hash: string;
   imageUrl: string;
   title: string;
   subtitle: string;
@@ -16,6 +18,8 @@ interface ImageItem {
   downname: string;
   mediaType?: 'image' | 'video' | 'audio';
   ishistory: boolean;
+  prompt?: string;
+  timestamp: number;
 }
 
 interface Props {
@@ -44,9 +48,10 @@ const ImageSelectorModal: React.FC<Props> = ({
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
-  const [mediaHistory, setMediaHistory] = useState<Record<string, MediaFile[]>>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [selectedPrompt, setSelectedPrompt] = useState<{title: string, prompt: string, timestamp?: number} | null>(null);
 
   // 加载所有项目
   useEffect(() => {
@@ -63,19 +68,6 @@ const ImageSelectorModal: React.FC<Props> = ({
           } else if (projects.length > 0) {
             setSelectedProjectId(projects[0].id);
           }
-
-          // 加载所有项目的媒体历史
-          const historyMap: Record<string, MediaFile[]> = {};
-          for (const p of projects) {
-            try {
-              const history = await getProjectMediaHistory(p.id);
-              historyMap[p.id] = history;
-            } catch (error) {
-              console.error(`Failed to load media history for project ${p.id}:`, error);
-              historyMap[p.id] = [];
-            }
-          }
-          setMediaHistory(historyMap);
         } catch (error) {
           console.error('Failed to load projects:', error);
         } finally {
@@ -104,20 +96,21 @@ const ImageSelectorModal: React.FC<Props> = ({
 
       if (!confirmed) return;
 
-      // 从 id 中提取 mediaFileId
-      const mediaFileId = image.id.split('-').pop();
-      if (!mediaFileId) return;
+      // 从 allImages 中移除 hash 相同的元素
+      setAllImages(prevImages => prevImages.filter(img => img.id !== image.id));
 
-      await deleteSingleMediaFile(image.projectId, mediaFileId);
-
-      // 重新加载媒体历史
-      const history = await getProjectMediaHistory(image.projectId);
-      setMediaHistory(prev => ({
-        ...prev,
-        [image.projectId]: history
-      }));
+      // 删除媒体文件
+      await deleteSingleMediaFile(image.projectId, image.id);
     } catch (error) {
       console.error('Failed to delete media history:', error);
+    }
+  };
+
+  const handleShowPrompt = (image: ImageItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (image.prompt) {
+      setSelectedPrompt({ title: image.title, prompt: image.prompt, timestamp: image.timestamp });
+      setShowPromptModal(true);
     }
   };
 
@@ -149,6 +142,13 @@ const ImageSelectorModal: React.FC<Props> = ({
 
   // 收集所有图片数据
   const [allImages, setAllImages] = useState<ImageItem[]>([]);
+  const findPormtFromHistory = (historyFiles: MediaFile[],fileid: string) => {
+      const file = historyFiles.find(f => f.id === fileid);
+      if (file) {
+        return file;
+      }
+      return {prompt: '',timestamp: 0};
+  }
 
   useEffect(() => {
     const loadAllImages = async () => {
@@ -161,15 +161,19 @@ const ImageSelectorModal: React.FC<Props> = ({
         return;
       }
 
+      const historyFiles = await getProjectMediaHistory(selectedProject.id);
+
       // 角色图片（包含所有造型）
       if (selectedProject.scriptData?.characters) {
         for (const char of selectedProject.scriptData.characters) {
           if (char.referenceImage) {
             const hash = await md5Hash(char.referenceImage);
             if (!urlHashSet.has(hash)) {
+              const file = findPormtFromHistory(historyFiles,hash);
               urlHashSet.add(hash);
               images.push({
                 id: `char-${selectedProject.id}-${char.id}`,
+                hash: hash,
                 imageUrl: char.referenceImage,
                 title: char.name,
                 subtitle: `角色 - ${char.name}`,
@@ -178,7 +182,9 @@ const ImageSelectorModal: React.FC<Props> = ({
                 projectName: selectedProject.title || '未命名项目',
                 downname: `${project?.scriptData?.title || ''}-角色-${char.name}`,
                 mediaType: 'image',
-                ishistory: false
+                ishistory: false,
+                prompt: file.prompt,
+                timestamp: file.timestamp
               });
             }
           }
@@ -190,9 +196,11 @@ const ImageSelectorModal: React.FC<Props> = ({
               if (outfit.referenceImage) {
                 const hash = await md5Hash(outfit.referenceImage);
                 if (!urlHashSet.has(hash)) {
+                  const file = findPormtFromHistory(historyFiles,hash);
                   urlHashSet.add(hash);
                   images.push({
                     id: `char-${selectedProject.id}-${char.id}-outfit-${idx}`,
+                    hash: hash,
                     imageUrl: outfit.referenceImage,
                     title: `${char.name} - ${outfit.name || `造型 ${idx + 1}`}`,
                     subtitle: `角色造型 - ${char.name}`,
@@ -201,7 +209,9 @@ const ImageSelectorModal: React.FC<Props> = ({
                     projectName: selectedProject.title || '未命名项目',
                     downname: `${project?.scriptData?.title || ''}-角色-${char.name}-造型 ${idx + 1}`,
                     mediaType: 'image',
-                    ishistory: false
+                    ishistory: false,
+                    prompt: file.prompt,
+                    timestamp: file.timestamp
                   });
                 }
               }
@@ -216,9 +226,11 @@ const ImageSelectorModal: React.FC<Props> = ({
           if (scene.referenceImage) {
             const hash = await md5Hash(scene.referenceImage);
             if (!urlHashSet.has(hash)) {
+              const file = findPormtFromHistory(historyFiles,hash);
               urlHashSet.add(hash);
               images.push({
                 id: `scene-${selectedProject.id}-${scene.id}`,
+                hash: hash,
                 imageUrl: scene.referenceImage,
                 title: scene.location,
                 subtitle: `场景 - ${scene.id}`,
@@ -227,7 +239,9 @@ const ImageSelectorModal: React.FC<Props> = ({
                 projectName: selectedProject.title || '未命名项目',
                 downname: `${project?.scriptData?.title || ''}-场景-${scene.id}`,
                 mediaType: 'image',
-                ishistory: false
+                ishistory: false,
+                prompt: file.prompt,
+                timestamp: file.timestamp
               });
             }
           }
@@ -239,12 +253,12 @@ const ImageSelectorModal: React.FC<Props> = ({
         for (let shotIdx = 0; shotIdx < selectedProject.shots.length; shotIdx++) {
           const shot = selectedProject.shots[shotIdx];
           const shotLabel = `镜头 ${shotIdx + 1}`;
-
           if (shot.keyframes) {
             for (const kf of shot.keyframes) {
               if (kf.imageUrl) {
                 const hash = await md5Hash(kf.imageUrl);
                 if (!urlHashSet.has(hash)) {
+                  const file = findPormtFromHistory(historyFiles,hash);
                   urlHashSet.add(hash);
                   let type: 'keyframe-start' | 'keyframe-end' | 'keyframe-full';
                   if (kf.type === 'start') type = 'keyframe-start';
@@ -253,6 +267,7 @@ const ImageSelectorModal: React.FC<Props> = ({
 
                   images.push({
                     id: `kf-${selectedProject.id}-${shot.id}-${kf.type}`,
+                    hash: hash,
                     imageUrl: kf.imageUrl,
                     title: shotLabel,
                     subtitle: `${kf.type === 'full' ? '宫格图' : kf.type === 'start' ? '起始帧' : '结束帧'} - ${shot.actionSummary.substring(0, 30)}...`,
@@ -261,7 +276,9 @@ const ImageSelectorModal: React.FC<Props> = ({
                     projectName: selectedProject.title || '未命名项目',
                     downname: `${project?.scriptData?.title || ''}-镜头-${shot.id}-${kf.type}`,
                     mediaType: 'image',
-                    ishistory: false
+                    ishistory: false,
+                    prompt: file.prompt,
+                    timestamp: file.timestamp
                   });
                 }
               }
@@ -279,10 +296,12 @@ const ImageSelectorModal: React.FC<Props> = ({
           // 添加主视频
           if (shot.interval?.videoUrl) {
             const hash = await md5Hash(shot.interval.videoUrl);
-            if (!urlHashSet.has(hash)) {
+            if (!urlHashSet.has(hash)){
+              const file = findPormtFromHistory(historyFiles,hash);
               urlHashSet.add(hash);
               images.push({
                 id: `shot-video-${selectedProject.id}-${shot.id}`,
+                hash: hash,
                 imageUrl: shot.interval.videoUrl,
                 title: shotLabel,
                 subtitle: `镜头视频 - ${shot.actionSummary.substring(0, 30)}...`,
@@ -291,7 +310,9 @@ const ImageSelectorModal: React.FC<Props> = ({
                 projectName: selectedProject.title || '未命名项目',
                 downname: `${selectedProject.scriptData?.title || ''}-镜头-${shot.id}`,
                 mediaType: 'video',
-                ishistory: false
+                ishistory: false,
+                prompt: file.prompt,
+                timestamp: file.timestamp
               });
             }
           }
@@ -300,9 +321,11 @@ const ImageSelectorModal: React.FC<Props> = ({
           if (shot.transitionUrl) {
             const hash = await md5Hash(shot.transitionUrl);
             if (!urlHashSet.has(hash)) {
+              const file = findPormtFromHistory(historyFiles,hash);
               urlHashSet.add(hash);
               images.push({
                 id: `shot-transition-${selectedProject.id}-${shot.id}`,
+                hash: hash,
                 imageUrl: shot.transitionUrl,
                 title: shotLabel,
                 subtitle: `转场视频 - ${shot.actionSummary.substring(0, 30)}...`,
@@ -311,15 +334,15 @@ const ImageSelectorModal: React.FC<Props> = ({
                 projectName: selectedProject.title || '未命名项目',
                 downname: `${selectedProject.scriptData?.title || ''}-镜头-${shot.id}-转场`,
                 mediaType: 'video',
-                ishistory: false
+                ishistory: false,
+                prompt: file.prompt,
+                timestamp: file.timestamp
               });
             }
           }
         }
       }
 
-      // 添加 MediaHistory 中的文件（file.id 已经是hash值）
-      const historyFiles = mediaHistory[selectedProject.id] || [];
       for (const file of historyFiles) {
         // 如果不显示视频且当前文件是视频，则跳过
         if (!showVideo && file.fileType === 'video') {
@@ -341,6 +364,8 @@ const ImageSelectorModal: React.FC<Props> = ({
           } else if (file.fileType === 'video') {
             type = file.mediaType==='video'?'video':'video-transition';
             subtitle = `场景视频 - ${file.fileName}`;
+          } else if (file.fileType === 'audio') {
+            continue;
           } else {
             // keyframe 类型
             if (file.fileName.startsWith('start_')) type = 'keyframe-start';
@@ -351,6 +376,7 @@ const ImageSelectorModal: React.FC<Props> = ({
 
           images.push({
             id: `history-${selectedProject.id}-${file.id}`,
+            hash: file.id,
             imageUrl: file.fileUrl,
             title: file.fileName,
             subtitle: subtitle,
@@ -359,7 +385,9 @@ const ImageSelectorModal: React.FC<Props> = ({
             projectName: selectedProject.title || '未命名项目',
             downname: file.fileName,
             mediaType: file.fileType,
-            ishistory: true
+            ishistory: true,
+            prompt: file.prompt,
+            timestamp: file.timestamp
           });
         }
       }
@@ -368,7 +396,7 @@ const ImageSelectorModal: React.FC<Props> = ({
     };
 
     loadAllImages();
-  }, [allProjects, selectedProjectId, mediaHistory, project, showVideo]);
+  }, [allProjects, selectedProjectId, project, showVideo]);
 
   // 根据搜索词过滤图片
   const filteredImages = useMemo(() => {
@@ -578,10 +606,20 @@ const ImageSelectorModal: React.FC<Props> = ({
                     {image.ishistory && (
                       <button
                         onClick={(e) => handleDeleteHistory(image, e)}
-                        className="pointer-events-auto p-2 bg-red-600/80 text-slate-50 rounded-full hover:bg-red-700 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                      className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="删除历史记录"
                       >
                         <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                    {/* 查看提示词按钮 - 历史记录且包含提示词时显示 */}
+                    {image.prompt && (
+                      <button
+                        onClick={(e) => handleShowPrompt(image, e)}
+                      className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                        title="查看提示词"
+                      >
+                        <NotebookPen className="w-3 h-3" />
                       </button>
                     )}
                     {/* 下载按钮 - 图片和视频都显示 */}
@@ -624,6 +662,17 @@ const ImageSelectorModal: React.FC<Props> = ({
           </button>
         </div>
       </div>
+
+      {/* 提示词对话框 */}
+      {showPromptModal && selectedPrompt && (
+        <PromptDetailModal
+          isOpen={showPromptModal}
+          onClose={() => setShowPromptModal(false)}
+          title={selectedPrompt.title}
+          prompt={selectedPrompt.prompt}
+          timestamp={selectedPrompt.timestamp}
+        />
+      )}
     </div>
   );
 };

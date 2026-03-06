@@ -141,6 +141,7 @@ export interface MediaHistoryItem {
   scene: MediaFile[];
   keyframe: MediaFile[];
   video: MediaFile[];
+  audio: MediaFile[];
 }
 
 export interface MediaFile {
@@ -150,6 +151,7 @@ export interface MediaFile {
   timestamp: number;
   fileType: 'image' | 'video' | 'audio';
   mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition';
+  prompt: string;
 }
 
 // Simple MD5 hash function for file URLs
@@ -167,7 +169,8 @@ export const addMediaHistory = async (
   fileUrl: string,
   fileName: string,
   fileType: 'image' | 'video' | 'audio',
-  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition'
+  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition',
+  prompt: string
 ): Promise<void> => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -181,7 +184,8 @@ export const addMediaHistory = async (
         fileName,
         timestamp: Date.now(),
         fileType,
-        mediaType
+        mediaType,
+        prompt
       };
 
       // Get existing project history
@@ -197,16 +201,24 @@ export const addMediaHistory = async (
             character: [],
             scene: [],
             keyframe: [],
-            video: []
+            video: [],
+            audio: []
           };
         }
 
         // Add media file to appropriate category
         if (mediaType === 'character') {
           // Check if file already exists
-          const exists = projectHistory.character.some(f => f.id === id);
-          if (!exists) {
-            projectHistory.character.push(mediaFile);
+          if(fileType=='audio'){
+            const exists = projectHistory.audio.some(f => f.id === id);
+            if (!exists) {
+              projectHistory.audio.push(mediaFile);
+            }
+          }else{
+            const exists = projectHistory.character.some(f => f.id === id);
+            if (!exists) {
+              projectHistory.character.push(mediaFile);
+            }
           }
         } else if (mediaType === 'scene') {
           const exists = projectHistory.scene.some(f => f.id === id);

@@ -36,7 +36,11 @@ const PromptTemplateModal: React.FC<{
     { key: 'JOIN_IMAGES', name: '图片拼接模板', description: '将多张图片拼接成宫格图', hasParams: true },
     { key: 'IMAGE_GENERATION_WITH_REFERENCE', name: '带参考图的图片生成模板', description: '生成带参考图的角色图片', hasParams: true },
     { key: 'GENERATE_CHARACTER_VARIATION', name: '角色造型变体生成模板', description: '生成角色的新造型', hasParams: true },
+    { key: 'GENERATE_KEYFRAME_PROMPT', name: '关键帧提示词生成模板', description: '为关键帧生成连环画风格提示词', hasParams: true },
+    { key: 'GENERATE_CHARACTER_IMAGE', name: '角色图片生成模板', description: '生成角色三视图加大头照', hasParams: true },
+    { key: 'GENERATE_SCENE_IMAGE', name: '场景图片生成模板', description: '生成场景图片', hasParams: true },
     { key: 'GENERATE_VIDEO_PROMPT', name: '视频拍摄提示词生成模板', description: '为单个镜头生成视频拍摄提示词', hasParams: true },
+    { key: 'GENERATE_TRANSITION_VIDEO', name: '转场视频提示词生成模板', description: '生成镜头之间的转场视频提示词', hasParams: true },
   ], []);
 
   // 从 localStorage 加载自定义内容
@@ -94,16 +98,16 @@ const PromptTemplateModal: React.FC<{
   // 获取函数类型模板的预览（带变量占位符）
   const getFunctionTemplatePreview = (key: string): string => {
     const previews: Record<string, string> = {
-      'PARSE_SCRIPT': `分析文本并输出一个 JSON 对象，字段值以 {language} 语言呈现。
+      'PARSE_SCRIPT': `分析文本并输出一个 JSON 对象，字段值以 {lang} 语言呈现。
 
 任务：
-提取title:标题、genre:类型、logline:故事梗概（以 {language} 语言呈现）。
+提取title:标题、genre:类型、logline:故事梗概（以 {lang} 语言呈现）。
 提取characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:性格）。
 提取scenes:场景信息（id:编号、location:地点、time:时间、atmosphere:氛围）。
 storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
 
 输入：
-"{rawText.slice(0, 30000)}"`,
+{text.slice(0, 30000)}`,
       'GENERATE_SHOTS': `担任专业摄影师，为第{sceneIndex + 1}场戏制作一份详尽的镜头清单（镜头调度设计）。
 文本输出语言: {lang}。
 
@@ -117,7 +121,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
 创作背景:
 题材类型: {genre}
-剧本整体目标时长: {targetDuration || "Standard"}
+剧本整体目标时长: {duration || "30s"}
 
 角色:
 {JSON.stringify(characters.map((c) => ({id: c.id, name: c.name, desc: c.visualPrompt || c.personality})))}
@@ -145,9 +149,9 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
       'GENERATE_SCRIPT': `你是一名专业的编剧。请根据以下提示词创作一个完整的影视剧本。
 
 创作要求：
-1. 剧本时长：{targetDuration}
+1. 剧本时长：{duration}
 2. 题材类型：{genre}
-3. 输出语言：{language}
+3. 输出语言：{lang}
 4. 剧本结构清晰，包含剧本标题、场景标题、时间、地点、天气、角色、动作描述、对白
 5. 情节紧凑，画面感强
 6. 角色性格鲜明，对话自然
@@ -161,7 +165,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 {type=='character'?'角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。':'场景要描述时间、地点、景色、光线、氛围等，不要出现角色。'}
 中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
       'JOIN_IMAGES': `请将这些图片拼成一张{imageCount}宫格图片，图片之间留有1个像素的间隔，最终图片大小为{imageSize}。`,
-      'IMAGE_GENERATION_WITH_REFERENCE': `生成符合下面描述的图画，画面风格必须为：{localStyle}。
+      'IMAGE_GENERATION_WITH_REFERENCE': `生成符合下面描述的图画，画面风格必须为：{visualStyle}。
 图像描述：
   {prompt}
 
@@ -170,15 +174,15 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - 后续所有图片均为角色参考图（例如：基础形象，或特定变体造型）。
 
 要求：
-- 画面风格必须为：{localStyle}。
+- 画面风格必须为：{visualStyle}。
 - 严格保持与场景参考图一致的视觉风格、光影效果和环境氛围。
 - 若画面中出现角色，必须与所提供的角色参考图高度相似。`,
-      'GENERATE_CHARACTER_VARIATION': `生成角色：{characterName} 的新造型图，画面风格必须为：{localStyle}，符合下面描述。
+      'GENERATE_CHARACTER_VARIATION': `生成角色：{character} 的新造型图，画面风格必须为：{visualStyle}，符合下面描述。
 造型描述：
     {variationPrompt}
 要求：
     - 画面尺寸为：1728x2304
-    - 画面风为：{localStyle}
+    - 画面风为：{visualStyle}
     - 画面内容为角色的一张图
     - 如果有参考图，参考图为角色的三视图加大头照，必须保持面部特征与参考图一致。
     - 如果没有，角色原来是这样的：{baseCharacterPrompt}`,
@@ -203,7 +207,20 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 5. 提示词长度控制在200-300字以内
 6. 输出纯文本提示词，无任何解释或注释
 
-请输出视频拍摄提示词：`
+请输出视频拍摄提示词：`,
+      'GENERATE_KEYFRAME_PROMPT': `{prompt}{imageCount > 1 ? " \\n 连环画规格："+IMAGE_X[imageCount]+"连环画图，包含 "+imageCount+" 张连续且风格统一的图片，每张长宽比 "+imageRate+"，白色背景，铺满整张图。" : ""}`,
+      'GENERATE_CHARACTER_IMAGE': `生成符合下面要求的角色图片，图片风格必须为：{visualStyle}。
+图片内容：{prompt}
+
+如果只有一个角色，则生成角色三视图加大头照，在同一张图中生成丰富细节的角色展示风格图片，图片比例3:4，具体要求：排版布局左上1/4为从头部到肩膀的清晰正面大头照，右上1/4为人物站立的全身正视图， 下部左边人物的站立全身侧视图，右边人物的站立全身背视图；所有视图必须为同一角色，五官、发型、服装、体型、风格、比例与细节完全一致，不改变人物特征；三视图比例统一、姿态自然；纯白色背景、无阴影、无道具、无文字。`,
+      'GENERATE_SCENE_IMAGE': `生成符合下面要求的场景图片，图片风格必须为：{visualStyle}。
+图片内容：{prompt}
+
+图片比例16:9，具体要求：图中无角色、无文字。`,
+      'GENERATE_TRANSITION_VIDEO': `视频风格：{visualStyle}；故事从 {currentShotSummary} 过渡到 {nextShotSummary}。景别变化：从 {currentShotSize} 到 {nextShotSize}；制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
+镜头开始：{endFrameVisualPrompt}；
+镜头结束：{startFrameVisualPrompt}；
+按照上面描述生成 {visualStyle} 风格的转场视频！`,
     };
 
     return previews[key] || '';
@@ -284,14 +301,18 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
   // 变量提示
   const variables: Record<string, string[]> = {
-    'PARSE_SCRIPT': ['{rawText}', '{language}'],
-    'GENERATE_SHOTS': ['{sceneIndex}', '{scene}', '{paragraphs}', '{genre}', '{targetDuration}', '{characters}', '{lang}'],
-    'GENERATE_SCRIPT': ['{prompt}', '{targetDuration}', '{genre}', '{language}'],
+    'PARSE_SCRIPT': ['{text}', '{lang}'],
+    'GENERATE_SHOTS': ['{sceneIndex}', '{scene}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}'],
+    'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}'],
     'GENERATE_VISUAL_PROMPT': ['{type}', '{data}', '{genre}', '{visualStyle}'],
     'JOIN_IMAGES': ['{imageCount}', '{imageSize}'],
-    'IMAGE_GENERATION_WITH_REFERENCE': ['{prompt}', '{localStyle}'],
-    'GENERATE_CHARACTER_VARIATION': ['{characterName}', '{localStyle}', '{variationPrompt}', '{baseCharacterPrompt}'],
+    'IMAGE_GENERATION_WITH_REFERENCE': ['{prompt}', '{visualStyle}'],
+    'GENERATE_CHARACTER_VARIATION': ['{character}', '{visualStyle}', '{variationPrompt}', '{baseCharacterPrompt}'],
+    'GENERATE_KEYFRAME_PROMPT': ['{prompt}', '{imageCount}', '{imageRate}'],
+    'GENERATE_CHARACTER_IMAGE': ['{prompt}', '{visualStyle}'],
+    'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}'],
     'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogue}'],
+    'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
   };
 
   if (!isOpen) return null;

@@ -102,7 +102,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       }
 
       // Save to media history
-      await addMediaHistory(project.id, voiceUrl, `${character.name}_语音`, 'audio', 'character');
+      await addMediaHistory(project.id, voiceUrl, `${character.name}_语音`, 'audio', 'character','');
 
     } catch (error) {
       console.error('Voice generation failed:', error);
