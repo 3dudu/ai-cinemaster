@@ -112,7 +112,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">对白 (可选)</label>
             <div className="space-y-2">
-              {(tempShot.dialogue || []).map((dlg, index) => (
+              {tempShot.dialogue && tempShot.dialogue instanceof Array && (tempShot.dialogue || []).map((dlg, index) => (
                 <div key={index} className="flex gap-2 items-start">
                   <select value={dlg.character || ''}
                     onChange={(e) => {
@@ -153,7 +153,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
               <button
                 onClick={() => {
                   const newDialogue = { character: '', value: '' };
-                  setTempShot({ ...tempShot, dialogue: [...(tempShot.dialogue || []), newDialogue] });
+                  setTempShot({ ...tempShot, dialogue: [...(tempShot.dialogue && tempShot.dialogue instanceof Array ? tempShot.dialogue : []), newDialogue] });
                 }}
                 className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-50 bg-slate-900 border border-slate-600 rounded hover:border-slate-300 transition-all flex items-center justify-center gap-1 cursor-pointer"
               >
