@@ -1,20 +1,19 @@
 import { CheckCircle, Save } from 'lucide-react';
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ApiKeyModal from './components/ApiKeyModal'; // 新增
 import Dashboard from './components/Dashboard';
 import { DialogProvider } from './components/dialog';
 import Sidebar from './components/Sidebar';
 import SidebarMobile from './components/SidebarMobile';
+import StageAssets from './components/StageAssets';
+import StageDirector from './components/StageDirector';
+import StageExport from './components/StageExport';
+import StageImage from './components/StageImage';
+import StageScript from './components/StageScript';
 import { initializeCozeConfig } from './services/modelproviders/cozeService';
 import { ModelService } from './services/modelService';
 import { saveProjectToDB } from './services/storageService';
 import { ProjectState } from './types';
-
-const StageScript = lazy(() => import('./components/StageScript'));
-const StageAssets = lazy(() => import('./components/StageAssets'));
-const StageDirector = lazy(() => import('./components/StageDirector'));
-const StageExport = lazy(() => import('./components/StageExport'));
-const StageImage = lazy(() => import('./components/StageImage'));
 
 function App() {
   const [project, setProject] = useState<ProjectState | null>(null);
@@ -212,9 +211,7 @@ function App() {
 
       <main className={`transition-allduration-300 ease-in-out ${isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-20' : 'xl:ml-72 md:ml-20')} flex-1 h-screen overflow-hidden relative`}
       style={ isMobile ? { paddingBottom: 'calc(112px + env(safe-area-inset-top))'} : {}}>
-        <Suspense fallback={<div className="h-full w-full flex items-center justify-center text-slate-400">加载中...</div>}>
-          {renderStage()}
-        </Suspense>
+        {renderStage()}
         {showSettings && (
           <>
   <ApiKeyModal
