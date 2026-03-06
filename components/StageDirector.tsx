@@ -1,4 +1,4 @@
-import { AlertCircle, Aperture, ArrowLeft, ArrowRight, ArrowRightLeft, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Edit, Film, Image, Image as ImageIcon, Loader2, MapPin, MessageSquare, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
@@ -1121,7 +1121,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           <div className="bg-slate-800 p-5 rounded-xl border border-slate-600 mb-4 space-y-4">
               <div className="flex items-center justify-between mb-2">
                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-slate-500" />
+                    <Drama className="w-4 h-4 text-slate-500" />
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">场景/角色
                     </span>
                  </div>
@@ -1265,7 +1265,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                         : 'bg-slate-700 text-slate-50 hover:bg-slate-600 shadow-lg shadow-white/5 border border-slate-600'
                   } ${(!!batchProgress || !!batchVideoProgress) ? 'cursor-not-allowed' : ''}`}
               >
-                  <Image className="w-3 h-3" />
+                  <Camera className="w-3 h-3" />
                   {allStartFramesGenerated ? '重新生图' : '批量生图'}
               </button>
             )}
@@ -1307,7 +1307,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                         className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all flex items-center gap-1 cursor-pointer"
                         title="批量生成图片"
                     >
-                        <Image className="w-3 h-3" />
+                        <Camera className="w-3 h-3" />
                         生图
                     </button>
                     <button
@@ -1417,7 +1417,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                         />
                                     ) : (
                                         <div className="absolute inset-0 flex items-center justify-center text-slate-600">
-                                            <ImageIcon className="w-8 h-8 opacity-20" />
+                                            <Camera className="w-8 h-8 opacity-20" />
                                         </div>
                                     )}
 
@@ -1493,7 +1493,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                        {/* Section 2: Narrative */}
                        <div className="space-y-4">
                            <div className="flex items-center gap-2 border-b border-slate-600 pb-2">
-                               <Film className="w-4 h-4 text-slate-500" />
+                               <NotepadText className="w-4 h-4 text-slate-500" />
                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">叙事动作</h4>
                         </div>
                            
@@ -1622,7 +1622,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                        <div className="space-y-4">
                            <div className="flex items-center justify-between border-b border-slate-600 pb-2">
                                <div className="flex items-center gap-2">
-                                   <Aperture className="w-4 h-4 text-slate-500" />
+                                   <Clapperboard className="w-4 h-4 text-slate-500" />
                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">视觉制作</h4>
                                </div>
                                {imageCount > 0 && (

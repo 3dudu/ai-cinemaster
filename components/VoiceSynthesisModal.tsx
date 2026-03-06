@@ -182,15 +182,10 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       <div className="bg-slate-800 border border-slate-600 w-full max-w-2xl max-h-[85vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
         {/* Modal Header */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between shrink-0 bg-slate-600/80">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-700 rounded-lg">
-              <Mic className="w-5 h-5 text-slate-300" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-50">语音合成</h3>
-              <p className="text-xs text-slate-400">{character.name}</p>
-            </div>
-          </div>
+          <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+            <Mic className="w-5 h-5 text-slate-400" />
+            语音合成
+          </h3>
           <button onClick={onClose} className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors cursor-pointer">
             <X className="w-5 h-5 text-slate-500" />
           </button>

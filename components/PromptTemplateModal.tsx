@@ -1,4 +1,4 @@
-import { ChevronDown, Download, RotateCcw, Save, Type, Upload, X } from 'lucide-react';
+import { ChevronDown, Download, RotateCcw, Save, Upload, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PROMPT_TEMPLATES } from '../services/promptTemplates';
 import { useDialog } from './dialog';
@@ -277,7 +277,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
         {/* 标题栏 */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
-            <Type className="w-5 h-5 text-slate-400" />
+            <NotebookPen className="w-5 h-5 text-slate-400" />
             提示词模板编辑器
           </h3>
           <button

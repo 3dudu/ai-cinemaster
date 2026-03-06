@@ -1,4 +1,4 @@
-import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, Images, List, Settings, Sparkles, Type } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, Images, List, NotebookPen, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import ModalSettings from './ModalSettings';
@@ -76,7 +76,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
             className="text-slate-400 hover:text-slate-50 transition-colors p-1"
             title="提示词"
           >
-            <Type className="w-4 h-4" />
+            <NotebookPen className="w-4 h-4" />
           </button>
           <button
              onClick={onOpenSettings}

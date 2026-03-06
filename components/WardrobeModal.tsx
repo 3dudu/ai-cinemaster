@@ -170,22 +170,16 @@ const WardrobeModal: React.FC<Props> = ({
         <div className="bg-slate-800 border border-slate-600 w-full max-w-4xl max-h-[80vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
             <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between shrink-0 bg-slate-600/80">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden border border-slate-600">
-                        {character.referenceImage && <img src={character.referenceImage} className="w-full h-full object-cover"/>}
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-50">{character.name}</h3>
-                        <p className="text-xs text-slate-500 font-mono uppercase tracking-wider">服装造型</p>
-                    </div>
-                </div>
+                <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+                    <Shirt className="w-5 h-5 text-slate-400" />服装造型
+                </h3>
                 <button onClick={onClose} className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors cursor-pointer">
                     <X className="w-5 h-5 text-slate-500" />
                 </button>
             </div>
             
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-2 md:p-6 bg-slate-700  space-y-5">
+            <div className="flex-1 p-2 md:p-6 bg-slate-700 space-y-5 overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-6">
                     {/* Base Look */}
                     <div>
@@ -199,7 +193,7 @@ const WardrobeModal: React.FC<Props> = ({
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-slate-600">无图像</div>
                                 )}
-                                <div className="absolute top-2 left-2 px-2 py-1 bg-slate-700/60 backdrop-blur rounded text-[12px] text-slate-50 font-bold uppercase border border-white/10">默认</div>
+                                <div className="absolute top-2 left-2 px-2 py-1 bg-slate-700/60 backdrop-blur rounded text-[12px] text-slate-50 font-bold uppercase border border-white/10">{character.name}</div>
                                 {character.referenceImage && (
                                     <div className="absolute inset-0 bg-slate-700/0 hover:bg-slate-700/20 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
                                         <span className="text-slate-50/80 text-xs font-bold uppercase tracking-wider">点击预览</span>
@@ -213,7 +207,7 @@ const WardrobeModal: React.FC<Props> = ({
                                     onChange={(e) => setEditingVisualPrompt(e.target.value)}
                                     onBlur={handleSaveVisualPrompt}
                                     placeholder="输入角色的视觉描述..."
-                                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:outline-none focus:border-slate-500 transition-colors resize-none h-24 font-mono"
+                                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-[12px] text-slate-50 placeholder:text-slate-600 focus:outline-none focus:border-slate-500 transition-colors resize-none h-24 font-mono"
                                 />
                             </div>
                         </div>
@@ -228,6 +222,7 @@ const WardrobeModal: React.FC<Props> = ({
                         </div>
 
                         <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4 overflow-y-auto max-h-[calc(40vh-155px)] py-2"> 
                             {/* List */}
                             {(character.variations || []).map((variation) => (
                                 <div key={variation.id} className="flex gap-4 p-4 bg-slate-800 border border-slate-600 rounded-xl group hover:border-slate-300 transition-colors">
@@ -271,10 +266,10 @@ const WardrobeModal: React.FC<Props> = ({
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start mb-2">
-                                            <h5 className="font-bold text-slate-200 text-sm">{variation.name}</h5>
+                                            <h5 className="font-bold text-slate-200 text-sm line-clamp-2">{variation.name}</h5>
                                             <button onClick={() => handleDeleteVariation(variation.id)} className="text-slate-600 hover:text-red-500 cursor-pointer"><X className="w-3 h-3"/></button>
                                         </div>
-                                        <p className="text-[12px] text-slate-500 line-clamp-2 mb-3 font-mono">{variation.visualPrompt}</p>
+                                        <p className="text-[12px] text-slate-500 line-clamp-3 mb-3 font-mono">{variation.visualPrompt}</p>
                                         <button
                                             onClick={() => handleGenerateVariation(variation.id)}
                                             disabled={!!processingState}
@@ -286,7 +281,8 @@ const WardrobeModal: React.FC<Props> = ({
                                     </div>
                                 </div>
                             ))}
-
+                            </div>
+                        </div>
                             {/* Add New */}
                             <div className="p-4 border border-dashed border-slate-600 rounded-xl bg-slate-800/20">
                                 <div className="space-y-3">
@@ -306,13 +302,12 @@ const WardrobeModal: React.FC<Props> = ({
                                     <button
                                         onClick={handleAddVariation}
                                         disabled={!newVarName || !newVarPrompt}
-                                        className="w-full py-2 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
                                     >
                                         <Plus className="w-3 h-3" /> 添加造型
                                     </button>
                                 </div>
                             </div>
-                        </div>
                     </div>
                 </div>
             </div>

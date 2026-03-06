@@ -359,7 +359,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
           <div className="flex-1 overflow-y-auto p-2 md:p-6 bg-slate-700">
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h4 className="text-sm font-bold text-text-primary mb-2">
+                <h4 className="text-sm font-bold text-slate-50 mb-2">
                   {editingConfig ? '编辑配置' : '添加新配置'}
                 </h4>
                 <p className="text-xs text-slate-500">配置您的 AI 模型服务提供商和 API 凭证</p>
@@ -367,7 +367,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
 
               {/* Provider Selection */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">服务提供商</label>
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">服务提供商</label>
                 <div className="relative">
                   <select
                     value={formData.provider}
@@ -383,7 +383,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                         model: '' // 切换供应商时清空模型名称
                       });
                     }}
-                    className="w-full bg-bg-input border border-slate-600 text-text-primary px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                   >
                     {PROVIDER_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -413,7 +413,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
 
               {/* Model Type Selection */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">模型类型</label>
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">模型类型</label>
                 <div className="relative">
                   <select
                     value={formData.modelType}
@@ -425,7 +425,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                         setFormData(prev => ({ ...prev, model: '' }));
                       }
                     }}
-                    className="w-full bg-bg-input border border-slate-600 text-text-primary px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                   >
                     {getModelTypesForProvider(formData.provider).map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -439,7 +439,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
 
               {/* API Key */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <Key className="w-3 h-3" />
                   API Key
                 </label>
@@ -448,7 +448,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                     type={showApiKey ? "text" : "password"}
                     value={formData.apiKey}
                     onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                    className="w-full bg-bg-input border border-slate-600 text-text-primary px-3 py-2.5 pr-10 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 pr-10 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                     placeholder="输入您的 API Key..."
                   />
                   <button
@@ -464,7 +464,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
 
               {/* Model Name - Optional */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <Sparkles className="w-3 h-3" />
                   模型名称 <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
@@ -472,14 +472,14 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                   type="text"
                   value={formData.model}
                   onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                  className="w-full bg-bg-input border border-slate-600 text-text-primary px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                   placeholder="输入具体的模型名称（如：gpt-4、claude-3-sonnet）"
                 />
               </div>
 
               {/* API URL */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <Globe className="w-3 h-3" />
                   API URL <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
@@ -487,14 +487,14 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                   type="text"
                   value={formData.apiUrl}
                   onChange={(e) => setFormData({ ...formData, apiUrl: e.target.value })}
-                  className="w-full bg-bg-input border border-slate-600 text-text-primary px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                   placeholder="输入 API 端点 URL（选填）..."
                 />
               </div>
 
               {/* description */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <Tags className="w-3 h-3" />
                   备注 <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
@@ -502,14 +502,14 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-bg-input border border-slate-600 text-text-primary px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                   placeholder="输入备注（选填）"
                 />
               </div>
 
               {/* Enable Toggle */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">系统默认</label>
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">系统默认</label>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, enabled: !formData.enabled })}

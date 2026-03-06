@@ -272,7 +272,7 @@ const FileUploadModal: React.FC<Props> = ({
               <button
                 onClick={() => setIsImageSelectorOpen(true)}
                 disabled={uploading}
-                className="px-4 py-2 text-sm bg-slate-600 hover:bg-slate-800 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Images className="w-3.5 h-3.5" />
                 图库
@@ -283,7 +283,7 @@ const FileUploadModal: React.FC<Props> = ({
             <button
               onClick={onClose}
               disabled={uploading}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="px-4 py-2 text-sm bg-slate-600 hover:bg-slate-800 text-slate-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               取消
             </button>
@@ -294,7 +294,7 @@ const FileUploadModal: React.FC<Props> = ({
                     onUploadSuccess(previewUrl!);
                     onClose();
                   }}
-                  className="px-6 py-2 bg-slate-600 text-slate-300 hover:bg-slate-800  rounded-lg text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
                   确认选择

@@ -1,4 +1,4 @@
-import { Aperture, ChevronLeft, Clapperboard, Edit, FileText, Film, Github as GithubIcon, Image, PanelLeft, PanelRight, Settings, Sparkles, Type, Users } from 'lucide-react';
+import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, Github as GithubIcon, Images, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import ImageSelectorModal from './ImageSelectorModal';
@@ -34,8 +34,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
   const [previewIndex, setPreviewIndex] = useState(0);
 
   const navItems = [
-    { id: 'script', label: '剧本与故事', icon: FileText, sub: '制作脚本' },
-    { id: 'assets', label: '角色与场景', icon: Users, sub: '角色布景' },
+    { id: 'script', label: '剧本与故事', icon: BookOpen, sub: '制作脚本' },
+    { id: 'assets', label: '角色与场景', icon: Drama, sub: '角色布景' },
     { id: 'director', label: '导演工作台', icon: Clapperboard, sub: '拍摄制作' },
     { id: 'export', label: '成片与导出', icon: Film, sub: '剪辑合成' },
   ];
@@ -129,14 +129,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
           >
               <span className="font-mono text-[12px] uppercase tracking-widest">图片视频库</span>
-              <Image className="w-4 h-4" />
+              <Images className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowPromptTemplates(true)}
               className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
             >
               <span className="font-mono text-[12px] uppercase tracking-widest">提示词模板</span>
-              <Type className="w-4 h-4" />
+              <NotebookPen className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowModelSettings(true)}
@@ -178,14 +178,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
             title="图片视频库"
           >
-            <Image className="w-4 h-4" />
+            <Images className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowPromptTemplates(true)}
             className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
             title="提示词模板"
           >
-            <Type className="w-4 h-4" />
+            <NotebookPen className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowModelSettings(true)}
