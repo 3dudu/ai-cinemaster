@@ -158,7 +158,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
               <div className="flex items-center justify-center gap-3">
                 {process.env.HIDE_GITHUB!='true' && (
                 <a
-                  href="https://github.com/3dudu/comic_master/issues"
+                  href="https://github.com/3dudu/ai-cinemaster/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-slate-500 hover:text-slate-50 transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
@@ -206,7 +206,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             <div className="flex flex-col items-center gap-2">
           {process.env.HIDE_GITHUB!='true' && (
               <a
-                href="https://github.com/3dudu/comic_master/issues"
+                href="https://github.com/3dudu/ai-cinemaster/issues"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-500 hover:text-slate-50 transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
