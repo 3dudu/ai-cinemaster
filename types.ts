@@ -50,6 +50,7 @@ export interface VideoInterval {
   motionStrength: number;
   videoUrl?: string;
   status: 'pending' | 'generating' | 'completed' | 'failed';
+  videoPrompt?: string;
 }
 
 export interface Shot {
@@ -78,6 +79,8 @@ export interface Props {
   onSave: (updatedShot: Partial<Shot>) => void;
   onClose: () => void;
   imageCount: number;
+  scriptData?: ScriptData | null;
+  visualStyle?: string;
 }
 
 export interface Dialogue {

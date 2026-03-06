@@ -3,10 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Keyframe, Props, Shot } from '../types';
+import VideoPromptModal from './VideoPromptModal';
 
-const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, imageCount }) => {
+const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, imageCount, scriptData, visualStyle = '真人写实' }) => {
   const [tempShot, setTempShot] = useState<Partial<Shot>>({ ...shot });
   const [modelConfigs, setModelConfigs] = useState<AIModelConfig[]>([]);
+  const [isVideoPromptModalOpen, setIsVideoPromptModalOpen] = useState(false);
   const isNewShot = !shot.id;
 
   useEffect(() => {
@@ -236,6 +238,30 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
             </div>
           </div>
 
+          {/* Video Prompt */}
+          {shot.interval && (
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-between">
+                <span>视频拍摄提示词</span>
+                <button
+                  onClick={() => setIsVideoPromptModalOpen(true)}
+                  className="text-[11px] text-slate-400 hover:text-slate-50 transition-colors cursor-pointer"
+                >
+                  编辑提示词
+                </button>
+              </label>
+              <div
+                className={`p-3 rounded-md border text-xs ${
+                  shot.interval.videoPrompt
+                    ? 'bg-slate-800/50 border-slate-600 text-slate-300'
+                    : 'bg-slate-900/30 border-slate-700 text-slate-500 italic'
+                }`}
+              >
+                {shot.interval.videoPrompt || '暂无提示词，点击"编辑提示词"按钮生成'}
+              </div>
+            </div>
+          )}
+
           {/* Characters */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">角色</label>
@@ -441,6 +467,21 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           </button>
         </div>
       </div>
+
+      {/* Video Prompt Modal */}
+      <VideoPromptModal
+        isOpen={isVideoPromptModalOpen}
+        onClose={() => setIsVideoPromptModalOpen(false)}
+        shot={shot}
+        scriptData={scriptData}
+        visualStyle={visualStyle}
+        onSave={(videoPrompt) => {
+          onSave({
+            ...shot,
+            interval: shot.interval ? { ...shot.interval, videoPrompt } : undefined
+          });
+        }}
+      />
     </div>
   );
 };

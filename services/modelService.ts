@@ -599,6 +599,77 @@ export class ModelService {
   }
 
   /**
+   * 生成视频拍摄提示词
+   * @param shot - 镜头信息
+   * @param scriptData - 剧本数据
+   * @param visualStyle - 视觉风格
+   */
+  static async generateVideoPrompt(
+    shot: Shot,
+    scriptData: ScriptData,
+    visualStyle: string = "真人写实"
+  ): Promise<string> {
+    const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
+    //console.log(`使用 ${provider} 生成视频拍摄提示词`);
+
+    // 获取起始帧和结束帧的视觉描述
+    const startKeyframe = shot.keyframes?.find((kf: any) => kf.type === 'start');
+    const endKeyframe = shot.keyframes?.find((kf: any) => kf.type === 'end');
+
+    // 获取角色名称列表
+    const characterNames = shot.characters?.map((charId: string) => {
+      const char = scriptData.characters?.find((c: any) => c.id === charId);
+      return char?.name || charId;
+    }) || [];
+
+    // 获取对白
+    const dialogues: string[] = [];
+    if(shot.dialogue){
+      if(shot.dialogue instanceof Array){
+        shot.dialogue.forEach((d) => {
+          dialogues.push(d.character + "：" + d.value);
+        });
+      }else{
+        dialogues.push(shot.dialogue);
+      }
+    }
+
+    const prompt = renderTemplate('GENERATE_VIDEO_PROMPT',
+      shot.actionSummary,
+      shot.cameraMovement,
+      shot.shotSize || '',
+      shot.interval?.duration || 5,
+      visualStyle,
+      characterNames,
+      startKeyframe?.visualPrompt || '',
+      endKeyframe?.visualPrompt || '',
+      dialogues
+    );
+
+    let videoPrompt = '';
+    switch (provider.provider) {
+      case 'deepseek':
+        videoPrompt = await (await this.getProviderModule('deepseek')).generateVisualPrompts(prompt);
+        break;
+      case 'doubao':
+        videoPrompt = await (await this.getProviderModule('doubao')).generateVisualPrompts(prompt);
+        break;
+      case 'gemini':
+        videoPrompt = await (await this.getProviderModule('gemini')).generateVisualPrompts(prompt);
+        break;
+      case 'yunwu':
+        videoPrompt = await (await this.getProviderModule('yunwu')).generateVisualPrompts(prompt);
+        break;
+      case 'openai':
+        videoPrompt = await (await this.getProviderModule('openai')).generateVisualPrompts(prompt);
+        break;
+      default:
+        throw new Error(`暂不支持 ${provider} 提供商的视频提示词生成`);
+    }
+    return cleanJsonString(videoPrompt);
+  }
+
+  /**
    * 设置模型配置（用于动态配置更新）
    * @param provider - 提供商
    * @param apiKey - API 密钥
@@ -890,6 +961,7 @@ export class ModelService {
     imageSize: string = "2560x1440",
     visualStyle: string = "真人写实",
     shotid: string = "0",
+    referenceImages: string[] = [],
   ): Promise<string> {
     const provider = await this.getEnabledVideoProvider(shotprovider || this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成视频`);

@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
@@ -7,6 +7,7 @@ import { AIModelConfig, Keyframe, ProjectState, Scene, Shot } from '../types';
 import FileUploadModal, { downloadImage, downloadVideo } from './FileUploadModal';
 import SceneEditModal from './SceneEditModal';
 import ShotEditModal from './ShotEditModal';
+import VideoPromptModal from './VideoPromptModal';
 import WardrobeModal from './WardrobeModal';
 import { useDialog } from './dialog';
 
@@ -31,8 +32,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const [videoPlayingShots, setVideoPlayingShots] = useState<Set<string>>(new Set());
   const [videoReadyShots, setVideoReadyShots] = useState<Set<string>>(new Set());
   const [playingTransition, setPlayingTransition] = useState<Record<string, boolean>>({});
+  const [transitionGeneratingShotId, setTransitionGeneratingShotId] = useState<string | null>(null);
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
   const [uploadingKeyframe, setUploadingKeyframe] = useState<{shotId: string, type: 'start'|'end'|'full'} | null>(null);
+  const [videoPromptShotId, setVideoPromptShotId] = useState<string | null>(null);
 
   // Sync local state with project settings
   useEffect(() => {
@@ -360,7 +363,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
       }
     } finally {
-      setProcessingState(null);
+      setTransitionGeneratingShotId(null);
     }
   };
 
@@ -378,34 +381,51 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       if (!confirmed) return;
     }
 
+    // 生成视频拍摄提示词（如果还没有）
+    if (!shot.interval.videoPrompt && project.scriptData) {
+      try {
+        const videoPrompt = await ModelService.generateVideoPrompt(shot, project.scriptData, localStyle);
+        updateShot(shot.id, (s) => ({
+          ...s,
+          interval: s.interval ? { ...s.interval, videoPrompt } : undefined
+        }));
+      } catch (e) {
+        console.error('生成视频提示词失败:', e);
+        // 继续执行，使用原有的 prompt 生成逻辑
+      }
+    }
+
     let dialogueText = '';
     if (shot.dialogue && shot.dialogue instanceof Array && shot.dialogue.length > 0) {
-      dialogueText = shot.dialogue.map(d => d.character ? `${d.character}: ${d.value}` : d.value).join('\n');
+      dialogueText = shot.dialogue.map(d => d.character ? `**${d.character}**: ${d.value}` : d.value).join('\n');
     }
-    let prompt = "视频风格："+localStyle+"；景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:"") + (dialogueText?" \n对白：\n "+dialogueText:"");
+    // 优先使用生成的视频提示词，否则使用原有逻辑
+    let prompt = shot.interval.videoPrompt || ("视频风格："+localStyle+"；景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:""));
     ////console.log("Generating Video for Shot:", shot, "with Prompt:", prompt);
     let sImageiurl = null;
     let eImageiurl = null;
     if(imageCount>0){
+      prompt = prompt+"\n###参考图";
       if(imageCount > 1){
           const sKf = shot.keyframes?.find(k => k.type === 'full');
           if(sKf){
             if(sKf.imageUrl){
               sImageiurl = sKf.imageUrl;
-              prompt = prompt+"\n 参考图：包含"+imageCount+"个连续的子图，图片内容如下：";
+              prompt = prompt+"\n1. **宫格图**:包含"+imageCount+"个连续的子图，图片内容如下：";
             }
             prompt = prompt+"\n"+sKf?.visualPrompt;
           }
       }else{
           const sKf = shot.keyframes?.find(k => k.type === 'start');
           sImageiurl = sKf?.imageUrl;
-          prompt = prompt+"\n 参考图1，画面开始："+sKf?.visualPrompt+"；";
+          prompt = prompt+"\n1. **画面开始**:"+sKf?.visualPrompt+"；";
           const eKf = shot.keyframes?.find(k => k.type === 'end');
           eImageiurl = eKf?.imageUrl;
-          prompt = prompt+"\n 参考图2，画面结束："+eKf?.visualPrompt+"；";
+          prompt = prompt+"\n2. **画面结束**:"+eKf?.visualPrompt+"；";
       }
     }
-    prompt = prompt+"\n 按照上面描述生成 "+localStyle+" 风格的视频！";
+    prompt = prompt + (dialogueText?"\n###对白\n "+dialogueText:"");
+    prompt = prompt+"\n\n##按照上面描述生成 "+localStyle+" 风格的视频！";
     // Fix: Remove logic that auto-grabs next shot's frame.
     // Prevent morphing artifacts by defaulting to Image-to-Video unless an End Frame is explicitly generated.
 
@@ -443,7 +463,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
       }
     } finally {
-      setProcessingState(null);
+      setTransitionGeneratingShotId(null);
     }
   };
 
@@ -516,7 +536,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     `;
 
     try {
-      setProcessingState({ id: shot.id, type: 'video' });
+      setTransitionGeneratingShotId(shot.id);
 
       // 调用 ModelService 生成转场视频
       const transitionUrl = await ModelService.generateVideo(
@@ -557,7 +577,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         type: 'error',
       });
     } finally {
-      setProcessingState(null);
+      setTransitionGeneratingShotId(null);
     }
   };
 
@@ -1339,10 +1359,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                 `}
                             >
                                 {/* Header */}
-                                <div className="px-1.5 md:px-2 py-2 bg-bg-button border-b border-slate-600 flex justify-between items-center">
+                                <div className="px-1.5 md:px-2 gap-1 py-2 bg-bg-button border-b border-slate-600 flex justify-between items-center">
                                   <div className="flex items-center gap-1 md:gap-1.5">
                                     <span className={`font-mono text-[12px] font-bold ${isActive ? 'text-slate-400' : 'text-slate-500'}`}>{String(idx + 1).padStart(2, '0')}</span>
-                                    <span className="line-clamp-1 tracking-wide text-[11px] px-1 md:px-1.5 py-0.5 bg-slate-700 text-slate-400 rounded uppercase">{shot.interval?.duration}s-{shot.cameraMovement}</span>
+                                    <span className="line-clamp-1 text-[12px] px-1 md:px-1.5 py-0.5 bg-slate-700 text-slate-400 rounded">{shot.interval?.duration}s-{shot.cameraMovement}</span>
                                   </div>
                                     <div className="flex items-center gap-0.5 md:gap-1">
                                         <button
@@ -1462,7 +1482,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                <span className="text-[16px] text-slate-50 font-bold text-sm">镜头详情
                             <button
                                 onClick={(e) => { e.stopPropagation(); startEditShot(activeShot); }}
-                            className="px-2.5 py-2 text-[11px] font-medium text-slate-400 hover:text-slate-50 rounded transition-all "
+                            className="px-2.5 py-2 text-[11px] font-medium text-slate-400 hover:text-slate-50 rounded transition-all cursor-pointer"
                             title="修改镜头"
                             >
                             <Edit className="w-3.5 h-3.5" />
@@ -1898,10 +1918,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                            </div>
 
                            {/* Section 4: Video Generation */}
-                       <div className="bg-slate-800 rounded-xl p-5 border border-slate-600 space-y-4">
+                       <div className="bg-slate-800 rounded-xl p-2 md:p-4 border border-slate-600 space-y-2">
                            <div className="flex items-center justify-between">
                                <h4 className="text-xs font-bold text-slate-50 uppercase tracking-widest flex items-center gap-2">
-                                  <Video className="w-3 h-3 text-slate-500" />
+                                  <Video className="w-4 h-4 text-slate-500" />
                                   视频生成
                                    {activeShot.interval?.status === 'completed' && (
                                        <button
@@ -1913,21 +1933,31 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            READY
                                        </button>
                                    )}
-                                   {activeShot.interval?.duration && <span className="text-[12px] text-slate-400 font-mono flex items-center gap-1">{activeShot.interval?.duration}s</span>}
+                                  <button
+                                      onClick={() => setVideoPromptShotId(activeShot.id)}
+                                      className="text-[12px] text-slate-500 font-mono flex items-center gap-1 hover:text-slate-200 transition-colors cursor-pointer bg-transparent border-0 p-0"
+                                      title="视频提示词"
+                                  >
+                                     <NotebookPen className="w-3 h-3" />
+                                  </button>
                                </h4>
                                <div className="flex items-center gap-3">
                                    <button
                                        onClick={() => handleGenerateTransition(activeShot)}
-                                       disabled={!!processingState || !!batchProgress}
+                                       disabled={!!processingState || !!batchProgress || !!transitionGeneratingShotId}
                                        className={`text-[12px] font-mono flex items-center gap-1 transition-colors cursor-pointer bg-transparent border-0 p-0 ${
                                            activeShot.transitionUrl
                                                ? 'text-cyan-500 hover:text-cyan-400'
                                                : 'text-slate-400 hover:text-slate-300'
-                                       } ${(!!processingState || !!batchProgress) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                       } ${(!!processingState || !!batchProgress || !!transitionGeneratingShotId) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                        title="生成转场动画"
                                    >
-                                       <ArrowRightLeft className="w-3 h-3" />
-                                       {activeShot.transitionUrl ? '重新生成转场' : '生成转场动画'}
+                                       {transitionGeneratingShotId === activeShot.id ? (
+                                           <Loader2 className="w-3 h-3 animate-spin" />
+                                       ) : (
+                                           <ArrowRightLeft className="w-3 h-3" />
+                                       )}
+                                       {transitionGeneratingShotId === activeShot.id ? '生成中...' : (activeShot.transitionUrl ? '重新生成转场' : '生成转场动画')}
                                    </button>
                                    {activeShot.transitionUrl && (
                                        <button
@@ -2030,6 +2060,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               onSave={saveShot}
               onClose={() => setEditingShotId(null)}
               imageCount={project.imageCount}
+              scriptData={project.scriptData}
+              visualStyle={project.visualStyle}
             />
           )}
 
@@ -2070,6 +2102,23 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         project={project}
         filterType={'keyframe'}
       />
+
+      {/* Video Prompt Modal */}
+      {videoPromptShotId && (
+        <VideoPromptModal
+          isOpen={!!videoPromptShotId}
+          onClose={() => setVideoPromptShotId(null)}
+          shot={project.shots.find(s => s.id === videoPromptShotId)!}
+          scriptData={project.scriptData}
+          visualStyle={project.visualStyle}
+          onSave={(videoPrompt) => {
+            updateShot(videoPromptShotId, (s) => ({
+              ...s,
+              interval: s.interval ? { ...s.interval, videoPrompt } : undefined
+            }));
+          }}
+        />
+      )}
     </div>
     </div>
   );

@@ -114,6 +114,17 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         variationPrompt: args[2] || '',
         baseCharacterPrompt: args[3] || ''
       };
+    case 'GENERATE_VIDEO_PROMPT':
+      return {
+        shotSummary: args[0] || '',
+        cameraMovement: args[1] || '',
+        shotSize: args[2] || '',
+        duration: args[3] || 5,
+        visualStyle: args[4] || '真人写实',
+        characters: args[5] || [],
+        startFrameVisualPrompt: args[6] || '',
+        endFrameVisualPrompt: args[7] || ''
+      };
     default:
       return {};
   }
@@ -136,6 +147,10 @@ export const MODEL_GENERATION_CONFIG = {
   GENERATE_VISUAL_PROMPT: {
     temperature: 0.8,
     max_tokens: 500
+  },
+  GENERATE_VIDEO_PROMPT: {
+    temperature: 0.7,
+    max_tokens: 1000
   }
 };
 
@@ -148,6 +163,8 @@ export const PROMPT_TEMPLATES = {
   SYSTEM_SCREENWRITER: "你是一名专业的编剧，擅长创作各种类型的广告，短剧，影视剧本。请以MarkDown格式输出剧本故事概要，包含标题、时间、地点、角色、天气、场景、对话等。",
 
   SYSTEM_VISUAL_DESIGNER: "你是一名专业的影视美术设计师，擅长为影视角色和场景设计服装、造型、道具等，以专业词汇描述你设计的角色或场景。",
+
+  SYSTEM_VIDEO_DIRECTOR: "你是一名专业的影视导演，擅长为单个镜头创作详细的视频拍摄提示词。请始终以纯文本格式输出提示词，无任何解释、注释、多余文字。",
 
   // ============ 剧本解析 ============
   PARSE_SCRIPT: (rawText: string, language: string) => `
@@ -287,5 +304,41 @@ export const PROMPT_TEMPLATES = {
         - 画面内容为角色的一张图
         - 如果有参考图，参考图为角色的三视图加大头照，必须保持面部特征与参考图一致。
         - 如果没有，角色原来是这样的：${baseCharacterPrompt}
+  `,
+
+  // ============ 视频拍摄提示词生成 ============
+  GENERATE_VIDEO_PROMPT: (
+    shotSummary: string,
+    cameraMovement: string,
+    shotSize: string,
+    duration: number,
+    visualStyle: string,
+    characters: string[],
+    startFrameVisualPrompt: string,
+    endFrameVisualPrompt: string,
+    dialogue: string[]
+  ) => `
+    为单个镜头创作详细的视频拍摄提示词。
+
+    镜头信息：
+    - 镜头情节概述：${shotSummary}
+    - 镜头运动：${cameraMovement}
+    - 景别：${shotSize}
+    - 视频时长：${duration}秒
+    - 画面风格：${visualStyle}
+    - 出场角色：${characters.join(', ') || '无'}
+    - 对白：${dialogue.join('\n') || '无'}
+    - 起始帧视觉描述：${startFrameVisualPrompt}
+    - 结束帧视觉描述：${endFrameVisualPrompt}
+
+    要求：
+    1. 提示词应详细描述视频中需要呈现的视觉效果
+    2. 包含主体运动方式、运镜方式、光影变化、氛围营造等元素
+    3. 描述要符合镜头运动和景别要求
+    4. 可以按秒级时长分别描述画面的变化
+    5. 提示词长度控制在200-300字以内
+    6. 输出纯文本提示词，无任何解释或注释
+
+    请输出视频拍摄提示词：
   `,
 };

@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Camera, Check, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { addMediaHistory } from '../services/storageService';
@@ -264,7 +264,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
               {/* Modal Header */}
               <div className="h-16 px-8 border-b border-slate-600 flex items-center justify-between shrink-0 bg-slate-700">
                 <div className="flex items-center gap-4">
-                  <MapPin className="w-10 h-10 rounded-full bg-slate-800 p-2.5 text-emerald-500" />
+                  <MapPin className="w-10 h-10 rounded-full bg-slate-800 p-2.5 text-green-500" />
                   <div>
                     <h3 className="text-lg font-bold text-slate-50">{selectedScene.location}</h3>
                   </div>
@@ -327,7 +327,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       onChange={(e) => setEditingSceneVisualPrompt(e.target.value)}
                       onBlur={handleSaveSceneVisualPrompt}
                       placeholder="输入场景的视觉描述..."
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-sm text-slate-50 placeholder:text-slate-600 focus:outline-none focus:border-emerald-500 transition-colors resize-none h-32 font-mono"
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-sm text-slate-50 placeholder:text-slate-600 focus:outline-none focus:border-green-500 transition-colors resize-none h-32 font-mono"
                     />
                   </div>
                 </div>
@@ -406,7 +406,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                         </div>
                       )}
                       <div className="absolute top-2 right-2 p-1 bg-green-500 text-slate-50 rounded shadow-lg backdrop-blur">
-                        <Check className="w-3 h-3" />
+                        <Camera className="w-3 h-3" />
                       </div>
                     </>
                   ) : (
@@ -493,7 +493,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
           <div className="flex items-end justify-between mb-6 border-b border-slate-600 pb-4">
             <div>
                <h3 className="text-sm font-bold text-slate-50 uppercase tracking-widest flex items-center gap-2">
-                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                  场景概念
                </h3>
                <p className="text-xs text-slate-500 mt-1 pl-3.5">为剧本场景生成环境参考图</p>
@@ -536,7 +536,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                         </div>
                       )}
                       <div className="absolute top-2 right-2 p-1 bg-green-300 text-slate-50 rounded shadow-lg backdrop-blur">
-                        <Check className="w-3 h-3" />
+                        <Camera className="w-3 h-3" />
                       </div>
                     </>
                   ) : (
@@ -596,7 +596,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                         <p className="text-[12px] text-slate-300 font-mono line-clamp-2 flex-1">{scene.visualPrompt}</p>
                         <button
                           onClick={() => setSelectedSceneId(scene.id)}
-                          className="text-[11px] text-emerald-400 hover:text-emerald-300 flex-shrink-0 font-bold uppercase tracking-wider cursor-pointer"
+                          className="text-[11px] text-green-400 hover:text-green-300 flex-shrink-0 font-bold uppercase tracking-wider cursor-pointer"
                         >
                           编辑
                         </button>
@@ -607,7 +607,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                     <div className="mt-2 pt-2 border-t border-slate-600/50">
                       <button
                         onClick={() => setSelectedSceneId(scene.id)}
-                        className="w-full text-[11px] text-slate-500 hover:text-emerald-400 font-mono text-center py-1 border border-dashed border-slate-600 rounded hover:border-emerald-500/50 transition-colors cursor-pointer"
+                        className="w-full text-[11px] text-slate-500 hover:text-green-400 font-mono text-center py-1 border border-dashed border-slate-600 rounded hover:border-green-500/50 transition-colors cursor-pointer"
                       >
                         + 添加视觉提示
                       </button>

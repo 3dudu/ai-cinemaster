@@ -1,4 +1,4 @@
-import { ChevronDown, Download, RotateCcw, Save, Upload, X } from 'lucide-react';
+import { ChevronDown, Download, NotebookPen, RotateCcw, Save, Upload, X } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { PROMPT_TEMPLATES } from '../services/promptTemplates';
 import { useDialog } from './dialog';
@@ -28,6 +28,7 @@ const PromptTemplateModal: React.FC<{
     { key: 'SYSTEM_PHOTOGRAPHER', name: '摄影师系统提示词', description: '用于镜头清单生成的系统提示词' },
     { key: 'SYSTEM_SCREENWRITER', name: '编剧系统提示词', description: '用于剧本生成的系统提示词' },
     { key: 'SYSTEM_VISUAL_DESIGNER', name: '视觉设计师系统提示词', description: '用于视觉提示词生成的系统提示词' },
+    { key: 'SYSTEM_VIDEO_DIRECTOR', name: '导演系统提示词', description: '用于视频拍摄提示词生成的系统提示词' },
     { key: 'PARSE_SCRIPT', name: '剧本解析模板', description: '解析原始文本提取剧本信息', hasParams: true },
     { key: 'GENERATE_SHOTS', name: '镜头清单生成模板', description: '生成场景的镜头调度设计', hasParams: true },
     { key: 'GENERATE_SCRIPT', name: '剧本生成模板', description: '根据提示词创作影视剧本', hasParams: true },
@@ -35,6 +36,7 @@ const PromptTemplateModal: React.FC<{
     { key: 'JOIN_IMAGES', name: '图片拼接模板', description: '将多张图片拼接成宫格图', hasParams: true },
     { key: 'IMAGE_GENERATION_WITH_REFERENCE', name: '带参考图的图片生成模板', description: '生成带参考图的角色图片', hasParams: true },
     { key: 'GENERATE_CHARACTER_VARIATION', name: '角色造型变体生成模板', description: '生成角色的新造型', hasParams: true },
+    { key: 'GENERATE_VIDEO_PROMPT', name: '视频拍摄提示词生成模板', description: '为单个镜头生成视频拍摄提示词', hasParams: true },
   ], []);
 
   // 从 localStorage 加载自定义内容
@@ -179,7 +181,29 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     - 画面风为：{localStyle}
     - 画面内容为角色的一张图
     - 如果有参考图，参考图为角色的三视图加大头照，必须保持面部特征与参考图一致。
-    - 如果没有，角色原来是这样的：{baseCharacterPrompt}`
+    - 如果没有，角色原来是这样的：{baseCharacterPrompt}`,
+      'GENERATE_VIDEO_PROMPT': `为单个镜头创作详细的视频拍摄提示词。
+
+镜头信息：
+- 镜头情节概述：{shotSummary}
+- 镜头运动：{cameraMovement}
+- 景别：{shotSize}
+- 视频时长：{duration}秒
+- 画面风格：{visualStyle}
+- 出场角色：{characters.join(', ') || '无'}
+- 对白：{dialogue.join('\n') || '无'}
+- 起始帧视觉描述：{startFrameVisualPrompt}
+- 结束帧视觉描述：{endFrameVisualPrompt}
+
+要求：
+1. 提示词应详细描述视频中需要呈现的视觉效果
+2. 包含主体运动方式、运镜方式、光影变化、氛围营造等元素
+3. 描述要符合镜头运动和景别要求
+4. 可以按秒级时长分别描述画面的变化
+5. 提示词长度控制在200-300字以内
+6. 输出纯文本提示词，无任何解释或注释
+
+请输出视频拍摄提示词：`
     };
 
     return previews[key] || '';
@@ -267,6 +291,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'JOIN_IMAGES': ['{imageCount}', '{imageSize}'],
     'IMAGE_GENERATION_WITH_REFERENCE': ['{prompt}', '{localStyle}'],
     'GENERATE_CHARACTER_VARIATION': ['{characterName}', '{localStyle}', '{variationPrompt}', '{baseCharacterPrompt}'],
+    'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogue}'],
   };
 
   if (!isOpen) return null;
@@ -291,71 +316,72 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
         {/* 内容区域 */}
         <div className="flex-1 overflow-hidden flex flex-col bg-slate-700">
           {/* 工具栏 */}
-          <div className="p-2 md:p-6 bg-slate-600/80 border-t border-slate-600 space-y-3 shrink-0">
-            {/* 模板选择器 */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <span className="font-medium">{currentTemplate?.name}</span>
-                <ChevronDown className={`w-4 h-4 ml-2 flex-shrink-0 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showDropdown && (
-                <div className="absolute z-10 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto">
-                  {templates.map((template) => (
-                    <button
-                      key={template.key}
-                      onClick={() => {
-                        setSelectedKey(template.key);
-                        setShowDropdown(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer ${
-                        selectedKey === template.key
-                          ? 'bg-slate-700 text-slate-100'
-                          : 'text-slate-300 hover:bg-slate-600'
-                      }`}
-                    >
-                      <div className="font-medium">{template.name}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">{template.description}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 操作按钮 */}
+          <div className="px-2 py-2 md:py-4 md:px-6 bg-slate-600/80 border-t border-slate-600 shrink-0">
             <div className="flex gap-2 items-center">
-              {/* 状态指示 */}
-              {isCustomized && (
-                <div className="flex items-center gap-2 text-sm text-emerald-400 bg-slate-900/20 px-3 py-2 rounded-lg border border-emerald-700/30">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full" />
-                  <span>已使修改</span>
-                </div>
-              )}
-              <div className="flex-1" />
-              {isCustomized && (
+              {/* 模板选择器 */}
+              <div className="relative flex-1" ref={dropdownRef}>
                 <button
-                  onClick={handleReset}
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <span className="font-medium">{currentTemplate?.name}</span>
+                  <ChevronDown className={`w-4 h-4 ml-2 flex-shrink-0 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showDropdown && (
+                  <div className="absolute z-10 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                    {templates.map((template) => (
+                      <button
+                        key={template.key}
+                        onClick={() => {
+                          setSelectedKey(template.key);
+                          setShowDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer ${
+                          selectedKey === template.key
+                            ? 'bg-slate-700 text-slate-100'
+                            : 'text-slate-300 hover:bg-slate-600'
+                        }`}
+                      >
+                        <div className="font-medium">{template.name}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">{template.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 操作按钮 */}
+              <div className="flex gap-2 items-center">
+                {/* 状态指示 */}
+                {isCustomized && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 bg-slate-900/20 px-3 py-2 rounded-lg border border-green-600">
+                    <div className="w-2 h-2 bg-green-600 rounded-full" />
+                    <span>已修改</span>
+                  </div>
+                )}
+                {isCustomized && (
+                  <button
+                    onClick={handleReset}
+                    className="px-4 py-2 bg-slate-700 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    重置
+                  </button>
+                )}
+                <button
+                  onClick={handleSave}
                   className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  重置
+                  <Save className="w-4 h-4" />
+                  保存
                 </button>
-              )}
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
-              >
-                <Save className="w-4 h-4" />
-                保存
-              </button>
+              </div>
             </div>
 
             {/* 变量提示 */}
             {variables[selectedKey] && variables[selectedKey].length > 0 && (
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-slate-400 pt-2">
                 <span className="font-medium">可用变量：</span>
                 <span className="font-mono ml-1">
                   {variables[selectedKey].map(v => `${v}`).join(', ')}
@@ -369,7 +395,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
             <textarea
               value={currentContent}
               onChange={(e) => setCurrentContent(e.target.value)}
-              className="w-full h-full bg-slate-800 text-slate-100 p-4 font-mono text-sm resize-none focus:outline-none"
+              className="w-full h-full bg-slate-800 text-slate-100 p-2 md:p-6 font-mono text-sm resize-none focus:outline-none"
               placeholder="在此编辑提示词模板..."
               spellCheck={false}
             />
