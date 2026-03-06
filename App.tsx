@@ -1,21 +1,20 @@
 import { CheckCircle, Save } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import ApiKeyModal from './components/ApiKeyModal'; // 新增
 import Dashboard from './components/Dashboard';
 import { DialogProvider } from './components/dialog';
 import Sidebar from './components/Sidebar';
 import SidebarMobile from './components/SidebarMobile';
-import StageAssets from './components/StageAssets';
-import StageDirector from './components/StageDirector';
-import StageExport from './components/StageExport';
-import StageScript from './components/StageScript';
-
-import StageImage from './components/StageImage';
 import { initializeCozeConfig } from './services/modelproviders/cozeService';
-import { setGlobalApiKey } from './services/modelproviders/doubaoService';
 import { ModelService } from './services/modelService';
 import { saveProjectToDB } from './services/storageService';
 import { ProjectState } from './types';
+
+const StageScript = lazy(() => import('./components/StageScript'));
+const StageAssets = lazy(() => import('./components/StageAssets'));
+const StageDirector = lazy(() => import('./components/StageDirector'));
+const StageExport = lazy(() => import('./components/StageExport'));
+const StageImage = lazy(() => import('./components/StageImage'));
 
 function App() {
   const [project, setProject] = useState<ProjectState | null>(null);
@@ -34,7 +33,7 @@ function App() {
     const storedKey = localStorage.getItem('cinegen_api_key');
     if (storedKey) {
       setApiKey(storedKey);
-      setGlobalApiKey(storedKey);
+      ModelService.setApiKey('doubao', storedKey);
     }
     // Initialize Coze service config
     initializeCozeConfig();
@@ -95,7 +94,7 @@ function App() {
   const handleSaveKey = (newKey: string) => {
     if (!newKey.trim()) return;
     setApiKey(newKey);
-    setGlobalApiKey(newKey);
+    ModelService.setApiKey('doubao', newKey);
   };
 
   const updateProject = (updates: Partial<ProjectState>) => {
@@ -119,7 +118,7 @@ function App() {
   const handleClearKey = () => {
       localStorage.removeItem('cinegen_api_key');
       setApiKey('');
-      setGlobalApiKey('');
+      ModelService.setApiKey('doubao', '');
       setProject(null);
   };
 
@@ -213,7 +212,9 @@ function App() {
 
       <main className={`transition-allduration-300 ease-in-out ${isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-20' : 'xl:ml-72 md:ml-20')} flex-1 h-screen overflow-hidden relative`}
       style={ isMobile ? { paddingBottom: 'calc(112px + env(safe-area-inset-top))'} : {}}>
-        {renderStage()}
+        <Suspense fallback={<div className="h-full w-full flex items-center justify-center text-slate-400">加载中...</div>}>
+          {renderStage()}
+        </Suspense>
         {showSettings && (
           <>
   <ApiKeyModal
