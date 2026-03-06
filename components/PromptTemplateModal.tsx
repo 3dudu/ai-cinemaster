@@ -317,9 +317,9 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
         <div className="flex-1 overflow-hidden flex flex-col bg-slate-700">
           {/* 工具栏 */}
           <div className="px-2 py-2 md:py-4 md:px-6 bg-slate-600/80 border-t border-slate-600 shrink-0">
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center flex-col md:flex-row">
               {/* 模板选择器 */}
-              <div className="relative flex-1" ref={dropdownRef}>
+              <div className="relative flex-1 w-full" ref={dropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
                   className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -352,7 +352,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
               </div>
 
               {/* 操作按钮 */}
-              <div className="flex gap-2 items-center">
+              <div className="flex w-full md:w-auto gap-2 items-center justify-end"> 
                 {/* 状态指示 */}
                 {isCustomized && (
                   <div className="flex items-center gap-2 text-sm text-green-600 bg-slate-900/20 px-3 py-2 rounded-lg border border-green-600">
