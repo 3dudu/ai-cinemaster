@@ -205,7 +205,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   if (!project.scriptData) return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">
           <AlertCircle className="w-12 h-12 mb-4 opacity-50"/>
-          <p>暂无镜头数据，请先制作剧本并完成成分镜。</p>
+          <p>暂无角色场景，请先在剧本阶段完成解析。</p>
       </div>
   );
   

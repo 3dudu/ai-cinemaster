@@ -5,10 +5,32 @@
   --color-bg-selected: var(--bg-selected);
   --color-bg-button: var(--bg-button);
   --color-bg-progress: var(--bg-progress);
+  --color-border-primary: var(--color-slate-500);
+  --color-border-secondary: var(--color-slate-600);
+
+  --color-dark-bg-primary: var(--color-slate-950);
+  --color-dark-bg-secondary: var(--color-slate-900);
+  --color-dark-bg-panel: var(--color-slate-900);
+  --color-dark-bg-input: var(--color-slate-900);
+  --color-dark-bg-footer: var(--color-slate-900);
+  --color-dark-bg-modal: var(--color-slate-900);
+  --color-dark-bg-sidebar: var(--color-slate-900);
+  --color-dark-bg-header: var(--color-slate-900);
+  --color-dark-bg-card: var(--color-slate-900);
 
   --color-dark-bg-selected: var(--color-slate-600);
   --color-dark-bg-button: var(--color-slate-900);
   --color-dark-bg-progress: var(--color-slate-900);
+
+  --color-light-bg-primary: var(--color-slate-950);
+  --color-light-bg-secondary: var(--color-slate-900);
+  --color-light-bg-panel: var(--color-slate-900);
+  --color-light-bg-input: var(--color-slate-900);
+  --color-light-bg-footer: var(--color-slate-900);
+  --color-light-bg-modal: var(--color-slate-900);
+  --color-light-bg-sidebar: var(--color-slate-900);
+  --color-light-bg-header: var(--color-slate-900);
+  --color-light-bg-card: var(--color-slate-900);
   
   --color-light-bg-selected: var(--color-slate-600);
   --color-light-bg-button: var(--color-slate-900);
@@ -124,17 +146,17 @@
     background: var(--bg-secondary); 
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--border-secondary); 
+    background: var(--color-border-secondary); 
     border-radius: 0px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--border-primary); 
+    background: var(--color-border-primary); 
   }
   ::selection {
     background-color: var(--bg-selected);
   }
 
-  /* Hide scrollbar on mobile devices */
+  /* Hide scrollbar globally */
   * {
     -ms-overflow-style: none;
     scrollbar-width: none;
