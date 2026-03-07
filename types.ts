@@ -111,6 +111,7 @@ export interface ProjectState {
   targetDuration: string;
   language: string;
   visualStyle: string;
+  genre: string;
   imageSize: string;
   imageCount: number; // 组图数量：文生图一次生成的画面数 (0-9)
 

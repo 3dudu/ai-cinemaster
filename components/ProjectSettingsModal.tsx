@@ -48,6 +48,24 @@ export const IMAGE_COUNT_OPTIONS = [
   { label: '9 张', value: 9 }
 ];
 
+export const GENRE_OPTIONS = [
+  { label: '剧情片', value: '剧情片' },
+  { label: '动作片', value: '动作片' },
+  { label: '科幻片', value: '科幻片' },
+  { label: '悬疑片', value: '悬疑片' },
+  { label: '恐怖片', value: '恐怖片' },
+  { label: '喜剧片', value: '喜剧片' },
+  { label: '爱情片', value: '爱情片' },
+  { label: '历史片', value: '历史片' },
+  { label: '战争片', value: '战争片' },
+  { label: '动画片', value: '动画片' },
+  { label: '纪录片', value: '纪录片' },
+  { label: '短片', value: '短片' },
+  { label: '微电影', value: '微电影' },
+  { label: '广告', value: '广告' },
+  { label: '自定义', value: 'custom' }
+];
+
 interface ProjectSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -62,8 +80,10 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
   const [localStyle, setLocalStyle] = useState(project?.visualStyle || '真人写实');
   const [localImageSize, setLocalImageSize] = useState(project?.imageSize || '1440x2560');
   const [localImageCount, setLocalImageCount] = useState(project?.imageCount || 1);
+  const [localGenre, setLocalGenre] = useState(project?.genre || '剧情片');
   const [customDurationInput, setCustomDurationInput] = useState('');
   const [customStyleInput, setCustomStyleInput] = useState('');
+  const [customGenreInput, setCustomGenreInput] = useState('');
   const [modelConfigs, setModelConfigs] = useState<any[]>([]);
   const [localLlmProvider, setLocalLlmProvider] = useState(project?.modelProviders?.llm || '');
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project?.modelProviders?.text2image || '');
@@ -83,6 +103,11 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       setCustomStyleInput(isCustomStyle ? currentStyle : '');
       setLocalStyle(isCustomStyle?'custom':currentStyle);
 
+      const currentGenre = project.genre || '剧情片';
+      const isCustomGenre = !GENRE_OPTIONS.some(opt => opt.value === currentGenre);
+      setCustomGenreInput(isCustomGenre ? currentGenre : '');
+      setLocalGenre(isCustomGenre?'custom':currentGenre);
+      
       setLocalImageSize(project.imageSize || '1440x2560');
       setLocalImageCount(project.imageCount || 1);
 
@@ -114,6 +139,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
   const saveSettings = () => {
     const finalDuration = localDuration === 'custom' ? customDurationInput : localDuration;
     const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
+    const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
     const newModelProviders = {
       ...project.modelProviders,
       llm: localLlmProvider,
@@ -126,6 +152,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       targetDuration: finalDuration,
       language: localLanguage,
       visualStyle: finalStyle,
+      genre: finalGenre,
       imageSize: localImageSize,
       imageCount: localImageCount,
       modelProviders: newModelProviders
@@ -215,8 +242,37 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
             </div>
           </div>
 
-          {/* Image Size and Image Count in one row */}
           <div className="grid grid-cols-2 gap-3">
+            {/* Genre Selection */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">题材类型</label>
+              <div className="relative">
+                <select
+                  value={localGenre}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setLocalGenre(value);
+                  }}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                >
+                  {GENRE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-3 pointer-events-none">
+                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
+                </div>
+              </div>
+              {localGenre === 'custom' && (
+                <input
+                  type="text"
+                  value={customGenreInput}
+                  onChange={(e) => setCustomGenreInput(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all placeholder:text-slate-600"
+                  placeholder="输入自定义类型..."
+                />
+              )}
+            </div>
             {/* Visual Style Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">画面风格</label>
@@ -247,25 +303,6 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 />
               )}
             </div>
-
-            {/* Image Count Selection */}
-            <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">参考图数</label>
-              <div className="relative">
-                <select
-                  value={localImageCount}
-                  onChange={(e) => setLocalImageCount(Number(e.target.value))}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {IMAGE_COUNT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Duration Selection */}
@@ -285,7 +322,6 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                   {opt.label}
                 </button>
               ))}
-            </div>
             {localDuration === 'custom' && (
               <div className="pt-1">
                 <input
@@ -297,8 +333,29 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 />
               </div>
             )}
+            </div>
           </div>
-
+          {/* Image Size and Image Count in one row */}
+          <div className="grid gap-3">
+            {/* Image Count Selection */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">参考图数</label>
+              <div className="relative">
+                <select
+                  value={localImageCount}
+                  onChange={(e) => setLocalImageCount(Number(e.target.value))}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                >
+                  {IMAGE_COUNT_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-3 pointer-events-none">
+                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
+                </div>
+              </div>
+            </div>
+          </div>
           {/* Divider */}
           <div className="border-t border-slate-600 pt-4">
             <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-4">模型供应商</p>

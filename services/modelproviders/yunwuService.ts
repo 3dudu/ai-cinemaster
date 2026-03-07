@@ -145,7 +145,7 @@ export const parseScriptToData = async (
 
   return {
     title: parsed.title || "未命名剧本",
-    genre: parsed.genre || "剧情片",
+    genre: parsed.genre || "",
     logline: parsed.logline || "",
     language: language,
     characters,
@@ -375,6 +375,40 @@ export const generateVisualPrompts = async (
       parts: [
         {
           text: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+        },
+      ],
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+    ],
+    generationConfig: {
+      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+    },
+  };
+
+  const response =  await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  return response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+};
+export const generateVideoPrompts = async (
+  prompt: string
+): Promise<string> => {
+  const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
+  const requestBody = {
+    systemInstruction: {
+      parts: [
+        {
+          text: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
         },
       ],
     },

@@ -71,7 +71,7 @@ export const renderTemplate = (key: string, ...args: any[]): string => {
 const extractVariablesForTemplate = (key: string, args: any[]): Record<string, any> => {
   switch (key) {
     case 'PARSE_SCRIPT':
-      return { text: args[0] || '', lang: args[1] || '中文' };
+      return { text: args[0] || '', lang: args[1] || '中文', genre: args[2] || '剧情片' };
     case 'GENERATE_SHOTS':
       const [, location, time, atmosphere, paragraphs, genre, duration, characters, lang] = args;
       return {
@@ -196,8 +196,8 @@ export const PROMPT_TEMPLATES = {
   SYSTEM_VIDEO_DIRECTOR: "你是一名专业的影视导演，擅长为单个镜头创作详细的视频拍摄提示词。请始终以纯文本格式输出提示词，无任何解释、注释、多余文字。",
 
   // ============ 剧本解析 ============
-  PARSE_SCRIPT: (text: string, lang: string) => `
-    分析文本并输出一个 JSON 对象，字段值以 ${lang} 语言呈现。
+  PARSE_SCRIPT: (text: string, lang: string,genre: string) => `
+    分析输入的故事或剧本，构思制作一部 ${genre} 类型的视频，并输出一个 JSON 对象，字段值以 ${lang} 语言呈现。
 
     ## 任务：
     提取title:标题、genre:类型、logline:故事梗概（以 ${lang} 语言呈现）。

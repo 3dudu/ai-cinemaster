@@ -30,18 +30,18 @@ const PromptTemplateModal: React.FC<{
     { key: 'SYSTEM_SCREENWRITER', name: '编剧系统提示词', description: '用于剧本生成的系统提示词' },
     { key: 'SYSTEM_VISUAL_DESIGNER', name: '视觉设计师系统提示词', description: '用于视觉提示词生成的系统提示词' },
     { key: 'SYSTEM_VIDEO_DIRECTOR', name: '导演系统提示词', description: '用于视频拍摄提示词生成的系统提示词' },
-    { key: 'PARSE_SCRIPT', name: '剧本解析提示词', description: '解析原始文本提取剧本信息', hasParams: true },
-    { key: 'GENERATE_SHOTS', name: '镜头清单生成提示词', description: '生成场景的镜头调度设计', hasParams: true },
-    { key: 'GENERATE_SCRIPT', name: '剧本生成提示词', description: '根据提示词创作影视剧本', hasParams: true },
-    { key: 'GENERATE_VISUAL_PROMPT', name: '角色/场景视觉提示词生成提示词', description: '为角色和场景生成图像提示词', hasParams: true },
-    { key: 'GENERATE_CHARACTER_IMAGE', name: '角色图片生成提示词', description: '生成角色三视图加大头照', hasParams: true },
-    { key: 'GENERATE_SCENE_IMAGE', name: '场景图片生成提示词', description: '生成场景图片', hasParams: true },
-    { key: 'IMAGE_GENERATION_WITH_REFERENCE', name: '带参考图的图片生成提示词', description: '生成带参考图的角色图片', hasParams: true },
-    { key: 'GENERATE_CHARACTER_VARIATION', name: '角色造型变体生成提示词', description: '生成角色的新造型', hasParams: true },
-    { key: 'GENERATE_KEYFRAME_PROMPT', name: '关键帧提示词生成提示词', description: '为关键帧生成连环画风格提示词', hasParams: true },
-    { key: 'GENERATE_VIDEO_PROMPT', name: '视频拍摄提示词生成提示词', description: '为单个镜头生成视频拍摄提示词', hasParams: true },
-    { key: 'GENERATE_TRANSITION_VIDEO', name: '转场视频提示词生成提示词', description: '生成镜头之间的转场视频提示词', hasParams: true },
-    { key: 'JOIN_IMAGES', name: '图片拼接提示词', description: '将多张图片拼接成宫格图', hasParams: true },
+    { key: 'PARSE_SCRIPT', name: '剧本分析员-剧本解析提示词', description: '解析原始文本提取剧本信息', hasParams: true },
+    { key: 'GENERATE_SHOTS', name: '摄影师-镜头清单生成提示词', description: '生成场景的镜头调度设计', hasParams: true },
+    { key: 'GENERATE_SCRIPT', name: '编剧-剧本生成提示词', description: '根据提示词创作影视剧本', hasParams: true },
+    { key: 'GENERATE_VISUAL_PROMPT', name: '视觉设计师-角色/场景视觉提示词生成提示词', description: '为角色和场景生成图像提示词', hasParams: true },
+    { key: 'GENERATE_CHARACTER_IMAGE', name: '视觉设计师-角色图片生成提示词', description: '生成角色三视图加大头照', hasParams: true },
+    { key: 'GENERATE_SCENE_IMAGE', name: '视觉设计师-场景图片生成提示词', description: '生成场景图片', hasParams: true },
+    { key: 'IMAGE_GENERATION_WITH_REFERENCE', name: '视觉设计师-带参考图的图片生成提示词', description: '生成带参考图的角色图片', hasParams: true },
+    { key: 'GENERATE_CHARACTER_VARIATION', name: '视觉设计师-角色造型变体生成提示词', description: '生成角色的新造型', hasParams: true },
+    { key: 'GENERATE_KEYFRAME_PROMPT', name: '视觉设计师-关键帧提示词生成提示词', description: '为关键帧生成连环画风格提示词', hasParams: true },
+    { key: 'GENERATE_VIDEO_PROMPT', name: '导演-视频拍摄提示词生成提示词', description: '为单个镜头生成视频拍摄提示词', hasParams: true },
+    { key: 'GENERATE_TRANSITION_VIDEO', name: '导演-转场视频提示词生成提示词', description: '生成镜头之间的转场视频提示词', hasParams: true },
+    { key: 'JOIN_IMAGES', name: '视觉设计师-图片拼接提示词', description: '将多张图片拼接成宫格图', hasParams: true },
   ], []);
 
   // 从 localStorage 加载自定义内容
@@ -108,7 +108,7 @@ const PromptTemplateModal: React.FC<{
   // 获取函数类型模板的预览（带变量占位符）
   const getFunctionTemplatePreview = (key: string): string => {
     const previews: Record<string, string> = {
-      'PARSE_SCRIPT': `分析文本并输出一个 JSON 对象，字段值以 {lang} 语言呈现。
+      'PARSE_SCRIPT': `分析输入的故事或剧本，构思制作一部 {genre} 类型的视频，并输出一个 JSON 对象，字段值以 {lang} 语言呈现。
 
 ## 任务：
 提取title:标题、genre:类型、logline:故事梗概（以 {lang} 语言呈现）。
@@ -313,7 +313,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
   // 变量提示
   const variables: Record<string, string[]> = {
-    'PARSE_SCRIPT': ['{text}', '{lang}'],
+    'PARSE_SCRIPT': ['{text}', '{lang}', '{genre}'],
     'GENERATE_SHOTS': ['{scenendex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}'],
     'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}'],
     'GENERATE_VISUAL_PROMPT': ['{type}', '{desc}', '{genre}', '{visualStyle}'],

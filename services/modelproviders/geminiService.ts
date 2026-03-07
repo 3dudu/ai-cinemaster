@@ -99,7 +99,7 @@ export const parseScriptToData = async (prompt: string, language: string = '中�
 
   return {
     title: parsed.title || "未命名剧本",
-    genre: parsed.genre || "剧情片",
+    genre: parsed.genre || "",
     logline: parsed.logline || "",
     language: language,
     characters,
@@ -218,6 +218,18 @@ export const generateVisualPrompts = async (prompt: string): Promise<string> => 
      contents: prompt,
      config: {
       systemInstruction: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+      maxOutputTokens: 8192,
+     }
+   }));
+   return (response.text || "").trim();
+};
+export const generateVideoPrompts = async (prompt: string): Promise<string> => {
+   const ai = getAiClient();
+   const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+     model: 'gemini-2.5-flash',
+     contents: prompt,
+     config: {
+      systemInstruction: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
       maxOutputTokens: 8192,
      }
    }));

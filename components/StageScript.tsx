@@ -5,7 +5,7 @@ import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
 import { Character, ProjectState, Scene } from '../types';
 import { useDialog } from './dialog';
-import { DURATION_OPTIONS, IMAGE_COUNT_OPTIONS, IMAGE_SIZE_OPTIONS, LANGUAGE_OPTIONS, STYLE_OPTIONS } from './ProjectSettingsModal';
+import { DURATION_OPTIONS, GENRE_OPTIONS, IMAGE_COUNT_OPTIONS, IMAGE_SIZE_OPTIONS, LANGUAGE_OPTIONS, STYLE_OPTIONS } from './ProjectSettingsModal';
 import SceneEditModal from './SceneEditModal';
 import ShotEditModal from './ShotEditModal';
 
@@ -17,25 +17,6 @@ interface Props {
 
 type TabMode = 'story' | 'script';
 
-const GENRE_OPTIONS = [
-  { label: '剧情片', value: '剧情片' },
-  { label: '动作片', value: '动作片' },
-  { label: '科幻片', value: '科幻片' },
-  { label: '悬疑片', value: '悬疑片' },
-  { label: '恐怖片', value: '恐怖片' },
-  { label: '喜剧片', value: '喜剧片' },
-  { label: '爱情片', value: '爱情片' },
-  { label: '历史片', value: '历史片' },
-  { label: '战争片', value: '战争片' },
-  { label: '动画片', value: '动画片' },
-  { label: '纪录片', value: '纪录片' },
-  { label: '短片', value: '短片' },
-  { label: '微电影', value: '微电影' },
-  { label: '广告', value: '广告' }
-];
-/*
-  */
-
 const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }) => {
   const dialog = useDialog();
   const [activeTab, setActiveTab] = useState<TabMode>(project.scriptData ? 'script' : 'story');
@@ -45,6 +26,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
   const [localDuration, setLocalDuration] = useState(project.targetDuration || '60s');
   const [localLanguage, setLocalLanguage] = useState(project.language || '中文');
   const [localStyle, setLocalStyle] = useState(project.visualStyle || '真人写实');
+  const [localGenre, setLocalGenre] = useState(project?.genre || '剧情片');
+  const [customGenreInput, setCustomGenreInput] = useState('');
   const [localImageSize, setLocalImageSize] = useState(project.imageSize || '1440x2560');
   const [localImageCount, setLocalImageCount] = useState(project.imageCount || 1);
   const [customDurationInput, setCustomDurationInput] = useState('');
@@ -96,12 +79,17 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
     setLocalStyle(isCustomStyle ? 'custom' : currentStyle);
     setCustomStyleInput(isCustomStyle ? currentStyle : '');
 
+    const currentGenre = project.genre || '剧情片';
+    const isCustomGenre = !GENRE_OPTIONS.some(opt => opt.value === currentGenre);
+    setCustomGenreInput(isCustomGenre ? currentGenre : '');
+    setLocalGenre(isCustomGenre?'custom':currentGenre);
+
     setLocalImageSize(project.imageSize || '1440x2560');
     setLocalImageCount(project.imageCount || 1);
 
     // 加载模型配置
     loadModelConfigs();
-    initSystemModelProviders();
+    // initSystemModelProviders();
   }, [project.id, project.title, project.targetDuration, project.language, project.visualStyle, project.imageSize, project.imageCount]);
 
   const initSystemModelProviders = async () => {
@@ -438,9 +426,11 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
     setIsGeneratingScript(true);
     try {
       ModelService.setCurrentProjectProviders(project.modelProviders);
+      const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
+
       const generatedScript = await ModelService.generateScript(
         scriptPrompt,
-        project.scriptData?.genre || '剧情片',
+        finalGenre || project.scriptData?.genre || '剧情片',
         getFinalDuration(),
         localLanguage
       );
@@ -490,6 +480,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
     setIsProcessing(true);
     setProcessingStep('正在分析剧本结构...');
     try {
+      const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
       updateProject({
         title: localTitle,
         rawScript: localScript,
@@ -497,10 +488,11 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
         language: localLanguage,
         visualStyle: getFinalStyle(),
         imageSize: localImageSize,
-        imageCount: localImageCount
+        imageCount: localImageCount,
+        genre: finalGenre || project.scriptData?.genre || '剧情片',
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
-      const scriptData = await ModelService.parseScriptToData(localScript, localLanguage);
+      const scriptData = await ModelService.parseScriptToData(localScript, localLanguage,localGenre);
       console.log('scriptData', scriptData);
       if(scriptData.scenes.length > 0){
         updateProject({ isParsingScript: true });
@@ -511,7 +503,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
         if (localTitle && localTitle !== "未命名项目") {
           scriptData.title = localTitle;
         }
-  
+        scriptData.genre = localGenre;
         // 逐场景生成分镜
         const allShots: any[] = [];
         const totalScenes = scriptData.scenes.length;
@@ -546,7 +538,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
         updateProject({
           scriptData,
           shots,
-          title: scriptData.title
+          title: scriptData.title,
+          genre: scriptData.genre || finalGenre
         });
   
         setActiveTab('script');
@@ -634,6 +627,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                 画面风格
               </label>
+              <div className="grid grid-cols-2 gap-3">
               <div className="relative">
                 <select
                   value={localStyle}
@@ -651,6 +645,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                    <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
                 </div>
               </div>
+              <div className="relative"> 
               {localStyle === 'custom' && (
                 <input
                   type="text"
@@ -660,6 +655,43 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                   placeholder="输入自定义画面风格..."
                 />
               )}
+              </div>
+              </div>
+            </div>
+
+            {/* Genre Selection */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">题材类型</label>
+              <div className="grid grid-cols-2 gap-3">
+              <div className="relative">
+                <select
+                  value={localGenre}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setLocalGenre(value);
+                  }}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                >
+                  {GENRE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-3 pointer-events-none">
+                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
+                </div>
+              </div>
+              <div className="relative"> 
+              {localGenre === 'custom' && (
+                <input
+                type="text"
+                value={customGenreInput}
+                onChange={(e) => setCustomGenreInput(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all placeholder:text-slate-600"
+                placeholder="输入自定义类型..."
+                />
+              )}
+              </div>
+              </div>
             </div>
 
             {/* Image Size Selection */}
@@ -723,7 +755,6 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                     {opt.label}
                   </button>
                 ))}
-              </div>
               {localDuration === 'custom' && (
                 <div className="pt-1">
                   <input
@@ -735,6 +766,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                   />
                 </div>
               )}
+              </div>
             </div>
 
             {/* Divider */}
@@ -995,12 +1027,12 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
            
            {/* Sidebar: Index */}
            <div className="w-96 border-r border-slate-600 bg-slate-700 flex flex-col hidden xl:flex">
+              {/* Genre Selection 
               <div className="md:p-6 p-2 border-b border-slate-900">
-                 {/* Genre Selection */}
                  <div>
                    <div className="flex items-center justify-between mb-2">
                      <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                       <TextQuote className="w-3 h-3" /> 类型
+                       <TextQuote className="w-3 h-3" /> 题材类型
                      </h3>
                      {!editingGenre && (
                        <button onClick={startEditGenre} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
@@ -1032,6 +1064,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                    )}
                  </div>
               </div>
+              */}
               <div className="p-6 border-b border-slate-900">
                  {/* Logline */}
                  <div>

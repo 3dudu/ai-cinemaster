@@ -437,9 +437,9 @@ export class ModelService {
    * @param rawText - 剧本文本
    * @param language - 输出语言
    */
-  static async parseScriptToData(rawText: string, language: string = "中文"): Promise<ScriptData> {
+  static async parseScriptToData(text: string, language: string = "中文",genre:string="剧情片"): Promise<ScriptData> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    const prompt = renderTemplate('PARSE_SCRIPT', rawText, language);
+    const prompt = renderTemplate('PARSE_SCRIPT', text, language,genre);
     switch (provider.provider) {
       case 'deepseek':
         return await (await this.getProviderModule('deepseek')).parseScriptToData(prompt, language);
@@ -733,19 +733,19 @@ export class ModelService {
     let videoPrompt = '';
     switch (provider.provider) {
       case 'deepseek':
-        videoPrompt = await (await this.getProviderModule('deepseek')).generateVisualPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('deepseek')).generateVideoPrompts(prompt);
         break;
       case 'doubao':
-        videoPrompt = await (await this.getProviderModule('doubao')).generateVisualPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('doubao')).generateVideoPrompts(prompt);
         break;
       case 'gemini':
-        videoPrompt = await (await this.getProviderModule('gemini')).generateVisualPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('gemini')).generateVideoPrompts(prompt);
         break;
       case 'yunwu':
-        videoPrompt = await (await this.getProviderModule('yunwu')).generateVisualPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('yunwu')).generateVideoPrompts(prompt);
         break;
       case 'openai':
-        videoPrompt = await (await this.getProviderModule('openai')).generateVisualPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('openai')).generateVideoPrompts(prompt);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的视频提示词生成`);
