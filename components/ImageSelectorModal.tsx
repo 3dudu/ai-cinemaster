@@ -564,7 +564,7 @@ const ImageSelectorModal: React.FC<Props> = ({
         </div>
 
         {/* 图片网格 */}
-        <div className="flex-1 md:overflow-y-auto p-2 md:px-6">
+        <div className="flex-1 md:overflow-y-auto p-2 md:p-6">
           {displayImages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400">
               <Search className="w-12 h-12 mb-4 opacity-50" />

@@ -577,7 +577,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
         </div>
 
         {/* 图片网格 */}
-        <div className="p-2">
+        <div className="p-2 md:p-6">
         {displayImages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <Search className="w-12 h-12 mb-4 opacity-50" />
