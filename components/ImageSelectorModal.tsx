@@ -52,6 +52,7 @@ const ImageSelectorModal: React.FC<Props> = ({
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<{title: string, prompt: string, timestamp?: number} | null>(null);
+  const selectedItemRef = useRef<HTMLButtonElement>(null);
 
   // 加载所有项目
   useEffect(() => {
@@ -133,12 +134,23 @@ const ImageSelectorModal: React.FC<Props> = ({
 
   // 清理定时器
   useEffect(() => {
+    if(showProjectDropdown){
+    // 滚动到选中项
+    setTimeout(() => {
+      if (selectedItemRef.current) {
+        selectedItemRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest'
+        });
+      }
+    }, 0);
+    }
     return () => {
       if (dropdownTimeoutRef.current) {
         clearTimeout(dropdownTimeoutRef.current);
       }
     };
-  }, []);
+  }, [showProjectDropdown]);
 
   // 收集所有图片数据
   const [allImages, setAllImages] = useState<ImageItem[]>([]);
@@ -480,6 +492,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                   {allProjects.map(proj => (
                     <button
                       key={proj.id}
+                      ref={selectedProjectId === proj.id ? selectedItemRef : null}
                       onClick={() => {
                         setSelectedProjectId(proj.id);
                         setShowProjectDropdown(false);

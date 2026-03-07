@@ -439,19 +439,18 @@ export class ModelService {
    */
   static async parseScriptToData(rawText: string, language: string = "中文"): Promise<ScriptData> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    //console.log(`使用 ${provider} 进行剧本分析`);
-
+    const prompt = renderTemplate('PARSE_SCRIPT', rawText, language);
     switch (provider.provider) {
       case 'deepseek':
-        return await (await this.getProviderModule('deepseek')).parseScriptToData(rawText, language);
+        return await (await this.getProviderModule('deepseek')).parseScriptToData(prompt, language);
       case 'doubao':
-        return await (await this.getProviderModule('doubao')).parseScriptToData(rawText, language);
+        return await (await this.getProviderModule('doubao')).parseScriptToData(prompt, language);
       case 'gemini':
-        return await (await this.getProviderModule('gemini')).parseScriptToData(rawText, language);
+        return await (await this.getProviderModule('gemini')).parseScriptToData(prompt, language);
       case 'yunwu':
-        return await (await this.getProviderModule('yunwu')).parseScriptToData(rawText, language);
+        return await (await this.getProviderModule('yunwu')).parseScriptToData(prompt, language);
       case 'openai':
-        return await (await this.getProviderModule('openai')).parseScriptToData(rawText, language);
+        return await (await this.getProviderModule('openai')).parseScriptToData(prompt, language);
       default:
         throw new Error(`暂不支持 ${provider} 提供商的剧本分析`);
     }
@@ -463,22 +462,78 @@ export class ModelService {
    */
   static async generateShotList(scriptData: ScriptData): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    //console.log(`使用 ${provider} 生成镜头清单`);
 
-    switch (provider.provider) {
-      case 'deepseek':
-        return await (await this.getProviderModule('deepseek')).generateShotList(scriptData);
-      case 'doubao':
-        return await (await this.getProviderModule('doubao')).generateShotList(scriptData);
-      case 'gemini':
-        return await (await this.getProviderModule('gemini')).generateShotList(scriptData);
-      case 'yunwu':
-        return await (await this.getProviderModule('yunwu')).generateShotList(scriptData);
-      case 'openai':
-        return await (await this.getProviderModule('openai')).generateShotList(scriptData);
-      default:
-        throw new Error(`暂不支持 ${provider} 提供商的镜头生成`);
+    if (!scriptData.scenes || scriptData.scenes.length === 0) {
+      return [];
     }
+
+    // Process scenes sequentially
+    const BATCH_SIZE = 1;
+    const allShots: Shot[] = [];
+
+    for (let i = 0; i < scriptData.scenes.length; i += BATCH_SIZE) {
+      if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const batch = scriptData.scenes.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map((scene, idx) => (async () => {
+          const lang = scriptData.language || "中文";
+          const paragraphs = scriptData.storyParagraphs
+            .filter((p) => String(p.sceneRefId) === String(scene.id))
+            .map((p) => p.text)
+            .join("\n");
+          if (!paragraphs.trim()) return [];
+
+          let characters = "";
+          characters = scriptData.characters ? scriptData.characters.map(d =>`${d.name}: ${d.visualPrompt}`).join('\n') : "";
+          const prompt = renderTemplate('GENERATE_SHOTS',
+            i + idx + 1,
+            scene.location,
+            scene.time,
+            scene.atmosphere,
+            paragraphs,
+            scriptData.genre,
+            scriptData.targetDuration || "30s",
+            characters,
+            lang
+          );
+          switch (provider.provider) {
+            case 'deepseek':
+              (await this.getProviderModule('deepseek')).generateShotListForScene(scene, prompt);
+              break;
+            case 'doubao':
+              (await this.getProviderModule('doubao')).generateShotListForScene(scene, prompt);
+              break;
+            case 'gemini':
+              (await this.getProviderModule('gemini')).generateShotListForScene(scene, prompt);
+              break;
+            case 'yunwu':
+              (await this.getProviderModule('yunwu')).generateShotListForScene(scene, prompt);
+              break;
+            case 'openai':
+              (await this.getProviderModule('openai')).generateShotListForScene(scene, prompt);
+              break;
+            default:
+              throw new Error(`暂不支持 ${provider} 提供商的镜头生成`);
+          }
+          })()
+        )
+      );
+      batchResults.forEach((shots) => allShots.push(...shots));
+    }
+
+    // Re-index shots to be sequential globally
+    return allShots.map((s, idx) => ({
+      ...s,
+      id: `shot-${idx + 1}`,
+      keyframes: Array.isArray(s.keyframes)
+        ? s.keyframes.map((k: any) => ({
+            ...k,
+            id: `kf-${idx + 1}-${k.type}`,
+            status: "pending",
+          }))
+        : [],
+    }));
   }
 
   /**
@@ -498,17 +553,38 @@ export class ModelService {
     if(scene.referenceImage){
       scene.referenceImage=null;
     }
+    const lang = scriptData.language || "中文";
+
+    const paragraphs = scriptData.storyParagraphs
+      .filter((p) => String(p.sceneRefId) === String(scene.id))
+      .map((p) => p.text)
+      .join("\n");
+
+    if (!paragraphs.trim()) return [];
+    let characters = "";
+    characters = scriptData.characters ? scriptData.characters.map(d =>`${d.name}: ${d.visualPrompt}`).join('\n') : "";
+    const prompt = renderTemplate('GENERATE_SHOTS',
+      sceneIndex+1,
+      scene.location,
+      scene.time,
+      scene.atmosphere,
+      paragraphs,
+      scriptData.genre,
+      scriptData.targetDuration || "30s",
+      characters,
+      lang
+    );
     switch (provider.provider) {
       case 'deepseek':
-        return await (await this.getProviderModule('deepseek')).generateShotListForScene(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('deepseek')).generateShotListForScene(scene, prompt);
       case 'doubao':
-        return await (await this.getProviderModule('doubao')).generateShotListForScene(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('doubao')).generateShotListForScene(scene, prompt);
       case 'gemini':
-        return await (await this.getProviderModule('gemini')).generateShotListForScene(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('gemini')).generateShotListForScene(scene, prompt);
       case 'yunwu':
-        return await (await this.getProviderModule('yunwu')).generateShotListForScene(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('yunwu')).generateShotListForScene(scene, prompt);
       case 'openai':
-        return await (await this.getProviderModule('openai')).generateShotListForScene(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('openai')).generateShotListForScene(scene, prompt);
       default:
         throw new Error(`暂不支持 ${provider} 提供商的镜头生成`);
     }
@@ -529,22 +605,24 @@ export class ModelService {
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成剧本`);
+    const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language);
+
     let script = '';
     switch (provider.provider) {
       case 'deepseek':
-        script = await (await this.getProviderModule('deepseek')).generateScript(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('deepseek')).generateScript(generationPrompt, genre, targetDuration, language);
         break;
       case 'doubao':
-        script = await (await this.getProviderModule('doubao')).generateScript(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('doubao')).generateScript(generationPrompt, genre, targetDuration, language);
         break;
       case 'gemini':
-        script = await (await this.getProviderModule('gemini')).generateScript(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('gemini')).generateScript(generationPrompt, genre, targetDuration, language);
         break;
       case 'yunwu':
-        script = await (await this.getProviderModule('yunwu')).generateScript(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('yunwu')).generateScript(generationPrompt, genre, targetDuration, language);
         break;
       case 'openai':
-        script = await (await this.getProviderModule('openai')).generateScript(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('openai')).generateScript(generationPrompt, genre, targetDuration, language);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的剧本生成`);
@@ -573,8 +651,14 @@ export class ModelService {
     if(data.variations){
       data.variations=[];
     }
-
-    const prompt = renderTemplate('GENERATE_VISUAL_PROMPT', type, data, genre, visualStyle);
+    if(data.ttsParams){
+      data.ttsParams=null;
+    }
+    if(data.voiceUrl){
+      data.voiceUrl=null;
+    }
+    const desc = JSON.stringify(data);
+    const prompt = renderTemplate('GENERATE_VISUAL_PROMPT', type=='character'?'角色':'场景', desc, genre, visualStyle);
     let visualPrompt = '';
     switch (provider.provider) {
       case 'deepseek':
@@ -620,7 +704,7 @@ export class ModelService {
     const characterNames = shot.characters?.map((charId: string) => {
       const char = scriptData.characters?.find((c: any) => c.id === charId);
       return char?.name || charId;
-    }) || [];
+    }).join(',') || '';
 
     // 获取对白
     const dialogues: string[] = [];
@@ -643,7 +727,7 @@ export class ModelService {
       characterNames,
       startKeyframe?.visualPrompt || '',
       endKeyframe?.visualPrompt || '',
-      dialogues
+      dialogues.join('\n')
     );
 
     let videoPrompt = '';

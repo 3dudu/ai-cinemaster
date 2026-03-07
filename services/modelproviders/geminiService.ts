@@ -20,10 +20,8 @@ const getAiClient = () => {
  * Agent 1 & 2: Script Structuring & Breakdown
  * Uses gemini-2.5-flash for fast, structured text generation.
  */
-export const parseScriptToData = async (rawText: string, language: string = '中文'): Promise<ScriptData> => {
+export const parseScriptToData = async (prompt: string, language: string = '中文'): Promise<ScriptData> => {
   const ai = getAiClient();
-  const prompt = renderTemplate('PARSE_SCRIPT', rawText, language);
-
   const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: prompt,
@@ -117,30 +115,10 @@ export const parseScriptToData = async (rawText: string, language: string = '中
  * @param index - 场景索引
  */
 export const generateShotListForScene = async (
-  scriptData: ScriptData,
   scene: Scene,
-  index: number
+  prompt: string
 ): Promise<Shot[]> => {
   const ai = getAiClient();
-  const lang = scriptData.language || '中文';
-
-  const paragraphs = scriptData.storyParagraphs
-    .filter(p => String(p.sceneRefId) === String(scene.id))
-    .map(p => p.text)
-    .join('\n');
-
-  if (!paragraphs.trim()) return [];
-
-  const prompt = renderTemplate('GENERATE_SHOTS',
-    index,
-    scene,
-    paragraphs,
-    scriptData.genre,
-    scriptData.targetDuration || "Standard",
-    scriptData.characters,
-    lang
-  );
-
   try {
     const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -206,38 +184,6 @@ export const generateShotListForScene = async (
   }
 };
 
-export const generateShotList = async (scriptData: ScriptData): Promise<Shot[]> => {
-  if (!scriptData.scenes || scriptData.scenes.length === 0) {
-    return [];
-  }
-
-  // Process scenes sequentially (Batch Size 1) to strictly minimize rate limits
-  const BATCH_SIZE = 1;
-  const allShots: Shot[] = [];
-
-  for (let i = 0; i < scriptData.scenes.length; i += BATCH_SIZE) {
-    // Add delay between batches
-    if (i > 0) await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const batch = scriptData.scenes.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map((scene, idx) => generateShotListForScene(scriptData, scene, i + idx))
-    );
-    batchResults.forEach(shots => allShots.push(...shots));
-  }
-
-  // Re-index shots to be sequential globally and set initial status
-  return allShots.map((s, idx) => ({
-    ...s,
-    id: `shot-${idx + 1}`,
-    keyframes: Array.isArray(s.keyframes) ? s.keyframes.map(k => ({ 
-      ...k, 
-      id: `kf-${idx + 1}-${k.type}`, // Normalized ID
-      status: 'pending' 
-    })) : []
-  }));
-};
-
 /**
  * Agent 0: Script Generation from simple prompt
  * 根据简单提示词生成完整剧本
@@ -250,11 +196,9 @@ export const generateScript = async (
 ): Promise<string> => {
   const ai = getAiClient();
 
-  const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language);
-
   const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
     model: 'gemini-2.5-flash',
-    contents: generationPrompt,
+    contents: prompt,
     config: {
       systemInstruction: renderTemplate('SYSTEM_SCREENWRITER'),
       maxOutputTokens: 8192,

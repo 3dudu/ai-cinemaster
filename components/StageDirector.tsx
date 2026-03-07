@@ -38,6 +38,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const [uploadingKeyframe, setUploadingKeyframe] = useState<{shotId: string, type: 'start'|'end'|'full'} | null>(null);
   const [videoPromptShotId, setVideoPromptShotId] = useState<string | null>(null);
 
+  // 连环画规格常量
+  const IMAGE_X = [
+    '1','1x1','1x2','1x3','2x2','2x3','2x3','3x3','3x3','3x3'
+  ];
   // Sync local state with project settings
   useEffect(() => {
     setLocalStyle(project.visualStyle || '真人写实');
@@ -288,7 +292,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       let new_prompt = prompt;
       const image_rate = imageSize=="2560x1440" ? "16:9" : "9:16";
       if(imageType=='start' || imageType=='end' || imageType=='full' ){
-        new_prompt = renderTemplate('GENERATE_KEYFRAME_PROMPT', prompt, imageCount, image_rate);
+        new_prompt = imageCount > 1 ? renderTemplate('GENERATE_KEYFRAME_PROMPT', IMAGE_X[imageCount], imageCount, image_rate):'';
+        new_prompt = prompt + "\n" + new_prompt;
         new_prompt = renderTemplate('IMAGE_GENERATION_WITH_REFERENCE', new_prompt, localStyle);
       }
       return new_prompt;

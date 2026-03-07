@@ -73,14 +73,16 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
     case 'PARSE_SCRIPT':
       return { text: args[0] || '', lang: args[1] || '中文' };
     case 'GENERATE_SHOTS':
-      const [, scene, paragraphs, genre, duration, characters, lang] = args;
+      const [, location, time, atmosphere, paragraphs, genre, duration, characters, lang] = args;
       return {
         sceneIndex: args[0] || 0,
-        scene: scene || {},
+        location: location || '',
+        time: time || '',
+        atmosphere: atmosphere || '',
         paragraphs: paragraphs || '',
         genre: genre || '',
         duration: duration || '30s',
-        characters: characters || [],
+        characters: characters || '',
         lang: lang || '中文'
       };
     case 'GENERATE_SCRIPT':
@@ -116,8 +118,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
       };
     case 'GENERATE_KEYFRAME_PROMPT':
       return {
-        prompt: args[0] || '',
-        imageCount: args[1] || 1,
+        imageGridSpec: args[0] || '3x3',
+        imageCount: args[1] || 9,
         imageRate: args[2] || '16:9'
       };
     case 'GENERATE_CHARACTER_IMAGE':
@@ -137,9 +139,10 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         shotSize: args[2] || '',
         duration: args[3] || 5,
         visualStyle: args[4] || '真人写实',
-        characters: args[5] || [],
+        characters: args[5] || '无',
         startFrameVisualPrompt: args[6] || '',
-        endFrameVisualPrompt: args[7] || ''
+        endFrameVisualPrompt: args[7] || '',
+        dialogues: args[8] || '无',
       };
     case 'GENERATE_TRANSITION_VIDEO':
       return {
@@ -155,11 +158,6 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
       return {};
   }
 };
-
-// 连环画规格常量
-export const IMAGE_X = [
-  '1','1x1','1x2','1x3','2x2','2x3','2x3','3x3','3x3','3x3'
-];
 
 // 模型生成参数配置
 export const MODEL_GENERATION_CONFIG = {
@@ -201,51 +199,47 @@ export const PROMPT_TEMPLATES = {
   PARSE_SCRIPT: (text: string, lang: string) => `
     分析文本并输出一个 JSON 对象，字段值以 ${lang} 语言呈现。
 
-    任务：
+    ## 任务：
     提取title:标题、genre:类型、logline:故事梗概（以 ${lang} 语言呈现）。
     提取characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:性格）。
     提取scenes:场景信息（id:编号、location:地点、time:时间、atmosphere:氛围）。
     storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
 
-    输入：
-    ${text.slice(0, 30000)}
+    ## 输入：
+    ${text}
   `,
 
   // ============ 镜头清单生成 ============
   GENERATE_SHOTS: (
-    sceneIndex: number,
-    scene: any,
+    sceneindex: number,
+    location: string,
+    time: string,
+    atmosphere: string,
     paragraphs: string,
     genre: string,
     duration: string,
-    characters: any[],
+    characters: string,
     lang: string
   ) => `
-    担任专业摄影师，为第${sceneIndex + 1}场戏制作一份详尽的镜头清单（镜头调度设计）。
-    文本输出语言: ${lang}。
+    担任专业摄影师，为第${sceneindex}场戏制作一份详尽的镜头清单（镜头调度设计）。
+    ## 文本输出语言: ${lang}。
 
-    场景细节:
-    地点: ${scene.location}
-    时间: ${scene.time}
-    氛围: ${scene.atmosphere}
+    ## 场景细节:
+    地点: ${location}
+    时间: ${time}
+    氛围: ${atmosphere}
 
-    场景动作:
-    "${paragraphs.slice(0, 5000)}"
+    ## 场景动作:
+    ${paragraphs}
 
-    创作背景:
+    ## 创作背景:
     题材类型: ${genre}
-    剧本整体目标时长: ${duration || "Standard"}
+    剧本整体目标时长: ${duration || "30s"}
 
-    角色:
-    ${JSON.stringify(
-      characters.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        desc: c.visualPrompt || c.personality,
-      }))
-    )}
+    ## 角色:
+    ${characters}
 
-    说明：
+    ## 说明：
     1. 设计一组覆盖全部情节动作的镜头序列。
     2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-12 秒，避免出现 JSON 截断错误。
     3. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
@@ -255,7 +249,7 @@ export const PROMPT_TEMPLATES = {
     7. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
     8. 关键帧提示词：visualPrompt, 使用 ${lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
 
-    输出格式：JSON 数组，数组内对象包含以下字段：
+    ## 输出格式：JSON 数组，数组内对象包含以下字段：
     - id（字符串类型）
     - sceneId（字符串类型）
     - actionSummary（字符串类型）
@@ -276,7 +270,7 @@ export const PROMPT_TEMPLATES = {
   ) => `
     你是一名专业的编剧。请根据以下提示词创作一个完整的影视剧本。
 
-    创作要求：
+    ## 创作要求：
     1. 剧本时长：${duration}
     2. 题材类型：${genre}
     3. 输出语言：${lang}
@@ -284,17 +278,18 @@ export const PROMPT_TEMPLATES = {
     5. 情节紧凑，画面感强
     6. 角色性格鲜明，对话自然
 
-    用户提示词：
+    ## 用户提示词：
     "${prompt}"
 
     请以Markdown格式输出剧本结构，不要使用 JSON 格式，直接输出可阅读的剧本文本。
   `,
 
   // ============ 视觉提示词生成 ============
-  GENERATE_VISUAL_PROMPT: (type: "character" | "scene", data: any, genre: string,visualStyle:string) => `
-    为${genre}类视频中的${type=='character'?'角色':'场景'}生成高还原度图像提示词，图像风格必须为：${visualStyle}。
-    ${type=='character'?'角色':'场景'}的JSON格式信息如下: ${JSON.stringify(data)}
-    ${type=='character'?'角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。':'场景要描述时间、地点、景色、光线、氛围等，不要出现角色。'}
+  GENERATE_VISUAL_PROMPT: (type: string, desc: string, genre: string,visualStyle:string) => `
+    为 ${genre} 类视频中的 ${type} 生成高还原度图像提示词，图像风格必须为：${visualStyle}。
+    ${type} 的描述信息如下: ${desc}
+     - 角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
+     - 场景要描述时间、地点、景色、光线、氛围等，不要出现角色。
     中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。
   `,
 
@@ -338,10 +333,9 @@ export const PROMPT_TEMPLATES = {
   `,
 
   // ============ 关键帧提示词生成 ============
-  GENERATE_KEYFRAME_PROMPT: (prompt: string, imageCount: number, imageRate: string) => {
-    const gridSpec = imageCount > 1 ? " \n 连环画规格："+IMAGE_X[imageCount]+"连环画图，包含 "+imageCount+" 张连续且风格统一的图片，每张长宽比 "+imageRate+"，白色背景，铺满整张图。" : "";
-    return `${prompt}${gridSpec}`;
-  },
+  GENERATE_KEYFRAME_PROMPT: (imageGridSpec: string, imageCount: number, imageRate: string) => `
+  连环画规格：${imageGridSpec} 连环画图，包含 ${imageCount} 张连续且风格统一的图片，每张长宽比 ${imageRate}，白色背景，铺满整张图。
+  `,
 
   // ============ 角色图片提示词生成 ============
   GENERATE_CHARACTER_IMAGE: (prompt: string, visualStyle: string) => `
@@ -366,10 +360,10 @@ export const PROMPT_TEMPLATES = {
     shotSize: string,
     duration: number,
     visualStyle: string,
-    characters: string[],
+    characters: string,
     startFrameVisualPrompt: string,
     endFrameVisualPrompt: string,
-    dialogue: string[]
+    dialogues: string
   ) => `
     为单个镜头创作详细的视频拍摄提示词。
 
@@ -379,8 +373,9 @@ export const PROMPT_TEMPLATES = {
     - 景别：${shotSize}
     - 视频时长：${duration}秒
     - 画面风格：${visualStyle}
-    - 出场角色：${characters.join(', ') || '无'}
-    - 对白：${dialogue.join('\n') || '无'}
+    - 出场角色：${characters}
+    - 对白：
+         ${dialogues}
     - 起始帧视觉描述：${startFrameVisualPrompt}
     - 结束帧视觉描述：${endFrameVisualPrompt}
 

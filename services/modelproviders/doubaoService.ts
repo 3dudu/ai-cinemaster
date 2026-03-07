@@ -3,7 +3,7 @@
 import { ScriptData, Shot } from "../../types";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 import { getEnabledConfigByType } from "../modelConfigService";
-import { renderTemplate, MODEL_GENERATION_CONFIG } from "../promptTemplates";
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // 火山引擎配置
 const DOUBAO_CONFIG = {
@@ -122,13 +122,10 @@ const fetchWithRetry = async (
  * Uses Doubao for fast, structured text generation.
  */
 export const parseScriptToData = async (
-  rawText: string,
+  prompt: string,
   language: string = "中文"
 ): Promise<ScriptData> => {
-  const endpoint = `${runtimeApiUrl}/chat/completions`;
-
-  const prompt = renderTemplate('PARSE_SCRIPT', rawText, language);
-
+    const endpoint = `${runtimeApiUrl}/chat/completions`;
     const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify({
@@ -195,29 +192,9 @@ export const parseScriptToData = async (
  * @param index - 场景索引
  */
 export const generateShotListForScene = async (
-  scriptData: ScriptData,
   scene: any,
-  index: number
+  prompt: string
 ): Promise<Shot[]> => {
-  const lang = scriptData.language || "中文";
-
-  const paragraphs = scriptData.storyParagraphs
-    .filter((p) => String(p.sceneRefId) === String(scene.id))
-    .map((p) => p.text)
-    .join("\n");
-
-  if (!paragraphs.trim()) return [];
-
-  const prompt = renderTemplate('GENERATE_SHOTS',
-    index,
-    scene,
-    paragraphs,
-    scriptData.genre,
-    scriptData.targetDuration || "Standard",
-    scriptData.characters,
-    lang
-  );
-
   try {
     const endpoint = `${runtimeApiUrl}/chat/completions`;
     const response = await fetchWithRetry(endpoint, {
@@ -252,41 +229,6 @@ export const generateShotListForScene = async (
   }
 };
 
-export const generateShotList = async (
-  scriptData: ScriptData
-): Promise<Shot[]> => {
-  if (!scriptData.scenes || scriptData.scenes.length === 0) {
-    return [];
-  }
-
-  // Process scenes sequentially
-  const BATCH_SIZE = 1;
-  const allShots: Shot[] = [];
-
-  for (let i = 0; i < scriptData.scenes.length; i += BATCH_SIZE) {
-    if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const batch = scriptData.scenes.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map((scene, idx) => generateShotListForScene(scriptData, scene, i + idx))
-    );
-    batchResults.forEach((shots) => allShots.push(...shots));
-  }
-
-  // Re-index shots to be sequential globally
-  return allShots.map((s, idx) => ({
-    ...s,
-    id: `shot-${idx + 1}`,
-    keyframes: Array.isArray(s.keyframes)
-      ? s.keyframes.map((k: any) => ({
-          ...k,
-          id: `kf-${idx + 1}-${k.type}`,
-          status: "pending",
-        }))
-      : [],
-  }));
-};
-
 /**
  * Agent 0: Script Generation from simple prompt
  * 根据简单提示词生成完整剧本
@@ -299,8 +241,6 @@ export const generateScript = async (
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
 
-  const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language);
-
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify({
@@ -312,7 +252,7 @@ export const generateScript = async (
         },
         {
           role: "user",
-          content: generationPrompt,
+          content: prompt,
         },
       ],
       ...MODEL_GENERATION_CONFIG.GENERATE_SCRIPT,

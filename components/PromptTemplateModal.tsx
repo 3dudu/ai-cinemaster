@@ -21,6 +21,7 @@ const PromptTemplateModal: React.FC<{
   const [currentContent, setCurrentContent] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const selectedItemRef = useRef<HTMLButtonElement>(null);
 
   // 模板列表
   const templates: Template[] = useMemo(() => [
@@ -29,18 +30,18 @@ const PromptTemplateModal: React.FC<{
     { key: 'SYSTEM_SCREENWRITER', name: '编剧系统提示词', description: '用于剧本生成的系统提示词' },
     { key: 'SYSTEM_VISUAL_DESIGNER', name: '视觉设计师系统提示词', description: '用于视觉提示词生成的系统提示词' },
     { key: 'SYSTEM_VIDEO_DIRECTOR', name: '导演系统提示词', description: '用于视频拍摄提示词生成的系统提示词' },
-    { key: 'PARSE_SCRIPT', name: '剧本解析模板', description: '解析原始文本提取剧本信息', hasParams: true },
-    { key: 'GENERATE_SHOTS', name: '镜头清单生成模板', description: '生成场景的镜头调度设计', hasParams: true },
-    { key: 'GENERATE_SCRIPT', name: '剧本生成模板', description: '根据提示词创作影视剧本', hasParams: true },
-    { key: 'GENERATE_VISUAL_PROMPT', name: '视觉提示词生成模板', description: '为角色和场景生成图像提示词', hasParams: true },
-    { key: 'JOIN_IMAGES', name: '图片拼接模板', description: '将多张图片拼接成宫格图', hasParams: true },
-    { key: 'IMAGE_GENERATION_WITH_REFERENCE', name: '带参考图的图片生成模板', description: '生成带参考图的角色图片', hasParams: true },
-    { key: 'GENERATE_CHARACTER_VARIATION', name: '角色造型变体生成模板', description: '生成角色的新造型', hasParams: true },
-    { key: 'GENERATE_KEYFRAME_PROMPT', name: '关键帧提示词生成模板', description: '为关键帧生成连环画风格提示词', hasParams: true },
-    { key: 'GENERATE_CHARACTER_IMAGE', name: '角色图片生成模板', description: '生成角色三视图加大头照', hasParams: true },
-    { key: 'GENERATE_SCENE_IMAGE', name: '场景图片生成模板', description: '生成场景图片', hasParams: true },
-    { key: 'GENERATE_VIDEO_PROMPT', name: '视频拍摄提示词生成模板', description: '为单个镜头生成视频拍摄提示词', hasParams: true },
-    { key: 'GENERATE_TRANSITION_VIDEO', name: '转场视频提示词生成模板', description: '生成镜头之间的转场视频提示词', hasParams: true },
+    { key: 'PARSE_SCRIPT', name: '剧本解析提示词', description: '解析原始文本提取剧本信息', hasParams: true },
+    { key: 'GENERATE_SHOTS', name: '镜头清单生成提示词', description: '生成场景的镜头调度设计', hasParams: true },
+    { key: 'GENERATE_SCRIPT', name: '剧本生成提示词', description: '根据提示词创作影视剧本', hasParams: true },
+    { key: 'GENERATE_VISUAL_PROMPT', name: '角色/场景视觉提示词生成提示词', description: '为角色和场景生成图像提示词', hasParams: true },
+    { key: 'GENERATE_CHARACTER_IMAGE', name: '角色图片生成提示词', description: '生成角色三视图加大头照', hasParams: true },
+    { key: 'GENERATE_SCENE_IMAGE', name: '场景图片生成提示词', description: '生成场景图片', hasParams: true },
+    { key: 'IMAGE_GENERATION_WITH_REFERENCE', name: '带参考图的图片生成提示词', description: '生成带参考图的角色图片', hasParams: true },
+    { key: 'GENERATE_CHARACTER_VARIATION', name: '角色造型变体生成提示词', description: '生成角色的新造型', hasParams: true },
+    { key: 'GENERATE_KEYFRAME_PROMPT', name: '关键帧提示词生成提示词', description: '为关键帧生成连环画风格提示词', hasParams: true },
+    { key: 'GENERATE_VIDEO_PROMPT', name: '视频拍摄提示词生成提示词', description: '为单个镜头生成视频拍摄提示词', hasParams: true },
+    { key: 'GENERATE_TRANSITION_VIDEO', name: '转场视频提示词生成提示词', description: '生成镜头之间的转场视频提示词', hasParams: true },
+    { key: 'JOIN_IMAGES', name: '图片拼接提示词', description: '将多张图片拼接成宫格图', hasParams: true },
   ], []);
 
   // 从 localStorage 加载自定义内容
@@ -65,6 +66,15 @@ const PromptTemplateModal: React.FC<{
 
     if (showDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
+      // 滚动到选中项
+      setTimeout(() => {
+        if (selectedItemRef.current) {
+          selectedItemRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest'
+          });
+        }
+      }, 0);
     }
 
     return () => {
@@ -100,33 +110,33 @@ const PromptTemplateModal: React.FC<{
     const previews: Record<string, string> = {
       'PARSE_SCRIPT': `分析文本并输出一个 JSON 对象，字段值以 {lang} 语言呈现。
 
-任务：
+## 任务：
 提取title:标题、genre:类型、logline:故事梗概（以 {lang} 语言呈现）。
 提取characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:性格）。
 提取scenes:场景信息（id:编号、location:地点、time:时间、atmosphere:氛围）。
 storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
 
-输入：
-{text.slice(0, 30000)}`,
-      'GENERATE_SHOTS': `担任专业摄影师，为第{sceneIndex + 1}场戏制作一份详尽的镜头清单（镜头调度设计）。
-文本输出语言: {lang}。
+## 输入：
+{text}`,
+      'GENERATE_SHOTS': `担任专业摄影师，为第{sceneindex}场戏制作一份详尽的镜头清单（镜头调度设计）。
+## 文本输出语言: {lang}。
 
-场景细节:
-地点: {scene.location}
-时间: {scene.time}
-氛围: {scene.atmosphere}
+## 场景细节:
+地点: {location}
+时间: {time}
+氛围: {atmosphere}
 
-场景动作:
-"{paragraphs.slice(0, 5000)}"
+## 场景动作:
+{paragraphs}
 
-创作背景:
+## 创作背景:
 题材类型: {genre}
 剧本整体目标时长: {duration || "30s"}
 
-角色:
-{JSON.stringify(characters.map((c) => ({id: c.id, name: c.name, desc: c.visualPrompt || c.personality})))}
+## 角色:
+{characters}
 
-说明：
+## 说明：
 1. 设计一组覆盖全部情节动作的镜头序列。
 2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-12 秒，避免出现 JSON 截断错误。
 3. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
@@ -136,7 +146,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 7. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
 8. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式：主体+行为+环境，可补充：风格、色彩、光影、构图等美学元素。
 
-输出格式：JSON 数组，数组内对象包含以下字段：
+## 输出格式：JSON 数组，数组内对象包含以下字段：
 - id（字符串类型）
 - sceneId（字符串类型）
 - actionSummary（字符串类型）
@@ -148,7 +158,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - interval（对象类型）`,
       'GENERATE_SCRIPT': `你是一名专业的编剧。请根据以下提示词创作一个完整的影视剧本。
 
-创作要求：
+## 创作要求：
 1. 剧本时长：{duration}
 2. 题材类型：{genre}
 3. 输出语言：{lang}
@@ -156,13 +166,14 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 5. 情节紧凑，画面感强
 6. 角色性格鲜明，对话自然
 
-用户提示词：
+## 用户提示词：
 "{prompt}"
 
 请以Markdown格式输出剧本结构，不要使用 JSON 格式，直接输出可阅读的剧本文本。`,
-      'GENERATE_VISUAL_PROMPT': `为{genre}类视频中的{type}生成高还原度图像提示词，图像风格必须为：{visualStyle}。
-{type}的JSON格式信息如下: {JSON.stringify(data)}
-{type=='character'?'角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。':'场景要描述时间、地点、景色、光线、氛围等，不要出现角色。'}
+      'GENERATE_VISUAL_PROMPT': `为 {genre} 类视频中的 {type} 生成高还原度图像提示词，图像风格必须为：{visualStyle}。
+{type} 的描述信息如下: {desc}
+  - 角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
+  - 场景要描述时间、地点、景色、光线、氛围等，不要出现角色。
 中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
       'JOIN_IMAGES': `请将这些图片拼成一张{imageCount}宫格图片，图片之间留有1个像素的间隔，最终图片大小为{imageSize}。`,
       'IMAGE_GENERATION_WITH_REFERENCE': `生成符合下面描述的图画，画面风格必须为：{visualStyle}。
@@ -192,10 +203,11 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - 镜头情节概述：{shotSummary}
 - 镜头运动：{cameraMovement}
 - 景别：{shotSize}
-- 视频时长：{duration}秒
+- 视频时长：{duration}s
 - 画面风格：{visualStyle}
-- 出场角色：{characters.join(', ') || '无'}
-- 对白：{dialogue.join('\n') || '无'}
+- 出场角色：{characters}
+- 对白：
+     {dialogues}
 - 起始帧视觉描述：{startFrameVisualPrompt}
 - 结束帧视觉描述：{endFrameVisualPrompt}
 
@@ -208,7 +220,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 6. 输出纯文本提示词，无任何解释或注释
 
 请输出视频拍摄提示词：`,
-      'GENERATE_KEYFRAME_PROMPT': `{prompt}{imageCount > 1 ? " \\n 连环画规格："+IMAGE_X[imageCount]+"连环画图，包含 "+imageCount+" 张连续且风格统一的图片，每张长宽比 "+imageRate+"，白色背景，铺满整张图。" : ""}`,
+      'GENERATE_KEYFRAME_PROMPT': `连环画规格：{imageGridSpec} 连环画图，包含 {imageCount} 张连续且风格统一的图片，每张长宽比 {imageRate}，白色背景，铺满整张图。`,
       'GENERATE_CHARACTER_IMAGE': `生成符合下面要求的角色图片，图片风格必须为：{visualStyle}。
 图片内容：{prompt}
 
@@ -302,16 +314,16 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
   // 变量提示
   const variables: Record<string, string[]> = {
     'PARSE_SCRIPT': ['{text}', '{lang}'],
-    'GENERATE_SHOTS': ['{sceneIndex}', '{scene}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}'],
+    'GENERATE_SHOTS': ['{scenendex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}'],
     'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}'],
-    'GENERATE_VISUAL_PROMPT': ['{type}', '{data}', '{genre}', '{visualStyle}'],
+    'GENERATE_VISUAL_PROMPT': ['{type}', '{desc}', '{genre}', '{visualStyle}'],
     'JOIN_IMAGES': ['{imageCount}', '{imageSize}'],
     'IMAGE_GENERATION_WITH_REFERENCE': ['{prompt}', '{visualStyle}'],
     'GENERATE_CHARACTER_VARIATION': ['{character}', '{visualStyle}', '{variationPrompt}', '{baseCharacterPrompt}'],
-    'GENERATE_KEYFRAME_PROMPT': ['{prompt}', '{imageCount}', '{imageRate}'],
+    'GENERATE_KEYFRAME_PROMPT': ['{imageGridSpec}', '{imageCount}', '{imageRate}'],
     'GENERATE_CHARACTER_IMAGE': ['{prompt}', '{visualStyle}'],
     'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}'],
-    'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogue}'],
+    'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}'],
     'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
   };
 
@@ -354,6 +366,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
                     {templates.map((template) => (
                       <button
                         key={template.key}
+                        ref={selectedKey === template.key ? selectedItemRef : null}
                         onClick={() => {
                           setSelectedKey(template.key);
                           setShowDropdown(false);
