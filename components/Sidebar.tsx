@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
   ];
 
   return (
-    <aside className={`${collapsed ? 'w-20' : 'md:w-72 w-20'} bg-slate-800 border-r border-slate-600 h-full fixed left-0 top-0 flex flex-col z-50 select-none
+    <aside className={`${collapsed ? 'w-20' : 'lg:w-72 w-20'} bg-slate-800 border-r border-slate-600 h-full fixed left-0 top-0 flex flex-col z-50 select-none
     shadow-2xl animate-in slide-in-from-right-10 duration-300 transition-all ease-in-out`}>
       {/* Header */}
       <div className="p-6 border-b border-slate-900">
@@ -225,7 +225,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       {/* Collapse Toggle Button */}
       <button
         onClick={onToggleSidebar}
-        className="md:hidden xl:block absolute -right-3 top-20 bg-slate-800 border border-slate-600 text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-all rounded-full p-1.5 z-50 cursor-pointer"
+        className="hidden xl:block absolute -right-3 top-20 bg-slate-800 border border-slate-600 text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-all rounded-full p-1.5 z-50 cursor-pointer"
         title={collapsed ? '展开侧边栏' : '折叠侧边栏'}
       >
         {collapsed ? <PanelRight className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
