@@ -234,7 +234,7 @@ export const PROMPT_TEMPLATES = {
 
     ## 创作背景:
     题材类型: ${genre}
-    剧本整体目标时长: ${duration || "30s"}
+    剧本整体目标时长: ${duration}
 
     ## 角色:
     ${characters}
@@ -371,7 +371,7 @@ export const PROMPT_TEMPLATES = {
     - 镜头情节概述：${shotSummary}
     - 镜头运动：${cameraMovement}
     - 景别：${shotSize}
-    - 视频时长：${duration}秒
+    - 视频时长：${duration}
     - 画面风格：${visualStyle}
     - 出场角色：${characters}
     - 对白：

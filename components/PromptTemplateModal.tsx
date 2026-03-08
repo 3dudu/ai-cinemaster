@@ -131,7 +131,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
 ## 创作背景:
 题材类型: {genre}
-剧本整体目标时长: {duration || "30s"}
+剧本整体目标时长: {duration}
 
 ## 角色:
 {characters}
