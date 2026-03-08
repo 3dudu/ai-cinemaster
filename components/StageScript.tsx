@@ -568,24 +568,97 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
   };
 
   const renderStoryInput = () => (
-    <div className={`flex h-full bg-slate-900 text-slate-300 ${isMobile ? 'flex-col overflow-y-auto' : 'flex-row'}`}>
-      {/* Middle Column: Config Panel - Adjusted Width to w-96 */}
-      <div className={`${isMobile ? 'w-full' : 'w-96'} border-r border-slate-600 flex flex-col bg-slate-700`}>
-        {/* Header - Fixed Height 56px */}
-        <div className="h-14 md:px-6 px-2 border-b border-slate-600 flex items-center justify-between shrink-0">
-            <h2 className="text-lg font-bold text-slate-50 tracking-tight flex items-center gap-3">
+    <div className={`flex h-full overflow-y-auto bg-slate-900 text-slate-300 ${isMobile ? 'flex-col' : 'flex-row'}`}>
+      {/* Right: Text Editor - Optimized */}
+      <div className="h-full flex-1 flex flex-col bg-slate-900 relative">
+        <div className="h-14 border-b border-slate-600 flex items-center justify-between md:px-6 px-2 bg-slate-700 shrink-0">
+           <div className="flex items-center gap-3">
+              <h2 className="text-lg font-bold text-slate-50 tracking-tight flex items-center gap-3">
               <BookOpen className="w-5 h-5 text-slate-500" />
+              剧本和故事
+            </h2>
+           </div>
+           {isMobile && (
+           <button
+               onClick={() => setActiveTab('script')}
+               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+             >
+               <List className="w-3 h-3" />
+               分镜列表
+            </button>
+           )}
+        </div>
+
+        {/* AI Script Generation Input */}
+        <div className="border-b border-slate-600/50 bg-slate-700 md:p-4 p-2">
+           <div className="mx-auto">
+              <div className="flex gap-2">
+                 <input
+                    type="text"
+                    value={scriptPrompt}
+                    onChange={(e) => setScriptPrompt(e.target.value)}
+                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                    placeholder="输入简单提示词（如：一个关于青春校园的励志故事）..."
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleGenerateScript();
+                      }
+                    }}
+                 />
+                 <button
+                    onClick={handleGenerateScript}
+                    disabled={isGeneratingScript || !scriptPrompt.trim()}
+                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
+                      isGeneratingScript
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                        : 'bg-slate-600 text-slate-50 hover:bg-slate-500 shadow-lg shadow-slate-600/20'
+                    } ${!scriptPrompt.trim() ? 'opacity-50' : ''}`}
+                 >
+                    <Sparkles className={`w-3.5 h-3.5 ${isGeneratingScript ? 'animate-spin' : ''}`} />
+                    {isGeneratingScript ? '生成中...' : 'AI 生成剧本'}
+                 </button>
+              </div>
+           </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto md:px-4 px-2 bg-slate-700">
+           <div className={`mx-auto ${isMobile ? 'h-[600px]' : 'h-full'} flex flex-col py-2`}>
+              <textarea
+                  value={localScript}
+                  onChange={(e) => setLocalScript(e.target.value)}
+                  className="px-2 flex-1 rounded-lg bg-slate-800 text-slate-200 font-serif text-lg leading-loose focus:outline-none resize-none placeholder:text-slate-600"
+                  placeholder="在此输入故事大纲或直接粘贴剧本..."
+                  spellCheck={false}
+              />
+           </div>
+        </div>
+
+        {/* Editor Status Footer */}
+        <div className="h-8 border-t border-slate-600 bg-slate-700 px-4 flex items-center justify-end gap-4 text-[12px] text-slate-400 font-mono select-none">
+           <span>{localScript.length} 字符</span>
+           <span>{localScript.split('\n').length} 行</span>
+           <div className="flex items-center gap-1.5">
+             <div className={`w-1.5 h-1.5 rounded-full ${project.lastModified ? 'bg-green-800':'bg-red-800'}`}></div>
+             {project.lastModified ? '已自动保存' : '准备就绪'}
+           </div>
+        </div>
+      </div>
+      {/* Middle Column: Config Panel - Adjusted Width to w-96 */}
+      <div className={`${isMobile ? 'w-full' : 'w-96'} h-full border-l border-slate-600 flex flex-col bg-slate-700 shadow-2xl animate-in slide-in-from-right-10 duration-300 transition-all ease-in-out`}>
+        {/* Header - Fixed Height 56px */}
+        <div className="h-14 md:px-6 px-2 border-b border-slate-600 bg-slate-700 flex items-center justify-between shrink-0">
+            <h2 className="text-lg font-bold text-slate-50 tracking-tight flex items-center gap-3">
               项目配置
             </h2>
-{isMobile && (
+
             <button
                onClick={() => setActiveTab('script')}
                className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
              >
                <List className="w-3 h-3" />
-               分镜
+               分镜列表
             </button>
-)}
         </div>
 
         <div className="flex-1 overflow-y-auto md:p-6 md:pt-2 p-2 space-y-6">
@@ -905,78 +978,6 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
             )}
         </div>
       </div>
-
-      {/* Right: Text Editor - Optimized */}
-      <div className="flex-1 flex flex-col bg-slate-900 relative shadow-2xl animate-in slide-in-from-right-10 duration-300 transition-all ease-in-out">
-        <div className="h-14 border-b border-slate-600 flex items-center justify-between md:px-6 px-2 bg-slate-700 shrink-0">
-           <div className="flex items-center gap-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
-              <span className="text-xs font-bold text-slate-400">剧本编辑器</span>
-           </div>
-           <button
-               onClick={() => setActiveTab('script')}
-               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-             >
-               <List className="w-3 h-3" />
-               分镜
-            </button>
-        </div>
-
-        {/* AI Script Generation Input */}
-        <div className="border-b border-slate-600/50 bg-slate-900 md:p-4 p-2">
-           <div className="mx-auto">
-              <div className="flex gap-2">
-                 <input
-                    type="text"
-                    value={scriptPrompt}
-                    onChange={(e) => setScriptPrompt(e.target.value)}
-                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
-                    placeholder="输入简单提示词（如：一个关于青春校园的励志故事）..."
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleGenerateScript();
-                      }
-                    }}
-                 />
-                 <button
-                    onClick={handleGenerateScript}
-                    disabled={isGeneratingScript || !scriptPrompt.trim()}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
-                      isGeneratingScript
-                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                        : 'bg-slate-600 text-slate-50 hover:bg-slate-500 shadow-lg shadow-slate-600/20'
-                    } ${!scriptPrompt.trim() ? 'opacity-50' : ''}`}
-                 >
-                    <Sparkles className={`w-3.5 h-3.5 ${isGeneratingScript ? 'animate-spin' : ''}`} />
-                    {isGeneratingScript ? '生成中...' : 'AI 生成剧本'}
-                 </button>
-              </div>
-           </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto md:px-4 px-2">
-           <div className={`mx-auto ${isMobile ? 'h-[600px]' : 'h-full'} flex flex-col py-2`}>
-              <textarea
-                  value={localScript}
-                  onChange={(e) => setLocalScript(e.target.value)}
-                  className="px-2 flex-1 rounded-lg bg-slate-800 text-slate-200 font-serif text-lg leading-loose focus:outline-none resize-none placeholder:text-slate-600"
-                  placeholder="在此输入故事大纲或直接粘贴剧本..."
-                  spellCheck={false}
-              />
-           </div>
-        </div>
-
-        {/* Editor Status Footer */}
-        <div className="h-8 border-t border-slate-900 bg-slate-900 px-4 flex items-center justify-end gap-4 text-[12px] text-slate-600 font-mono select-none">
-           <span>{localScript.length} 字符</span>
-           <span>{localScript.split('\n').length} 行</span>
-           <div className="flex items-center gap-1.5">
-             <div className={`w-1.5 h-1.5 rounded-full ${project.lastModified ? 'bg-green-800':'bg-red-800'}`}></div>
-             {project.lastModified ? '已自动保存' : '准备就绪'}
-           </div>
-        </div>
-      </div>
     </div>
   );
 
@@ -998,17 +999,6 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                  <ScrollText className="w-5 h-5 text-slate-500" />
                  拍摄清单
               </h2>
-              
-              <div className="flex items-center gap-4">
-                  <div className="flex flex-col">
-                      <span className="text-[12px] text-slate-400 uppercase tracking-widest">项目</span>
-                      <span className="text-sm text-slate-200 font-medium">{project.scriptData?.title}</span>
-                  </div>
-                  <div className="flex flex-col">
-                      <span className="text-[12px] text-slate-400 uppercase tracking-widest">时长</span>
-                      <span className="text-sm font-mono text-slate-400">{project.targetDuration}</span>
-                  </div>
-              </div>
            </div>
 
            <div className="flex gap-2">
@@ -1017,285 +1007,15 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
              >
                <BookOpen className="w-3 h-3" />
-               剧本
+               剧本编辑
              </button>
            </div>
         </div>
   
         {/* Content Split View */}
-        <div className="flex-1 overflow-hidden flex">
-           
-           {/* Sidebar: Index */}
-           <div className="w-96 border-r border-slate-600 bg-slate-700 flex flex-col hidden xl:flex">
-              {/* Genre Selection 
-              <div className="md:p-6 p-2 border-b border-slate-900">
-                 <div>
-                   <div className="flex items-center justify-between mb-2">
-                     <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                       <TextQuote className="w-3 h-3" /> 题材类型
-                     </h3>
-                     {!editingGenre && (
-                       <button onClick={startEditGenre} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
-                         <Edit className="w-3 h-3" />
-                       </button>
-                     )}
-                   </div>
-                   {editingGenre ? (
-                     <div className="relative">
-                       <select
-                         value={tempGenre}
-                         onChange={(e) => setTempGenre(e.target.value)}
-                         className="w-full bg-slate-800 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1.5 appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                       >
-                         {GENRE_OPTIONS.map(opt => (
-                           <option key={opt.value} value={opt.value}>{opt.label}</option>
-                         ))}
-                       </select>
-                       <div className="absolute right-2 top-2 pointer-events-none">
-                         <ChevronRight className="w-3 h-3 text-slate-600 rotate-90" />
-                       </div>
-                       <div className="flex gap-2 mt-2">
-                         <button onClick={saveGenre} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
-                         <button onClick={() => setEditingGenre(false)} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
-                       </div>
-                     </div>
-                   ) : (
-                     <p className="text-xs text-slate-300 font-medium cursor-text hover:text-slate-50" onClick={startEditGenre}>{project.scriptData?.genre || '剧情片'}</p>
-                   )}
-                 </div>
-              </div>
-              */}
-              <div className="p-6 border-b border-slate-900">
-                 {/* Logline */}
-                 <div>
-                   <div className="flex items-center justify-between mb-2">
-                     <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                       <TextQuote className="w-3 h-3" /> 故事梗概
-                     </h3>
-                     {!editingLogline && (
-                       <button onClick={startEditLogline} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
-                         <Edit className="w-3 h-3" />
-                       </button>
-                     )}
-                   </div>
-                   {editingLogline ? (
-                     <div className="space-y-2">
-                       <textarea
-                         value={tempLogline}
-                         onChange={(e) => setTempLogline(e.target.value)}
-                         className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-600 focus:outline-none resize-none"
-                         rows={3}
-                       />
-                       <div className="flex gap-2">
-                         <button onClick={saveLogline} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
-                         <button onClick={() => setEditingLogline(false)} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
-                       </div>
-                     </div>
-                   ) : (
-                     <p className="text-sm text-slate-300 leading-relaxed font-serif cursor-text hover:text-slate-300" onClick={startEditLogline}>{project.scriptData?.logline}</p>
-                   )}
-                 </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                  {/* Characters */}
-                  <section>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                         <Users className="w-3 h-3" /> 演员表
-                      </h3>
-                      <button onClick={() => setShowAddCharacter(true)} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
-                         <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                       {project.scriptData?.characters.map(c => (
-                         <div key={c.id} className="flex justify-between items-center group cursor-default p-2 rounded hover:bg-slate-900/100 transition-colors">
-                            {editingCharacterId === c.id ? (
-                              <div className="flex-1 space-y-2">
-                                <input
-                                  type="text"
-                                  value={tempCharacter.name || ''}
-                                  onChange={(e) => setTempCharacter({ ...tempCharacter, name: e.target.value })}
-                                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                                  placeholder="角色名"
-                                />
-                                <select
-                                  value={tempCharacter.gender || '男'}
-                                  onChange={(e) => setTempCharacter({ ...tempCharacter, gender: e.target.value })}
-                                  className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                                >
-                                  <option value="男">男</option>
-                                  <option value="女">女</option>
-                                  <option value="其他">其他</option>
-                                </select>
-                                <input
-                                  type="text"
-                                  value={tempCharacter.age || ''}
-                                  onChange={(e) => setTempCharacter({ ...tempCharacter, age: e.target.value })}
-                                  className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                                  placeholder="年龄"
-                                />
-                                <input
-                                  type="text"
-                                  value={tempCharacter.personality || ''}
-                                  onChange={(e) => setTempCharacter({ ...tempCharacter, personality: e.target.value })}
-                                  className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                                  placeholder="性格特点"
-                                />
-                                <div className="flex gap-1">
-                                  <button onClick={saveCharacter} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
-                                  <button onClick={() => { setEditingCharacterId(null); setTempCharacter({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{c.name}</span>
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <span className="text-[12px] text-slate-500 font-mono">{c.gender}</span>
-                                  <button onClick={() => startEditCharacter(c)} className="text-slate-500 hover:text-slate-50 cursor-pointer"><Edit className="w-3 h-3" /></button>
-                                  <button onClick={() => deleteCharacter(c.id)} className="text-slate-500 hover:text-red-400 cursor-pointer"><Trash className="w-3 h-3" /></button>
-                                </div>
-                              </>
-                            )}
-                         </div>
-                       ))}
-                       {showAddCharacter && (
-                         <div className="space-y-2 p-2 bg-slate-800 rounded border border-slate-600">
-                           <input
-                             type="text"
-                             value={tempCharacter.name || ''}
-                             onChange={(e) => setTempCharacter({ ...tempCharacter, name: e.target.value })}
-                             className="w-full bg-slate-900 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                             placeholder="角色名"
-                           />
-                           <select
-                             value={tempCharacter.gender || '男'}
-                             onChange={(e) => setTempCharacter({ ...tempCharacter, gender: e.target.value })}
-                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                           >
-                             <option value="男">男</option>
-                             <option value="女">女</option>
-                             <option value="其他">其他</option>
-                           </select>
-                           <input
-                             type="text"
-                             value={tempCharacter.age || ''}
-                             onChange={(e) => setTempCharacter({ ...tempCharacter, age: e.target.value })}
-                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                             placeholder="年龄"
-                           />
-                           <input
-                             type="text"
-                             value={tempCharacter.personality || ''}
-                             onChange={(e) => setTempCharacter({ ...tempCharacter, personality: e.target.value })}
-                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                             placeholder="性格特点"
-                           />
-                           <div className="flex gap-1">
-                             <button onClick={addCharacter} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">添加</button>
-                             <button onClick={() => { setShowAddCharacter(false); setTempCharacter({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
-                           </div>
-                         </div>
-                       )}
-                    </div>
-                  </section>
-
-                  {/* Scenes */}
-                  <section>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                         <MapPin className="w-3 h-3" /> 场景列表
-                      </h3>
-                      <button onClick={() => setShowAddScene(true)} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
-                         <Plus className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <div className="space-y-1">
-                       {uniqueScenesList.map((s) => (
-                         <div key={s!.id} className="flex justify-between items-center group cursor-default p-2 rounded hover:bg-slate-900/100 transition-colors">
-                           {editingSceneId === s!.id ? (
-                             <div className="flex-1 space-y-2">
-                               <input
-                                 type="text"
-                                 value={tempScene.location || ''}
-                                 onChange={(e) => setTempScene({ ...tempScene, location: e.target.value })}
-                                 className="w-full bg-slate-800 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                                 placeholder="场景名称"
-                               />
-                               <input
-                                 type="text"
-                                 value={tempScene.time || ''}
-                                 onChange={(e) => setTempScene({ ...tempScene, time: e.target.value })}
-                                 className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                                 placeholder="时间"
-                               />
-                               <input
-                                 type="text"
-                                 value={tempScene.atmosphere || ''}
-                                 onChange={(e) => setTempScene({ ...tempScene, atmosphere: e.target.value })}
-                                 className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                                 placeholder="氛围"
-                               />
-                               <div className="flex gap-1">
-                                 <button onClick={saveScene} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
-                                 <button onClick={() => { setEditingSceneId(null); setTempScene({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
-                               </div>
-                             </div>
-                           ) : (
-                             <>
-                               <div className="flex flex-col gap-0.5">
-                                 <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{s!.location}</span>
-                                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500">
-                                   <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5"/> {s!.time}</span>
-                                   <span className="text-slate-600">|</span>
-                                   <span className="">{s!.atmosphere}</span>
-                                 </div>
-                               </div>
-                               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                 <button onClick={() => startEditScene(s!)} className="text-slate-500 hover:text-slate-50 cursor-pointer"><Edit className="w-3 h-3" /></button>
-                                 <button onClick={() => deleteScene(s!.id)} className="text-slate-500 hover:text-red-400 cursor-pointer"><Trash className="w-3 h-3" /></button>
-                               </div>
-                             </>
-                           )}
-                         </div>
-                       ))}
-                       {showAddScene && (
-                         <div className="space-y-2 p-2 bg-slate-800 rounded border border-slate-600">
-                           <input
-                             type="text"
-                             value={tempScene.location || ''}
-                             onChange={(e) => setTempScene({ ...tempScene, location: e.target.value })}
-                             className="w-full bg-slate-900 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                             placeholder="场景名称"
-                           />
-                           <input
-                             type="text"
-                             value={tempScene.time || ''}
-                             onChange={(e) => setTempScene({ ...tempScene, time: e.target.value })}
-                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                             placeholder="时间 (如: 日间/夜间)"
-                           />
-                           <input
-                             type="text"
-                             value={tempScene.atmosphere || ''}
-                             onChange={(e) => setTempScene({ ...tempScene, atmosphere: e.target.value })}
-                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                             placeholder="氛围"
-                           />
-                           <div className="flex gap-1">
-                             <button onClick={addScene} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">添加</button>
-                             <button onClick={() => { setShowAddScene(false); setTempScene({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
-                           </div>
-                         </div>
-                       )}
-                    </div>
-                  </section>
-              </div>
-           </div>
-  
-           {/* Main: Script & Shots */}
-           <div className="flex-1 overflow-y-auto bg-slate-900 p-0 shadow-2xl animate-in slide-in-from-right-10 duration-300 transition-all ease-in-out">
+      <div className={`flex-1 overflow-y-auto ${isMobile ? '' : 'flex'}`}>
+                      {/* Main: Script & Shots */}
+           <div className="h-full flex-1 overflow-y-auto bg-slate-900 p-0 ">
               <div className="max-w-5xl mx-auto pb-2">
                  {project.scriptData?.scenes.map((scene, index) => {
                    const sceneShots = project.shots.filter(s => s.sceneId === scene.id);
@@ -1368,7 +1088,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
 <div className="w-full flex justify-between items-center gap-4 md:gap-8">
                                 {/* Shot ID & Tech Data */}
-                                <div className="xl:w-32 flex-shrink-0 flex flex-col">
+                                <div className="md:w-32 flex-shrink-0 flex flex-col">
                                      <div className="flex gap-1 group-hover:opacity-100 transition-opacity items-center justify-between pb-1">
                                        <button
                                          onClick={() => startEditShot(shot)}
@@ -1437,7 +1157,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                         </div>
 
                                 {/* Prompt Preview */}
-                                <div className="w-full xl:block pl-6 border-l border-slate-600 group-hover:border-slate-300">
+                                <div className="w-full md:block pl-6 border-l border-slate-600 group-hover:border-slate-300">
                                    <div className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                                       <Aperture className="w-3 h-3" /> 画面提示词
                                    </div>
@@ -1455,6 +1175,274 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                      </div>
                    );
                  })}
+              </div>
+           </div>
+           {/* Sidebar: Index */}
+           <div className="md:w-96 h-full overflow-y-auto w-full border-r border-slate-600 bg-slate-700 flex flex-col md:flex shadow-2xl animate-in slide-in-from-right-10 duration-300 transition-all ease-in-out">
+              {/* Genre Selection 
+              <div className="md:p-6 p-2 border-b border-slate-900">
+                 <div>
+                   <div className="flex items-center justify-between mb-2">
+                     <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                       <TextQuote className="w-3 h-3" /> 题材类型
+                     </h3>
+                     {!editingGenre && (
+                       <button onClick={startEditGenre} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
+                         <Edit className="w-3 h-3" />
+                       </button>
+                     )}
+                   </div>
+                   {editingGenre ? (
+                     <div className="relative">
+                       <select
+                         value={tempGenre}
+                         onChange={(e) => setTempGenre(e.target.value)}
+                         className="w-full bg-slate-800 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1.5 appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                       >
+                         {GENRE_OPTIONS.map(opt => (
+                           <option key={opt.value} value={opt.value}>{opt.label}</option>
+                         ))}
+                       </select>
+                       <div className="absolute right-2 top-2 pointer-events-none">
+                         <ChevronRight className="w-3 h-3 text-slate-600 rotate-90" />
+                       </div>
+                       <div className="flex gap-2 mt-2">
+                         <button onClick={saveGenre} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
+                         <button onClick={() => setEditingGenre(false)} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
+                       </div>
+                     </div>
+                   ) : (
+                     <p className="text-xs text-slate-300 font-medium cursor-text hover:text-slate-50" onClick={startEditGenre}>{project.scriptData?.genre || '剧情片'}</p>
+                   )}
+                 </div>
+              </div>
+              */}
+              <div className="md:p-6 p-4 border-b border-slate-900">
+                 {/* Logline */}
+                 <div>
+                   <div className="flex items-center justify-between mb-2">
+                     <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                       <TextQuote className="w-3 h-3" /> 故事梗概
+                     </h3>
+                     {!editingLogline && (
+                       <button onClick={startEditLogline} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
+                         <Edit className="w-3 h-3" />
+                       </button>
+                     )}
+                   </div>
+                   {editingLogline ? (
+                     <div className="space-y-2">
+                       <textarea
+                         value={tempLogline}
+                         onChange={(e) => setTempLogline(e.target.value)}
+                         className="w-full h-32 bg-slate-800 border border-slate-600 text-slate-300 text-sm rounded p-2 focus:border-slate-600 focus:outline-none resize-none"
+                         rows={3}
+                       />
+                       <div className="flex gap-2">
+                         <button onClick={saveLogline} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
+                         <button onClick={() => setEditingLogline(false)} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
+                       </div>
+                     </div>
+                   ) : (
+                     <p className="text-sm text-slate-300 leading-relaxed font-serif cursor-text hover:text-slate-300" onClick={startEditLogline}>{project.scriptData?.logline}</p>
+                   )}
+                 </div>
+              </div>
+
+              <div className="flex-1 md:p-6 p-4 space-y-2">
+                  {/* Characters */}
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                         <Users className="w-3 h-3" /> 演员表
+                      </h3>
+                      <button onClick={() => setShowAddCharacter(true)} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
+                         <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {showAddCharacter && (
+                         <div className="space-y-2 p-2 bg-slate-800 rounded border border-slate-600">
+                           <input
+                             type="text"
+                             value={tempCharacter.name || ''}
+                             onChange={(e) => setTempCharacter({ ...tempCharacter, name: e.target.value })}
+                             className="w-full bg-slate-900 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                             placeholder="角色名"
+                           />
+                           <select
+                             value={tempCharacter.gender || '男'}
+                             onChange={(e) => setTempCharacter({ ...tempCharacter, gender: e.target.value })}
+                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                           >
+                             <option value="男">男</option>
+                             <option value="女">女</option>
+                             <option value="其他">其他</option>
+                           </select>
+                           <input
+                             type="text"
+                             value={tempCharacter.age || ''}
+                             onChange={(e) => setTempCharacter({ ...tempCharacter, age: e.target.value })}
+                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                             placeholder="年龄"
+                           />
+                           <input
+                             type="text"
+                             value={tempCharacter.personality || ''}
+                             onChange={(e) => setTempCharacter({ ...tempCharacter, personality: e.target.value })}
+                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                             placeholder="性格特点"
+                           />
+                           <div className="flex gap-1">
+                             <button onClick={addCharacter} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">添加</button>
+                             <button onClick={() => { setShowAddCharacter(false); setTempCharacter({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
+                           </div>
+                         </div>
+                       )}
+                       {project.scriptData?.characters.map(c => (
+                         <div key={c.id} className="flex justify-between items-center group cursor-default p-2 rounded hover:bg-slate-900/100 transition-colors">
+                            {editingCharacterId === c.id ? (
+                              <div className="flex-1 space-y-2">
+                                <input
+                                  type="text"
+                                  value={tempCharacter.name || ''}
+                                  onChange={(e) => setTempCharacter({ ...tempCharacter, name: e.target.value })}
+                                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                                  placeholder="角色名"
+                                />
+                                <select
+                                  value={tempCharacter.gender || '男'}
+                                  onChange={(e) => setTempCharacter({ ...tempCharacter, gender: e.target.value })}
+                                  className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                                >
+                                  <option value="男">男</option>
+                                  <option value="女">女</option>
+                                  <option value="其他">其他</option>
+                                </select>
+                                <input
+                                  type="text"
+                                  value={tempCharacter.age || ''}
+                                  onChange={(e) => setTempCharacter({ ...tempCharacter, age: e.target.value })}
+                                  className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                                  placeholder="年龄"
+                                />
+                                <input
+                                  type="text"
+                                  value={tempCharacter.personality || ''}
+                                  onChange={(e) => setTempCharacter({ ...tempCharacter, personality: e.target.value })}
+                                  className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                                  placeholder="性格特点"
+                                />
+                                <div className="flex gap-1">
+                                  <button onClick={saveCharacter} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
+                                  <button onClick={() => { setEditingCharacterId(null); setTempCharacter({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{c.name}</span>
+                                <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                                  <span className="text-[12px] text-slate-500 font-mono">{c.gender}</span>
+                                  <button onClick={() => startEditCharacter(c)} className="text-slate-500 hover:text-slate-50 cursor-pointer"><Edit className="w-3 h-3" /></button>
+                                  <button onClick={() => deleteCharacter(c.id)} className="text-slate-500 hover:text-red-400 cursor-pointer"><Trash className="w-3 h-3" /></button>
+                                </div>
+                              </>
+                            )}
+                         </div>
+                       ))}
+                    </div>
+                  </section>
+
+                  {/* Scenes */}
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                         <MapPin className="w-3 h-3" /> 场景列表
+                      </h3>
+                      <button onClick={() => setShowAddScene(true)} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
+                         <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      {showAddScene && (
+                         <div className="space-y-2 p-2 bg-slate-800 rounded border border-slate-600">
+                           <input
+                             type="text"
+                             value={tempScene.location || ''}
+                             onChange={(e) => setTempScene({ ...tempScene, location: e.target.value })}
+                             className="w-full bg-slate-900 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                             placeholder="场景名称"
+                           />
+                           <input
+                             type="text"
+                             value={tempScene.time || ''}
+                             onChange={(e) => setTempScene({ ...tempScene, time: e.target.value })}
+                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                             placeholder="时间 (如: 日间/夜间)"
+                           />
+                           <input
+                             type="text"
+                             value={tempScene.atmosphere || ''}
+                             onChange={(e) => setTempScene({ ...tempScene, atmosphere: e.target.value })}
+                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                             placeholder="氛围"
+                           />
+                           <div className="flex gap-1">
+                             <button onClick={addScene} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">添加</button>
+                             <button onClick={() => { setShowAddScene(false); setTempScene({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
+                           </div>
+                         </div>
+                       )}
+                       {uniqueScenesList.map((s) => (
+                         <div key={s!.id} className="flex justify-between items-center group cursor-default p-2 rounded hover:bg-slate-900/100 transition-colors">
+                           {editingSceneId === s!.id ? (
+                             <div className="flex-1 space-y-2">
+                               <input
+                                 type="text"
+                                 value={tempScene.location || ''}
+                                 onChange={(e) => setTempScene({ ...tempScene, location: e.target.value })}
+                                 className="w-full bg-slate-800 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                                 placeholder="场景名称"
+                               />
+                               <input
+                                 type="text"
+                                 value={tempScene.time || ''}
+                                 onChange={(e) => setTempScene({ ...tempScene, time: e.target.value })}
+                                 className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                                 placeholder="时间"
+                               />
+                               <input
+                                 type="text"
+                                 value={tempScene.atmosphere || ''}
+                                 onChange={(e) => setTempScene({ ...tempScene, atmosphere: e.target.value })}
+                                 className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
+                                 placeholder="氛围"
+                               />
+                               <div className="flex gap-1">
+                                 <button onClick={saveScene} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
+                                 <button onClick={() => { setEditingSceneId(null); setTempScene({}); }} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
+                               </div>
+                             </div>
+                           ) : (
+                             <>
+                               <div className="flex flex-col gap-0.5">
+                                 <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{s!.location}</span>
+                                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                                   <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5"/> {s!.time}</span>
+                                   <span className="text-slate-600">|</span>
+                                   <span className="">{s!.atmosphere}</span>
+                                 </div>
+                               </div>
+                               <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                                 <button onClick={() => startEditScene(s!)} className="text-slate-500 hover:text-slate-50 cursor-pointer"><Edit className="w-3 h-3" /></button>
+                                 <button onClick={() => deleteScene(s!.id)} className="text-slate-500 hover:text-red-400 cursor-pointer"><Trash className="w-3 h-3" /></button>
+                               </div>
+                             </>
+                           )}
+                         </div>
+                       ))}
+                    </div>
+                  </section>
               </div>
            </div>
         </div>
