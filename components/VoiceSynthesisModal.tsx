@@ -1,4 +1,4 @@
-import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, Speech, X } from 'lucide-react';
+import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, Speech,ChevronRight, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { VOICE_LIBRARY, VOICE_LIBRARY_TYPE_NAMES } from '../config/voiceLibrary';
 import { ModelService } from '../services/modelService';
@@ -277,7 +277,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
               <div className="bg-slate-800 p-3 rounded-xl border border-slate-600">
               <div className="flex items-center gap-3">
                 {/* Voice Library Filter */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 relative">
                   <select
                     value={selectedVoiceLibrary}
                     onChange={(e) => setSelectedVoiceLibrary(e.target.value)}
@@ -289,10 +289,13 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                     <option value="exquisite">臻品音库</option>
                     <option value="llm">大模型音库</option>
                   </select>
+                  <div className="absolute right-3 top-3 pointer-events-none">
+                    <ChevronRight className="w-3 h-3 text-slate-400 rotate-90" />
+                  </div>
                 </div>
 
                 {/* Voice Person */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 relative">
                   <select
                     value={ttsParams.per}
                     onChange={(e) => setTtsParams({ ...ttsParams, per: parseInt(e.target.value) })}
@@ -312,6 +315,9 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                       ))
                     )}
                   </select>
+                  <div className="absolute right-3 top-3 pointer-events-none">
+                    <ChevronRight className="w-3 h-3 text-slate-400 rotate-90" />
+                  </div>
                 </div>
 
                 {/* Preview Button */}
