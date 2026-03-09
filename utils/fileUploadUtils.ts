@@ -209,8 +209,7 @@ export async function uploadFileToService(params: UploadFileParams): Promise<Upl
  */
 function extractPureBase64(base64Data: string): string {
   // 如果包含data URL前缀，提取纯base64部分
-  const match = base64Data.match(/^data:image\/[a-zA-Z]+;base64,(.+)$/);
-  return match ? match[1] : base64Data;
+  return base64Data.replace(/^data:.+?;base64,/, '');
 }
 
 /**
@@ -220,7 +219,7 @@ function extractPureBase64(base64Data: string): string {
  */
 function detectFileExtensionFromBase64(base64Data: string): string {
   // 检查是否有MIME类型前缀
-  const mimeMatch = base64Data.match(/^data:image\/([a-zA-Z]+);/);
+  const mimeMatch = base64Data.match(/^data:(.+?);base64,/);
   if (mimeMatch) {
     return mimeMatch[1];
   }

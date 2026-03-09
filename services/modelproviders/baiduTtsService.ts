@@ -128,7 +128,7 @@ export function blobToBase64(blob: Blob): Promise<string> {
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
         // 移除 data URL 前缀
-        const base64 = reader.result.split(',')[1];
+        const base64 = reader.result;
         resolve(base64);
       } else {
         reject(new Error('Failed to convert blob to base64'));

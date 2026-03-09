@@ -886,17 +886,16 @@ export class ModelService {
 
       // 将 Blob 转换为 Base64 格式以便上传
       const audioBase64 = await (await this.getProviderModule('baidu')).blobToBase64(audioBlob);
-      const audioDataUrl = `data:audio/mp3;base64,${audioBase64}`;
       //console.log('audioDataUrl:', audioDataUrl);
       // 上传到文件服务器
       if(preview){
-        return audioDataUrl;
+        return audioBase64;
       }
 
       const uploadResponse = await uploadFileToService({
         fileType: projectId + '/audio/tts',
         base64Data: audioBase64,
-        fileName: 's.mp3'
+        fileName: projectId+'_tts.mp3'
       });
 
       if (uploadResponse.success && uploadResponse.data?.fileUrl) {
@@ -905,7 +904,7 @@ export class ModelService {
       } else {
         console.error(`音频上传失败: ${uploadResponse.error}`);
         // 上传失败时，返回 Base64 data URL
-        return audioDataUrl;
+        return audioBase64;
       }
     } catch (error) {
       console.error('语音合成失败:', error);
