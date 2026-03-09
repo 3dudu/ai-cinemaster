@@ -1137,7 +1137,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                       <div className="pl-6 border-l-2 border-slate-600 group-hover:border-slate-300 transition-colors py-1">
                                          {shot.dialogue.map((dlg, idx) => (
                                            <p key={idx} className="text-slate-400 font-serif italic text-sm mb-1">
-                                             {dlg.character ? <span className="text-slate-300 font-medium">{dlg.character}:</span> : null} {dlg.value}
+                                             {dlg.character ? <span className="text-slate-300 font-medium">{dlg.character}:</span> : null} "{dlg.value}"
                                            </p>
                                          ))}
                                       </div>

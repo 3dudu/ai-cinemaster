@@ -414,7 +414,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
     let dialogueText = '';
     if (shot.dialogue && shot.dialogue instanceof Array && shot.dialogue.length > 0) {
-      dialogueText = shot.dialogue.map(d => d.character ? `**${d.character}**: ${d.value}` : d.value).join('\n');
+      dialogueText = shot.dialogue.map(d => d.character ? `**${d.character}**: "${d.value}"` : `"${d.value}"`).join('\n');
     }
     // 优先使用生成的视频提示词，否则使用原有逻辑
     let prompt = shot.interval.videoPrompt || ("视频风格："+localStyle+"；景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:""));

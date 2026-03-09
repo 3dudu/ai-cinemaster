@@ -711,7 +711,7 @@ export class ModelService {
     if(shot.dialogue){
       if(shot.dialogue instanceof Array){
         shot.dialogue.forEach((d) => {
-          dialogues.push(d.character + "：" + d.value);
+          dialogues.push(d.character + '："' + d.value+'"');
         });
       }else{
         dialogues.push(shot.dialogue);
