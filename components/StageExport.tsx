@@ -1,6 +1,6 @@
-import { BarChart3, Check, CheckCircle, Clock, Download, Film, Layers, Loader2, Share2, X } from 'lucide-react';
+import { AlertCircle, ArrowRightLeft, BarChart3, Check, CheckCircle, Download, Film, Loader2, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { initializeCozeConfig, submitWorkflow } from '../services/cozeService';
+import { initializeCozeConfig, submitWorkflow } from '../services/modelproviders/cozeService';
 import { ProjectState } from '../types';
 import { uploadFileToService } from "../utils/fileUploadUtils";
 
@@ -13,6 +13,13 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
   const [isMerging, setIsMerging] = useState(false);
   const [mergeError, setMergeError] = useState<string | null>(null);
   const [selectedShotIds, setSelectedShotIds] = useState<Set<string>>(new Set());
+  const [focusedShot, setFocusedShot] = useState<{ shot: typeof project.shots[0], index: number } | null>(null);
+  const [isPlayingSelected, setIsPlayingSelected] = useState(false);
+  const [currentPlayingShotIndex, setCurrentPlayingShotIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const completedShots = project.shots.filter(s => s.interval?.videoUrl);
   const totalShots = project.shots.length;
@@ -26,8 +33,149 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
     .filter(s => selectedShotIds.has(s.id))
     .reduce((acc, s) => acc + (s.interval?.duration || 5), 0);
 
+  // Get selected shots in order for playback
+  const selectedShots = project.shots.filter(s => selectedShotIds.has(s.id) && s.interval?.videoUrl);
+
+  // 构建播放序列（包含主视频和转场视频）
+  const playSequence: Array<{ shot: typeof project.shots[0], url: string, type: 'main' | 'transition' }> = [];
+  selectedShots.forEach((shot, index) => {
+    playSequence.push({ shot, url: shot.interval!.videoUrl!, type: 'main' });
+    if (shot.transitionUrl && index < selectedShots.length - 1) {
+      playSequence.push({ shot, url: shot.transitionUrl, type: 'transition' });
+    }
+  });
+
+  // Calculate total duration of all selected videos (including transitions)
+  const totalDuration = playSequence.reduce((acc, item) => {
+    const duration = item.type === 'main' ? (item.shot.interval?.duration || 5) : 5; // 转场默认 3 秒
+    return acc + duration;
+  }, 0);
+
+  // Calculate current position in total timeline
+  const calculateTotalCurrentTime = () => {
+    let time = 0;
+    for (let i = 0; i < currentPlayingShotIndex; i++) {
+      time += (selectedShots[i]?.interval?.duration || 5);
+    }
+    time += currentTime;
+    return time;
+  };
+
+  const totalCurrentTime = calculateTotalCurrentTime();
+
+  // Handle video time update
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  // Handle video loaded
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  // Toggle play/pause
+  const handleTogglePlayPause = () => {
+    if (!videoRef.current) return;
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+      setIsPaused(false);
+    } else {
+      videoRef.current.pause();
+      setIsPaused(true);
+    }
+  };
+
+  // Jump to previous video
+  const handlePrevious = () => {
+    if (currentPlayingShotIndex > 0) {
+      setCurrentPlayingShotIndex(currentPlayingShotIndex - 1);
+    }
+  };
+
+  // Jump to next video
+  const handleNext = () => {
+    if (currentPlayingShotIndex < playSequence.length - 1) {
+      setCurrentPlayingShotIndex(currentPlayingShotIndex + 1);
+    }
+  };
+
+  // Handle progress bar click
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!videoRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+
+    // Find which video should play based on percentage
+    const targetTime = percentage * totalDuration;
+    let accumulatedTime = 0;
+
+    for (let i = 0; i < playSequence.length; i++) {
+      const item = playSequence[i];
+      const itemDuration = item.type === 'main' ? (item.shot.interval?.duration || 5) : 3;
+      if (accumulatedTime + itemDuration >= targetTime) {
+        setCurrentPlayingShotIndex(i);
+        const timeInVideo = targetTime - accumulatedTime;
+        videoRef.current.currentTime = timeInVideo;
+        return;
+      }
+      accumulatedTime += itemDuration;
+    }
+  };
+
+  // Handle video ended event - auto play next video
+  const handleVideoEnded = () => {
+    if (!isPlayingSelected) return;
+    if (currentPlayingShotIndex < playSequence.length - 1) {
+      setCurrentPlayingShotIndex(prev => prev + 1);
+    } else {
+      // All videos played, stop at end
+      //setIsPlayingSelected(false);
+      setCurrentPlayingShotIndex(0);
+      setIsPlayingSelected(false);
+    }
+  };
+
+  // Start playing selected shots sequentially
+  const handlePlaySelected = () => {
+    if (playSequence.length === 0) return;
+    setIsPlayingSelected(true);
+    setCurrentPlayingShotIndex(0);
+    setCurrentTime(0);
+    setIsPaused(false);
+  };
+
+  // Stop playing
+  const handleStopPlayback = () => {
+    //setIsPlayingSelected(false);
+    setCurrentPlayingShotIndex(0);
+    setCurrentTime(0);
+    setIsPaused(false);
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  // Auto play when currentPlayingShotIndex changes
+  React.useEffect(() => {
+    if (isPlayingSelected && videoRef.current && playSequence[currentPlayingShotIndex]) {
+      setIsPaused(false);
+      //setCurrentTime(0);
+    }
+  }, [currentPlayingShotIndex, isPlayingSelected, playSequence]);
+
+
   // Toggle shot selection
   const toggleShotSelection = (shotId: string) => {
+    // Stop playback when modifying selection
+    if (isPlayingSelected) {
+      handleStopPlayback();
+    }
     setSelectedShotIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(shotId)) {
@@ -60,25 +208,34 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
     setMergeError(null);
 
     try {
-      // 收集选中镜头的视频 URL
+      // 收集选中镜头的视频 URL（包含转场视频）
       const selectedShots = project.shots.filter(s => selectedShotIds.has(s.id) && s.interval?.videoUrl);
-      const videoUrls = selectedShots
-        .map(shot => shot.interval?.videoUrl)
-        .filter((url): url is string => !!url);
+      const videoUrls: string[] = [];
 
-      console.log("开始合并视频...", videoUrls.length, "个视频片段");
+      selectedShots.forEach((shot, index) => {
+        // 添加主视频
+        if (shot.interval?.videoUrl) {
+          videoUrls.push(shot.interval.videoUrl);
+        }
+        // 如果有转场视频且不是最后一个镜头，添加转场视频
+        if (shot.transitionUrl && index < selectedShots.length - 1) {
+          videoUrls.push(shot.transitionUrl);
+        }
+      });
+
+      //console.log("开始合并视频...", videoUrls.length, "个视频片段");
 
       // 调用 Coze API 合并视频
       let mergedUrl = await submitWorkflow(videoUrls);
 
       try {
         const uploadResponse = await uploadFileToService({
-          fileType: project.id+'_video',
+          fileType: project.id+'/video',
           fileUrl: mergedUrl
         });
 
         if (uploadResponse.success && uploadResponse.data?.fileUrl) {
-          console.log(`视频已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
+          //console.log(`视频已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
           mergedUrl = uploadResponse.data.fileUrl;
         } else {
           console.error(`视频上传失败: ${uploadResponse.error}`);
@@ -87,7 +244,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
         console.error(`处理生成图片时出错:`, error);
       }
 
-      console.log("视频合并完成:", mergedUrl);
+      //console.log("视频合并完成:", mergedUrl);
 
       // 保存合并后的视频 URL 到 project
       updateProject({ mergedVideoUrl: mergedUrl });
@@ -106,80 +263,148 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
     // 创建下载链接
     const link = document.createElement('a');
     link.href = project.mergedVideoUrl;
+    link.target = '_blank';
     link.download = `${project.scriptData?.title || 'merged-video'}.mp4`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  const handleDownloadSelected = async () => {
+    if (selectedShotIds.size === 0) return;
+
+    const shotsToDownload = project.shots.filter(s => selectedShotIds.has(s.id) && s.interval?.videoUrl);
+
+    for (let i = 0; i < shotsToDownload.length; i++) {
+      const shot = shotsToDownload[i];
+      const videoUrl = shot.interval?.videoUrl;
+      if (!videoUrl) continue;
+
+      // 下载主视频
+      const response = await fetch(videoUrl);
+      if (!response.ok) {
+        throw new Error(`下载失败: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.download = `${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}.mp4`;
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // 下载转场视频（如果存在）
+      if (shot.transitionUrl) {
+        const transitionResponse = await fetch(shot.transitionUrl);
+        if (transitionResponse.ok) {
+          const transitionBlob = await transitionResponse.blob();
+          const transitionUrl = window.URL.createObjectURL(transitionBlob);
+          const transitionA = document.createElement('a');
+          transitionA.href = transitionUrl;
+          transitionA.target = '_blank';
+          transitionA.download = `${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}-transition.mp4`;
+
+          document.body.appendChild(transitionA);
+          transitionA.click();
+          document.body.removeChild(transitionA);
+        }
+      }
+      window.URL.revokeObjectURL(url);
+
+      // 创建下载链接
+      /*
+      const link = document.createElement('a');
+      link.href = videoUrl;
+      link.target = '_blank';
+      link.download = `${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      */
+      // 添加小延迟避免浏览器阻塞
+      if (i < shotsToDownload.length - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+  };
+
+    if (!project.shots.length) return (
+        <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">
+            <AlertCircle className="w-12 h-12 mb-4 opacity-50"/>
+            <p>暂无可导出镜头，请先在导演阶段完成镜头制作。</p>
+        </div>
+    );
+
   return (
-    <div className="flex flex-col h-full bg-[#0e1229] overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
       
       {/* Header - Consistent with Director */}
-      <div className="h-16 border-b border-slate-800 bg-[#0e1230] px-6 flex items-center justify-between shrink-0">
+      <div className="h-14 border-b border-slate-600 bg-slate-700 md:px-6 px-2 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-3">
-                  <Film className="w-5 h-5 text-indigo-500" />
+              <h2 className="text-lg font-bold text-slate-50 flex items-center gap-3">
+                  <Film className="w-5 h-5 text-slate-500" />
                   成片与导出
-                  <span className="text-xs text-slate-600 font-mono font-normal uppercase tracking-wider bg-black/30 px-2 py-1 rounded">Rendering & Export</span>
               </h2>
           </div>
           <div className="flex items-center gap-2">
-             <span className="text-[12px] text-slate-500 font-mono uppercase bg-slate-900 border border-slate-800 px-2 py-1 rounded">
-               Status: {progress === 100 ? 'READY' : 'IN PROGRESS'}
+             <span className="text-[12px] text-slate-500 font-mono uppercase bg-slate-900 border border-slate-600 px-2 py-1 rounded">
+               状态: {progress === 100 ? '完成' : '制作中'}
              </span>
           </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 md:p-12">
+      <div className="flex-1 overflow-y-auto md:p-6 p-0 md:p-12">
         <div className="max-w-6xl mx-auto space-y-8">
           
           {/* Main Status Panel */}
-          <div className="bg-[#0c0c2d] border border-slate-800 rounded-xl p-8 shadow-2xl relative overflow-hidden group">
+          <div className="bg-slate-800 md:border border-slate-600 rounded-xl p-2 sm:p-6 shadow-2xl relative overflow-hidden group">
              {/* Background Decoration */}
-             <div className="absolute top-0 right-0 p-48 bg-indigo-900/5 blur-[120px] rounded-full pointer-events-none"></div>
-             <div className="absolute bottom-0 left-0 p-32 bg-emerald-900/5 blur-[100px] rounded-full pointer-events-none"></div>
+             <div className="absolute top-0 right-0 p-48 bg-slate-900/5 blur-[120px] rounded-full pointer-events-none"></div>
+             <div className="absolute bottom-0 left-0 p-32 bg-green-900/5 blur-[100px] rounded-full pointer-events-none"></div>
 
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 relative z-10 gap-6">
-               <div>
+             <div className="flex flex-row md:flex-row justify-between items-start md:items-center mb-4 relative z-10 gap-6">
+               <div className='flex-1'>
                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{project?.title || '未命名项目'}</h3>
-                    <span className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-slate-400 text-[12px] rounded uppercase font-mono tracking-wider">Master Sequence</span>
+                    <h3 className="text-2xl md:text-3xl font-bold text-slate-50 tracking-tight">{project?.title || '未命名项目'}</h3>
                  </div>
-                 <div className="flex items-center gap-6 mt-3">
+                 <div className="flex items-center gap-4 mt-3">
                     <div className="flex flex-col">
-                        <span className="text-[11px] text-slate-600 uppercase tracking-widest font-bold mb-0.5">Shots</span>
+                        <span className="text-[12px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">镜头</span>
                         <span className="text-sm font-mono text-slate-300">{project.shots.length}</span>
                     </div>
                     <div className="w-px h-6 bg-slate-800"></div>
                     <div className="flex flex-col">
-                        <span className="text-[11px] text-slate-600 uppercase tracking-widest font-bold mb-0.5">Est. Duration</span>
+                        <span className="text-[12px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">累计时长</span>
                         <span className="text-sm font-mono text-slate-300">~{estimatedDuration}s</span>
                     </div>
                     <div className="w-px h-6 bg-slate-800"></div>
                     <div className="flex flex-col">
-                        <span className="text-[11px] text-slate-600 uppercase tracking-widest font-bold mb-0.5">Target</span>
+                        <span className="text-[12px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">目标时长</span>
                         <span className="text-sm font-mono text-slate-300">{project.targetDuration}</span>
                     </div>
                  </div>
                </div>
-               
-               <div className="text-right bg-black/20 p-4 rounded-lg border border-white/5 backdrop-blur-sm min-w-[160px]">
-                 <div className="flex items-baseline justify-end gap-1 mb-1">
-                     <span className="text-3xl font-mono font-bold text-indigo-400">{progress}</span>
-                     <span className="text-sm text-slate-500">%</span>
-                 </div>
-                 <div className="text-[12px] text-slate-500 uppercase tracking-widest flex items-center justify-end gap-2">
-                    {progress === 100 ? <CheckCircle className="w-3 h-3 text-green-500" /> : <BarChart3 className="w-3 h-3" />}
-                    Render Status
-                 </div>
-               </div>
+
+               <div className="text-right bg-slate-700/20 p-4 rounded-lg border border-white/5 backdrop-blur-sm min-w-[60px]">
+                  <div className="flex items-baseline justify-end gap-1 mb-1">
+                      <span className="text-3xl font-mono font-bold text-slate-400">{progress}</span>
+                      <span className="text-sm text-slate-500">%</span>
+                  </div>
+                  <div className="text-[12px] text-slate-500 uppercase tracking-widest flex items-center justify-end gap-2">
+                      {progress === 100 ? <CheckCircle className="w-3 h-3 text-green-500" /> : <BarChart3 className="w-3 h-3" />}
+                      进度
+                  </div>
+                </div>
              </div>
 
              {/* Timeline Visualizer Strip */}
-             <div className="mb-10">
-                <div className="flex justify-between items-center text-[12px] text-slate-600 font-mono uppercase tracking-widest mb-2 px-1">
-                    <span>Sequence Map</span>
+             <div className="mb-4">
+                <div className="flex justify-between items-center text-[12px] text-slate-400 font-mono uppercase tracking-widest mb-2 px-1">
+                    <span>分镜序列图</span>
                     <span>~{selectedDuration}s</span>
                 </div>
 
@@ -187,13 +412,13 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                 <div className="flex justify-between items-center mb-2 px-1">
                     <div className="flex items-center gap-4">
                         <span className="text-[12px] text-slate-500 font-mono">
-                            已选择: <span className="text-indigo-400 font-bold">{selectedShotIds.size}</span> / {completedShots.length}
+                            已选择: <span className="text-slate-400 font-bold">{selectedShotIds.size}</span> / {completedShots.length}
                         </span>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={selectAllCompleted}
                                 disabled={completedShots.length === 0}
-                                className="text-[11px] text-slate-500 hover:text-indigo-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                                className="text-[11px] text-slate-500 hover:text-slate-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
                             >
                                 <Check className="w-3 h-3" />
                                 全选
@@ -201,7 +426,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                             <button
                                 onClick={deselectAll}
                                 disabled={selectedShotIds.size === 0}
-                                className="text-[11px] text-slate-500 hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                                className="text-[11px] text-slate-500 hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
                             >
                                 <X className="w-3 h-3" />
                                 取消
@@ -210,9 +435,9 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                     </div>
                 </div>
 
-                <div className="h-20 bg-[#090923] rounded-lg border border-slate-800 flex items-center px-2 gap-1 overflow-x-auto custom-scrollbar relative shadow-inner">
+                <div className="h-20 bg-slate-700 rounded-lg border border-slate-600 flex items-center px-2 gap-1 overflow-x-auto custom-scrollbar relative shadow-inner">
                    {project.shots.length === 0 ? (
-                      <div className="w-full flex items-center justify-center text-slate-800 text-xs font-mono uppercase tracking-widest">
+                      <div className="w-full flex items-center justify-center text-slate-600 text-xs font-mono uppercase tracking-widest">
                           <Film className="w-4 h-4 mr-2" />
                           无可用镜头
                       </div>
@@ -224,47 +449,245 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                           <div
                             key={shot.id}
                             onClick={() => isDone && toggleShotSelection(shot.id)}
-                            className={`h-14 min-w-[4px] flex-1 rounded-[2px] transition-all relative group flex flex-col justify-end overflow-hidden cursor-pointer ${
+                            onMouseEnter={() => setFocusedShot({ shot, index: idx })}
+                            onMouseLeave={() => setFocusedShot(null)}
+                            className={`h-14 min-w-[18px] flex-1 rounded-[2px] transition-all relative group flex flex-col justify-end overflow-hidden cursor-pointer ${
                               isSelected
-                                ? 'bg-indigo-600/60 border-2 border-indigo-400'
+                                ? 'bg-slate-600 border-2 border-slate-400'
                                 : isDone
-                                  ? 'bg-indigo-900/40 border border-indigo-500/30 hover:bg-indigo-500/40'
-                                  : 'bg-slate-900 border border-slate-800 cursor-not-allowed opacity-50'
+                                  ? 'bg-slate-600 border border-slate-500/30 hover:bg-slate-400/50'
+                                  : 'bg-slate-800/80 border border-slate-600 cursor-not-allowed opacity-50'
                             }`}
                             title={`镜头 ${idx+1}: ${shot.actionSummary}`}
                           >
                              {/* Mini Progress Bar inside timeline segment */}
-                             {isDone && !isSelected && <div className="h-full w-full bg-indigo-500/20" title={`镜头 ${idx+1}: ${shot.actionSummary}`}></div>}
+                             {isDone && !isSelected && <div className="h-full w-full bg-slate-500/20" title={`镜头 ${idx+1}: ${shot.actionSummary}`}></div>}
 
                              {/* Selection Indicator */}
                              {isSelected && (
                                <div className="absolute inset-0 flex items-center justify-center">
-                                 <Check className="w-4 h-4 text-white" />
+                                 <Check className="w-4 h-4 text-slate-50" />
                                </div>
                              )}
 
                              {/* Hover Tooltip */}
                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 whitespace-nowrap">
-                                <div className="bg-black text-white text-[12px] px-2 py-1 rounded border border-slate-700 shadow-xl">
-                                    镜头 {idx + 1}{isDone ? ' ✓' : ''}
+                                <div className="bg-slate-700 text-slate-50 text-[12px] px-2 py-1 rounded border border-slate-600 shadow-xl">
+                                    镜头 {idx + 1}{isDone ? ' ✓' : ''}{shot.transitionUrl ? ' 🔄' : ''}
                                 </div>
                              </div>
+
+                             {/* Transition Marker */}
+                             {shot.transitionUrl && (
+                               <div className="absolute z-10 inset-0 p-1 flex items-end justify-center">
+                                 <ArrowRightLeft className="w-3 h-3 text-cyan-500" />
+                               </div>
+                             )}
                           </div>
                         )
                       })
                    )}
                 </div>
+
+                {/* Shot Summary Display */}
+                <div className="mt-3 bg-slate-700 rounded-lg border border-slate-600 p-4 min-h-[80px] flex items-center justify-center">
+                  {(() => {
+                    const displayShot = focusedShot || (() => {
+                      const firstSelectedShotId = Array.from(selectedShotIds)[0];
+                      if (!firstSelectedShotId) return null;
+                      const shot = project.shots.find(s => s.id === firstSelectedShotId);
+                      if (!shot) return null;
+                      const idx = project.shots.indexOf(shot);
+                      return { shot, index: idx };
+                    })();
+
+                    if (!displayShot) {
+                      return (
+                        <div className="flex items-center gap-2 text-slate-600 text-xs font-mono uppercase tracking-widest">
+                          <Film className="w-4 h-4" />
+                          鼠标悬停或选中镜头查看详情
+                        </div>
+                      );
+                    }
+
+                    const isSelected = selectedShotIds.has(displayShot.shot.id);
+                    return (
+                      <div className="w-full text-center">
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <Film className="w-4 h-4 text-slate-400" />
+                          <span className="text-xs font-bold text-slate-400 font-mono uppercase tracking-widest">
+                            镜头 {displayShot.index + 1}
+                          </span>
+                          {isSelected && (
+                            <Check className="w-3 h-3 text-green-400" />
+                          )}
+                          {displayShot.shot.transitionUrl && (
+                            <ArrowRightLeft className="w-3 h-3 text-cyan-500" />
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-300 leading-relaxed line-clamp-2">
+                          {displayShot.shot.actionSummary}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
              </div>
 
-             {/* Action Buttons */}
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {/* Video Preview */}
+               <div className="mb-4">
+                 <div className="flex justify-between items-center mb-2 px-1">
+                   <div className="flex items-center gap-2">
+                     <span className="text-[12px] text-slate-600 font-bold uppercase tracking-widest">
+                       {isPlayingSelected ? '播放选中镜头' : '成片预览'}
+                     </span>
+                     {isPlayingSelected && (
+                       <span className="text-[11px] text-slate-400 font-mono bg-slate-500/10 px-2 py-0.5 rounded">
+                         {currentPlayingShotIndex + 1} / {selectedShots.length}
+                       </span>
+                     )}
+                   </div>
+                   {isPlayingSelected && (
+                     <button
+                       onClick={handleStopPlayback}
+                       className="text-[11px] text-red-400 hover:text-red-300 font-mono bg-red-500/10 px-2 py-1 rounded transition-colors cursor-pointer"
+                     >
+                       停止播放
+                     </button>
+                   )}
+                 </div>
+                 <div className="w-full bg-slate-700 rounded-lg aspect-video bg-slate-700 rounded-lg overflow-hidden border border-slate-600 relative">
+                   <video
+                     ref={videoRef}
+                     controls
+                     autoPlay
+                     className="w-full h-full object-cover"
+                     src={isPlayingSelected ? playSequence[currentPlayingShotIndex]?.url : project.mergedVideoUrl}
+                     onEnded={isPlayingSelected ? handleVideoEnded : undefined}
+                     onTimeUpdate={isPlayingSelected ? handleTimeUpdate : undefined}
+                     key={isPlayingSelected ? `${playSequence[currentPlayingShotIndex]?.shot.id}-${playSequence[currentPlayingShotIndex]?.type}` : 'merged'}
+                   >
+                     您的浏览器不支持视频播放。
+                   </video>
+
+                   {/* Custom Playback Control Bar for Selected Videos */}
+                   {isPlayingSelected && (
+                     <div className="absolute top-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-2 pb-2 px-4">
+                       {/* Shot Indicator and Controls */}
+                       <div className="flex items-center justify-between mb-2">
+                         <div className="flex items-center gap-2">
+                           <Film className="w-3 h-3 text-slate-400" />
+                           <span className="text-xs font-bold text-slate-400 font-mono uppercase tracking-widest">
+                             {playSequence[currentPlayingShotIndex]?.type === 'transition' ? '转场' : `镜头 ${project.shots.indexOf(playSequence[currentPlayingShotIndex]?.shot!) + 1}`}
+                           </span>
+                         </div>
+                       </div>
+
+                       {/* Total Progress Bar */}
+                       <div className="space-y-1 relative">
+                         {/* Individual Video Markers */}
+                         <div className="h-1.5 bg-slate-700 rounded-full relative cursor-pointer overflow-hidden">
+                           {playSequence.map((item, idx) => {
+                             const startTime = playSequence.slice(0, idx).reduce((acc, s) => {
+                               const duration = s.type === 'main' ? (s.shot.interval?.duration || 5) : 3;
+                               return acc + duration;
+                             }, 0);
+                             const itemDuration = item.type === 'main' ? (item.shot.interval?.duration || 5) : 3;
+                             const widthPercent = (itemDuration / totalDuration) * 100;
+                             const leftPercent = (startTime / totalDuration) * 100;
+                             return (
+                               <div
+                                 key={`${item.shot.id}-${item.type}`}
+                                 className={`absolute h-full rounded-l-sm rounded-r-sm ${
+                                   idx < currentPlayingShotIndex
+                                     ? 'bg-slate-500'
+                                     : idx === currentPlayingShotIndex
+                                       ? 'bg-slate-600'
+                                       : 'bg-slate-600'
+                                 }`}
+                                 style={{
+                                   left: `${leftPercent}%`,
+                                   width: `${widthPercent}%`,
+                                 }}
+                               />
+                             );
+                           })}
+                         </div>
+                         {/* Clickable Progress Overlay */}
+                         <div
+                           onClick={handleProgressClick}
+                           className="h-6 absolute top-1/2 -translate-y-1/2 left-0 right-0 cursor-pointer"
+                           style={{ top: '0px' }}
+                         />
+
+                         {/* Time Display */}
+                         <div className="flex justify-between text-[10px] text-slate-400 font-mono mt-1">
+                           <span>{Math.floor(totalCurrentTime / 60)}:{(totalCurrentTime % 60).toFixed(0).padStart(2, '0')}</span>
+                           <span>{Math.floor(totalDuration / 60)}:{(totalDuration % 60).toFixed(0).padStart(2, '0')}</span>
+                         </div>
+                       </div>
+                     </div>
+                   )}
+                 </div>
+                 {isPlayingSelected && playSequence[currentPlayingShotIndex] && (
+                   <div className="mt-2 bg-slate-800 border border-slate-600 rounded-lg p-3">
+                     <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">
+                       {playSequence[currentPlayingShotIndex].type === 'transition'
+                         ? '转场动画'
+                         : playSequence[currentPlayingShotIndex].shot.actionSummary}
+                     </p>
+                   </div>
+                 )}
+               </div>
+
+             {/* Merge Error Message */}
+             {mergeError && (
+               <div className="bg-red-900/10 border border-red-900/50 text-red-500 text-xs rounded p-3 flex items-center gap-2">
+                 <BarChart3 className="w-4 h-4" />
+                 {mergeError}
+               </div>
+             )}
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <button
+                 onClick={handlePlaySelected}
+                 disabled={playSequence.length === 0 || isPlayingSelected}
+                 className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border cursor-pointer ${
+                   playSequence.length > 0 && !isPlayingSelected
+                     ? 'bg-slate-600 text-slate-50 hover:bg-slate-500 border-slate-500 shadow-lg shadow-slate-600/20'
+                     : 'bg-slate-900 text-slate-600 border-slate-600 cursor-not-allowed'
+                 }`}>
+                 {isPlayingSelected ? (
+                   <>
+                     <Loader2 className="w-4 h-4 animate-spin" />
+                     播放中...
+                   </>
+                 ) : (
+                   <>
+                     <Film className="w-4 h-4" />
+                     播放选中 ({selectedShotIds.size})
+                   </>
+                 )}
+               </button>
+               <button
+                  onClick={handleDownloadSelected}
+                  disabled={selectedShotIds.size === 0}
+                  className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border cursor-pointer ${
+                    selectedShotIds.size > 0
+                      ? 'bg-slate-700 text-slate-50 hover:bg-slate-600 border-slate-500 shadow-lg shadow-slate-600/20'
+                      : 'bg-slate-900 text-slate-600 border-slate-600 cursor-not-allowed'
+                  }`}>
+                 <Download className="w-4 h-4" />
+                 下载选中 ({selectedShotIds.size})
+               </button>
                <button
                   onClick={handleMerge}
                   disabled={selectedShotIds.size === 0 || isMerging}
-                  className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border ${
+                  className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border cursor-pointer ${
                  selectedShotIds.size > 0 && !isMerging
-                   ? 'bg-white text-black hover:bg-slate-200 border-white shadow-lg shadow-white/5'
-                   : 'bg-slate-900 text-slate-600 border-slate-800 cursor-not-allowed'
+                   ? 'bg-slate-600 text-slate-50 hover:bg-slate-500 border-white shadow-lg shadow-white/5'
+                   : 'bg-slate-700 text-slate-600 border-slate-600 cursor-not-allowed'
                }`}>
                  {isMerging ? (
                    <>
@@ -279,7 +702,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                  ) : (
                    <>
                      <Film className="w-4 h-4" />
-                     合并选中视频 ({selectedShotIds.size})
+                     合并视频
                    </>
                  )}
                </button>
@@ -287,65 +710,13 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                <button
                   onClick={handleDownload}
                   disabled={!project.mergedVideoUrl}
-                  className={`h-12 bg-[#0e1230] hover:bg-slate-800 text-slate-300 border border-slate-700 hover:border-slate-500 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all ${
+                  className={`h-12 bg-slate-700 hover:bg-slate-500 text-slate-300 border border-slate-600 hover:border-slate-300 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all cursor-pointer ${
                     !project.mergedVideoUrl ? 'cursor-not-allowed opacity-50' : ''
                   }`}>
                  <Download className="w-4 h-4" />
-                 下载视频 (.mp4)
+                 下载成片
                </button>
              </div>
-
-             {/* Video Preview */}
-             {project.mergedVideoUrl && (
-               <div className="mt-8">
-                 <div className="flex justify-between items-center mb-2 px-1">
-                   <span className="text-[12px] text-slate-600 font-bold uppercase tracking-widest">Video Preview</span>
-                   <span className="text-[12px] text-slate-500 font-mono">Ready to download</span>
-                 </div>
-                 <div className="w-full bg-black rounded-lg overflow-hidden border border-slate-800">
-                   <video
-                     controls
-                     className="w-full"
-                     src={project.mergedVideoUrl}
-                   >
-                     您的浏览器不支持视频播放。
-                   </video>
-                 </div>
-               </div>
-             )}
-
-             {/* Merge Error Message */}
-             {mergeError && (
-               <div className="bg-red-900/10 border border-red-900/50 text-red-500 text-xs rounded p-3 flex items-center gap-2">
-                 <BarChart3 className="w-4 h-4" />
-                 {mergeError}
-               </div>
-             )}
-          </div>
-
-          {/* Secondary Options */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-5 bg-[#0c0c2d] border border-slate-800 rounded-xl hover:border-slate-600 transition-colors group cursor-pointer flex flex-col justify-between h-32">
-                  <Layers className="w-5 h-5 text-slate-600 group-hover:text-indigo-400 mb-4 transition-colors" />
-                  <div>
-                    <h4 className="text-sm font-bold text-white mb-1">Source Assets</h4>
-                    <p className="text-[12px] text-slate-500">Download all generated images and raw video clips.</p>
-                  </div>
-              </div>
-              <div className="p-5 bg-[#0c0c2d] border border-slate-800 rounded-xl hover:border-slate-600 transition-colors group cursor-pointer flex flex-col justify-between h-32">
-                  <Share2 className="w-5 h-5 text-slate-600 group-hover:text-indigo-400 mb-4 transition-colors" />
-                  <div>
-                    <h4 className="text-sm font-bold text-white mb-1">Share Project</h4>
-                    <p className="text-[12px] text-slate-500">Create a view-only link for client review.</p>
-                  </div>
-              </div>
-              <div className="p-5 bg-[#0c0c2d] border border-slate-800 rounded-xl hover:border-slate-600 transition-colors group cursor-pointer flex flex-col justify-between h-32">
-                  <Clock className="w-5 h-5 text-slate-600 group-hover:text-indigo-400 mb-4 transition-colors" />
-                  <div>
-                    <h4 className="text-sm font-bold text-white mb-1">Render Logs</h4>
-                    <p className="text-[12px] text-slate-500">View generation history and token usage.</p>
-                  </div>
-              </div>
           </div>
         </div>
       </div>

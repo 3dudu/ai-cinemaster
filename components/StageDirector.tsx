@@ -1,38 +1,50 @@
-import { AlertCircle, Aperture, ChevronLeft, ChevronRight, Clock, Edit, Film, Image as ImageIcon, LayoutGrid, Loader2, MapPin, MessageSquare, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
-import { getAllModelConfigs } from '../services/storageService';
+import { renderTemplate } from "../services/promptTemplates";
+import { addMediaHistory, getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Keyframe, ProjectState, Scene, Shot } from '../types';
-import FileUploadModal from './FileUploadModal';
+import FileUploadModal, { downloadImage, downloadVideo } from './FileUploadModal';
 import SceneEditModal from './SceneEditModal';
 import ShotEditModal from './ShotEditModal';
+import VideoPromptModal from './VideoPromptModal';
 import WardrobeModal from './WardrobeModal';
+import { useDialog } from './dialog';
 
 interface Props {
   project: ProjectState;
   updateProject: (updates: Partial<ProjectState>) => void;
+  isMobile: boolean;
 }
 
-const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
+const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false  }) => {
+  const dialog = useDialog();
   const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
   const [editingSceneInMain, setEditingSceneInMain] = useState<Scene | null>(null);
   const [processingState, setProcessingState] = useState<{id: string, type: 'kf_start'|'kf_end'|'kf_full'|'video'|'character'}|null>(null);
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number, message: string} | null>(null);
-  const [localStyle, setLocalStyle] = useState(project.visualStyle || '写实');
+  const [localStyle, setLocalStyle] = useState(project.visualStyle || '真人写实');
   const [imageSize, setImageSize] = useState(project.imageSize || '2560x1440');
   const [imageCount, setImageCount] = useState(project.imageCount || 0);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [videoPlayingShots, setVideoPlayingShots] = useState<Set<string>>(new Set());
   const [videoReadyShots, setVideoReadyShots] = useState<Set<string>>(new Set());
+  const [playingTransition, setPlayingTransition] = useState<Record<string, boolean>>({});
+  const [transitionGeneratingShotId, setTransitionGeneratingShotId] = useState<string | null>(null);
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
   const [uploadingKeyframe, setUploadingKeyframe] = useState<{shotId: string, type: 'start'|'end'|'full'} | null>(null);
+  const [videoPromptShotId, setVideoPromptShotId] = useState<string | null>(null);
 
+  // 连环画规格常量
+  const IMAGE_X = [
+    '1','1x1','1x2','1x3','2x2','2x3','2x3','3x3','3x3','3x3'
+  ];
   // Sync local state with project settings
   useEffect(() => {
-    setLocalStyle(project.visualStyle || '写实');
+    setLocalStyle(project.visualStyle || '真人写实');
     setImageSize(project.imageSize || '2560x1440');
     setImageCount(project.imageCount || 0);
   }, [project.visualStyle, project.imageSize, project.imageCount]);
@@ -59,7 +71,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
       try {
         const configs = await getAllModelConfigs();
         setModelConfigs(configs);
-        console.log('模型配置已自动刷新');
+        //console.log('模型配置已自动刷新');
       } catch (error) {
         console.error('自动刷新模型配置失败:', error);
       }
@@ -85,6 +97,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
   const updateShot = (shotId: string, transform: (s: Shot) => Shot) => {
     const newShots = project.shots.map(s => s.id === shotId ? transform(s) : s);
     updateProject({ shots: newShots });
+    project.shots = newShots;
   };
 
   const updateKeyframePrompt = (shotId: string, type: 'start' | 'end' | 'full', prompt: string) => {
@@ -98,7 +111,15 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
     });
   };
 
-  const deleteKeyframeImage = (shotId: string, type: 'start' | 'end' | 'full') => {
+  const deleteKeyframeImage = async (shotId: string, type: 'start' | 'end' | 'full') => {
+    const confirmed = await dialog.confirm({
+      title: '确认删除',
+      message: '确定要删除此关键帧图片吗？',
+      type: 'warning',
+    });
+
+    if (!confirmed) return;
+
     updateShot(shotId, (s) => {
       const newKeyframes = [...(s.keyframes || [])];
       const idx = newKeyframes.findIndex(k => k.type === type);
@@ -107,6 +128,58 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
       }
       return { ...s, keyframes: newKeyframes };
     });
+  };
+
+  const copyStartToPreviousShotEndImage = async () => {
+    if (activeShotIndex <= 0) return;
+    const previousShot = project.shots[activeShotIndex - 1];
+    const previousEndKf = previousShot?.keyframes?.find(k => k.type === 'end');
+    const activeShot = project.shots[activeShotIndex];
+    const activeShotKf = activeShot?.keyframes?.find(k => k.type === 'start');
+
+    if (activeShotKf?.imageUrl && previousEndKf) {
+      const confirmed = await dialog.confirm({
+        title: '确认复制',
+        message: '确定要将当前镜头的起始帧复制到上一个镜头的结束帧吗？',
+        type: 'info',
+      });
+      if (!confirmed) return;
+
+      updateShot(previousShot.id, (s) => {
+        const newKeyframes = [...(s.keyframes || [])];
+        const endKfIdx = newKeyframes.findIndex(k => k.type === 'end');
+        if (endKfIdx >= 0) {
+          newKeyframes[endKfIdx] = { ...newKeyframes[endKfIdx], imageUrl: activeShotKf.imageUrl };
+        }
+        return { ...s, keyframes: newKeyframes };
+      });
+    }
+  };
+
+  const copyEndToNextShotStartImage = async () => {
+    if (activeShotIndex >= project.shots.length) return;
+    const previousShot = project.shots[activeShotIndex + 1];
+    const previousEndKf = previousShot?.keyframes?.find(k => k.type === 'start');
+    const activeShot = project.shots[activeShotIndex];
+    const activeShotKf = activeShot?.keyframes?.find(k => k.type === 'end');
+
+    if (activeShotKf?.imageUrl && previousEndKf) {
+      const confirmed = await dialog.confirm({
+        title: '确认复制',
+        message: '确定要将当前镜头的结束帧复制到下一个镜头的起始帧吗？',
+        type: 'info',
+      });
+      if (!confirmed) return;
+
+      updateShot(previousShot.id, (s) => {
+        const newKeyframes = [...(s.keyframes || [])];
+        const endKfIdx = newKeyframes.findIndex(k => k.type === 'start');
+        if (endKfIdx >= 0) {
+          newKeyframes[endKfIdx] = { ...newKeyframes[endKfIdx], imageUrl: activeShotKf.imageUrl };
+        }
+        return { ...s, keyframes: newKeyframes };
+      });
+    }
   };
 
   const startEditShot = (shot: Shot) => {
@@ -181,6 +254,12 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
           referenceImages.push(" - 第1张图是镜头布景、环境。");
         }
         let imagecount = 2;
+        if(imageCount==0){
+          imagecount = 0;
+        }
+        if(imageCount>1){
+          imagecount = 1;
+        }
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
@@ -209,10 +288,32 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
       return referenceImages.join("\n");
   };
 
+  const genKeyFramePrompt = async (prompt: string, imageType: 'start' | 'end' | 'full',imageSize:string) => { 
+      let new_prompt = prompt;
+      const image_rate = imageSize=="2560x1440" ? "16:9" : "9:16";
+      if(imageType=='start' || imageType=='end' || imageType=='full' ){
+        new_prompt = imageCount > 1 ? renderTemplate('GENERATE_KEYFRAME_PROMPT', IMAGE_X[imageCount], imageCount, image_rate):'';
+        new_prompt = prompt + "\n" + new_prompt;
+        new_prompt = renderTemplate('IMAGE_GENERATION_WITH_REFERENCE', new_prompt, localStyle);
+      }
+      return new_prompt;
+  };
+
   const handleGenerateKeyframe = async (shot: Shot, type: 'start' | 'end' | 'full') => {
     // Robustly handle missing keyframe object
-    const existingKf = shot.keyframes?.find(k => k.type === type);
+    let existingKf = shot.keyframes?.find(k => k.type === type);
     const kfId = existingKf?.id || `kf-${shot.id}-${type}-${Date.now()}`;
+
+    // Check if already has an image (regenerate)
+    if (existingKf?.imageUrl) {
+      const confirmed = await dialog.confirm({
+        title: '确认重新生成',
+        message: `确定要重新生成${type === 'full' ? '连环画' : type === 'start' ? '起始帧' : '结束帧'}吗？`,
+        type: 'warning',
+      });
+      if (!confirmed) return;
+    }
+
     let prompt = shot.actionSummary;
     if(type === 'full'){
         const startKey = shot.keyframes?.find(k => k.type === 'start');
@@ -223,6 +324,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
     }else{
         prompt = existingKf?.visualPrompt || shot.actionSummary;
     }
+    if(!existingKf){
+      existingKf = {
+        id: kfId,
+        type,
+        visualPrompt: prompt,
+        status: 'pending'
+      };
+    }
 
     const processingType = type === 'full' ? 'kf_full' : (type === 'start' ? 'kf_start' : 'kf_end');
     setProcessingState({ id: kfId, type: processingType });
@@ -230,12 +339,19 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
     try {
       const referenceImages = getRefImagesForShot(shot);
       const referencePrompt = getRefImagesDescForShot(shot);
-      const url = await ModelService.generateImage(prompt + (referencePrompt?referencePrompt:""), referenceImages, type, localStyle, imageSize,type === 'full'?imageCount:1, shot.modelProviders,project.id);
+      const new_prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), type,imageSize);
+      const url = await ModelService.generateImage(new_prompt, referenceImages, type, localStyle, imageSize,type === 'full'?imageCount:1, shot.modelProviders,project.id,shot.id);
+
+      // Save to media history
+      if (url) {
+        const fileName = `Shot${shot.id}_${type}`;
+        await addMediaHistory(project.id, url, fileName, 'image', type,new_prompt);
+      }
+
       existingKf.imageUrl = url;
       updateProject({ 
         shots: project.shots.map(s => {
            if (s.id !== shot.id) return s;
-           
            const newKeyframes = [...(s.keyframes || [])];
            const idx = newKeyframes.findIndex(k => k.type === type);
            const newKf: Keyframe = {
@@ -257,47 +373,97 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
       });
     } catch (e: any) {
       console.error(e);
-      alert(`生成失败: ${e.message}`);
+      setProcessingState(null)
+      if(e.message?.includes("enough")){
+        await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+      }else{
+        await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+      }
     } finally {
-      setProcessingState(null);
+      setTransitionGeneratingShotId(null);
     }
   };
 
   const handleGenerateVideo = async (shot: Shot) => {
-    //console.log("Generating Video for Shot:", shot);
+    ////console.log("Generating Video for Shot:", shot);
     if (!shot.interval) return;
-    
-    let sKf = shot.keyframes?.find(k => k.type === 'start');
-    let prompt = "景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；剧情描述："+shot.actionSummary+"；角色："+shot.characters + (shot.dialogue?"; 对白："+shot.dialogue:"");
-    //console.log("Generating Video for Shot:", shot, "with Prompt:", prompt);
-    if(imageCount > 1){
-        sKf = shot.keyframes?.find(k => k.type === 'full');
-        if (!sKf?.imageUrl) return alert("请先生成连续图！");
-        prompt = "参考图片包含"+imageCount+"个连续的子图，请结合下面描述生成完整视频。"+prompt+"。视频详情："+sKf.visualPrompt;
-    }else{
-        if (!sKf?.imageUrl) return alert("请先生成起始帧！");
-        prompt = prompt+"。开始："+sKf.visualPrompt;
+
+    // Check if already has video (regenerate)
+    if (shot.interval.videoUrl) {
+      const confirmed = await dialog.confirm({
+        title: '确认重新生成',
+        message: '确定要重新生成视频吗？',
+        type: 'warning',
+      });
+      if (!confirmed) return;
     }
-    const eKf = shot.keyframes?.find(k => k.type === 'end');
-    if(eKf?.visualPrompt){
-        prompt = prompt+"。结束："+eKf.visualPrompt;
+
+    // 生成视频拍摄提示词（如果还没有）
+    if (!shot.interval.videoPrompt && project.scriptData) {
+      try {
+        const videoPrompt = await ModelService.generateVideoPrompt(shot, project.scriptData, localStyle);
+        updateShot(shot.id, (s) => ({
+          ...s,
+          interval: s.interval ? { ...s.interval, videoPrompt } : undefined
+        }));
+      } catch (e) {
+        console.error('生成视频提示词失败:', e);
+        // 继续执行，使用原有的 prompt 生成逻辑
+      }
     }
-    prompt = prompt + "\n 按照上面描述生成视频！";
-    // Fix: Remove logic that auto-grabs next shot's frame.
-    // Prevent morphing artifacts by defaulting to Image-to-Video unless an End Frame is explicitly generated.
-    let endImageUrl = eKf?.imageUrl;
-    
+
+    let dialogueText = '';
+    if (shot.dialogue && shot.dialogue instanceof Array && shot.dialogue.length > 0) {
+      dialogueText = shot.dialogue.map(d => d.character ? `**${d.character}**: ${d.value}` : d.value).join('\n');
+    }
+    // 优先使用生成的视频提示词，否则使用原有逻辑
+    let prompt = shot.interval.videoPrompt || ("视频风格："+localStyle+"；景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:""));
+    ////console.log("Generating Video for Shot:", shot, "with Prompt:", prompt);
+    let sImageiurl = null;
+    let eImageiurl = null;
+    if(imageCount>0){
+      prompt = prompt+"\n###参考图";
+      if(imageCount > 1){
+          const sKf = shot.keyframes?.find(k => k.type === 'full');
+          if(sKf){
+            if(sKf.imageUrl){
+              sImageiurl = sKf.imageUrl;
+              prompt = prompt+"\n1. **宫格图**:包含"+imageCount+"个连续的子图，图片内容如下：";
+            }
+            prompt = prompt+"\n"+sKf?.visualPrompt;
+          }
+      }else{
+          const sKf = shot.keyframes?.find(k => k.type === 'start');
+          sImageiurl = sKf?.imageUrl;
+          prompt = prompt+"\n1. **画面开始**:"+sKf?.visualPrompt+"；";
+          const eKf = shot.keyframes?.find(k => k.type === 'end');
+          eImageiurl = eKf?.imageUrl;
+          prompt = prompt+"\n2. **画面结束**:"+eKf?.visualPrompt+"；";
+      }
+    }
+    prompt = prompt + (dialogueText?"\n###对白\n "+dialogueText:"");
+    prompt = prompt+"\n\n##按照上面描述生成 "+localStyle+" 风格的视频！";
+
     setProcessingState({ id: shot.interval.id, type: 'video' });
     try {
       const videoUrl = await ModelService.generateVideo(
           prompt,
-          sKf.imageUrl,
-          endImageUrl, // Only pass if it exists
+          sImageiurl,
+          eImageiurl, // Only pass if it exists
           shot.interval?.duration||5,
           imageCount>1,
           shot.modelProviders,
-          project.id
+          project.id,
+          project.imageSize,
+          localStyle,
+          shot.id
       );
+
+      // Save to media history
+      if (videoUrl) {
+        const fileName = `Shot${shot.id}_video`;
+        await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video',prompt);
+      }
 
       updateShot(shot.id, (s) => ({
         ...s,
@@ -305,11 +471,147 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
       }));
     } catch (e: any) {
       console.error(e);
-      alert(`视频生成失败: ${e.message}`);
-    } finally {
       setProcessingState(null);
+      if(e.message?.includes("enough")){
+        await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+      }else{
+        await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+      }
+    } finally {
+      setTransitionGeneratingShotId(null);
     }
   };
+
+  const handleDownloadVideo = async (shot: Shot) => {
+    if (!shot.interval?.videoUrl) {
+      await dialog.alert({
+        title: '提示',
+        message: '视频尚未生成或不可用',
+        type: 'warning',
+      });
+      return;
+    }
+
+    // 生成文件名：shot_id_序号_标题.mp4
+    const shotNumber = project.shots.findIndex(s => s.id === shot.id) + 1;
+    const filename = `${project.title}-${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}.mp4`;
+
+    await downloadVideo(shot.interval.videoUrl, filename, dialog);
+  };
+
+  const handleDownloadTransition = async (shot: Shot) => {
+    if (!shot.transitionUrl) {
+      await dialog.alert({
+        title: '提示',
+        message: '转场视频尚未生成或不可用',
+        type: 'warning',
+      });
+      return;
+    }
+
+    // 生成文件名：shot_id_序号_转场.mp4
+    const shotNumber = project.shots.findIndex(s => s.id === shot.id) + 1;
+    const filename = `${project.title}-${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}-transition.mp4`;
+
+    await downloadVideo(shot.transitionUrl, filename, dialog);
+  };
+
+  const handleGenerateTransition = async (shot: Shot) => {
+    const currentIndex = project.shots.findIndex(s => s.id === shot.id);
+    if (currentIndex === -1 || currentIndex === project.shots.length - 1) {
+      await dialog.alert({
+        title: '提示',
+        message: '只能在两个分镜之间生成转场',
+        type: 'warning',
+      });
+      return;
+    }
+
+    // Check if already has transition (regenerate)
+    if (shot.transitionUrl) {
+      const confirmed = await dialog.confirm({
+        title: '确认重新生成',
+        message: '确定要重新生成转场视频吗？',
+        type: 'warning',
+      });
+      if (!confirmed) return;
+    }
+
+    const nextShot = project.shots[currentIndex + 1];
+
+    // 获取当前 shot 的尾帧和下一个 shot 的首帧
+    const endKf = shot.keyframes?.find(k => k.type === 'end');
+    const nextStartKf = nextShot.keyframes?.find(k => k.type === 'start');
+
+    // 构建转场提示词
+    const transitionPrompt = renderTemplate(
+      'GENERATE_TRANSITION_VIDEO',
+      shot.actionSummary,
+      nextShot.actionSummary,
+      shot.shotSize,
+      nextShot.shotSize,
+      localStyle,
+      endKf.visualPrompt,
+      nextStartKf.visualPrompt
+    );
+
+    try {
+      setTransitionGeneratingShotId(shot.id);
+
+      // 调用 ModelService 生成转场视频
+      const transitionUrl = await ModelService.generateVideo(
+        transitionPrompt,
+        endKf.imageUrl,  // 当前 shot 的尾帧作为起始帧
+        nextStartKf.imageUrl,  // 下一个 shot 的首帧作为结束帧
+        5,  // 转场时长 3 秒
+        false,  // not full frame
+        shot.modelProviders,
+        project.id,
+        imageSize,
+        localStyle,
+        shot.id
+      );
+
+      // Save to media history
+      if (transitionUrl) {
+        const fileName = `Shot${shot.id}_to_Shot${nextShot.id}_transition`;
+        await addMediaHistory(project.id, transitionUrl, fileName, 'video', 'transition',transitionPrompt);
+      }
+
+      // 保存转场视频 URL
+      updateShot(shot.id, (s) => ({
+        ...s,
+        transitionUrl: transitionUrl
+      }));
+
+      await dialog.alert({
+        title: '成功',
+        message: '转场视频生成成功',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('生成转场失败:', error);
+      await dialog.alert({
+        title: '错误',
+        message: `生成转场失败: ${error}`,
+        type: 'error',
+      });
+    } finally {
+      setTransitionGeneratingShotId(null);
+    }
+  };
+
+  const deleteShot = async (shotId: string) => {
+    const confirmed = await dialog.confirm({
+      title: '确认删除',
+      message: '确定要删除这个分镜吗？',
+      type: 'warning',
+    });
+    if (!confirmed) return;
+    const updatedShots = project.shots.filter(s => s.id !== shotId);
+    updateProject({ shots: updatedShots });
+  };
+
 
   const handleFileUploadClick = (shotId: string, type: 'start' | 'end' | 'full') => {
     setUploadingKeyframe({ shotId, type });
@@ -341,10 +643,15 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
 
   const handleBatchGenerateImages = async () => {
       const isRegenerate = allStartFramesGenerated;
-      
+
       let shotsToProcess = [];
       if (isRegenerate) {
-          if (!window.confirm("确定要重新生成所有镜头的帧图片吗？这将覆盖现有图片。")) return;
+          const confirmed = await dialog.confirm({
+            title: '确认重新生成',
+            message: '确定要重新生成所有镜头的帧图片吗？这将覆盖现有图片。',
+            type: 'warning',
+          });
+          if (!confirmed) return;
           shotsToProcess = [...project.shots];
       } else {
           // Process shots that don't have a start image URL (handles missing keyframe objects too)
@@ -381,11 +688,20 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                 const endKey = shot.keyframes?.find(k => k.type === 'end');
                 let full_prompt = shot.actionSummary;
                 if (startKey || endKey){
-                    full_prompt = `画面开始：${startKey.visualPrompt} 画面结束：${endKey.visualPrompt}`;
+                    full_prompt = `连环画开始：${startKey.visualPrompt} 连环画结束：${endKey.visualPrompt}`;
                 }
                 const existingFf = shot.keyframes?.find(k => k.type === 'full');
                 const ffId = existingFf?.id || `kf-${shot.id}-full-${Date.now()}`;
-                const full_url = await ModelService.generateImage(full_prompt + (referencePrompt?referencePrompt:""), referenceImages, "full", localStyle, imageSize, 1, shot.modelProviders,project.id);
+
+                const new_prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), "full",imageSize);
+                const full_url = await ModelService.generateImage(new_prompt, referenceImages, "full", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+
+                // Save to media history
+                if (full_url) {
+                  const fileName = `Shot${shot.id}_full`;
+                  await addMediaHistory(project.id, full_url, fileName, 'image', 'full',new_prompt);
+                }
+
                 currentShots = currentShots.map(s => {
                     if (s.id !== shot.id) return s;
                     const newKeyframes = [...(s.keyframes || [])];
@@ -405,7 +721,15 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                 const existingKf = shot.keyframes?.find(k => k.type === 'start');
                 let prompt = existingKf?.visualPrompt || shot.actionSummary;
                 const kfId = existingKf?.id || `kf-${shot.id}-start-${Date.now()}`;
-                const url = await ModelService.generateImage(prompt + (referencePrompt?referencePrompt:""), referenceImages, "start", localStyle, imageSize, 1, shot.modelProviders,project.id);
+                const new_prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), "start",imageSize);
+                const url = await ModelService.generateImage(new_prompt, referenceImages, "start", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+
+                // Save to media history
+                if (url) {
+                  const fileName = `Shot${shot.id}_start`;
+                  await addMediaHistory(project.id, url, fileName, 'image', 'start',new_prompt);
+                }
+
                 currentShots = currentShots.map(s => {
                     if (s.id !== shot.id) return s;
                     const newKeyframes = [...(s.keyframes || [])];
@@ -425,7 +749,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                 const existingEf = shot.keyframes?.find(k => k.type === 'end');
                 let end_prompt = existingEf?.visualPrompt || shot.actionSummary;
                 const efId = existingEf?.id || `kf-${shot.id}-end-${Date.now()}`;
-                const end_url = await ModelService.generateImage(end_prompt + (referencePrompt?referencePrompt:""), referenceImages, "end", localStyle, imageSize, 1, shot.modelProviders,project.id);
+                end_prompt = await genKeyFramePrompt(end_prompt + (referencePrompt?referencePrompt:""), "end",imageSize);
+                const end_url = await ModelService.generateImage(end_prompt, referenceImages, "end", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+                if (end_url) {
+                  const fileName = `Shot${shot.id}_end`;
+                  await addMediaHistory(project.id, end_url, fileName, 'image', 'end',end_prompt);
+                }
+
                 currentShots = currentShots.map(s => {
                     if (s.id !== shot.id) return s;
                     const newKeyframes = [...(s.keyframes || [])];
@@ -446,7 +776,12 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
              updateProject({ shots: currentShots });
 
           } catch (e) {
-             console.error(`Failed to generate for shot ${shot.id}`, e);
+            if(e.message?.includes("enough")){
+              await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+            }else{
+              await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+            }
+            console.error(`Failed to generate for shot ${shot.id}`, e);
           }
       }
 
@@ -466,26 +801,40 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
   const handleOneClickProduction = async (shot: Shot) => {
       if (!!processingState || !!batchProgress) return;
 
+      // Check if this is a regenerate (existing images)
+      const isRegenerate = imageCount > 1 ? !!fullKf?.imageUrl : (!!startKf?.imageUrl && !!endKf?.imageUrl);
+
+      if (isRegenerate) {
+          const confirmed = await dialog.confirm({
+            title: '确认重新制作',
+            message: '确定要重新制作此镜头吗？这将覆盖现有的图片和视频。',
+            type: 'warning',
+          });
+          if (!confirmed) return;
+      }
+
       setOneClickProcessing({ shotId: shot.id, step: 'images' });
 
       try {
           // Step 1: Generate images
-          if (imageCount > 1) {
-              // Generate full grid
-              //if (!fullKf?.imageUrl) {
-                  await handleGenerateKeyframe(shot, 'full');
-              //}
-          } else {
-              // Generate start and end frames
-              //if (!startKf?.imageUrl) {
-                await handleGenerateKeyframe(shot, 'start');
-              //}
-              // Wait a moment for the first update to be applied
-                await new Promise(r => setTimeout(r, 1000));
+          if (imageCount > 0) {
+            if (imageCount > 1) {
+                // Generate full grid
+                //if (!fullKf?.imageUrl) {
+                    await handleGenerateKeyframe(shot, 'full');
+                //}
+            } else {
+                // Generate start and end frames
+                //if (!startKf?.imageUrl) {
+                  await handleGenerateKeyframe(shot, 'start');
+                //}
+                // Wait a moment for the first update to be applied
+                  await new Promise(r => setTimeout(r, 1000));
 
-              //if (!endKf?.imageUrl) {
-                await handleGenerateKeyframe(shot, 'end');
-              //}
+                //if (!endKf?.imageUrl) {
+                  await handleGenerateKeyframe(shot, 'end');
+                //}
+            }
           }
 
           // Step 2: Generate video
@@ -502,17 +851,20 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
           const updatedFullKf = finalShot?.keyframes?.find(k => k.type === 'full');
 
           // Check if images are ready
-          if (imageCount > 1 && !updatedFullKf?.imageUrl) {
-              throw new Error("宫格图生成失败");
-          }
-          if (imageCount <= 1 && !updatedStartKf?.imageUrl) {
-              throw new Error("起始帧生成失败");
+          if(imageCount > 0){
+            if (imageCount > 1 && !updatedFullKf?.imageUrl) {
+                throw new Error("宫格图生成失败");
+            }
+            if (imageCount <= 1 && !updatedStartKf?.imageUrl) {
+                throw new Error("起始帧生成失败");
+            }
           }
 
           await handleGenerateVideo(finalShot);
       } catch (e: any) {
           console.error(e);
-          alert(`一键制作失败: ${e.message}`);
+          setOneClickProcessing(null);
+          await dialog.alert({ title: '错误', message: `一键制作失败: ${e.message}`, type: 'error' });
       } finally {
           setOneClickProcessing(null);
       }
@@ -523,7 +875,12 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
 
       const isRegenerate = project.shots.every(s => s.interval?.videoUrl);
       if (isRegenerate) {
-          if (!window.confirm("确定要重新生成所有视频吗？这将覆盖现有视频。")) return;
+          const confirmed = await dialog.confirm({
+            title: '确认重新生成',
+            message: '确定要重新生成所有视频吗？这将覆盖现有视频。',
+            type: 'warning',
+          });
+          if (!confirmed) return;
       }
 
       const targetShots = isRegenerate ? project.shots : project.shots.filter(s => !s.interval?.videoUrl);
@@ -545,15 +902,17 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
               const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
               const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
 
-              if (imageCount > 1 && !currentFullKf?.imageUrl) {
-                  await handleGenerateKeyframe(shot, 'full');
-              } else if (imageCount <= 1 && (!currentStartKf?.imageUrl || !currentEndKf?.imageUrl)) {
-                  if (!currentStartKf?.imageUrl) {
-                      await handleGenerateKeyframe(shot, 'start');
-                  }
-                  if (!currentEndKf?.imageUrl) {
-                      await handleGenerateKeyframe(shot, 'end');
-                  }
+              if(imageCount>0){
+                if (imageCount > 1 && !currentFullKf?.imageUrl) {
+                    await handleGenerateKeyframe(shot, 'full');
+                } else if (imageCount <= 1 && (!currentStartKf?.imageUrl || !currentEndKf?.imageUrl)) {
+                    if (!currentStartKf?.imageUrl) {
+                        await handleGenerateKeyframe(shot, 'start');
+                    }
+                    if (!currentEndKf?.imageUrl) {
+                        await handleGenerateKeyframe(shot, 'end');
+                    }
+                }
               }
 
               // Step 2: Generate video
@@ -590,6 +949,216 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
     }
   };
 
+  const handleSceneBatchGenerateImages = async (sceneId: string) => {
+    const sceneShots = project.shots.filter(s => String(s.sceneId) === String(sceneId));
+    if (sceneShots.length === 0) return;
+
+    const isRegenerate = sceneShots.every(s => s.keyframes?.find(k => k.type === 'start')?.imageUrl);
+
+    let shotsToProcess = [];
+    if (isRegenerate) {
+        const confirmed = await dialog.confirm({
+          title: '确认重新生成',
+          message: `确定要重新生成场景 "${sceneId}" 的所有镜头帧图片吗？这将覆盖现有图片。`,
+          type: 'warning',
+        });
+        if (!confirmed) return;
+        shotsToProcess = [...sceneShots];
+    } else {
+        shotsToProcess = sceneShots.filter(s => !s.keyframes?.find(k => k.type === 'start')?.imageUrl);
+    }
+
+    if (shotsToProcess.length === 0) return;
+
+    setBatchProgress({
+        current: 0,
+        total: shotsToProcess.length,
+        message: isRegenerate ? `正在重新生成场景 ${sceneId} 的帧图片...` : `正在生成场景 ${sceneId} 的帧图片...`
+    });
+
+    let currentShots = [...project.shots];
+
+    for (let i = 0; i < shotsToProcess.length; i++) {
+        if (i > 0) await new Promise(r => setTimeout(r, 3000));
+
+        const shot = shotsToProcess[i];
+        setBatchProgress({
+            current: i + 1,
+            total: shotsToProcess.length,
+            message: `正在生成场景 ${sceneId} - 镜头 ${i+1}/${shotsToProcess.length}...`
+        });
+
+        try {
+            const referenceImages = getRefImagesForShot(shot);
+            const referencePrompt = getRefImagesDescForShot(shot);
+
+            if(imageCount>0){
+              if(imageCount > 1){
+                  const existingFf = shot.keyframes?.find(k => k.type === 'full');
+                  let full_prompt = existingFf?.visualPrompt || shot.actionSummary;
+                  const ffId = existingFf?.id || `kf-${shot.id}-full-${Date.now()}`;
+
+                  full_prompt = await genKeyFramePrompt(full_prompt + (referencePrompt?referencePrompt:""), "full",imageSize);
+                  const full_url = await ModelService.generateImage(full_prompt, referenceImages, "full", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+
+                  // Save to media history
+                  if (full_url) {
+                    const fileName = `Shot${shot.id}_full`;
+                    await addMediaHistory(project.id, full_url, fileName, 'image', 'full',full_prompt);
+                  }
+
+                  currentShots = currentShots.map(s => {
+                      if (s.id !== shot.id) return s;
+                      const newKeyframes = [...(s.keyframes || [])];
+                      const idx = newKeyframes.findIndex(k => k.type === 'full');
+                      const newKf: Keyframe = {
+                          id: ffId,
+                          type: 'full',
+                          visualPrompt: full_prompt,
+                          imageUrl: full_url,
+                          status: 'completed'
+                      };
+                      if (idx >= 0) newKeyframes[idx] = newKf;
+                      else newKeyframes.push(newKf);
+                      return { ...s, keyframes: newKeyframes };
+                  });
+              }else{
+                  const existingKf = shot.keyframes?.find(k => k.type === 'start');
+                  let prompt = existingKf?.visualPrompt || shot.actionSummary;
+                  const kfId = existingKf?.id || `kf-${shot.id}-start-${Date.now()}`;
+                  prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), "start",imageSize);
+                  const url = await ModelService.generateImage(prompt, referenceImages, "start", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+
+                  // Save to media history
+                  if (url) {
+                    const fileName = `Shot${shot.id}_start`;
+                    await addMediaHistory(project.id, url, fileName, 'image', 'start',prompt);
+                  }
+
+                  currentShots = currentShots.map(s => {
+                      if (s.id !== shot.id) return s;
+                      const newKeyframes = [...(s.keyframes || [])];
+                      const idx = newKeyframes.findIndex(k => k.type === 'start');
+                      const newKf: Keyframe = {
+                          id: kfId,
+                          type: 'start',
+                          visualPrompt: prompt,
+                          imageUrl: url,
+                          status: 'completed'
+                      };
+                      if (idx >= 0) newKeyframes[idx] = newKf;
+                      else newKeyframes.push(newKf);
+                      return { ...s, keyframes: newKeyframes };
+                  });
+
+                  const existingEf = shot.keyframes?.find(k => k.type === 'end');
+                  let end_prompt = existingEf?.visualPrompt || shot.actionSummary;
+                  const efId = existingEf?.id || `kf-${shot.id}-end-${Date.now()}`;
+
+                  end_prompt = await genKeyFramePrompt(end_prompt + (referencePrompt?referencePrompt:""), "end",imageSize);
+                  const end_url = await ModelService.generateImage(end_prompt, referenceImages, "end", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
+
+                  // Save to media history
+                  if (end_url) {
+                    const fileName = `Shot${shot.id}_end`;
+                    await addMediaHistory(project.id, end_url, fileName, 'image', 'end',end_prompt);
+                  }
+
+                  currentShots = currentShots.map(s => {
+                      if (s.id !== shot.id) return s;
+                      const newKeyframes = [...(s.keyframes || [])];
+                      const idx = newKeyframes.findIndex(k => k.type === 'end');
+                      const newEf: Keyframe = {
+                          id: efId,
+                          type: 'end',
+                          visualPrompt: end_prompt,
+                          imageUrl: end_url,
+                          status: 'completed'
+                      };
+                      if (idx >= 0) newKeyframes[idx] = newEf;
+                      else newKeyframes.push(newEf);
+                      return { ...s, keyframes: newKeyframes };
+                  });
+              }
+            }
+
+             updateProject({ shots: currentShots });
+
+        } catch (e) {
+            if(e.message?.includes("enough")){
+                await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+            }else{
+                await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+            }
+            console.error(`Failed to generate for shot ${shot.id}`, e);
+        }
+    }
+
+    setBatchProgress(null);
+  };
+
+  const handleSceneBatchGenerateVideos = async (sceneId: string) => {
+    const sceneShots = project.shots.filter(s => String(s.sceneId) === String(sceneId));
+    if (sceneShots.length === 0) return;
+
+    const isRegenerate = sceneShots.every(s => s.interval?.videoUrl);
+    if (isRegenerate) {
+        const confirmed = await dialog.confirm({
+          title: '确认重新生成',
+          message: `确定要重新生成场景 "${sceneId}" 的所有视频吗？这将覆盖现有视频。`,
+          type: 'warning',
+        });
+        if (!confirmed) return;
+    }
+
+    const targetShots = isRegenerate ? sceneShots : sceneShots.filter(s => !s.interval?.videoUrl);
+    if (targetShots.length === 0) return;
+
+    setBatchVideoProgress({ current: 0, total: targetShots.length, currentShotName: sceneId });
+
+    for (let i = 0; i < targetShots.length; i++) {
+        const shot = targetShots[i];
+        setBatchVideoProgress({
+            current: i + 1,
+            total: targetShots.length,
+            currentShotName: `${sceneId} - 镜头 ${project.shots.findIndex(s => s.id === shot.id) + 1}`
+        });
+
+        try {
+            const currentStartKf = shot.keyframes?.find(k => k.type === 'start');
+            const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
+            const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
+            if(imageCount>0){
+              if (imageCount > 1 && !currentFullKf?.imageUrl) {
+                  await handleGenerateKeyframe(shot, 'full');
+              } else if (imageCount <= 1 && (!currentStartKf?.imageUrl || !currentEndKf?.imageUrl)) {
+                  if (!currentStartKf?.imageUrl) {
+                      await handleGenerateKeyframe(shot, 'start');
+                  }
+                  if (!currentEndKf?.imageUrl) {
+                      await handleGenerateKeyframe(shot, 'end');
+                  }
+              }
+            }
+
+            await new Promise(r => setTimeout(r, 1000));
+
+            const updatedShot = project.shots.find(s => s.id === shot.id);
+            if (!updatedShot) continue;
+
+            await handleGenerateVideo(updatedShot);
+        } catch (e) {
+            console.error(`Failed to generate video for shot ${shot.id}`, e);
+        }
+
+        if (i < targetShots.length - 1) {
+            await new Promise(r => setTimeout(r, 2000));
+        }
+    }
+
+    setBatchVideoProgress(null);
+  };
+
   const renderSceneContext = () => {
       if (!activeShot || !project.scriptData) return null;
       // String comparison for safety
@@ -597,35 +1166,31 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
       const activeCharacters = project.scriptData.characters.filter(c => activeShot.characters.includes(c.name));
 
       return (
-          <div className="bg-[#0c0c2d] p-5 rounded-xl border border-slate-800 mb-6 space-y-4">
+          <div className="bg-slate-800 p-5 rounded-xl border border-slate-600 mb-4 space-y-4">
               <div className="flex items-center justify-between mb-2">
                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-slate-500" />
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">场景环境 (Scene Context)</h4>
+                    <Drama className="w-4 h-4 text-slate-500" />
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">场景/角色
+                    </span>
                  </div>
-                 <button
-                    onClick={() => setEditingSceneInMain(scene!)}
-                    className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-white bg-slate-900/80 border border-slate-800 hover:border-slate-600 rounded transition-all flex items-center justify-center gap-1.5"
-                    title="编辑场景"
-                 >
-                    <Edit className="w-3 h-3" />
-                    <span>编辑场景</span>
-                 </button>
+
               </div>
               
-              <div className="flex gap-4">
-                  <div className="w-28 h-20 bg-slate-900 rounded-lg overflow-hidden flex-shrink-0 border border-slate-700 relative">
+              <div className="flex flex-wrap gap-4 items-start">
+                  {/* 左侧：场景图片 */}
+                  <div className="w-28 h-20 bg-slate-800/50 rounded-lg overflow-hidden flex-shrink-0 border border-slate-600 relative">
                     {scene?.referenceImage ? (
                         <img src={scene.referenceImage} className="w-full h-full object-cover cursor-pointer hover:ring-2 hover:ring-indigo-500" onClick={() => setPreviewImageUrl(scene.referenceImage)}/>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-slate-800">
-                          <MapPin className="w-6 h-6 text-slate-700" />
+                          <MapPin className="w-6 h-6 text-slate-600" />
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 space-y-2">
+                  {/* 右侧：场景信息 */}
+                  <div className="flex-1 space-y-2 min-w-0">
                     <div className="flex items-center justify-between">
-                        <span className="text-white text-sm font-bold">{scene?.location || '未知场景'}</span>
+                        <span className="text-slate-50 text-sm font-bold">{scene?.location || '未知场景'}</span>
                     </div>
                     <div className="flex items-center justify-between">
                         <span className="text-[11px] px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full flex items-center gap-1">
@@ -634,7 +1199,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                         </span>
                     </div>
                     <p className="text-xs text-slate-500 line-clamp-2">{scene?.atmosphere}</p>
-                    
+                  </div>
+                  {/* 整行：角色列表 */}
+                  <div className="w-full space-y-2">
                     {/* Character List with Variation Selector */}
                     <div className="flex flex-col gap-2 pt-2">
                          {activeCharacters.map(char => {
@@ -643,7 +1210,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                              const selectedVar = char.variations.find(v => v.id === selectedVarId);
                              const displayImage = selectedVar?.referenceImage || char.referenceImage;
                              return (
-                                 <div key={char.id} className="flex items-center justify-between bg-slate-900 rounded p-1.5 border border-slate-800">
+                                 <div key={char.id} className="flex items-center justify-between bg-slate-800/50 rounded p-1.5 border border-slate-600">
                                      <div className="flex items-center gap-2">
                                          <div
                                            className="w-6 h-6 rounded-full bg-slate-700 overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all"
@@ -659,9 +1226,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                              <select
                                                 value={activeShot.characterVariations?.[String(char.id)] || ""}
                                                 onChange={(e) => handleVariationChange(activeShot.id, String(char.id), e.target.value)}
-                                                className="bg-black text-[12px] text-slate-400 border border-slate-700 rounded px-1.5 py-0.5 max-w-[100px] outline-none focus:border-indigo-500"
+                                                className="bg-slate-700 text-[12px] text-slate-400 border border-slate-600 rounded px-1.5 py-0.5 min-w-[60px] outline-none focus:border-slate-500"
                                              >
-                                                 <option value="">默认造型</option>
+                                                 <option value="">默认</option>
                                                  {char.variations.map(v => (
                                                      <option key={v.id} value={v.id}>{v.name}</option>
                                                  ))}
@@ -669,7 +1236,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                          )}
                                          <button
                                              onClick={() => setSelectedCharId(char.id)}
-                                             className="p-1.5 bg-black/50 text-slate-400 hover:text-white rounded-full hover:bg-white/20 transition-all border border-white/10"
+                                             className="p-1.5 bg-slate-700/50 text-slate-400 hover:text-slate-50 rounded-full hover:bg-slate-800/20 transition-all border border-white/10 cursor-pointer"
                                              title="管理造型"
                                          >
                                         <Shirt className="w-3 h-3" />
@@ -686,22 +1253,22 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
   };
 
   if (!project.shots.length) return (
-      <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-[#0e1229]">
+      <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">
           <AlertCircle className="w-12 h-12 mb-4 opacity-50"/>
-          <p>暂无镜头数据，请先返回阶段 1 生成分镜表。</p>
+          <p>暂无分镜，请先在剧本阶段生成分镜。</p>
       </div>
   );
 
   return (
-    <div className="flex flex-col h-full bg-[#0e1229] relative overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-900 relative overflow-hidden">
       
       {/* Batch Progress Overlay */}
       {batchProgress && (
-        <div className="absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center backdrop-blur-md animate-in fade-in">
-           <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-6" />
-           <h3 className="text-xl font-bold text-white mb-2">{batchProgress.message}</h3>
+        <div className="absolute inset-0 z-50 bg-slate-700/80 flex flex-col items-center justify-center backdrop-blur-md animate-in fade-in">
+           <Loader2 className="w-12 h-12 text-slate-500 animate-spin mb-6" />
+           <h3 className="text-xl font-bold text-slate-50 mb-2">{batchProgress.message}</h3>
            <div className="w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-               <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}></div>
+               <div className="h-full bg-slate-500 transition-all duration-300" style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}></div>
            </div>
            <p className="text-slate-500 mt-3 text-xs font-mono">{Math.round((batchProgress.current / batchProgress.total) * 100)}%</p>
         </div>
@@ -709,238 +1276,297 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
 
       {/* Batch Video Progress Overlay */}
       {batchVideoProgress && (
-        <div className="absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center backdrop-blur-md animate-in fade-in">
-           <Video className="w-12 h-12 text-indigo-500 mb-6 animate-pulse" />
-           <h3 className="text-xl font-bold text-white mb-2">正在批量生成视频...</h3>
+        <div className="absolute inset-0 z-50 bg-slate-700/80 flex flex-col items-center justify-center backdrop-blur-md animate-in fade-in">
+           <Video className="w-12 h-12 text-slate-500 mb-6 animate-pulse" />
+           <h3 className="text-xl font-bold text-slate-50 mb-2">正在批量生成视频...</h3>
            <p className="text-slate-400 mb-4 text-sm">{batchVideoProgress.currentShotName}</p>
            <div className="w-64 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-               <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${(batchVideoProgress.current / batchVideoProgress.total) * 100}%` }}></div>
+               <div className="h-full bg-slate-500 transition-all duration-300" style={{ width: `${(batchVideoProgress.current / batchVideoProgress.total) * 100}%` }}></div>
            </div>
            <p className="text-slate-500 mt-3 text-xs font-mono">{batchVideoProgress.current} / {batchVideoProgress.total} ({Math.round((batchVideoProgress.current / batchVideoProgress.total) * 100)}%)</p>
         </div>
       )}
 
       {/* Toolbar */}
-      <div className="h-16 border-b border-slate-800 bg-[#0e1230] px-6 flex items-center justify-between shrink-0">
+      {(!isMobile || !activeShotId) && (
+      <div className="h-14 border-b border-slate-600 bg-slate-700 md:px-6 px-2 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
-              <h2 className="text-lg font-bold text-white flex items-center gap-3">
-                  <LayoutGrid className="w-5 h-5 text-indigo-500" />
-                  导演工作台
-                  <span className="text-xs text-slate-600 font-mono font-normal uppercase tracking-wider bg-black/30 px-2 py-1 rounded">Director Workbench</span>
+              <h2 className="text-lg font-bold text-slate-50 flex items-center gap-3">
+                  <Clapperboard className="w-5 h-5 text-slate-500" />
+                  导演台
               </h2>
           </div>
 
           <div className="flex items-center gap-3">
+            {!isMobile && (
               <span className="text-xs text-slate-500 mr-4 font-mono">
                   {project.shots.filter(s => s.interval?.videoUrl).length} / {project.shots.length} 完成
               </span>
+            )}
+            {imageCount>0 && (
               <button
                   onClick={handleBatchGenerateImages}
                   disabled={!!batchProgress || !!batchVideoProgress}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
                       allStartFramesGenerated
-                        ? 'bg-[#0c0c2d] text-slate-400 border border-slate-700 hover:text-white hover:border-slate-500'
-                        : 'bg-white text-black hover:bg-slate-200 shadow-lg shadow-white/5'
-                  }`}
+                        ? 'bg-slate-700 text-slate-50 border border-slate-600 hover:text-slate-50 hover:border-slate-300'
+                        : 'bg-slate-700 text-slate-50 hover:bg-slate-600 shadow-lg shadow-white/5 border border-slate-600'
+                  } ${(!!batchProgress || !!batchVideoProgress) ? 'cursor-not-allowed' : ''}`}
               >
-                  <Sparkles className="w-3 h-3" />
-                  {allStartFramesGenerated ? '重新生成所有帧图片' : '批量生成帧图片'}
+                  <Camera className="w-3 h-3" />
+                  {allStartFramesGenerated ? '重新生图' : '批量生图'}
               </button>
+            )}
               <button
                   onClick={handleBatchGenerateVideos}
                   disabled={!!batchProgress || !!batchVideoProgress}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-500 shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                  className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
               >
                   <Video className="w-3 h-3" />
-                  {project.shots.every(s => s.interval?.videoUrl) ? '重新生成所有视频' : '批量生成视频'}
+                  {project.shots.every(s => s.interval?.videoUrl) ? '重新生成' : '批量视频'}
               </button>
           </div>
       </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden flex">
-
           {/* Grid View - Responsive Logic */}
-          <div className={`flex-1 overflow-y-auto p-6 transition-all duration-500 ease-in-out ${activeShotId ? 'border-r border-slate-800' : ''}`}>
-              <div className={`grid gap-4 ${activeShotId ? 'grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'}`}>
-                  {project.shots.map((shot, idx) => {
-                      const sKf = shot.keyframes?.find(k => k.type === 'start');
-                      const fKf = shot.keyframes?.find(k => k.type === 'full');
-                      const hasImage = !!sKf?.imageUrl || !!fKf?.imageUrl;
-                      const hasVideo = !!shot.interval?.videoUrl;
-                      const isActive = activeShotId === shot.id;
+          <div className={`flex-1 overflow-y-auto transition-all duration-500 ease-in-out ${activeShotId ? (isMobile?'hidden':'md:p-6 p-2 border-r border-slate-600') : 'md:p-6 p-2'}`}>
+                  {project.scriptData?.scenes.map((scene, index) => {
+                    const sceneShots = project.shots.filter(s => s.sceneId === scene.id);
+                return (
+                  <div key={scene.id}>
+ <div className="flex items-center gap-2 pb-1 border-b border-slate-600 mb-2">
+                    <MapPin className="w-4 h-4 text-slate-500" />
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">场景{scene.id}：{scene?.location || '未知场景'}
+                    </span>
+                    <button
+                    onClick={() => setEditingSceneInMain(scene!)}
+                    className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all cursor-pointer"
+                    title="编辑场景"
+                 >
+                    <Edit className="w-3.5 h-3.5" />
+                 </button>
+                 <div className="flex-1 flex justify-end items-center">
+                    <button
+                        onClick={() => handleSceneBatchGenerateImages(scene.id)}
+                        disabled={!!batchProgress || !!batchVideoProgress}
+                        className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all flex items-center gap-1 cursor-pointer"
+                        title="批量生成图片"
+                    >
+                        <Camera className="w-3 h-3" />
+                        生图
+                    </button>
+                    <button
+                        onClick={() => handleSceneBatchGenerateVideos(scene.id)}
+                        disabled={!!batchProgress || !!batchVideoProgress}
+                        className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all flex items-center gap-1 cursor-pointer"
+                        title="批量生成视频"
+                    >
+                        <Video className="w-3 h-3" />
+                        视频
+                    </button>
+                    </div>
+                 </div>
+                <div className={`grid gap-4 pb-4 ${activeShotId ? 'grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4': 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5'}`}>
+                    {sceneShots.map((shot, idx) => {
+                        const sKf = shot.keyframes?.find(k => k.type === 'start');
+                        const fKf = shot.keyframes?.find(k => k.type === 'full');
+                        const hasImage = !!sKf?.imageUrl || !!fKf?.imageUrl;
+                        const hasVideo = !!shot.interval?.videoUrl;
+                        const isActive = activeShotId === shot.id;
 
-                      return (
-                          <div 
-                              key={shot.id}
-                              onClick={() => setActiveShotId(shot.id)}
-                              className={`
-                                  group relative flex flex-col bg-[#0e1230] border rounded-xl overflow-hidden cursor-pointer transition-all duration-200
-                                  ${isActive ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-xl scale-[1.02]' : 'border-slate-800 hover:border-slate-600 hover:shadow-lg'}
-                              `}
-                          >
-                              {/* Header */}
-                              <div className="px-3 py-2 bg-[#060624] border-b border-slate-800 flex justify-between items-center">
-                                  <span className={`font-mono text-[12px] font-bold ${isActive ? 'text-indigo-400' : 'text-slate-500'}`}>镜头 {String(idx + 1).padStart(2, '0')}</span>
-                                  <div className="flex items-center gap-2">
-                                        <span className="text-[11px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded uppercase">{shot.cameraMovement} {shot.interval?.duration}s</span>
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); startEditShot(shot); }}
-                                        className="p-1.5 hover:bg-slate-700 text-slate-500 hover:text-white rounded transition-colors"
-                                        title="编辑镜头"
-                                      >
-                                        <Edit className="w-3 h-3" />
-                                      </button>
+                        return (
+                            <div 
+                                key={shot.id}
+                                onClick={() => setActiveShotId(shot.id)}
+                                className={`
+                                    group relative flex flex-col bg-slate-900 border rounded-xl overflow-hidden cursor-pointer transition-all duration-200
+                                    ${isActive ? 'border-slate-500 ring-1 ring-indigo-500/50 shadow-xl scale-[1.02]' : 'border-slate-600 hover:border-slate-300 hover:shadow-lg'}
+                                `}
+                            >
+                                {/* Header */}
+                                <div className="px-1.5 md:px-2 gap-1 py-2 bg-bg-button border-b border-slate-600 flex justify-between items-center">
+                                  <div className="flex items-center gap-1 md:gap-1.5">
+                                    <span className={`font-mono text-[12px] font-bold ${isActive ? 'text-slate-400' : 'text-slate-500'}`}>{String(idx + 1).padStart(2, '0')}</span>
+                                    <span className="line-clamp-1 text-[12px] px-1 md:px-1.5 py-0.5 bg-slate-700 text-slate-400 rounded">{shot.interval?.duration}s-{shot.cameraMovement}</span>
                                   </div>
-                              </div>
+                                    <div className="flex items-center gap-0.5 md:gap-1">
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); startEditShot(shot); }}
+                                          className="p-1 md:p-1.5 hover:bg-slate-700 text-slate-500 hover:text-slate-50 rounded transition-colors cursor-pointer"
+                                          title="编辑镜头"
+                                        >
+                                          <Edit className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => {e.stopPropagation();deleteShot(shot.id)}}
+                                          className="p-1 md:p-1.5 hover:bg-red-900/20 text-slate-600 group-hover:text-red-400 rounded transition-colors cursor-pointer"
+                                          title="删除"
+                                        >
+                                          <Trash className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                </div>
 
-                              {/* Thumbnail */}
-                              <div
-                                className="aspect-video bg-slate-900 relative overflow-hidden"
-                                onMouseEnter={() => {
-                                  if (hasVideo && !videoPlayingShots.has(shot.id)) {
-                                    setVideoPlayingShots(prev => new Set([...prev, shot.id]));
-                                  }
-                                }}
-                                
-                              >
-                                  {videoReadyShots.has(shot.id) && hasVideo && videoPlayingShots.has(shot.id) ? (
-                                      <video
-                                        data-shot-id={shot.id}
-                                        src={shot.interval?.videoUrl}
-                                        className="w-full h-full object-cover"
-                                        muted controls autoPlay loop
-                                        onMouseEnter={(e) => e.currentTarget.play()}
-                                        onMouseLeave={(e) => e.currentTarget.pause()}
-                                        onCanPlay={() => {
-                                          if (!videoReadyShots.has(shot.id)) {
-                                            setVideoReadyShots(prev => new Set([...prev, shot.id]));
-                                          }
-                                        }}
-                                      />
-                                  ) : hasImage ? (
-                                      <>
-                                        <img src={sKf!.imageUrl || fKf!.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                        {/* Preload video in background */}
-                                        {hasVideo && !videoReadyShots.has(shot.id) && (
-                                          <video
-                                            src={shot.interval?.videoUrl}
-                                            className="hidden"
-                                            onCanPlay={() => {
-                                              if (!videoReadyShots.has(shot.id)) {
-                                                setVideoReadyShots(prev => new Set([...prev, shot.id]));
-                                              }
-                                            }}
-                                          />
-                                        )}
-                                      </>
-                                  ) : hasVideo ? (
-                                      <video
-                                        data-shot-id={shot.id}
-                                        src={shot.interval?.videoUrl}
-                                        className="w-full h-full object-cover"
-                                        muted controls autoPlay loop
-                                        onMouseEnter={(e) => e.currentTarget.play()}
-                                        onMouseLeave={(e) => e.currentTarget.pause()}
-                                        onCanPlay={() => {
-                                          if (!videoReadyShots.has(shot.id)) {
-                                            setVideoReadyShots(prev => new Set([...prev, shot.id]));
-                                          }
-                                        }}
-                                      />
-                                  ) : (
-                                      <div className="absolute inset-0 flex items-center justify-center text-slate-800">
-                                          <ImageIcon className="w-8 h-8 opacity-20" />
-                                      </div>
-                                  )}
+                                {/* Thumbnail */}
+                                <div
+                                  className="aspect-video bg-slate-800/50 relative overflow-hidden"
+                                  onMouseEnter={() => {
+                                    if (hasVideo && !videoPlayingShots.has(shot.id)) {
+                                      setVideoPlayingShots(prev => new Set([...prev, shot.id]));
+                                    }
+                                  }}
+                                  
+                                >
+                                    {videoReadyShots.has(shot.id) && hasVideo && videoPlayingShots.has(shot.id) ? (
+                                        <video
+                                          data-shot-id={shot.id}
+                                          src={shot.interval?.videoUrl}
+                                          className="w-full h-full object-cover"
+                                          muted controls
+                                          onMouseLeave={(e) => e.currentTarget.pause()}
+                                          onCanPlay={() => {
+                                            if (!videoReadyShots.has(shot.id)) {
+                                              setVideoReadyShots(prev => new Set([...prev, shot.id]));
+                                            }
+                                          }}
+                                        />
+                                    ) : hasImage ? (
+                                        <>
+                                          <img src={sKf!.imageUrl || fKf!.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                          {/* Preload video in background */}
+                                          {
+                                            hasVideo && !videoReadyShots.has(shot.id) && (
+                                            <video
+                                              src={shot.interval?.videoUrl}
+                                              className="hidden"
+                                              onCanPlay={() => {
+                                                if (!videoReadyShots.has(shot.id)) {
+                                                  setVideoReadyShots(prev => new Set([...prev, shot.id]));
+                                                }
+                                              }}
+                                            />
+                                          ) }
+                                        </>
+                                    ) : hasVideo ? (
+                                        <video
+                                          data-shot-id={shot.id}
+                                          className="w-full h-full object-cover"
+                                          src={shot.interval?.videoUrl}
+                                          muted controls
+                                          onMouseLeave={(e) => e.currentTarget.pause()}
+                                          onCanPlay={() => {
+                                            if (!videoReadyShots.has(shot.id)) {
+                                              setVideoReadyShots(prev => new Set([...prev, shot.id]));
+                                            }
+                                          }}
+                                        />
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-slate-600">
+                                            <Camera className="w-8 h-8 opacity-20" />
+                                        </div>
+                                    )}
 
-                                  {/* Badges */}
-                                  <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
-                                      {hasVideo && <div className="p-1 bg-green-500 text-white rounded shadow-lg backdrop-blur"><Video className="w-3 h-3" /></div>}
-                                  </div>
+                                    {/* Badges */}
+                                    <div className="absolute top-2 right-2 flex flex-row gap-1 items-end">
+                                        {hasVideo && <div className="p-1 bg-green-500 text-slate-50 rounded shadow-lg backdrop-blur"><Video className="w-3 h-3" /></div>}
+                                        {shot.transitionUrl && <div className="p-1 bg-cyan-500 text-slate-50 rounded shadow-lg backdrop-blur"><ArrowRightLeft className="w-3 h-3" /></div>}
+                                    </div>
 
-                                  {!activeShotId && !hasImage && !hasVideo && (
-                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <span className="text-[12px] text-white font-bold uppercase tracking-wider bg-slate-900/90 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur">点击生成</span>
-                                      </div>
-                                  )}
-                              </div>
+                                    {!activeShotId && !hasImage && !hasVideo && (
+                                        <div className="absolute inset-0 bg-slate-700/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <span className="text-[12px] text-slate-50 font-bold uppercase tracking-wider bg-slate-800/50/90 px-3 py-1.5 rounded-full border border-white/10 backdrop-blur">点击生成</span>
+                                        </div>
+                                    )}
+                                </div>
 
-                              {/* Footer */}
-                              <div className="p-3">
-                                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                                      {shot.actionSummary}
-                                  </p>
-                              </div>
-                          </div>
-                      );
-                  })}
-              </div>
+                                {/* Footer */}
+                                <div className="p-3">
+                                    <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                                        {shot.actionSummary}
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div></div>
+                );
+              })}
           </div>
 
           {/* Right Workbench - Optimized Interaction */}
           {activeShotId && activeShot && (
-              <div className="w-[460px] bg-[#0f1225] flex flex-col h-full shadow-2xl animate-in slide-in-from-right-10 duration-300 relative z-20">
+              <div className={`${isMobile ? 'w-full' : 'md:w-[55%] lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 3xl:w-[720px]'} bg-slate-700/50 flex flex-col h-full shadow-2xl animate-in slide-in-from-right-10 duration-300 relative z-20`}>
                   
                   {/* Workbench Header */}
-                  <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between bg-[#0c0c2d] shrink-0">
+                  <div className="h-16 md:px-6 px-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
                        <div className="flex items-center gap-3">
-                           <span className="w-8 h-8 bg-indigo-900/30 text-indigo-400 rounded-lg flex items-center justify-center font-bold font-mono text-sm border border-indigo-500/20">
+                           <span className="w-8 h-8 bg-slate-900/30 text-slate-400 rounded-lg flex items-center justify-center font-bold font-mono text-sm border border-slate-500/20">
                               {String(activeShotIndex + 1).padStart(2, '0')}
                            </span>
                            <div>
-                               <span className="text-[16px] text-white font-bold text-sm">镜头详情</span>
-                               <p className="text-[12px] text-slate-500 uppercase tracking-widest">{activeShot.cameraMovement}</p>
+                               <span className="text-[16px] text-slate-50 font-bold text-sm">镜头详情
+                            <button
+                                onClick={(e) => { e.stopPropagation(); startEditShot(activeShot); }}
+                            className="px-2.5 py-2 text-[11px] font-medium text-slate-400 hover:text-slate-50 rounded transition-all cursor-pointer"
+                            title="修改镜头"
+                            >
+                            <Edit className="w-3.5 h-3.5" />
+                            </button>
+                               </span>
+                               <p className="text-[12px] text-slate-500 uppercase tracking-widest">{activeShot.cameraMovement} {activeShot.interval?.duration}s</p>
                            </div>
                        </div>
                        
                        <div className="flex items-center gap-1">
-                           <button onClick={goToPrevShot} disabled={activeShotIndex === 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-white disabled:opacity-20 transition-colors">
+                           <button onClick={goToPrevShot} disabled={activeShotIndex === 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
                                <ChevronLeft className="w-4 h-4" />
                            </button>
-                           <button onClick={goToNextShot} disabled={activeShotIndex === project.shots.length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-white disabled:opacity-20 transition-colors">
+                           <button onClick={goToNextShot} disabled={activeShotIndex === project.shots.length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
                                <ChevronRight className="w-4 h-4" />
                            </button>
                            <div className="w-px h-4 bg-slate-700 mx-2"></div>
-                           <button onClick={() => setActiveShotId(null)} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors">
+                           <button onClick={() => setActiveShotId(null)} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer">
                                <X className="w-4 h-4" />
                            </button>
                        </div>
                   </div>
 
                   {/* Workbench Content */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                       
+                  <div className="flex-1 overflow-y-auto md:p-6 p-2 space-y-6 border-b border-slate-600">
                        {/* Section 1: Context */}
                        {renderSceneContext()}
-
                        {/* Section 2: Narrative */}
                        <div className="space-y-4">
-                           <div className="flex items-center justify-between mb-2">
-                           <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                               <Film className="w-4 h-4 text-slate-500" />
-                               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">叙事动作 (Action & Dialogue)</h4>
-                           </div>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); startEditShot(activeShot); }}
-                            className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-white bg-slate-900/80 border border-slate-800 hover:border-slate-600 rounded transition-all flex items-center justify-center gap-1.5"
-                            title="修改镜头"
-                             >
-                            <Edit className="w-3 h-3" />修改镜头
-                            </button>
-              </div>
+                           <div className="flex items-center gap-2 border-b border-slate-600 pb-2">
+                               <NotepadText className="w-4 h-4 text-slate-500" />
+                               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">叙事动作</h4>
+                        </div>
                            
                            <div className="space-y-3">
-                               <div className="bg-[#0c0c2d] p-4 rounded-lg border border-slate-800">
+                               <div className="bg-slate-800 p-4 rounded-lg border border-slate-600">
                                    <p className="text-slate-200 text-sm leading-relaxed">{activeShot.actionSummary}</p>
                                </div>
-                               
-                               {activeShot.dialogue && (
-                                  <div className="bg-[#0c0c2d] p-4 rounded-lg border border-slate-800 flex gap-3">
+
+                               {activeShot.dialogue && activeShot.dialogue instanceof Array && activeShot.dialogue.length > 0 && (
+                                  <div className="bg-slate-800 p-4 rounded-lg border border-slate-600 flex gap-3">
                                       <MessageSquare className="w-4 h-4 text-slate-600 mt-0.5" />
-                                      <div>
+                                      <div className="flex-1">
                                           <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">对白</p>
-                                          <p className="text-indigo-200 font-serif italic text-sm">"{activeShot.dialogue}"</p>
+                                          {activeShot.dialogue.map((dlg, idx) => (
+                                            <p key={idx} className="text-slate-200 font-serif italic text-sm mb-2">
+                                              {dlg.character ? <span className="text-slate-300 font-medium">{dlg.character}:</span> : null} "{dlg.value}"
+                                            </p>
+                                          ))}
+                                          {activeShot.audioUrl && (
+                                              <audio
+                                                  controls
+                                                  className="w-full h-7 rounded bg-bg-progress border border-slate-600/50"
+                                                  src={activeShot.audioUrl}
+                                              />
+                                          )}
                                       </div>
                                   </div>
                                )}
@@ -949,22 +1575,22 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
 
                        {/* Section 3: Shot Model Providers */}
                        <div className="space-y-4">
-                           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                           <div className="flex items-center justify-between border-b border-slate-600 pb-2">
                                <div className="flex items-center gap-2">
                                    <Sparkles className="w-4 h-4 text-slate-500" />
-                                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">模型供应商 (Model Providers)</h4>
+                                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">模型供应商</h4>
                                </div>
                                <button
                                    onClick={async () => {
                                        try {
                                            const configs = await getAllModelConfigs();
                                            setModelConfigs(configs);
-                                           console.log('模型配置已刷新');
+                                           //console.log('模型配置已刷新');
                                        } catch (error) {
                                            console.error('刷新模型配置失败:', error);
                                        }
                                    }}
-                                   className="text-[11px] text-indigo-400 hover:text-white transition-colors flex items-center gap-1"
+                                   className="text-[11px] text-slate-400 hover:text-slate-50 transition-colors flex items-center gap-1 cursor-pointer"
                                    title="刷新模型配置"
                                >
                                    <RefreshCw className="w-3 h-3" />
@@ -974,10 +1600,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                            <div className="grid grid-cols-2 gap-4">
                                {/* Text2Image Provider */}
                                <div className="space-y-2">
-                                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">文生图</label>
+                                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">图像模型</label>
                                    <div className="relative">
                                        <select
-                                           value={activeShot.modelProviders?.text2image || ''}
+                                           value={activeShot.modelProviders?.text2image || project.modelProviders?.text2image}
                                            onChange={(e) => {
                                                const text2image = e.target.value || undefined;
                                                updateShot(activeShot.id, (s) => ({
@@ -988,14 +1614,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                                    }
                                                }));
                                            }}
-                                           className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                                           className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                                        >
                                            <option value="">使用项目默认</option>
                                            {modelConfigs
                                                .filter(c => c.modelType === 'text2image' && c.apiKey)
                                                .map(config => (
                     <option key={config.id} value={config.id}>
-                      {config.provider} - {config.model || config.description}
+                      {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
                     </option>
                   ))}
                                        </select>
@@ -1007,10 +1633,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
 
                                {/* Image2Video Provider */}
                                <div className="space-y-2">
-                                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">图生视频</label>
+                                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">视频模型</label>
                                    <div className="relative">
                                        <select
-                                           value={activeShot.modelProviders?.image2video || ''}
+                                           value={activeShot.modelProviders?.image2video || project.modelProviders?.image2video}
                                            onChange={(e) => {
                                                const image2video = e.target.value || undefined;
                                                updateShot(activeShot.id, (s) => ({
@@ -1021,14 +1647,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                                    }
                                                }));
                                            }}
-                                           className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                                           className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                                        >
                                            <option value="">使用项目默认</option>
                                            {modelConfigs
                                                .filter(c => c.modelType === 'image2video' && c.apiKey)
                                                .map(config => (
                     <option key={config.id} value={config.id}>
-                      {config.provider} - {config.model || config.description}
+                      {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
                     </option>
                   ))}
                                        </select>
@@ -1042,15 +1668,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
 
                        {/* Section 4: Visual Production */}
                        <div className="space-y-4">
-                           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                           <div className="flex items-center justify-between border-b border-slate-600 pb-2">
                                <div className="flex items-center gap-2">
-                                   <Aperture className="w-4 h-4 text-slate-500" />
-                                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">视觉制作 (Visual Production)</h4>
+                                   <Clapperboard className="w-4 h-4 text-slate-500" />
+                                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">视觉制作</h4>
                                </div>
+                               {imageCount > 0 && (
                                <button
                                    onClick={() => handleOneClickProduction(activeShot)}
                                    disabled={!!processingState || !!batchProgress || oneClickProcessing?.shotId === activeShot.id}
-                                   className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold uppercase tracking-wider rounded transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                                   className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold uppercase tracking-wider rounded transition-all flex items-center gap-1.5 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                                >
                                    {oneClickProcessing?.shotId === activeShot.id ? (
                                        <>
@@ -1064,25 +1691,50 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                        </>
                                    )}
                                </button>
+                               )}
                            </div>
 
-                           {imageCount > 1 ? (
+                           {fullKf && (
                                <div className="space-y-2">
+                                   {imageCount > 0 && ( 
+                                    <>
                                    <div className="flex justify-between items-center">
-                                       <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">宫格图 (Grid)</span>
+                                       <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">宫格图</span>
+                                       <div className="flex items-center gap-2">
+                                            {fullKf?.imageUrl && (
+                                                   <button
+                                                       onClick={() => deleteKeyframeImage(activeShot.id, 'full')}
+                                                       disabled={!!processingState || !!batchProgress}
+                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                       title="删除起始帧图片"
+                                                   >
+                                                       <Trash className="w-3 h-3" />
+                                                   </button>
+                                               )}
                                        <button
                                            onClick={() => handleGenerateKeyframe(activeShot, 'full')}
                                            disabled={!!processingState || !!batchProgress}
-                                           className="text-[12px] text-indigo-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                           className="text-[12px] text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                        >
                                            {processingState?.type === 'kf_full' && (processingState?.id === fullKf?.id || (!fullKf && processingState?.type === 'kf_full')) ? '生成中...' : fullKf?.imageUrl ? '重新生成' : '生成'}
                                        </button>
+                                       </div>
                                    </div>
-                                   <div className="aspect-video bg-black rounded-lg border border-slate-800 overflow-hidden relative group">
+                                   <div className="aspect-video bg-slate-800/50 rounded-lg border border-slate-600 overflow-hidden relative group">
+                                       {fullKf?.imageUrl && (
+                                           <button
+                                               onClick={(e) => { e.stopPropagation(); downloadImage(fullKf.imageUrl!, `${project.scriptData?.title}-Shot-${activeShotIndex + 1}-full.png`, dialog); }}
+                                               disabled={!!processingState || !!batchProgress}
+                                               className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
+                                               title="下载宫格图"
+                                           >
+                                               <Download className="w-3 h-3" />
+                                           </button>
+                                       )}
                                        <button
                                            onClick={(e) => { e.stopPropagation(); handleFileUploadClick(activeShot.id, 'full'); }}
                                            disabled={!!processingState || !!batchProgress}
-                                           className="absolute bottom-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition-colors border border-white/10 backdrop-blur z-10"
+                                           className="absolute bottom-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
                                            title="上传图片"
                                        >
                                            <Upload className="w-3 h-3" />
@@ -1100,41 +1752,76 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                        )}
                                        {/* Loading State matching ID */}
                                        {((fullKf && processingState?.id === fullKf.id) || (processingState?.type === 'kf_full' && !fullKf)) && (
-                                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+                                            <div className="absolute inset-0 bg-slate-700/60 flex items-center justify-center">
+                                                <Loader2 className="w-6 h-6 text-slate-500 animate-spin" />
                                             </div>
                                        )}
-                                   </div>
+                                   </div> </>
+                                   )}
                                    {/* Visual Prompt Editor */}
                                    {fullKf && (
                                        <textarea
                                            value={fullKf.visualPrompt || ''}
                                            onChange={(e) => updateKeyframePrompt(activeShot.id, 'full', e.target.value)}
-                                           className="w-full bg-[#0c0c2d] border border-slate-800 text-slate-300 text-xs rounded p-2 focus:border-indigo-500 focus:outline-none resize-none h-20 transition-colors"
+                                           className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-colors"
                                            placeholder="输入宫格图画面描述..."
                                            rows={3}
                                        />
                                    )}
                                </div>
-                           ) : (
-                               <div className="grid grid-cols-2 gap-4">
-                                   {/* Start Frame */}
+                           )}
+                          {startKf && (
+                          <div className="grid grid-cols-2 gap-4">
                                    <div className="space-y-2">
+                                   {/* Start Frame */}
+                                   {imageCount > 0 && (<>
                                        <div className="flex justify-between items-center">
-                                           <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">起始帧 (Start)</span>
+                                           <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">起始帧</span>
+                                            <div className="flex items-center gap-2">
+                                            {startKf?.imageUrl && (
+                                                   <button
+                                                       onClick={() => deleteKeyframeImage(activeShot.id, 'start')}
+                                                       disabled={!!processingState || !!batchProgress}
+                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                       title="删除起始帧图片"
+                                                   >
+                                                       <Trash className="w-3 h-3" />
+                                                   </button>
+                                               )}
+                                               {startKf?.imageUrl && activeShotIndex > 0 && (
+                                                   <button
+                                                       onClick={copyStartToPreviousShotEndImage}
+                                                       disabled={!!processingState || !!batchProgress}
+                                                       className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                       title="作为前一个镜头的结束帧"
+                                                   >
+                                                       <ArrowLeft className="w-3 h-3" />
+                                                   </button>
+                                               )}
                                            <button
                                                onClick={() => handleGenerateKeyframe(activeShot, 'start')}
                                                disabled={!!processingState || !!batchProgress}
-                                               className="text-[12px] text-indigo-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                               className="text-[12px] text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                            >
                                                {processingState?.type === 'kf_start' && (processingState?.id === startKf?.id || (!startKf && processingState?.type === 'kf_start')) ? '生成中...' : startKf?.imageUrl ? '重新生成' : '生成'}
                                            </button>
+                                           </div>
                                        </div>
-                                       <div className="aspect-video bg-black rounded-lg border border-slate-800 overflow-hidden relative group">
+                                       <div className="aspect-video bg-slate-800/50 rounded-lg border border-slate-600 overflow-hidden relative group">
+                                           {startKf?.imageUrl && (
+                                               <button
+                                                   onClick={(e) => { e.stopPropagation(); downloadImage(startKf.imageUrl!, `${project.scriptData?.title}-Shot-${activeShotIndex + 1}-start.png`, dialog); }}
+                                                   disabled={!!processingState || !!batchProgress}
+                                                   className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
+                                                   title="下载起始帧"
+                                               >
+                                                   <Download className="w-3 h-3" />
+                                               </button>
+                                           )}
                                            <button
                                                onClick={(e) => { e.stopPropagation(); handleFileUploadClick(activeShot.id, 'start'); }}
                                                disabled={!!processingState || !!batchProgress}
-                                               className="absolute bottom-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition-colors border border-white/10 backdrop-blur z-10"
+                                               className="absolute bottom-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
                                                title="上传图片"
                                            >
                                                <Upload className="w-3 h-3" />
@@ -1152,17 +1839,18 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                            )}
                                            {/* Loading State matching ID */}
                                            {((startKf && processingState?.id === startKf.id) || (processingState?.type === 'kf_start' && !startKf)) && (
-                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                    <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+                                                <div className="absolute inset-0 bg-slate-700/60 flex items-center justify-center">
+                                                    <Loader2 className="w-6 h-6 text-slate-500 animate-spin" />
                                                 </div>
                                            )}
                                        </div>
+                                   </>)}
                                        {/* Visual Prompt Editor */}
                                        {startKf && (
                                            <textarea
                                                value={startKf.visualPrompt || ''}
                                                onChange={(e) => updateKeyframePrompt(activeShot.id, 'start', e.target.value)}
-                                               className="w-full bg-[#0c0c2d] border border-slate-800 text-slate-300 text-xs rounded p-2 focus:border-indigo-500 focus:outline-none resize-none h-20 transition-colors"
+                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-colors"
                                                placeholder="输入起始帧画面描述..."
                                                rows={3}
                                            />
@@ -1171,33 +1859,54 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
 
                                    {/* End Frame */}
                                    <div className="space-y-2">
+                                       {imageCount > 0 && (<>
                                        <div className="flex justify-between items-center">
-                                           <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">结束帧 (End)</span>
+                                           <span className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">结束帧</span>
                                            <div className="flex items-center gap-2">
                                                {endKf?.imageUrl && (
                                                    <button
                                                        onClick={() => deleteKeyframeImage(activeShot.id, 'end')}
                                                        disabled={!!processingState || !!batchProgress}
-                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                        title="删除尾帧图片"
                                                    >
                                                        <Trash className="w-3 h-3" />
                                                    </button>
                                                )}
+                                              {endKf?.imageUrl && activeShotIndex < project.shots.length-1 && (
+                                                   <button
+                                                       onClick={copyEndToNextShotStartImage}
+                                                       disabled={!!processingState || !!batchProgress}
+                                                       className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                       title="作为下一个镜头的起始帧"
+                                                   >
+                                                       <ArrowRight className="w-3 h-3" />
+                                                   </button>
+                                               )}
                                                <button
                                                    onClick={() => handleGenerateKeyframe(activeShot, 'end')}
                                                    disabled={!!processingState || !!batchProgress}
-                                                   className="text-[12px] text-indigo-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                   className="text-[12px] text-slate-400 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                >
                                                    {processingState?.type === 'kf_end' && (processingState?.id === endKf?.id || (!endKf && processingState?.type === 'kf_end')) ? '生成中...' : endKf?.imageUrl ? '重新生成' : '生成'}
                                                </button>
                                            </div>
                                        </div>
-                                       <div className="aspect-video bg-black rounded-lg border border-slate-800 overflow-hidden relative group">
+                                       <div className="aspect-video bg-slate-800/50 rounded-lg border border-slate-600 overflow-hidden relative group">
+                                           {endKf?.imageUrl && (
+                                               <button
+                                                   onClick={(e) => { e.stopPropagation(); downloadImage(endKf.imageUrl!, `${project.scriptData?.title}-Shot-${activeShotIndex + 1}-end.png`, dialog); }}
+                                                   disabled={!!processingState || !!batchProgress}
+                                                   className="absolute bottom-2 right-11 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
+                                                   title="下载结束帧"
+                                               >
+                                                   <Download className="w-3 h-3" />
+                                               </button>
+                                           )}
                                            <button
                                                onClick={(e) => { e.stopPropagation(); handleFileUploadClick(activeShot.id, 'end'); }}
                                                disabled={!!processingState || !!batchProgress}
-                                               className="absolute bottom-2 right-2 p-2 bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition-colors border border-white/10 backdrop-blur z-10"
+                                               className="absolute bottom-2 right-2 p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur z-10 cursor-pointer"
                                                title="上传图片"
                                            >
                                                <Upload className="w-3 h-3" />
@@ -1210,22 +1919,23 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                                />
                                            ) : (
                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                   <span className="text-[11px] text-slate-700 uppercase">Optional</span>
+                                                   <div className="w-2 h-2 rounded-full bg-slate-800"></div>
                                                </div>
                                            )}
                                            {/* Loading State matching ID */}
                                            {((endKf && processingState?.id === endKf.id) || (processingState?.type === 'kf_end' && !endKf)) && (
-                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                    <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+                                                <div className="absolute inset-0 bg-slate-700/60 flex items-center justify-center">
+                                                    <Loader2 className="w-6 h-6 text-slate-500 animate-spin" />
                                                 </div>
                                            )}
                                        </div>
+                                       </>)}
                                        {/* Visual Prompt Editor */}
                                        {endKf && (
                                            <textarea
                                                value={endKf.visualPrompt || ''}
                                                onChange={(e) => updateKeyframePrompt(activeShot.id, 'end', e.target.value)}
-                                               className="w-full bg-[#0c0c2d] border border-slate-800 text-slate-300 text-xs rounded p-2 focus:border-indigo-500 focus:outline-none resize-none h-20 transition-colors"
+                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-colors"
                                                placeholder="输入结束帧画面描述..."
                                                rows={3}
                                            />
@@ -1233,40 +1943,107 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                    </div>
                                </div>
                            )}
-
                            </div>
 
                            {/* Section 4: Video Generation */}
-                       <div className="bg-[#0c0c2d] rounded-xl p-5 border border-slate-800 space-y-4">
+                       <div className="bg-slate-800 rounded-xl p-2 md:p-4 border border-slate-600 space-y-2">
                            <div className="flex items-center justify-between">
-                               <h4 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                                  <Video className="w-3 h-3 text-indigo-500" />
+                               <h4 className="text-xs font-bold text-slate-50 uppercase tracking-widest flex items-center gap-2">
+                                  <Video className="w-4 h-4 text-slate-500" />
                                   视频生成
+                                   {activeShot.interval?.status === 'completed' && (
+                                       <button
+                                           onClick={() => handleDownloadVideo(activeShot)}
+                                           className="text-[12px] text-green-500 font-mono flex items-center gap-1 hover:text-green-400 transition-colors cursor-pointer bg-transparent border-0 p-0"
+                                           title="点击下载视频"
+                                       >
+                                           <Download className="w-3 h-3" />
+                                           READY
+                                       </button>
+                                   )}
+                                  <button
+                                      onClick={() => setVideoPromptShotId(activeShot.id)}
+                                      className="text-[12px] text-slate-500 font-mono flex items-center gap-1 hover:text-slate-200 transition-colors cursor-pointer bg-transparent border-0 p-0"
+                                      title="视频提示词"
+                                  >
+                                     <NotebookPen className="w-3 h-3" />
+                                  </button>
                                </h4>
                                <div className="flex items-center gap-3">
-                                   {activeShot.interval?.status === 'completed' && <span className="text-[12px] text-green-500 font-mono flex items-center gap-1">● READY</span>}
-                                   {activeShot.interval?.duration && <span className="text-[12px] text-indigo-400 font-mono flex items-center gap-1">{activeShot.interval?.duration}s</span>}
+                                   <button
+                                       onClick={() => handleGenerateTransition(activeShot)}
+                                       disabled={!!processingState || !!batchProgress || !!transitionGeneratingShotId}
+                                       className={`text-[12px] font-mono flex items-center gap-1 transition-colors cursor-pointer bg-transparent border-0 p-0 ${
+                                           activeShot.transitionUrl
+                                               ? 'text-cyan-500 hover:text-cyan-400'
+                                               : 'text-slate-400 hover:text-slate-300'
+                                       } ${(!!processingState || !!batchProgress || !!transitionGeneratingShotId) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                       title="生成转场动画"
+                                   >
+                                       {transitionGeneratingShotId === activeShot.id ? (
+                                           <Loader2 className="w-3 h-3 animate-spin" />
+                                       ) : (
+                                           <ArrowRightLeft className="w-3 h-3" />
+                                       )}
+                                       {transitionGeneratingShotId === activeShot.id ? '生成中...' : (activeShot.transitionUrl ? '重新生成转场' : '生成转场动画')}
+                                   </button>
+                                   {activeShot.transitionUrl && (
+                                       <button
+                                           onClick={() => handleDownloadTransition(activeShot)}
+                                           className="text-[12px] text-cyan-500 font-mono flex items-center gap-1 hover:text-cyan-400 transition-colors cursor-pointer bg-transparent border-0 p-0"
+                                           title="点击下载转场视频"
+                                       >
+                                           <Download className="w-3 h-3" />
+                                       </button>
+                                   )}
+                                   {activeShot.transitionUrl && activeShot.interval?.videoUrl && (
+                                       <button
+                                           onClick={() => setPlayingTransition(prev => ({ ...prev, [activeShot.id]: !prev[activeShot.id] }))}
+                                           className="text-[12px] font-mono flex items-center gap-1 transition-colors cursor-pointer bg-transparent border-0 p-0 text-cyan-500 hover:text-cyan-400"
+                                           title={playingTransition[activeShot.id] ? '切换到主视频' : '切换到转场动画'}
+                                       >
+                                           {playingTransition[activeShot.id] ? <Film className="w-3 h-3" /> : <ArrowRightLeft className="w-3 h-3" />}
+                                           {playingTransition[activeShot.id] ? 'MAIN' : 'TRANS'}
+                                       </button>
+                                   )}
                                </div>
                            </div>
-                           
-                           {activeShot.interval?.videoUrl ? (
-                               <div className="w-full aspect-video bg-black rounded-lg overflow-hidden border border-slate-700 relative shadow-lg">
-                                   <video src={activeShot.interval.videoUrl} controls className="w-full h-full" />
+
+                           {(activeShot.interval?.videoUrl || activeShot.transitionUrl) ? (
+                               <div className="w-full aspect-video bg-slate-800/50 rounded-lg overflow-hidden border border-slate-600 relative shadow-lg">
+                                   <video
+                                       src={activeShot.transitionUrl && playingTransition[activeShot.id] ? activeShot.transitionUrl : activeShot.interval?.videoUrl}
+                                       controls
+                                       className="w-full h-full object-cover"
+                                   />
+                                   {activeShot.transitionUrl && playingTransition[activeShot.id] && (
+                                       <div className="absolute top-2 right-2 px-2 py-1 bg-purple-500/80 text-white text-xs font-bold rounded">
+                                           转场动画
+                                       </div>
+                                   )}
                                </div>
                            ) : (
-                               <div className="w-full aspect-video bg-slate-900/50 rounded-lg border border-dashed border-slate-800 flex items-center justify-center">
-                                   <span className="text-xs text-slate-600 font-mono">PREVIEW AREA</span>
+                               <div className="w-full aspect-video bg-slate-800/50 rounded-lg border border-dashed border-slate-600 flex items-center justify-center">
+                                   <span className="text-xs text-slate-600 font-mono">预览</span>
                                </div>
                            )}
 
+                           
+                           {!endKf?.imageUrl && !startKf?.imageUrl && imageCount > 1 && (
+                               <div className="text-[11px] text-slate-500 text-center font-mono">
+                                  * 将使用连续图生成模式
+                               </div>
+                           )}
+                       </div>
+                  </div>
                            <button
                              onClick={() => handleGenerateVideo(activeShot)}
-                             disabled={(!startKf?.imageUrl && !endKf?.imageUrl && !fullKf?.imageUrl) || !!processingState || !!batchProgress}
-                             className={`w-full py-3 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                             disabled={!!processingState || !!batchProgress}
+                             className={`mx-6 m-3 py-2 rounded-lg font-bold border border-slate-600 xt-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer ${
                                activeShot.interval?.videoUrl
-                                 ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                                 : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-600/20'
-                             } ${((!startKf?.imageUrl && !endKf?.imageUrl && !fullKf?.imageUrl) || !!processingState || !!batchProgress) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                 ? 'bg-slate-600 text-slate-300 hover:bg-slate-700'
+                                 : 'bg-slate-600 text-slate-50 hover:bg-slate-500 shadow-lg shadow-slate-600/20'
+                             } ${(!!processingState || !!batchProgress) ? 'cursor-not-allowed' : ''}`}
                            >
                              {processingState?.type === 'video' ? (
                                 <>
@@ -1279,21 +2056,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
                                 </>
                              )}
                            </button>
-                           
-                           {!endKf?.imageUrl && !startKf?.imageUrl && imageCount > 1 && (
-                               <div className="text-[11px] text-slate-500 text-center font-mono">
-                                  * 将使用连续图生成模式
-                               </div>
-                           )}
-                       </div>
-                  </div>
               </div>
           )}
 
           {/* Fullscreen Image Preview Modal */}
           {previewImageUrl && (
             <div
-              className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center"
+              className="fixed inset-0 z-[100] bg-slate-700/90 backdrop-blur-sm flex items-center justify-center"
               onClick={() => setPreviewImageUrl(null)}
             >
               <img
@@ -1304,7 +2073,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
               />
               <button
                 onClick={() => setPreviewImageUrl(null)}
-                className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-white rounded-full transition-colors"
+                className="absolute top-6 right-6 p-3 bg-slate-800/50/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -1318,6 +2087,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
               characters={project.scriptData?.characters || []}
               onSave={saveShot}
               onClose={() => setEditingShotId(null)}
+              imageCount={project.imageCount}
+              scriptData={project.scriptData}
+              visualStyle={project.visualStyle}
             />
           )}
 
@@ -1339,6 +2111,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
               localStyle={localStyle}
               imageSize={imageSize}
               processingState={wardProcessingState}
+              setProcessingState={setWardProcessingState}
               updateProject={updateProject}
               onClose={() => setSelectedCharId(null)}
               setPreviewImage={setPreviewImageUrl}
@@ -1350,10 +2123,30 @@ const StageDirector: React.FC<Props> = ({ project, updateProject }) => {
         isOpen={fileUploadModalOpen}
         onClose={() => setFileUploadModalOpen(false)}
         onUploadSuccess={handleFileUploadSuccess}
-        fileType={uploadingKeyframe?.type === 'full' ? 'scene' : 'kf'}
+        fileType={uploadingKeyframe?.type === 'full' ? 'full' : 'start_end'}
         acceptTypes="image/png,image/jpeg,image/jpg"
         title={uploadingKeyframe?.type === 'full' ? '上传宫格图' : uploadingKeyframe?.type === 'start' ? '上传起始帧' : '上传尾帧'}
+        projectid={project.id}
+        project={project}
+        filterType={'keyframe'}
       />
+
+      {/* Video Prompt Modal */}
+      {videoPromptShotId && (
+        <VideoPromptModal
+          isOpen={!!videoPromptShotId}
+          onClose={() => setVideoPromptShotId(null)}
+          shot={project.shots.find(s => s.id === videoPromptShotId)!}
+          scriptData={project.scriptData}
+          visualStyle={project.visualStyle}
+          onSave={(videoPrompt) => {
+            updateShot(videoPromptShotId, (s) => ({
+              ...s,
+              interval: s.interval ? { ...s.interval, videoPrompt } : undefined
+            }));
+          }}
+        />
+      )}
     </div>
     </div>
   );

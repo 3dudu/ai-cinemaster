@@ -10,7 +10,7 @@
  */
 export async function imageUrlToBase64(imageUrl: string): Promise<string> {
   // 如果已经是base64格式，直接返回
-  if (imageUrl.startsWith('data:')) {
+  if (!imageUrl || imageUrl.startsWith('data:')) {
     return imageUrl;
   }
 

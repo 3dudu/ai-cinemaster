@@ -1,23 +1,30 @@
-import { Check, ChevronRight, Download, Edit, Film, Globe, Image, Key, Music, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { Check, ChevronRight, Download, Edit, Eye, EyeOff, Film, Globe, Image, Key, Link, Music, Plus, Sparkles, Tags, Trash2, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { triggerModelConfigChanged } from '../services/modelConfigEvents';
 import { createDefaultModelConfigs, saveModelConfigWithExclusiveEnabled, toggleConfigEnabled } from '../services/modelConfigService';
 import { deleteModelConfig, getAllModelConfigs, saveModelConfig } from '../services/storageService';
 import { AIModelConfig } from '../types';
+import { useDialog } from './dialog';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  isMobile?: boolean;
 }
 
 const PROVIDER_OPTIONS = [
-  { value: 'doubao', label: 'Doubao (火山引擎)' },
-  { value: 'deepseek', label: 'DeepSeek' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'gemini', label: 'Gemini (Google)' },
-  { value: 'yunwu', label: 'Yunwu (云雾)' },
-  { value: 'minimax', label: 'Minimax (海螺)'},
-  { value: 'kling', label: 'Kling (可灵)'}
+  { value: 'doubao', label: 'Doubao (火山引擎)', apiUrl: 'https://www.volcengine.com/product/doubao' },
+  { value: 'deepseek', label: 'DeepSeek', apiUrl: 'https://platform.deepseek.com/' },
+  { value: 'openai', label: 'OpenAI', apiUrl: 'https://platform.openai.com/' },
+  { value: 'gemini', label: 'Gemini (Google)', apiUrl: 'https://ai.google.dev/' },
+  { value: 'yunwu', label: 'Yunwu (云雾)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
+  { value: 'minimax', label: 'Minimax (海螺，云雾中转)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
+  { value: 'kling', label: 'Kling (可灵，云雾中转)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
+  { value: 'sora', label: 'sora (sora，云雾中转)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
+  { value: 'wan', label: '通义万相 (云雾中转)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
+  { value: 'bigmore', label: 'bigmoreai中转', apiUrl: 'https://bigmoreai.com/#/docs/veoo' },
+  { value: 'skyreels', label: 'SkyReels ', apiUrl: 'https://skyreels.ai/' },
+  { value: 'baidu', label: 'Baidu (百度)', apiUrl: 'https://cloud.baidu.com/' },
 ] as const;
 
 const MODEL_TYPE_OPTIONS = [
@@ -30,13 +37,18 @@ const MODEL_TYPE_OPTIONS = [
 
 // 定义不同供应商支持的模型类型
 const PROVIDER_MODEL_TYPES: Record<string, readonly string[]> = {
-  doubao: ['llm', 'text2image', 'image2video', 'tts', 'stt'] as const,
+  doubao: ['llm', 'text2image', 'image2video'] as const,
   deepseek: ['llm'] as const,
   openai: ['llm', 'text2image', 'image2video'] as const,
   gemini: ['llm', 'text2image', 'image2video'] as const,
   yunwu: ['llm', 'text2image', 'image2video'] as const,
   minimax: ['image2video'] as const,
-  kling: ['image2video'] as const
+  kling: ['image2video'] as const,
+  sora: ['image2video'] as const,
+  wan: ['image2video'] as const,
+  bigmore: ['image2video'] as const,
+  skyreels: ['image2video'] as const,
+  baidu: ['tts'] as const,
 };
 
 // 根据供应商获取支持的模型类型选项
@@ -49,35 +61,36 @@ const getModelTypesForProvider = (provider: AIModelConfig['provider']) => {
 const getModelTypeColorStyles = (modelType: AIModelConfig['modelType']) => {
   const colorMap = {
     llm: {
-      text: 'text-green-400',
-      bg: 'bg-green-900/30',
+      text: 'text-green-300',
+      bg: 'bg-green-900/80',
       border: 'border-green-500/30'
     },
     text2image: {
       text: 'text-orange-400',
-      bg: 'bg-orange-900/30',
+      bg: 'bg-orange-900/80',
       border: 'border-orange-500/30'
     },
     image2video: {
       text: 'text-purple-400',
-      bg: 'bg-purple-900/30',
+      bg: 'bg-purple-900/80',
       border: 'border-purple-500/30'
     },
     tts: {
       text: 'text-blue-400',
-      bg: 'bg-blue-900/30',
+      bg: 'bg-blue-900/80',
       border: 'border-blue-500/30'
     },
     stt: {
       text: 'text-yellow-400',
-      bg: 'bg-yellow-900/30',
+      bg: 'bg-yellow-900/80',
       border: 'border-yellow-500/30'
     }
   };
   return colorMap[modelType] || colorMap.llm;
 };
 
-const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
+const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => {
+  const dialog = useDialog();
   const [configs, setConfigs] = useState<AIModelConfig[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingConfig, setEditingConfig] = useState<Partial<AIModelConfig> | null>(null);
@@ -90,6 +103,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
     enabled: false,
     description: ''
   });
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const loadConfigs = async () => {
     try {
@@ -109,7 +123,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const handleAdd = async () => {
     if (!formData.apiKey) {
-      alert('请填写 API Key');
+      await dialog.alert({ title: '错误', message: '请填写 API Key', type: 'error' });
       return;
     }
 
@@ -132,7 +146,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
       resetForm();
     } catch (error) {
       console.error('Failed to save config:', error);
-      alert('保存配置失败');
+      await dialog.alert({ title: '错误', message: '保存配置失败', type: 'error' });
     }
   };
 
@@ -153,7 +167,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
   const handleUpdate = async () => {
     if (!editingConfig?.id) return;
     if (!formData.apiKey) {
-      alert('请填写 API Key');
+      await dialog.alert({ title: '错误', message: '请填写 API Key', type: 'error' });
       return;
     }
 
@@ -177,12 +191,17 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
       resetForm();
     } catch (error) {
       console.error('Failed to update config:', error);
-      alert('更新配置失败');
+      await dialog.alert({ title: '错误', message: '更新配置失败', type: 'error' });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('确定要删除这个配置吗？')) return;
+    const confirmed = await dialog.confirm({
+      title: '确认删除',
+      message: '确定要删除这个配置吗？',
+      type: 'warning',
+    });
+    if (!confirmed) return;
 
     try {
       await deleteModelConfig(id);
@@ -190,11 +209,11 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
       triggerModelConfigChanged(); // 触发配置变更事件
     } catch (error) {
       console.error('Failed to delete config:', error);
-      alert('删除配置失败');
+      await dialog.alert({ title: '错误', message: '删除配置失败', type: 'error' });
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
       const exportData = {
         version: '1.0',
@@ -215,6 +234,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
+      a.target = '_blank';
       a.download = `cinegen-model-configs-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
@@ -222,7 +242,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('导出失败:', error);
-      alert('导出配置失败');
+      await dialog.alert({ title: '错误', message: '导出配置失败', type: 'error' });
     }
   };
 
@@ -238,14 +258,19 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
 
         // 验证导入数据格式
         if (!importData.configs || !Array.isArray(importData.configs)) {
-          alert('导入文件格式不正确');
+          await dialog.alert({ title: '错误', message: '导入文件格式不正确', type: 'error' });
           return;
         }
 
         const importCount = importData.configs.length;
         const confirmMessage = `确定要导入 ${importCount} 个配置吗？\n\n导入的配置将与现有配置合并，ID 相同的配置将被覆盖。`;
 
-        if (!window.confirm(confirmMessage)) {
+        const confirmed = await dialog.confirm({
+          title: '确认导入',
+          message: confirmMessage,
+          type: 'info',
+        });
+        if (!confirmed) {
           event.target.value = '';
           return;
         }
@@ -271,10 +296,10 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
 
         await loadConfigs();
         triggerModelConfigChanged();
-        alert(`成功导入 ${importCount} 个配置`);
+        await dialog.alert({ title: '成功', message: `成功导入 ${importCount} 个配置`, type: 'success' });
       } catch (error) {
         console.error('导入失败:', error);
-        alert('导入文件解析失败，请检查文件格式');
+        await dialog.alert({ title: '错误', message: '导入文件解析失败，请检查文件格式', type: 'error' });
       }
     };
 
@@ -289,7 +314,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
       model: '',
       apiKey: '',
       apiUrl: '',
-      enabled: true,
+      enabled: false,
       description: ''
     });
   };
@@ -308,21 +333,21 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-150 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget && !showAddModal) onClose();
       }}
     >
-      <div className="bg-[#0A0A0A] border border-slate-800 rounded-lg w-[800px] max-w-[90vw] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+      <div className="bg-slate-800 bg-bg-input border border-slate-600 rounded-2xl w-[800px] max-w-[90vw] h-[85vh] overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-indigo-500" />
+        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
+          <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-slate-500" />
             模型管理
           </h3>
           <button
             onClick={handleCancelAdd}
-            className="p-2 hover:bg-slate-800 rounded-full text-slate-500 hover:text-white transition-colors disabled:opacity-50"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-text-primary transition-colors disabled:opacity-50 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -330,10 +355,11 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
 
         {/* Content */}
         {showAddModal ? (
-          <div className="flex-1 overflow-y-auto p-6">
+          <>
+          <div className="flex-1 overflow-y-auto p-2 md:p-6 bg-slate-700">
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h4 className="text-sm font-bold text-white mb-2">
+                <h4 className="text-sm font-bold text-slate-50 mb-2">
                   {editingConfig ? '编辑配置' : '添加新配置'}
                 </h4>
                 <p className="text-xs text-slate-500">配置您的 AI 模型服务提供商和 API 凭证</p>
@@ -341,7 +367,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
 
               {/* Provider Selection */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">服务提供商</label>
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">服务提供商</label>
                 <div className="relative">
                   <select
                     value={formData.provider}
@@ -357,7 +383,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
                         model: '' // 切换供应商时清空模型名称
                       });
                     }}
-                    className="w-full bg-[#141414] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                   >
                     {PROVIDER_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -367,11 +393,27 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
                     <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
                   </div>
                 </div>
+                {/* API Key 申请链接 */}
+                {(() => {
+                  const selectedProvider = PROVIDER_OPTIONS.find(p => p.value === formData.provider);
+                  return selectedProvider?.apiUrl ? (
+                    <a
+                      href={selectedProvider.apiUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors mt-1"
+                    >
+                      <Globe className="w-3 h-3" />
+                      申请 {selectedProvider.label} API Key
+                      <Link className="w-3 h-3" />
+                    </a>
+                  ) : null;
+                })()}
               </div>
 
               {/* Model Type Selection */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">模型类型</label>
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">模型类型</label>
                 <div className="relative">
                   <select
                     value={formData.modelType}
@@ -383,7 +425,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
                         setFormData(prev => ({ ...prev, model: '' }));
                       }
                     }}
-                    className="w-full bg-[#141414] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                   >
                     {getModelTypesForProvider(formData.provider).map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -397,74 +439,84 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
 
               {/* API Key */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <Key className="w-3 h-3" />
                   API Key
                 </label>
-                <input
-                  type="password"
-                  value={formData.apiKey}
-                  onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                  className="w-full bg-[#141414] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-700"
-                  placeholder="输入您的 API Key..."
-                />
+                <div className="relative">
+                  <input
+                    type={showApiKey ? "text" : "password"}
+                    value={formData.apiKey}
+                    onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 pr-10 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                    placeholder="输入您的 API Key..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                    title={showApiKey ? "隐藏 API Key" : "显示 API Key"}
+                  >
+                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Model Name - Optional */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <Sparkles className="w-3 h-3" />
-                  模型名称 <span className="text-slate-700 font-normal">(可选)</span>
+                  模型名称 <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
                 <input
                   type="text"
                   value={formData.model}
                   onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                  className="w-full bg-[#141414] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-700"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                   placeholder="输入具体的模型名称（如：gpt-4、claude-3-sonnet）"
                 />
               </div>
 
               {/* API URL */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                   <Globe className="w-3 h-3" />
-                  API URL <span className="text-slate-700 font-normal">(可选)</span>
+                  API URL <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
                 <input
                   type="text"
                   value={formData.apiUrl}
                   onChange={(e) => setFormData({ ...formData, apiUrl: e.target.value })}
-                  className="w-full bg-[#141414] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-700"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                   placeholder="输入 API 端点 URL（选填）..."
                 />
               </div>
 
               {/* description */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <Globe className="w-3 h-3" />
-                  备注 <span className="text-slate-700 font-normal">(可选)</span>
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <Tags className="w-3 h-3" />
+                  备注 <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-[#141414] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-700"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                   placeholder="输入备注（选填）"
                 />
               </div>
 
               {/* Enable Toggle */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">系统默认</label>
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">系统默认</label>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, enabled: !formData.enabled })}
-                  className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-3 ${
+                  className={`w-full py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-3 cursor-pointer ${
                     formData.enabled
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-800 text-slate-400'
+                      ? 'bg-yellow-300 text-slate-500'
+                      : 'bg-slate-600 text-slate-400'
                   }`}
                 >
                   {formData.enabled ? (
@@ -477,26 +529,26 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
                   )}
                 </button>
               </div>
-
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
+            </div>
+          </div>
+        <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
                 <button
                   onClick={handleCancelAdd}
-                  className="flex-1 py-3 bg-slate-900 text-slate-400 hover:text-white text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"
+                  className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
                 >
                   取消
                 </button>
                 <button
                   onClick={editingConfig ? handleUpdate : handleAdd}
-                  className="flex-1 py-3 bg-indigo-600 text-white hover:bg-indigo-500 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-indigo-600/20"
+                  className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-slate-600/20 cursor-pointer"
                 >
                   {editingConfig ? '更新配置' : '添加配置'}
                 </button>
               </div>
-            </div>
-          </div>
+              </>
         ) : (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto bg-slate-800">
             {/* Config List */}
             <div className="divide-y divide-slate-800">
               {configs.length === 0 ? (
@@ -513,72 +565,76 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
                   const typeColors = getModelTypeColorStyles(config.modelType);
 
                   return (
-                    <div key={config.id} className={`p-4 transition-colors ${config.enabled ? 'bg-[#141414]' : 'bg-transparent'}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config.enabled ? typeColors.bg + ' ring-1 ' + typeColors.border : 'bg-slate-900'}`}>
+                    <div key={config.id} className={`p-4 transition-colors ${config.enabled ? 'bg-bg-selected' : 'bg-slate-700'}`}>
+                      {/* 移动端：纵向布局；桌面端：横向布局 */}
+                      <div className={`${isMobile ? 'flex-col' : 'flex-row'} flex items-start justify-between gap-4`}>
+                        {/* 左侧：图标和配置信息 */}
+                        <div className={`flex items-start gap-4 ${isMobile ? 'w-full flex-row' : 'flex-row'}`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${config.enabled ? typeColors.bg + ' ring-1 ' + typeColors.border : 'bg-slate-900'}`}>
                             <ModelIcon className={`w-5 h-5 ${config.enabled ? typeColors.text : 'text-slate-600'}`} />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-bold text-white">{providerOption?.label || config.provider}</span>
+                          <div className={`${isMobile ? 'flex-1' : ''}`}>
+                            <div className={`flex items-center gap-2 mb-1 ${isMobile ? 'flex-wrap' : ''}`}>
+                              <span className="text-sm font-bold text-text-primary">{providerOption?.label || config.provider}</span>
                               <span className={`text-[12px] ${getModelTypeColorStyles(config.modelType).text} ${getModelTypeColorStyles(config.modelType).bg} border ${getModelTypeColorStyles(config.modelType).border} px-1.5 py-0.5 rounded font-mono`}>
                                 {modelTypeOption?.label || config.modelType}
                               </span>
                               {config.description && (
-                              <span className="text-[12px] text-slate-400 bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded font-mono">
+                                <span className="text-[12px] text-slate-400 bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded font-mono">
                                   {config.description}
-                              </span>
+                                </span>
                               )}
                               {config.enabled && (
-                                <span className="text-[12px] text-yellow-500 bg-yellow-900/20 border border-yellow-500/30 px-1.5 py-0.5 rounded-full font-mono uppercase tracking-wider flex items-center gap-1">
+                                <span className="text-[12px] text-yellow-500 bg-yellow-900/70 border border-yellow-500/30 px-1.5 py-0.5 rounded-full font-mono uppercase tracking-wider flex items-center gap-1">
                                   <Check className="w-2.5 h-2.5" />
                                   系统默认
                                 </span>
                               )}
                             </div>
-                            <div className="text-[12px] text-slate-600 font-mono flex items-center gap-2">
+                            <div className={`text-[12px] text-slate-500 font-mono flex items-center gap-2 ${isMobile ? 'flex-wrap' : ''}`}>
                               {config.apiKey && (
-                                <span className="text-green-500">● 已配置</span>
+                                <span className="text-green-700">● 已配置</span>
                               )}
                               {config.model && (
-                                <span className="text-[10px] text-green-400 bg-indigo-900/20 border border-green-500/30 px-1.5 py-0.5 rounded font-mono">
+                                <span className="text-[10px] text-green-700 bg-slate-900/20 border border-green-600/30 px-1.5 py-0.5 rounded font-mono">
                                   {config.model}
                                 </span>
                               )}
-                              <span className="truncate max-w-[300px]">
+                              {!isMobile && <span className="text-[10px] text-slate-400 truncate max-w-[300px]">
                                 {config.apiUrl}
-                              </span>
+                              </span>}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        
+                        {/* 右侧：操作按钮 */}
+                        <div className={`flex items-center gap-2 ${isMobile ? 'w-full justify-between pt-2 border-t border-slate-800/50' : ''}`}>
                           <button
                             onClick={async () => {
                               if (!config.enabled && !config.apiKey) {
-                                alert('请先配置 API Key');
+                                await dialog.alert({ title: '错误', message: '请先配置 API Key', type: 'error' });
                                 return;
                               }
                               await toggleConfigEnabled(config.id);
                               await loadConfigs();
-                              triggerModelConfigChanged(); // 触发配置变更事件
+                              triggerModelConfigChanged();
                             }}
                             disabled={!config.enabled && !config.apiKey}
-                            className={`p-2 transition-colors rounded-lg ${config.enabled ? 'text-indigo-400 hover:text-indigo-300 bg-indigo-900/20 hover:bg-indigo-900/30' : !config.apiKey ? 'text-slate-700 bg-transparent cursor-not-allowed' : 'text-slate-600 hover:text-slate-300 hover:bg-slate-800'}`}
+                            className={`p-2 transition-colors rounded-lg cursor-pointer ${config.enabled ? 'text-slate-400 hover:text-slate-300 hover:bg-slate-950 bg-slate-900' : !config.apiKey ? 'text-slate-500 bg-slate-900 bg-transparent cursor-not-allowed' : 'bg-slate-900 text-slate-600 hover:text-slate-300 hover:bg-slate-950'}`}
                             title={config.enabled ? '非默认' : config.apiKey ? '系统默认' : '请先配置 API Key'}
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleEdit(config)}
-                            className="p-2 hover:bg-slate-800 text-slate-600 hover:text-white transition-colors rounded-lg"
+                            className="p-2 hover:bg-slate-950 bg-slate-900 text-slate-600 hover:text-slate-300 transition-colors rounded-lg cursor-pointer"
                             title="编辑"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(config.id)}
-                            className="p-2 hover:bg-red-900/20 text-slate-600 hover:text-red-400 transition-colors rounded-lg"
+                            className="p-2 hover:bg-red-950 bg-slate-900 text-slate-600 hover:text-red-400 transition-colors rounded-lg cursor-pointer"
                             title="删除"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -595,37 +651,35 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose }) => {
 
         {/* Footer */}
         {!showAddModal && (
-          <div className="p-6 border-t border-slate-800">
-            <div className="flex gap-3">
+        <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
               <button
                 onClick={handleExport}
-                className="flex-1 py-3 bg-slate-900 text-slate-400 hover:text-white text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-slate-700 text-slate-400 hover:bg-slate-800 hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 导出配置
               </button>
-              <div className="relative flex-1">
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImport}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
+              <div className="relative flex-1 group">
                 <button
-                  className="w-full py-3 bg-slate-900 text-slate-400 hover:text-white text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-slate-700 text-slate-400 group-hover:bg-slate-800 group-hover:text-text-primary text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 relative cursor-pointer"
                 >
                   <Upload className="w-4 h-4" />
                   导入配置
                 </button>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImport}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex-1 py-3 bg-white text-black hover:bg-slate-200 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 添加新配置
               </button>
-            </div>
           </div>
         )}
       </div>

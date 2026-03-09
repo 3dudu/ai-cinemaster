@@ -49,10 +49,14 @@ function processFileUrl(originalUrl: string): string {
 
     if (targetDomain) {
       // 使用配置的域名
-      return `https://${targetDomain}${path}`;
+      if(targetDomain.startsWith('http')){
+        return `${targetDomain}${path}`;
+      }else{
+        return `//${targetDomain}${path}`;
+      }
     } else {
       // 默认使用 ofs.good365.net:6443
-      return `https://ofs.good365.net:6443${path}`;
+      return `//ofs.good365.net:6443${path}`;
     }
   } catch (error) {
     console.error('处理URL失败:', error);
@@ -90,7 +94,7 @@ export async function uploadFileToService(params: UploadFileParams): Promise<Upl
   // 检查是否配置了上传服务地址
   const uploadServiceUrl = getFileUploadServiceConfig();
   if (!uploadServiceUrl) {
-    console.log('未配置文件上传服务地址，跳过文件上传');
+    //console.log('未配置文件上传服务地址，跳过文件上传');
 
     // 如果是 Base64 数据，返回原始数据
     if (base64Data) {

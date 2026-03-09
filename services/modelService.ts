@@ -1,92 +1,30 @@
 // services/modelService.ts
 // 模型调用包装类，根据启用的配置动态选择模型提供商
 
-import { ScriptData, Shot } from "../types";
+import { AIModelConfig, ScriptData, Shot } from "../types";
+import { cleanJsonString } from "../utils/apiHelper";
 import { uploadFileToService } from "../utils/fileUploadUtils";
+import { imageUrlToBase64 } from "../utils/imageUtils";
 import { getEnabledConfigByType } from "./modelConfigService";
-import { PROMPT_TEMPLATES } from "./promptTemplates";
+import { renderTemplate } from "./promptTemplates";
 import { getAllModelConfigs } from "./storageService";
 
-// DeepSeek 方法
-import {
-  generateScript as generateScriptDeepseek,
-  generateShotList as generateShotListDeepseek,
-  generateShotListForScene as generateShotListDeepseekForScene,
-  generateVisualPrompts as generateVisualPromptsDeepseek,
-  parseScriptToData as parseScriptToDataDeepseek,
-  setApiKey as setDeepseekApiKey,
-  setApiUrl as setDeepseekApiUrl,
-  setModel as setDeepseekModel
-} from "./deepseekService";
+const loadDeepseekModule = () => import("./modelproviders/deepseekService");
+const loadGeminiModule = () => import("./modelproviders/geminiService");
+const loadYunwuModule = () => import("./modelproviders/yunwuService");
+const loadOpenaiModule = () => import("./modelproviders/openaiService");
+const loadDoubaoModule = () => import("./modelproviders/doubaoService");
+const loadMinimaxModule = () => import("./modelproviders/minimaxService");
+const loadKlingModule = () => import("./modelproviders/klingService");
+const loadSoraModule = () => import("./modelproviders/soraService");
+const loadWanModule = () => import("./modelproviders/wanService");
+const loadBigmoreModule = () => import("./modelproviders/bigmoreService");
+const loadSkyreelsModule = () => import("./modelproviders/skyreelsService");
+const loadBaiduTtsModule = () => import("./modelproviders/baiduTtsService");
 
-// Gemini 方法
-import {
-  generateImage as generateImageGemini,
-  generateScript as generateScriptGemini,
-  generateShotListForScene as generateShotListForSceneGemini,
-  generateShotList as generateShotListGemini,
-  generateVideo as generateVideoGemini,
-  generateVisualPrompts as generateVisualPromptsGemini,
-  parseScriptToData as parseScriptToDataGemini,
-  setApiKey as setGeminiApiKey
-} from "./geminiService";
-
-// Yunwu 方法
-import {
-  generateImage as generateImageYunwu,
-  generateScript as generateScriptYunwu,
-  generateShotListForScene as generateShotListForSceneYunwu,
-  generateShotList as generateShotListYunwu,
-  generateVideo as generateVideoYunwu,
-  generateVisualPrompts as generateVisualPromptsYunwu,
-  parseScriptToData as parseScriptToDataYunwu,
-  setApiKey as setYunwuApiKey,
-  setApiUrl as setYunwuApiUrl,
-  setModel as setYunwuModel
-} from "./yunwuService";
-
-// OpenAI 方法
-import {
-  generateImage as generateImageOpenai,
-  generateScript as generateScriptOpenai,
-  generateShotListForScene as generateShotListForSceneOpenai,
-  generateShotList as generateShotListOpenai,
-  generateVideo as generateVideoOpenai,
-  generateVisualPrompts as generateVisualPromptsOpenai,
-  parseScriptToData as parseScriptToDataOpenai,
-  setApiKey as setOpenaiApiKey,
-  setModel as setOpenaiModel
-} from "./openaiService";
-
-// Doubao 方法
-import {
-  generateImage as generateImageDoubao,
-  generateScript as generateScriptDoubao,
-  generateShotList as generateShotListDoubao,
-  generateShotListForScene as generateShotListDoubaoForScene,
-  generateVideo as generateVideoDoubao,
-  generateVisualPrompts as generateVisualPromptsDoubao,
-  parseScriptToData as parseScriptToDataDoubao,
-  setApiKey as setDoubaoApiKey,
-  setApiUrl as setDoubaoApiUrl,
-  setModel as setDoubaoModel
-} from "./doubaoService";
-
-// MiniMax 方法
-import {
-  generateVideo as generateVideoMinimax,
-  setApiKey as setMinimaxApiKey,
-  setApiUrl as setMinimaxApiUrl,
-  setModel as setMinimaxModel
-} from "./minimaxService";
-
-// Kling 方法
-import {
-  generateVideo as generateVideoKling,
-  setApiKey as setKlingApiKey,
-  setApiUrl as setKlingApiUrl,
-  setModel as setKlingModel
-} from "./klingService";
+const IMAGE_X = [
+  '1','1x1','1x2','1x3','2x2','2x3','2x3','3x3','3x3','3x3'
+];
 
 /**
  * 模型包装服务
@@ -95,6 +33,55 @@ import {
 export class ModelService {
   private static initialized = false;
   private static currentProjectModelProviders: any = null;
+  private static providerModules = new Map<string, Promise<any>>();
+
+  private static async getProviderModule(provider: string): Promise<any> {
+    if (!this.providerModules.has(provider)) {
+      let loader: (() => Promise<any>) | null = null;
+      switch (provider) {
+        case 'deepseek':
+          loader = loadDeepseekModule;
+          break;
+        case 'doubao':
+          loader = loadDoubaoModule;
+          break;
+        case 'openai':
+          loader = loadOpenaiModule;
+          break;
+        case 'gemini':
+          loader = loadGeminiModule;
+          break;
+        case 'yunwu':
+          loader = loadYunwuModule;
+          break;
+        case 'minimax':
+          loader = loadMinimaxModule;
+          break;
+        case 'kling':
+          loader = loadKlingModule;
+          break;
+        case 'sora':
+          loader = loadSoraModule;
+          break;
+        case 'wan':
+          loader = loadWanModule;
+          break;
+        case 'bigmore':
+          loader = loadBigmoreModule;
+          break;
+        case 'skyreels':
+          loader = loadSkyreelsModule;
+          break;
+        case 'baidu':
+          loader = loadBaiduTtsModule;
+          break;
+        default:
+          throw new Error(`未知的模型提供商: ${provider}`);
+      }
+      this.providerModules.set(provider, loader());
+    }
+    return this.providerModules.get(provider)!;
+  }
 
   /**
    * 设置当前项目的模型供应商
@@ -102,7 +89,7 @@ export class ModelService {
    */
   static setCurrentProjectProviders(modelProviders: any) {
     this.currentProjectModelProviders = modelProviders;
-    console.log('已设置项目模型供应商:', modelProviders);
+    //console.log('已设置项目模型供应商:', modelProviders);
   }
 
   /**
@@ -122,7 +109,7 @@ export class ModelService {
       }
 
       this.initialized = true;
-      console.log('模型服务初始化完成，已加载配置:', enabledConfigs.map(c => c.provider + ':' + c.modelType));
+      //console.log('模型服务初始化完成，已加载配置:', enabledConfigs.map(c => c.provider + ':' + c.modelType));
     } catch (error) {
       console.error('模型服务初始化失败:', error);
     }
@@ -136,101 +123,159 @@ export class ModelService {
     try {
       switch (config.provider) {
         case 'deepseek':
-          setDeepseekApiKey(config.apiKey);
+          (await this.getProviderModule('deepseek')).setApiKey(config.apiKey);
           if (config.apiUrl) {
-            setDeepseekApiUrl(config.apiUrl);
+            (await this.getProviderModule('deepseek')).setApiUrl(config.apiUrl);
           }
           if (config.model) {
-            setDeepseekModel(config.model);
+            (await this.getProviderModule('deepseek')).setModel(config.model);
           }
-          console.log(`已更新 DeepSeek ${config.modelType} 配置`);
+          //console.log(`已更新 DeepSeek ${config.modelType} 配置`);
           break;
 
         case 'doubao':
-          setDoubaoApiKey(config.apiKey);
+          (await this.getProviderModule('doubao')).setApiKey(config.apiKey);
           if (config.apiUrl) {
-            setDoubaoApiUrl(config.apiUrl);
+            (await this.getProviderModule('doubao')).setApiUrl(config.apiUrl);
           }
           if (config.model) {
             switch (config.modelType) {
               case 'llm':
-                setDoubaoModel('text', config.model);
+                (await this.getProviderModule('doubao')).setModel('text', config.model);
                 break;
               case 'text2image':
-                setDoubaoModel('image', config.model);
+                (await this.getProviderModule('doubao')).setModel('image', config.model);
                 break;
               case 'image2video':
-                setDoubaoModel('video', config.model);
+                (await this.getProviderModule('doubao')).setModel('video', config.model);
                 break;
             }
           }
-          console.log(`已更新 Doubao ${config.modelType} 配置`);
+          //console.log(`已更新 Doubao ${config.modelType} 配置`);
           break;
 
         case 'openai':
-          setOpenaiApiKey(config.apiKey);
+          (await this.getProviderModule('openai')).setApiKey(config.apiKey);
+          if (config.apiUrl) {
+            (await this.getProviderModule('openai')).setApiUrl(config.apiUrl);
+          }
           if (config.model) {
             switch (config.modelType) {
               case 'llm':
-                setOpenaiModel('text', config.model);
+                (await this.getProviderModule('openai')).setModel('text', config.model);
                 break;
               case 'text2image':
-                setOpenaiModel('image', config.model);
+                (await this.getProviderModule('openai')).setModel('image', config.model);
                 break;
               case 'image2video':
-                setOpenaiModel('video', config.model);
+                (await this.getProviderModule('openai')).setModel('video', config.model);
                 break;
             }
           }
-          console.log(`已更新 OpenAI ${config.modelType} 配置`);
+          //console.log(`已更新 OpenAI ${config.modelType} 配置`);
           break;
 
         case 'gemini':
-          setGeminiApiKey(config.apiKey);
-          console.log(`已更新 Gemini ${config.modelType} 配置`);
+          (await this.getProviderModule('gemini')).setApiKey(config.apiKey);
+          //console.log(`已更新 Gemini ${config.modelType} 配置`);
           break;
 
         case 'yunwu':
-          setYunwuApiKey(config.apiKey);
+          (await this.getProviderModule('yunwu')).setApiKey(config.apiKey);
           if (config.apiUrl) {
-            setYunwuApiUrl(config.apiUrl);
+            (await this.getProviderModule('yunwu')).setApiUrl(config.apiUrl);
           }
           if (config.model) {
             switch (config.modelType) {
               case 'llm':
-                setYunwuModel('text', config.model);
+                (await this.getProviderModule('yunwu')).setModel('text', config.model);
                 break;
               case 'text2image':
-                setYunwuModel('image', config.model);
+                (await this.getProviderModule('yunwu')).setModel('image', config.model);
                 break;
               case 'image2video':
-                setYunwuModel('video', config.model);
+                (await this.getProviderModule('yunwu')).setModel('video', config.model);
                 break;
             }
           }
-          console.log(`已更新 Yunwu ${config.modelType} 配置`);
+          //console.log(`已更新 Yunwu ${config.modelType} 配置`);
           break;
 
         case 'minimax':
-          setMinimaxApiKey(config.apiKey);
+          (await this.getProviderModule('minimax')).setApiKey(config.apiKey);
           if (config.apiUrl) {
-            setMinimaxApiUrl(config.apiUrl);
+            (await this.getProviderModule('minimax')).setApiUrl(config.apiUrl);
           }
           if (config.model) {
-            setMinimaxModel(config.model);
+            (await this.getProviderModule('minimax')).setModel(config.model);
           }
-          console.log(`已更新 MiniMax ${config.modelType} 配置`);
+          //console.log(`已更新 MiniMax ${config.modelType} 配置`);
           break;
 
         case 'kling':
-          setKlingApiKey(config.apiKey);
+          (await this.getProviderModule('kling')).setApiKey(config.apiKey);
           if (config.apiUrl) {
-            setKlingApiUrl(config.apiUrl);
+            (await this.getProviderModule('kling')).setApiUrl(config.apiUrl);
           }
           if (config.model) {
-            setKlingModel(config.model);
+            (await this.getProviderModule('kling')).setModel(config.model);
           }
-          console.log(`已更新 Kling ${config.modelType} 配置`);
+          //console.log(`已更新 Kling ${config.modelType} 配置`);
+          break;
+
+      case 'sora':
+        (await this.getProviderModule('sora')).setApiKey(config.apiKey);
+        if (config.apiUrl) {
+          (await this.getProviderModule('sora')).setApiUrl(config.apiUrl);
+        }
+        if (config.model) {
+          (await this.getProviderModule('sora')).setModel(config.model);
+        }
+        //console.log(`已更新 Sora ${config.modelType} 配置`);
+        break;
+
+      case 'wan':
+        (await this.getProviderModule('wan')).setApiKey(config.apiKey);
+        if (config.apiUrl) {
+          (await this.getProviderModule('wan')).setApiUrl(config.apiUrl);
+        }
+        if (config.model) {
+          (await this.getProviderModule('wan')).setModel(config.model);
+        }
+        //console.log(`已更新 Wan ${config.modelType} 配置`);
+        break;
+
+      case 'bigmore':
+        (await this.getProviderModule('bigmore')).setApiKey(config.apiKey);
+        if (config.apiUrl) {
+          (await this.getProviderModule('bigmore')).setApiUrl(config.apiUrl);
+        }
+        if (config.model) {
+          (await this.getProviderModule('bigmore')).setModel(config.model);
+        }
+        //console.log(`已更新 BigMore ${config.modelType} 配置`);
+        break;
+
+      case 'skyreels':
+        (await this.getProviderModule('skyreels')).setApiKey(config.apiKey);
+        if (config.apiUrl) {
+          (await this.getProviderModule('skyreels')).setApiUrl(config.apiUrl);
+        }
+        if (config.model) {
+          (await this.getProviderModule('skyreels')).setModel(config.model);
+        }
+        //console.log(`已更新 SkyReels ${config.modelType} 配置`);
+        break;
+
+      case 'baidu':
+          if (config.modelType === 'tts') {
+            // 对于百度 TTS，apiKey 是 API Key，apiUrl 是 Secret Key
+            (await this.getProviderModule('baidu')).setApiKey(config.apiKey);
+          }
+          if (config.apiUrl) {
+            (await this.getProviderModule('baidu')).setApiUrl(config.apiUrl);
+          }
+          //console.log(`已更新 Baidu ${config.modelType} 配置`);
           break;
       }
     } catch (error) {
@@ -242,14 +287,14 @@ export class ModelService {
    * 获取当前启用的 LLM 提供商
    * @param projectModelProviders - 项目级别的模型供应商配置
    */
-  private static async getEnabledLLMProvider(projectModelProviders?: { llm?: string }): Promise<'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu'> {
+  private static async getEnabledLLMProvider(projectModelProviders?: { llm?: string }): Promise<AIModelConfig> {
     let config;
 
     // 优先使用项目级别的供应商配置
     if (projectModelProviders?.llm) {
       const allConfigs = await getAllModelConfigs();
       config = allConfigs.find(c => c.id === projectModelProviders.llm);
-      console.log(`使用项目配置的 LLM 供应商: ${config?.provider}`);
+      //console.log(`使用项目配置的 LLM 供应商: ${config?.provider}`);
     }
 
     // 如果项目没有配置，使用系统默认的启用配置
@@ -259,27 +304,36 @@ export class ModelService {
 
     if (!config) {
       console.warn('未找到 LLM 配置，使用默认的 doubao');
-      return 'doubao';
+      return {
+        id: 'doubao-llm',
+        provider: 'doubao',
+        modelType: 'llm',
+        model: '',
+        apiKey: '',
+        apiUrl: '',
+        enabled: false,
+        description: 'Doubao LLM'
+      }
     }
 
     // 立即更新对应服务的配置参数
     await this.updateServiceConfig(config);
 
-    return config.provider as 'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu';
+    return config;
   }
 
   /**
    * 获取当前启用的文生图提供商
    * @param projectModelProviders - 项目级别的模型供应商配置
    */
-  private static async getEnabledImageProvider(projectModelProviders?: { text2image?: string }): Promise<'doubao' | 'gemini' | 'openai' | 'yunwu'> {
+  private static async getEnabledImageProvider(projectModelProviders?: { text2image?: string }): Promise<AIModelConfig> {
     let config;
 
     // 优先使用项目级别的供应商配置
     if (projectModelProviders?.text2image) {
       const allConfigs = await getAllModelConfigs();
       config = allConfigs.find(c => c.id === projectModelProviders.text2image);
-      console.log(`使用项目配置的文生图供应商: ${config?.provider}`);
+      //console.log(`使用项目配置的文生图供应商: ${config?.provider}`);
     }
 
     // 如果项目没有配置，使用系统默认的启用配置
@@ -289,27 +343,66 @@ export class ModelService {
 
     if (!config) {
       console.warn('未找到文生图配置，使用默认的 doubao');
-      return 'doubao';
+      return {
+        id: 'doubao-text2image',
+        provider: 'doubao',
+        modelType: 'text2image',
+        model: '',
+        apiKey: '',
+        apiUrl: '',
+        enabled: false,
+        description: 'Doubao text2image'
+      };
     }
 
     // 立即更新对应服务的配置参数
     await this.updateServiceConfig(config);
 
-    return config.provider as 'doubao' | 'gemini' | 'openai';
+    return config;
+  }
+
+  /**
+   * 获取当前启用的语音合成提供商
+   * @param projectModelProviders - 项目级别的模型供应商配置
+   */
+  private static async getEnabledAudioProvider(projectModelProviders?: { tts?: string }): Promise<'baidu'> {
+    let config;
+
+    // 优先使用项目级别的供应商配置
+    if (projectModelProviders?.tts) {
+      const allConfigs = await getAllModelConfigs();
+      config = allConfigs.find(c => c.id === projectModelProviders.tts);
+      //console.log(`使用项目配置的语音合成供应商: ${config?.provider}`);
+    }
+
+    // 如果项目没有配置，使用系统默认的启用配置
+    if (!config) {
+      config = await getEnabledConfigByType('tts');
+    }
+
+    if (!config) {
+      console.warn('未找到语音合成配置，使用默认的 baidu');
+      return 'baidu';
+    }
+
+    // 立即更新对应服务的配置参数
+    await this.updateServiceConfig(config);
+
+    return config.provider as 'baidu';
   }
 
   /**
    * 获取当前启用的图生视频提供商
    * @param projectModelProviders - 项目级别的模型供应商配置
    */
-  private static async getEnabledVideoProvider(projectModelProviders?: { image2video?: string }): Promise<'doubao' | 'gemini' | 'openai' | 'yunwu' | 'minimax' | 'kling'> {
+  private static async getEnabledVideoProvider(projectModelProviders?: { image2video?: string }): Promise<AIModelConfig> {
     let config;
 
     // 优先使用项目级别的供应商配置
     if (projectModelProviders?.image2video) {
       const allConfigs = await getAllModelConfigs();
       config = allConfigs.find(c => c.id === projectModelProviders.image2video);
-      console.log(`使用项目配置的图生视频供应商: ${config?.provider}`);
+      //console.log(`使用项目配置的图生视频供应商: ${config?.provider}`);
     }
 
     // 如果项目没有配置，使用系统默认的启用配置
@@ -320,14 +413,23 @@ export class ModelService {
     if (!config) {
       console.warn('未找到图生视频配置，使用默认的 doubao');
       const storedApiKey = localStorage.getItem('cinegen_api_key') || '';
-      setDoubaoApiKey(storedApiKey);
-      return 'doubao';
+      (await this.getProviderModule('doubao')).setApiKey(storedApiKey);
+      return {
+        id: 'doubao-image2video',
+        provider: 'doubao',
+        modelType: 'image2video',
+        model: '',
+        apiKey: '',
+        apiUrl: '',
+        enabled: false,
+        description: 'Doubao image2video'
+      };
     }
 
     // 立即更新对应服务的配置参数
     await this.updateServiceConfig(config);
 
-    return config.provider as 'doubao' | 'gemini' | 'openai';
+    return config;
   }
 
   /**
@@ -335,21 +437,20 @@ export class ModelService {
    * @param rawText - 剧本文本
    * @param language - 输出语言
    */
-  static async parseScriptToData(rawText: string, language: string = "中文"): Promise<ScriptData> {
+  static async parseScriptToData(text: string, language: string = "中文",genre:string="剧情片"): Promise<ScriptData> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    console.log(`使用 ${provider} 进行剧本分析`);
-
-    switch (provider) {
+    const prompt = renderTemplate('PARSE_SCRIPT', text, language,genre);
+    switch (provider.provider) {
       case 'deepseek':
-        return await parseScriptToDataDeepseek(rawText, language);
+        return await (await this.getProviderModule('deepseek')).parseScriptToData(prompt, language);
       case 'doubao':
-        return await parseScriptToDataDoubao(rawText, language);
+        return await (await this.getProviderModule('doubao')).parseScriptToData(prompt, language);
       case 'gemini':
-        return await parseScriptToDataGemini(rawText, language);
+        return await (await this.getProviderModule('gemini')).parseScriptToData(prompt, language);
       case 'yunwu':
-        return await parseScriptToDataYunwu(rawText, language);
+        return await (await this.getProviderModule('yunwu')).parseScriptToData(prompt, language);
       case 'openai':
-        return await parseScriptToDataOpenai(rawText, language);
+        return await (await this.getProviderModule('openai')).parseScriptToData(prompt, language);
       default:
         throw new Error(`暂不支持 ${provider} 提供商的剧本分析`);
     }
@@ -361,22 +462,78 @@ export class ModelService {
    */
   static async generateShotList(scriptData: ScriptData): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    console.log(`使用 ${provider} 生成镜头清单`);
 
-    switch (provider) {
-      case 'deepseek':
-        return await generateShotListDeepseek(scriptData);
-      case 'doubao':
-        return await generateShotListDoubao(scriptData);
-      case 'gemini':
-        return await generateShotListGemini(scriptData);
-      case 'yunwu':
-        return await generateShotListYunwu(scriptData);
-      case 'openai':
-        return await generateShotListOpenai(scriptData);
-      default:
-        throw new Error(`暂不支持 ${provider} 提供商的镜头生成`);
+    if (!scriptData.scenes || scriptData.scenes.length === 0) {
+      return [];
     }
+
+    // Process scenes sequentially
+    const BATCH_SIZE = 1;
+    const allShots: Shot[] = [];
+
+    for (let i = 0; i < scriptData.scenes.length; i += BATCH_SIZE) {
+      if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const batch = scriptData.scenes.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map((scene, idx) => (async () => {
+          const lang = scriptData.language || "中文";
+          const paragraphs = scriptData.storyParagraphs
+            .filter((p) => String(p.sceneRefId) === String(scene.id))
+            .map((p) => p.text)
+            .join("\n");
+          if (!paragraphs.trim()) return [];
+
+          let characters = "";
+          characters = scriptData.characters ? scriptData.characters.map(d =>`${d.name}: ${d.visualPrompt}`).join('\n') : "";
+          const prompt = renderTemplate('GENERATE_SHOTS',
+            i + idx + 1,
+            scene.location,
+            scene.time,
+            scene.atmosphere,
+            paragraphs,
+            scriptData.genre,
+            scriptData.targetDuration || "30s",
+            characters,
+            lang
+          );
+          switch (provider.provider) {
+            case 'deepseek':
+              (await this.getProviderModule('deepseek')).generateShotListForScene(scene, prompt);
+              break;
+            case 'doubao':
+              (await this.getProviderModule('doubao')).generateShotListForScene(scene, prompt);
+              break;
+            case 'gemini':
+              (await this.getProviderModule('gemini')).generateShotListForScene(scene, prompt);
+              break;
+            case 'yunwu':
+              (await this.getProviderModule('yunwu')).generateShotListForScene(scene, prompt);
+              break;
+            case 'openai':
+              (await this.getProviderModule('openai')).generateShotListForScene(scene, prompt);
+              break;
+            default:
+              throw new Error(`暂不支持 ${provider} 提供商的镜头生成`);
+          }
+          })()
+        )
+      );
+      batchResults.forEach((shots) => allShots.push(...shots));
+    }
+
+    // Re-index shots to be sequential globally
+    return allShots.map((s, idx) => ({
+      ...s,
+      id: `shot-${idx + 1}`,
+      keyframes: Array.isArray(s.keyframes)
+        ? s.keyframes.map((k: any) => ({
+            ...k,
+            id: `kf-${idx + 1}-${k.type}`,
+            status: "pending",
+          }))
+        : [],
+    }));
   }
 
   /**
@@ -391,22 +548,43 @@ export class ModelService {
     sceneIndex: number
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
+    //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
 
     if(scene.referenceImage){
       scene.referenceImage=null;
     }
-    switch (provider) {
+    const lang = scriptData.language || "中文";
+
+    const paragraphs = scriptData.storyParagraphs
+      .filter((p) => String(p.sceneRefId) === String(scene.id))
+      .map((p) => p.text)
+      .join("\n");
+
+    if (!paragraphs.trim()) return [];
+    let characters = "";
+    characters = scriptData.characters ? scriptData.characters.map(d =>`${d.name}: ${d.visualPrompt}`).join('\n') : "";
+    const prompt = renderTemplate('GENERATE_SHOTS',
+      sceneIndex+1,
+      scene.location,
+      scene.time,
+      scene.atmosphere,
+      paragraphs,
+      scriptData.genre,
+      scriptData.targetDuration || "30s",
+      characters,
+      lang
+    );
+    switch (provider.provider) {
       case 'deepseek':
-        return await generateShotListDeepseekForScene(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('deepseek')).generateShotListForScene(scene, prompt);
       case 'doubao':
-        return await generateShotListDoubaoForScene(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('doubao')).generateShotListForScene(scene, prompt);
       case 'gemini':
-        return await generateShotListForSceneGemini(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('gemini')).generateShotListForScene(scene, prompt);
       case 'yunwu':
-        return await generateShotListForSceneYunwu(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('yunwu')).generateShotListForScene(scene, prompt);
       case 'openai':
-        return await generateShotListForSceneOpenai(scriptData, scene, sceneIndex);
+        return await (await this.getProviderModule('openai')).generateShotListForScene(scene, prompt);
       default:
         throw new Error(`暂不支持 ${provider} 提供商的镜头生成`);
     }
@@ -426,22 +604,30 @@ export class ModelService {
     language: string = "中文"
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    console.log(`使用 ${provider} 生成剧本`);
+    //console.log(`使用 ${provider} 生成剧本`);
+    const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language);
 
-    switch (provider) {
+    let script = '';
+    switch (provider.provider) {
       case 'deepseek':
-        return await generateScriptDeepseek(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('deepseek')).generateScript(generationPrompt, genre, targetDuration, language);
+        break;
       case 'doubao':
-        return await generateScriptDoubao(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('doubao')).generateScript(generationPrompt, genre, targetDuration, language);
+        break;
       case 'gemini':
-        return await generateScriptGemini(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('gemini')).generateScript(generationPrompt, genre, targetDuration, language);
+        break;
       case 'yunwu':
-        return await generateScriptYunwu(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('yunwu')).generateScript(generationPrompt, genre, targetDuration, language);
+        break;
       case 'openai':
-        return await generateScriptOpenai(prompt, genre, targetDuration, language);
+        script = await (await this.getProviderModule('openai')).generateScript(generationPrompt, genre, targetDuration, language);
+        break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的剧本生成`);
     }
+    return cleanJsonString(script);
   }
 
   /**
@@ -453,10 +639,11 @@ export class ModelService {
   static async generateVisualPrompts(
     type: "character" | "scene",
     data: any,
-    genre: string
+    genre: string,
+    visualStyle: string
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    console.log(`使用 ${provider} 生成视觉提示词`);
+    //console.log(`使用 ${provider} 生成视觉提示词`);
 
     if(data.referenceImage){
       data.referenceImage=null;
@@ -464,21 +651,106 @@ export class ModelService {
     if(data.variations){
       data.variations=[];
     }
-
-    switch (provider) {
+    if(data.ttsParams){
+      data.ttsParams=null;
+    }
+    if(data.voiceUrl){
+      data.voiceUrl=null;
+    }
+    const desc = JSON.stringify(data);
+    const prompt = renderTemplate('GENERATE_VISUAL_PROMPT', type=='character'?'角色':'场景', desc, genre, visualStyle);
+    let visualPrompt = '';
+    switch (provider.provider) {
       case 'deepseek':
-        return await generateVisualPromptsDeepseek(type, data, genre);
+        visualPrompt = await (await this.getProviderModule('deepseek')).generateVisualPrompts(prompt);
+        break;
       case 'doubao':
-        return await generateVisualPromptsDoubao(type, data, genre);
+        visualPrompt = await (await this.getProviderModule('doubao')).generateVisualPrompts(prompt);
+        break;
       case 'gemini':
-        return await generateVisualPromptsGemini(type, data, genre);
+        visualPrompt = await (await this.getProviderModule('gemini')).generateVisualPrompts(prompt);
+        break;
       case 'yunwu':
-        return await generateVisualPromptsYunwu(type, data, genre);
+        visualPrompt = await (await this.getProviderModule('yunwu')).generateVisualPrompts(prompt);
+        break;
       case 'openai':
-        return await generateVisualPromptsOpenai(type, data, genre);
+        visualPrompt = await (await this.getProviderModule('openai')).generateVisualPrompts(prompt);
+        break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的视觉提示词生成`);
     }
+    return cleanJsonString(visualPrompt);
+  }
+
+  /**
+   * 生成视频拍摄提示词
+   * @param shot - 镜头信息
+   * @param scriptData - 剧本数据
+   * @param visualStyle - 视觉风格
+   */
+  static async generateVideoPrompt(
+    shot: Shot,
+    scriptData: ScriptData,
+    visualStyle: string = "真人写实"
+  ): Promise<string> {
+    const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
+    //console.log(`使用 ${provider} 生成视频拍摄提示词`);
+
+    // 获取起始帧和结束帧的视觉描述
+    const startKeyframe = shot.keyframes?.find((kf: any) => kf.type === 'start');
+    const endKeyframe = shot.keyframes?.find((kf: any) => kf.type === 'end');
+
+    // 获取角色名称列表
+    const characterNames = shot.characters?.map((charId: string) => {
+      const char = scriptData.characters?.find((c: any) => c.id === charId);
+      return char?.name || charId;
+    }).join(',') || '';
+
+    // 获取对白
+    const dialogues: string[] = [];
+    if(shot.dialogue){
+      if(shot.dialogue instanceof Array){
+        shot.dialogue.forEach((d) => {
+          dialogues.push(d.character + "：" + d.value);
+        });
+      }else{
+        dialogues.push(shot.dialogue);
+      }
+    }
+
+    const prompt = renderTemplate('GENERATE_VIDEO_PROMPT',
+      shot.actionSummary,
+      shot.cameraMovement,
+      shot.shotSize || '',
+      shot.interval?.duration || 5,
+      visualStyle,
+      characterNames,
+      startKeyframe?.visualPrompt || '',
+      endKeyframe?.visualPrompt || '',
+      dialogues.join('\n')
+    );
+
+    let videoPrompt = '';
+    switch (provider.provider) {
+      case 'deepseek':
+        videoPrompt = await (await this.getProviderModule('deepseek')).generateVideoPrompts(prompt);
+        break;
+      case 'doubao':
+        videoPrompt = await (await this.getProviderModule('doubao')).generateVideoPrompts(prompt);
+        break;
+      case 'gemini':
+        videoPrompt = await (await this.getProviderModule('gemini')).generateVideoPrompts(prompt);
+        break;
+      case 'yunwu':
+        videoPrompt = await (await this.getProviderModule('yunwu')).generateVideoPrompts(prompt);
+        break;
+      case 'openai':
+        videoPrompt = await (await this.getProviderModule('openai')).generateVideoPrompts(prompt);
+        break;
+      default:
+        throw new Error(`暂不支持 ${provider} 提供商的视频提示词生成`);
+    }
+    return cleanJsonString(videoPrompt);
   }
 
   /**
@@ -486,28 +758,43 @@ export class ModelService {
    * @param provider - 提供商
    * @param apiKey - API 密钥
    */
-  static setApiKey(provider: 'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu' | 'minimax' | 'kling', apiKey: string): void {
+  static setApiKey(provider: 'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu' | 'minimax' | 'kling' | 'sora' | 'wan' | 'bigmore' | 'baidu' | 'skyreels', apiKey: string): void {
     switch (provider) {
       case 'deepseek':
-        setDeepseekApiKey(apiKey);
+        void this.getProviderModule('deepseek').then(mod => mod.setApiKey(apiKey));
         break;
       case 'doubao':
-        setDoubaoApiKey(apiKey);
+        void this.getProviderModule('doubao').then(mod => mod.setApiKey(apiKey));
         break;
       case 'openai':
-        setOpenaiApiKey(apiKey);
+        void this.getProviderModule('openai').then(mod => mod.setApiKey(apiKey));
         break;
       case 'gemini':
-        setGeminiApiKey(apiKey);
+        void this.getProviderModule('gemini').then(mod => mod.setApiKey(apiKey));
         break;
       case 'yunwu':
-        setYunwuApiKey(apiKey);
+        void this.getProviderModule('yunwu').then(mod => mod.setApiKey(apiKey));
         break;
       case 'minimax':
-        setMinimaxApiKey(apiKey);
+        void this.getProviderModule('minimax').then(mod => mod.setApiKey(apiKey));
         break;
       case 'kling':
-        setKlingApiKey(apiKey);
+        void this.getProviderModule('kling').then(mod => mod.setApiKey(apiKey));
+        break;
+      case 'sora':
+        void this.getProviderModule('sora').then(mod => mod.setApiKey(apiKey));
+        break;
+      case 'wan':
+        void this.getProviderModule('wan').then(mod => mod.setApiKey(apiKey));
+        break;
+      case 'bigmore':
+        void this.getProviderModule('bigmore').then(mod => mod.setApiKey(apiKey));
+        break;
+      case 'skyreels':
+        void this.getProviderModule('skyreels').then(mod => mod.setApiKey(apiKey));
+        break;
+      case 'baidu':
+        void this.getProviderModule('baidu').then(mod => mod.setApiKey(apiKey));
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的 API 密钥设置`);
@@ -519,38 +806,117 @@ export class ModelService {
    * @param provider - 提供商
    * @param apiUrl - API 端点
    */
-  static setApiUrl(provider: 'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu' | 'minimax' | 'kling', apiUrl: string): void {
+  static setApiUrl(provider: 'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu' | 'minimax' | 'kling' | 'sora' | 'wan' | 'bigmore' | 'baidu' | 'skyreels', apiUrl: string): void {
     switch (provider) {
       case 'deepseek':
-        setDeepseekApiUrl(apiUrl);
+        void this.getProviderModule('deepseek').then(mod => mod.setApiUrl(apiUrl));
         break;
       case 'doubao':
         // Doubao 使用固定配置
         break;
       case 'openai':
         // TODO: 实现 OpenAI
+        void this.getProviderModule('openai').then(mod => mod.setApiUrl(apiUrl));
         break;
       case 'gemini':
         // Gemini 使用 GoogleGenAI 的默认端点，不支持自定义 apiUrl
-        console.log('Gemini 使用默认 API 端点');
+        //console.log('Gemini 使用默认 API 端点');
         break;
       case 'yunwu':
-        setYunwuApiUrl(apiUrl);
+        void this.getProviderModule('yunwu').then(mod => mod.setApiUrl(apiUrl));
         break;
       case 'minimax':
-        setMinimaxApiUrl(apiUrl);
+        void this.getProviderModule('minimax').then(mod => mod.setApiUrl(apiUrl));
         break;
       case 'kling':
-        setKlingApiUrl(apiUrl);
+        void this.getProviderModule('kling').then(mod => mod.setApiUrl(apiUrl));
+        break;
+      case 'sora':
+        void this.getProviderModule('sora').then(mod => mod.setApiUrl(apiUrl));
+        break;
+      case 'wan':
+        void this.getProviderModule('wan').then(mod => mod.setApiUrl(apiUrl));
+        break;
+      case 'bigmore':
+        void this.getProviderModule('bigmore').then(mod => mod.setApiUrl(apiUrl));
+        break;
+      case 'skyreels':
+        void this.getProviderModule('skyreels').then(mod => mod.setApiUrl(apiUrl));
+        break;
+      case 'baidu':
+        // baidu 使用固定配置
         break;
     }
   }
 
   /**
+   * 文本转语音并返回音频 URL
+   * @param text - 要合成的文本
+   * @param options - 可选参数
+   * @param projectId - 项目 ID，用于文件上传
+   * @returns - 音频的 URL
+   */
+  static async generateSpeechUrl(
+    text: string,
+    shotprovider: any = null,
+    options: {
+      spd?: number; // 语速 0-15，默认5
+      pit?: number; // 音调 0-15，默认5
+      vol?: number; // 音量，基础音库0-9，精品音库0-15，默认5
+      per?: number; // 发音人，默认0（度小美）
+      aue?: number; // 音频格式，3=mp3(默认)，4=pcm-16k，5=pcm-8k，6=wav
+    } = {},
+    projectId: string = "",
+    preview: boolean = false
+  ): Promise<string> {
+    try {
+      const provider = await this.getEnabledAudioProvider(shotprovider || this.currentProjectModelProviders);
+      //console.log(`使用 ${provider} 合成语音`);
+
+      let audioBlob: Blob;
+
+      switch (provider) {
+        case 'baidu':
+          let speek = text;
+          audioBlob = await (await this.getProviderModule('baidu')).textToSpeech(speek, options);
+          break;
+        default:
+          throw new Error(`暂不支持 ${provider} 提供商的文生图`);
+    }
+
+      // 将 Blob 转换为 Base64 格式以便上传
+      const audioBase64 = await (await this.getProviderModule('baidu')).blobToBase64(audioBlob);
+      const audioDataUrl = `data:audio/mp3;base64,${audioBase64}`;
+      //console.log('audioDataUrl:', audioDataUrl);
+      // 上传到文件服务器
+      if(preview){
+        return audioDataUrl;
+      }
+
+      const uploadResponse = await uploadFileToService({
+        fileType: projectId + '/audio/tts',
+        base64Data: audioBase64,
+        fileName: 's.mp3'
+      });
+
+      if (uploadResponse.success && uploadResponse.data?.fileUrl) {
+        //console.log(`音频已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
+        return uploadResponse.data.fileUrl;
+      } else {
+        console.error(`音频上传失败: ${uploadResponse.error}`);
+        // 上传失败时，返回 Base64 data URL
+        return audioDataUrl;
+      }
+    } catch (error) {
+      console.error('语音合成失败:', error);
+      throw error;
+    }
+  }
+  /**
    * 获取当前使用的提供商信息
    */
   static async getProviderInfo(): Promise<{
-    provider: 'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu' | 'minimax' | 'kling';
+    provider: 'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu' | 'minimax' | 'kling' | 'sora' | 'wan' | 'bigmore' | 'baidu' | 'skyreels';
     enabled: boolean;
   }> {
     const config = await getEnabledConfigByType('llm');
@@ -572,36 +938,47 @@ export class ModelService {
     prompt: string,
     referenceImages: string[] = [],
     imageType: string = "character",
-    localStyle: string = "写实",
+    localStyle: string = "真人写实",
     imageSize: string = "2560x1440",
     imageCount: number = 1,
     shotprovider: any = null,
     projectid: string = "",
+    shotid: string = "0",
   ): Promise<string> {
     const provider = await this.getEnabledImageProvider(shotprovider || this.currentProjectModelProviders);
-    console.log(`使用 ${provider} 生成图片`);
+    //console.log(`使用 ${provider} 生成图片`);
 
-    const image_rate = imageSize=="2560x1440" ? "16:9" : "9:16";
-    let new_prompt = prompt;
-    if(imageType!='variation'){
-      new_prompt = prompt + (imageCount > 1 ? " 生成连续 "+imageCount+" 宫格，包含 "+imageCount+" 张风格统一的图片，每张长宽比 "+image_rate+"，间距 1px，白色背景，铺满整张图。" : "");
-      new_prompt = PROMPT_TEMPLATES.IMAGE_GENERATION_WITH_REFERENCE(new_prompt,localStyle);
+    // 处理参考图片：将HTTP/HTTPS URL转换为Base64
+    let processedReferenceImages = [];
+    if (referenceImages && referenceImages.length > 0) {
+      for(let i=0;i<referenceImages.length;i++){
+        try{
+          const baseurl = await imageUrlToBase64(referenceImages[i]);
+          processedReferenceImages.push(baseurl);
+        }catch(error){
+          console.error('转换参考图片为Base64失败:', error);
+          processedReferenceImages.push(referenceImages[i]);
+        }
+      }
+    }else{
+      processedReferenceImages = referenceImages;
     }
+
     let imageUrlOrBase64: string;
 
     // 调用各个模型服务生成图片
-    switch (provider) {
+    switch (provider.provider) {
       case 'doubao':
-        imageUrlOrBase64 = await generateImageDoubao(new_prompt, referenceImages, imageType, localStyle, imageSize,imageCount);
+        imageUrlOrBase64 = await (await this.getProviderModule('doubao')).generateImage(prompt, processedReferenceImages, imageType, localStyle, imageSize,imageCount);
         break;
       case 'gemini':
-        imageUrlOrBase64 = await generateImageGemini(new_prompt, referenceImages,imageType, localStyle, imageSize,imageCount);
+        imageUrlOrBase64 = await (await this.getProviderModule('gemini')).generateImage(prompt, processedReferenceImages,imageType, localStyle, imageSize,imageCount);
         break;
       case 'yunwu':
-        imageUrlOrBase64 = await generateImageYunwu(new_prompt, referenceImages, imageType, localStyle, imageSize,imageCount);
+        imageUrlOrBase64 = await (await this.getProviderModule('yunwu')).generateImage(prompt, processedReferenceImages, imageType, localStyle, imageSize,imageCount);
         break;
       case 'openai':
-        imageUrlOrBase64 = await generateImageOpenai(new_prompt, referenceImages, imageType, localStyle, imageSize, imageCount);
+        imageUrlOrBase64 = await (await this.getProviderModule('openai')).generateImage(prompt, processedReferenceImages, imageType, localStyle, imageSize, imageCount);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的文生图`);
@@ -613,13 +990,13 @@ export class ModelService {
       const isBase64 = imageUrlOrBase64.startsWith('data:');
 
       const uploadResponse = await uploadFileToService({
-        fileType: projectid+'_'+imageType+'_'+provider,
+        fileType: projectid+'/image/'+imageType+'/'+shotid,
         fileUrl: isBase64 ? undefined : imageUrlOrBase64,
         base64Data: isBase64 ? imageUrlOrBase64 : undefined
       });
 
       if (uploadResponse.success && uploadResponse.data?.fileUrl) {
-        console.log(`图片已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
+        //console.log(`图片已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
         return uploadResponse.data.fileUrl;
       } else {
         console.error(`图片上传失败: ${uploadResponse.error}`);
@@ -648,31 +1025,73 @@ export class ModelService {
     full_frame: boolean = false,
     shotprovider: any = null,
     projectid: string = "",
+    imageSize: string = "2560x1440",
+    visualStyle: string = "真人写实",
+    shotid: string = "0",
+    referenceImages: string[] = [],
   ): Promise<string> {
     const provider = await this.getEnabledVideoProvider(shotprovider || this.currentProjectModelProviders);
-    console.log(`使用 ${provider} 生成视频`);
+    //console.log(`使用 ${provider} 生成视频`);
+
+    // 处理起始图片：如果是HTTP/HTTPS URL则转换为Base64
+    let processedStartImageBase64 = startImageBase64;
+
+    // 处理结束图片：如果是HTTP/HTTPS URL则转换为Base64
+    let processedEndImageBase64 = endImageBase64;
+    if(provider.provider!='bigmore' && provider.provider!='skyreels'){
+      try {
+        processedStartImageBase64 = await imageUrlToBase64(startImageBase64);
+        //console.log('已将起始图片转换为Base64格式');
+      } catch (error) {
+        console.error('转换起始图片为Base64失败:', error);
+        // 转换失败时继续使用原始图片
+        processedStartImageBase64 = startImageBase64;
+      }
+
+      try {
+        processedEndImageBase64 = await imageUrlToBase64(endImageBase64);
+        //console.log('已将结束图片转换为Base64格式');
+      } catch (error) {
+        console.error('转换结束图片为Base64失败:', error);
+        // 转换失败时继续使用原始图片
+        processedEndImageBase64 = endImageBase64;
+      }
+    }
 
     let videoUrl: string;
 
     // 调用各个模型服务生成视频
-    switch (provider) {
+    switch (provider.provider) {
       case 'doubao':
-        videoUrl = await generateVideoDoubao(prompt, startImageBase64, endImageBase64, duration,full_frame);
+        const generate_audio = provider.description.indexOf("sound")>-1;
+        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio);
         break;
       case 'gemini':
-        videoUrl = await generateVideoGemini(prompt, startImageBase64, endImageBase64,full_frame);
+        videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);
         break;
       case 'yunwu':
-        videoUrl = await generateVideoYunwu(prompt, startImageBase64, endImageBase64, duration,full_frame);
+        videoUrl = await (await this.getProviderModule('yunwu')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,imageSize);
         break;
       case 'minimax':
-        videoUrl = await generateVideoMinimax(prompt, startImageBase64, endImageBase64, duration, full_frame);
+        videoUrl = await (await this.getProviderModule('minimax')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame);
         break;
       case 'kling':
-        videoUrl = await generateVideoKling(prompt, startImageBase64, endImageBase64, duration, full_frame);
+        videoUrl = await (await this.getProviderModule('kling')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame);
+        break;
+      case 'sora':
+        videoUrl = await (await this.getProviderModule('sora')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame,imageSize,visualStyle);
+        break;
+      case 'wan':
+        videoUrl = await (await this.getProviderModule('wan')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame);
+        break;
+      case 'bigmore':
+        videoUrl = await (await this.getProviderModule('bigmore')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame,imageSize);
+        break;
+      case 'skyreels':
+        videoUrl = await (await this.getProviderModule('skyreels')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame, imageSize);
         break;
       case 'openai':
-        videoUrl = await generateVideoOpenai(prompt, startImageBase64, endImageBase64, duration, full_frame);
+        videoUrl = await (await this.getProviderModule('openai')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的图生视频`);
@@ -681,12 +1100,12 @@ export class ModelService {
     // 将模型返回的视频 URL 转换成本地服务器文件
     try {
       const uploadResponse = await uploadFileToService({
-        fileType: projectid+'_video_'+provider,
+        fileType: projectid+'/video/'+shotid,
         fileUrl: videoUrl
       });
 
       if (uploadResponse.success && uploadResponse.data?.fileUrl) {
-        console.log(`视频已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
+        //console.log(`视频已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
         return uploadResponse.data.fileUrl;
       } else {
         console.error(`视频上传失败: ${uploadResponse.error}`);

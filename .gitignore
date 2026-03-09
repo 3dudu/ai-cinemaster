@@ -12,6 +12,8 @@ dist
 dist-ssr
 electron-dist
 *.local
+electron-dist
+dev-dist
 
 # Electron specific
 electron/out

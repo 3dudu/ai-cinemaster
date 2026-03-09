@@ -1,6 +1,65 @@
-import { Check, Loader2, Upload, X } from 'lucide-react';
+import { Check, Images, Loader2, Upload, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
+import { ProjectState } from '../types';
 import { uploadBase64File } from '../utils/fileUploadUtils';
+import { useDialog } from './dialog';
+import ImageSelectorModal from './ImageSelectorModal';
+
+// 导出下载工具函数供其他组件使用
+export const downloadImage = async (imageUrl: string, filename: string, dialogInstance: ReturnType<typeof useDialog>) => {
+  try {
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Download failed:', error);
+    await dialogInstance.alert({ title: '错误', message: '下载失败，请重试。'+error?.message, type: 'error' });
+  }
+};
+
+export const downloadVideo = async (videoUrl: string, filename: string, dialogInstance: ReturnType<typeof useDialog>) => {
+  try {
+    const response = await fetch(videoUrl);
+    if (!response.ok) {
+      throw new Error(`下载失败: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.download = filename;
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    await dialogInstance.alert({
+      title: '成功',
+      message: '视频下载已开始',
+      type: 'success',
+    });
+  } catch (error: any) {
+    console.error('下载视频失败:', error);
+    await dialogInstance.alert({
+      title: '错误',
+      message: `下载视频失败: ${error.message}`,
+      type: 'error',
+    });
+  }
+};
 
 interface Props {
   isOpen: boolean;
@@ -9,6 +68,9 @@ interface Props {
   fileType?: string;
   acceptTypes?: string;
   title?: string;
+  projectid?: string;
+  project?: ProjectState;
+  filterType?: 'character' | 'scene' | 'keyframe' | 'all';
 }
 
 const FileUploadModal: React.FC<Props> = ({
@@ -17,13 +79,20 @@ const FileUploadModal: React.FC<Props> = ({
   onUploadSuccess,
   fileType = 'image',
   acceptTypes = 'image/png,image/jpeg,image/jpg',
-  title = '上传图片'
+  title = '上传图片',
+  projectid,
+  project,
+  filterType = 'all'
 }) => {
+  const dialog = useDialog();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
+  const [isFromGallery, setIsFromGallery] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Reset state when modal opens/closes
   React.useEffect(() => {
@@ -31,28 +100,30 @@ const FileUploadModal: React.FC<Props> = ({
       setSelectedFile(null);
       setPreviewUrl(null);
       setUploadSuccess(false);
+      setIsFromGallery(false);
     }
   }, [isOpen]);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     // Validate file type
     const validTypes = acceptTypes.split(',');
     if (!validTypes.includes(file.type)) {
-      alert('请选择 PNG 或 JPG 格式的图片');
+      await dialog.alert({ title: '错误', message: '请选择 PNG 或 JPG 格式的图片', type: 'error' });
       return;
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('文件大小不能超过 10MB');
+      await dialog.alert({ title: '错误', message: '文件大小不能超过 10MB', type: 'error' });
       return;
     }
 
     setSelectedFile(file);
     setUploadSuccess(false);
+    setIsFromGallery(false);
 
     // Create preview
     const reader = new FileReader();
@@ -67,7 +138,7 @@ const FileUploadModal: React.FC<Props> = ({
 
     setUploading(true);
     try {
-      const result = await uploadBase64File(previewUrl, fileType);
+      const result = await uploadBase64File(previewUrl, projectid?projectid+'/'+fileType:fileType);
 
       if (result.success && result.data?.url) {
         setUploadSuccess(true);
@@ -77,11 +148,11 @@ const FileUploadModal: React.FC<Props> = ({
           onClose();
         }, 800);
       } else {
-        alert(result.error || '上传失败，请重试');
+        await dialog.alert({ title: '错误', message: result.error || '上传失败，请重试。', type: 'error' });
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('上传失败，请重试');
+      await dialog.alert({ title: '错误', message: '上传失败，请重试。'+error?.message, type: 'error' });
     } finally {
       setUploading(false);
     }
@@ -99,17 +170,26 @@ const FileUploadModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
-      <div className="bg-[#0c0c2d] border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+            {/* Image Preview Modal */}
+            {previewImage && (
+              <div className="fixed inset-0 z-50 bg-slate-700/95 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
+                <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 p-2 bg-slate-800/10 hover:bg-slate-800/20 rounded-full transition-colors cursor-pointer">
+                  <X className="w-6 h-6 text-slate-50" />
+                </button>
+                <img src={previewImage} alt="Preview" className="max-w-[90vw] max-h-[90vh] object-contain" />
+              </div>
+            )}
+      <div className="bg-slate-800 border border-slate-600 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="h-16 px-6 border-b border-slate-800 flex items-center justify-between bg-[#0e1230]">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Upload className="w-5 h-5 text-indigo-500" />
+        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
+          <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+            <Upload className="w-5 h-5 text-slate-500" />
             {title}
           </h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-full transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
             disabled={uploading}
           >
             <X className="w-5 h-5 text-slate-500" />
@@ -117,13 +197,13 @@ const FileUploadModal: React.FC<Props> = ({
         </div>
 
         {/* Body */}
-        <div className="p-6">
+        <div className="p-2 md:p-6">
           {!previewUrl ? (
             <>
               {/* Upload Area */}
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-700 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-slate-900/50 transition-all"
+                className="border-2 border-dashed border-slate-600 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-slate-500 hover:bg-slate-900/50 transition-all"
               >
                 <Upload className="w-12 h-12 text-slate-600 mb-4" />
                 <p className="text-slate-400 text-sm font-medium mb-2">点击选择文件</p>
@@ -144,34 +224,37 @@ const FileUploadModal: React.FC<Props> = ({
                 <div className="relative aspect-video bg-slate-900 rounded-lg overflow-hidden">
                   <img
                     src={previewUrl}
+                    onClick={(e) => {setPreviewImage(previewUrl); }}
                     alt="Preview"
                     className="w-full h-full object-contain"
                   />
                   {uploadSuccess && (
                     <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
-                      <div className="bg-green-500 text-white p-3 rounded-full">
+                      <div className="bg-green-500 text-slate-50 p-3 rounded-full">
                         <Check className="w-8 h-8" />
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-[#0e0e28] rounded-lg border border-slate-800">
+                <div className="flex items-center justify-between p-3 bg-slate-800 rounded-lg border border-slate-600">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white font-medium truncate">
+                    <p className="text-sm text-slate-50 font-medium truncate">
                       {selectedFile?.name}
                     </p>
+                    {!isFromGallery && (
                     <p className="text-xs text-slate-500">
                       {(selectedFile?.size || 0) / 1024 < 1024
                         ? `${((selectedFile?.size || 0) / 1024).toFixed(1)} KB`
                         : `${((selectedFile?.size || 0) / (1024 * 1024)).toFixed(2)} MB`
                       }
                     </p>
+                    )}
                   </div>
                   {!uploadSuccess && (
                     <button
                       onClick={handleRemoveFile}
-                      className="p-2 hover:bg-red-500/20 rounded-full transition-colors"
+                      className="p-2 hover:bg-red-500/20 rounded-full transition-colors cursor-pointer"
                     >
                       <X className="w-4 h-4 text-slate-500 hover:text-red-500" />
                     </button>
@@ -183,44 +266,79 @@ const FileUploadModal: React.FC<Props> = ({
         </div>
 
         {/* Footer */}
-        <div className="h-16 px-6 border-t border-slate-800 flex items-center justify-between bg-[#0e1230]">
-          <button
-            onClick={handleRemoveFile}
-            disabled={!previewUrl || uploadSuccess || uploading}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            重新选择
-          </button>
+        <div className="h-16 px-6 border-t border-slate-600 flex items-center justify-between bg-slate-600/80">
+          <div className="flex gap-2">
+            {project && (
+              <button
+                onClick={() => setIsImageSelectorOpen(true)}
+                disabled={uploading}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Images className="w-3.5 h-3.5" />
+                图库
+              </button>
+            )}
+          </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
               disabled={uploading}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm bg-slate-600 hover:bg-slate-800 text-slate-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               取消
             </button>
             {previewUrl && !uploadSuccess && (
-              <button
-                onClick={handleUpload}
-                disabled={uploading}
-                className="px-6 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    上传中...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    上传
-                  </>
-                )}
-              </button>
+              isFromGallery ? (
+                <button
+                  onClick={() => {
+                    onUploadSuccess(previewUrl!);
+                    onClose();
+                  }}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  确认选择
+                </button>
+              ) : (
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="px-6 py-2 bg-slate-500 hover:bg-slate-600 text-slate-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      上传中...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      上传
+                    </>
+                  )}
+                </button>
+              )
             )}
           </div>
         </div>
       </div>
+
+      {/* Image Selector Modal */}
+      <ImageSelectorModal
+        isOpen={isImageSelectorOpen}
+        onClose={() => setIsImageSelectorOpen(false)}
+        project={project}
+        onSelectImage={(imageUrl) => {
+          setPreviewUrl(imageUrl);
+          setSelectedFile(null);
+          setIsFromGallery(true);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          setUploadSuccess(false);
+        }}
+        filterType={filterType}
+      />
     </div>
   );
 };

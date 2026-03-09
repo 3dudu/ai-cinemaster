@@ -1,0 +1,8 @@
+name = "comicmaster"
+compatibility_date = "2026-01-29"
+main = "./src/worker.js"  # 你的 Workers 入口文件
+
+# 关联 React 静态资源（CRA 填 build，Vite 填 dist）
+[assets]
+bucket = "./build"  # React 构建产物目录
+entry-point = "src" # 可选，Workers 代码入口目录

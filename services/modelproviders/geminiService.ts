@@ -1,9 +1,10 @@
 import { GenerateContentResponse, GoogleGenAI, Type } from "@google/genai";
-import { Character, Scene, ScriptData, Shot } from "../types";
-import { PROMPT_TEMPLATES } from "./promptTemplates";
+import { Scene, ScriptData, Shot } from "../../types";
+import { cleanJsonString, retryOperation } from "../../utils/apiHelper";
+import { renderTemplate } from "../promptTemplates";
 
 // Module-level variable to store the key at runtime
-let runtimeApiKey: string = process.env.API_KEY || "";
+let runtimeApiKey: string = "";
 
 export const setApiKey = (key: string) => {
   runtimeApiKey = key;
@@ -15,43 +16,12 @@ const getAiClient = () => {
   return new GoogleGenAI({ apiKey: runtimeApiKey });
 };
 
-// Helper for retry logic on 429 errors
-const retryOperation = async <T>(operation: () => Promise<T>, maxRetries: number = 3, baseDelay: number = 2000): Promise<T> => {
-  let lastError;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (e: any) {
-      lastError = e;
-      // Check for quota/rate limit errors (429)
-      if (e.status === 429 || e.code === 429 || e.message?.includes('429') || e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) {
-        const delay = baseDelay * Math.pow(2, i);
-        console.warn(`Hit rate limit, retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      throw e; // Throw other errors immediately
-    }
-  }
-  throw lastError;
-};
-
-// Helper to clean JSON string from Markdown fences or accidental text
-const cleanJsonString = (str: string): string => {
-  if (!str) return "{}";
-  // Remove ```json ... ``` or ``` ... ```
-  let cleaned = str.replace(/```json\n?/g, '').replace(/```/g, '');
-  return cleaned.trim();
-};
-
 /**
  * Agent 1 & 2: Script Structuring & Breakdown
  * Uses gemini-2.5-flash for fast, structured text generation.
  */
-export const parseScriptToData = async (rawText: string, language: string = '中文'): Promise<ScriptData> => {
+export const parseScriptToData = async (prompt: string, language: string = '中文'): Promise<ScriptData> => {
   const ai = getAiClient();
-  const prompt = PROMPT_TEMPLATES.PARSE_SCRIPT(rawText, language);
-
   const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: prompt,
@@ -129,7 +99,7 @@ export const parseScriptToData = async (rawText: string, language: string = '中
 
   return {
     title: parsed.title || "未命名剧本",
-    genre: parsed.genre || "剧情片",
+    genre: parsed.genre || "",
     logline: parsed.logline || "",
     language: language,
     characters,
@@ -145,30 +115,10 @@ export const parseScriptToData = async (rawText: string, language: string = '中
  * @param index - 场景索引
  */
 export const generateShotListForScene = async (
-  scriptData: ScriptData,
   scene: Scene,
-  index: number
+  prompt: string
 ): Promise<Shot[]> => {
   const ai = getAiClient();
-  const lang = scriptData.language || '中文';
-
-  const paragraphs = scriptData.storyParagraphs
-    .filter(p => String(p.sceneRefId) === String(scene.id))
-    .map(p => p.text)
-    .join('\n');
-
-  if (!paragraphs.trim()) return [];
-
-  const prompt = PROMPT_TEMPLATES.GENERATE_SHOTS(
-    index,
-    scene,
-    paragraphs,
-    scriptData.genre,
-    scriptData.targetDuration || "Standard",
-    scriptData.characters,
-    lang
-  );
-
   try {
     const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
       model: 'gemini-2.5-flash',
@@ -184,7 +134,17 @@ export const generateShotListForScene = async (
               id: { type: Type.STRING },
               sceneId: { type: Type.STRING },
               actionSummary: { type: Type.STRING },
-              dialogue: { type: Type.STRING, description: "本镜头中的台词。若无台词则留空。" },
+              dialogue: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    character: { type: Type.STRING, description: "角色名。" },
+                    value: Type.STRING, description: "本镜头中该角色的台词。若无台词则不需要。"
+                  },
+                  required: ["character", "value"]
+                }
+              },
               cameraMovement: { type: Type.STRING },
               shotSize: { type: Type.STRING, description: "例如：广角镜头、特写镜头" },
               characters: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -224,38 +184,6 @@ export const generateShotListForScene = async (
   }
 };
 
-export const generateShotList = async (scriptData: ScriptData): Promise<Shot[]> => {
-  if (!scriptData.scenes || scriptData.scenes.length === 0) {
-    return [];
-  }
-
-  // Process scenes sequentially (Batch Size 1) to strictly minimize rate limits
-  const BATCH_SIZE = 1;
-  const allShots: Shot[] = [];
-
-  for (let i = 0; i < scriptData.scenes.length; i += BATCH_SIZE) {
-    // Add delay between batches
-    if (i > 0) await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const batch = scriptData.scenes.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map((scene, idx) => generateShotListForScene(scriptData, scene, i + idx))
-    );
-    batchResults.forEach(shots => allShots.push(...shots));
-  }
-
-  // Re-index shots to be sequential globally and set initial status
-  return allShots.map((s, idx) => ({
-    ...s,
-    id: `shot-${idx + 1}`,
-    keyframes: Array.isArray(s.keyframes) ? s.keyframes.map(k => ({ 
-      ...k, 
-      id: `kf-${idx + 1}-${k.type}`, // Normalized ID
-      status: 'pending' 
-    })) : []
-  }));
-};
-
 /**
  * Agent 0: Script Generation from simple prompt
  * 根据简单提示词生成完整剧本
@@ -268,13 +196,11 @@ export const generateScript = async (
 ): Promise<string> => {
   const ai = getAiClient();
 
-  const generationPrompt = PROMPT_TEMPLATES.GENERATE_SCRIPT(prompt, targetDuration, genre, language);
-
   const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
     model: 'gemini-2.5-flash',
-    contents: generationPrompt,
+    contents: prompt,
     config: {
-      systemInstruction: PROMPT_TEMPLATES.SYSTEM_SCREENWRITER,
+      systemInstruction: renderTemplate('SYSTEM_SCREENWRITER'),
       maxOutputTokens: 8192,
     }
   }));
@@ -285,13 +211,27 @@ export const generateScript = async (
 /**
  * Agent 3: Visual Design (Prompt Generation)
  */
-export const generateVisualPrompts = async (type: 'character' | 'scene', data: Character | Scene, genre: string): Promise<string> => {
+export const generateVisualPrompts = async (prompt: string): Promise<string> => {
    const ai = getAiClient();
-    const prompt = PROMPT_TEMPLATES.GENERATE_VISUAL_PROMPT(type, data, genre);
-
    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
      model: 'gemini-2.5-flash',
      contents: prompt,
+     config: {
+      systemInstruction: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+      maxOutputTokens: 8192,
+     }
+   }));
+   return (response.text || "").trim();
+};
+export const generateVideoPrompts = async (prompt: string): Promise<string> => {
+   const ai = getAiClient();
+   const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+     model: 'gemini-2.5-flash',
+     contents: prompt,
+     config: {
+      systemInstruction: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
+      maxOutputTokens: 8192,
+     }
    }));
    return (response.text || "").trim();
 };
@@ -301,7 +241,7 @@ export const generateVisualPrompts = async (type: 'character' | 'scene', data: C
  */
 export const generateImage = async (prompt: string, referenceImages: string[] = [],
     imageType: string = "character",
-  localStyle: string = "写实",
+  localStyle: string = "真人写实",
   imageSize: string = "2560x1440",
   imageCount: number = 1
 ): Promise<string> => {

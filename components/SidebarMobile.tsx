@@ -1,0 +1,139 @@
+import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, Images, List, NotebookPen, Settings, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { ProjectState } from '../types';
+import ModalSettings from './ModalSettings';
+import ProjectSettingsModal from './ProjectSettingsModal';
+import PromptTemplateModal from './PromptTemplateModal';
+import { ThemeToggle } from './ThemeToggle';
+
+interface SidebarMobileProps {
+  currentStage: string;
+  setStage: (stage: 'script' | 'assets' | 'director' | 'export' | 'images') => void;
+  onExit: () => void;
+  onOpenSettings : () => void;
+  projectName?: string;
+  project?: ProjectState;
+  updateProject?: (updates: Partial<ProjectState>) => void;
+}
+
+const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, onExit, onOpenSettings, projectName, project, updateProject }) => {
+  const [showModelSettings, setShowModelSettings] = useState(false);
+  const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showPromptTemplates, setShowPromptTemplates] = useState(false);
+  
+
+  const navItems = [
+    { id: 'script', label: '分镜', icon: List },
+    { id: 'assets', label: '素材', icon: Drama },
+    { id: 'director', label: '导演', icon: Clapperboard },
+    { id: 'images', label: '媒体', icon: Images },
+    { id: 'export', label: '成片', icon: Film },
+  ];
+
+  return (
+    <aside className="top-0 z-50 left-0 right-0 z-50 select-none bg-slate-600 border-b border-slate-600 flex flex-col">
+      {/* 顶部栏 */}
+      <div className="flex items-center justify-between px-2 py-2">
+        {/* 左侧：Logo 和 返回按钮 */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onExit}
+            className="text-slate-400 hover:text-slate-50 transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-slate-800 text-slate-50 flex items-center justify-center flex-shrink-0">
+              <Aperture className="w-5 h-5" />
+            </div>
+            <div className="overflow-hidden pr-2">
+              <div className="flex items-center gap-2">
+              <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide uppercase">{projectName || '未命名项目'}</h1>
+          <button
+            onClick={() => setShowProjectSettings(true)}
+            className="text-[11px] font-medium font-bold text-slate-400 hover:text-slate-50 items-center"
+            title="项目设置"
+          >
+            <Edit className="w-3.5 h-3.5" />
+          </button>
+              </div>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest">AI漫剧工场</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 右侧：设置和项目设置按钮 */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowModelSettings(true)}
+            className="text-slate-400 hover:text-slate-50 transition-colors p-1"
+            title="模型管理"
+          >
+            <Sparkles className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setShowPromptTemplates(true)}
+            className="text-slate-400 hover:text-slate-50 transition-colors p-1"
+            title="提示词"
+          >
+            <NotebookPen className="w-4 h-4" />
+          </button>
+          <button
+             onClick={onOpenSettings}
+            className="text-slate-400 hover:text-slate-50 transition-colors p-1"
+            title="系统设置"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+          <ThemeToggle size="sm" />
+        </div>
+      </div>
+
+      {/* 导航 */}
+      <nav className="fixed bottom-0 left-0 right-0 py-2 h-16 z-50 flex border-t border-slate-600 items-center justify-around px-4 py-0 overflow-hidden select-none bg-slate-600 border-b border-slate-600">
+        {navItems.map((item) => {
+          const isActive = currentStage === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setStage(item.id as any)}
+              className={`
+                flex flex-col items-center px-2 min-w-[60px] rounded-lg transition-all duration-200
+                ${isActive
+                  ? 'text-slate-50 font-bold'
+                  : 'text-slate-500 hover:text-slate-300'
+                }
+              `}
+            >
+              <item.icon className={`w-5 h-5 ${isActive ? 'text-slate-50' : ''}`} />
+              <span className={`text-[10px] tracking-wider uppercase mt-1 ${isActive ? 'font-bold' : 'font-medium'}`}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Model Settings Modal */}
+      <ModalSettings
+        isOpen={showModelSettings}
+        onClose={() => setShowModelSettings(false)}
+        isMobile={true}
+      />
+      {/* Prompt Template Modal */}
+      <PromptTemplateModal
+        isOpen={showPromptTemplates}
+        onClose={() => setShowPromptTemplates(false)}
+      />
+      {/* Project Settings Modal */}
+      <ProjectSettingsModal
+        isOpen={showProjectSettings}
+        onClose={() => setShowProjectSettings(false)}
+        project={project}
+        updateProject={updateProject}
+      />
+    </aside>
+  );
+};
+
+export default SidebarMobile;

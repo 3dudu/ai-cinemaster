@@ -1,9 +1,10 @@
 import { ChevronRight, Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
 
-const DURATION_OPTIONS = [
+export const DURATION_OPTIONS = [
   { label: '30秒 (广告)', value: '30s' },
   { label: '60秒 (预告)', value: '60s' },
   { label: '2分钟 (片花)', value: '120s' },
@@ -11,7 +12,7 @@ const DURATION_OPTIONS = [
   { label: '自定义', value: 'custom' }
 ];
 
-const LANGUAGE_OPTIONS = [
+export const LANGUAGE_OPTIONS = [
   { label: '中文 (Chinese)', value: '中文' },
   { label: 'English (US)', value: 'English' },
   { label: '日本語 (Japanese)', value: 'Japanese' },
@@ -19,29 +20,50 @@ const LANGUAGE_OPTIONS = [
   { label: 'Español (Spanish)', value: 'Spanish' }
 ];
 
-const STYLE_OPTIONS = [
+export const STYLE_OPTIONS = [
   { label: '仙侠古装', value: '仙侠古装' },
   { label: '可爱卡通', value: '可爱卡通' },
   { label: '古典水墨', value: '古典水墨' },
   { label: '赛博朋克', value: '赛博朋克' },
   { label: '未来机甲', value: '未来机甲' },
   { label: '二次元', value: '二次元' },
-  { label: '写实', value: '写实' },
+  { label: '真人写实', value: '真人写实' },
   { label: '蜡笔画风格', value: '蜡笔画风格' },
-  { label: '现代城市风', value: '现代城市风' }
+  { label: '现代城市风', value: '现代城市风' },
+  { label: '沙雕漫', value: '沙雕漫' },
+  { label: '自定义', value: 'custom' }
 ];
 
-const IMAGE_SIZE_OPTIONS = [
-  { label: '竖屏 9:16 (1440x2560)', value: '1440x2560' },
-  { label: '横屏 16:9 (2560x1440)', value: '2560x1440' }
+export const IMAGE_SIZE_OPTIONS = [
+  { label: '横屏 16:9 (2560x1440)', value: '2560x1440' },
+  { label: '竖屏 9:16 (1440x2560)', value: '1440x2560' }
 ];
 
-const IMAGE_COUNT_OPTIONS = [
+export const IMAGE_COUNT_OPTIONS = [
+  { label: '文生视频', value: 0 },
   { label: '首尾帧', value: 1 },
   { label: '4 张', value: 4 },
   { label: '6 张', value: 6 },
   { label: '8 张', value: 8 },
   { label: '9 张', value: 9 }
+];
+
+export const GENRE_OPTIONS = [
+  { label: '剧情片', value: '剧情片' },
+  { label: '动作片', value: '动作片' },
+  { label: '科幻片', value: '科幻片' },
+  { label: '悬疑片', value: '悬疑片' },
+  { label: '恐怖片', value: '恐怖片' },
+  { label: '喜剧片', value: '喜剧片' },
+  { label: '爱情片', value: '爱情片' },
+  { label: '历史片', value: '历史片' },
+  { label: '战争片', value: '战争片' },
+  { label: '动画片', value: '动画片' },
+  { label: '纪录片', value: '纪录片' },
+  { label: '短片', value: '短片' },
+  { label: '微电影', value: '微电影' },
+  { label: '广告', value: '广告' },
+  { label: '自定义', value: 'custom' }
 ];
 
 interface ProjectSettingsModalProps {
@@ -52,36 +74,59 @@ interface ProjectSettingsModalProps {
 }
 
 const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onClose, project, updateProject }) => {
-  const [localTitle, setLocalTitle] = useState(project.title);
-  const [localDuration, setLocalDuration] = useState(project.targetDuration || '60s');
-  const [localLanguage, setLocalLanguage] = useState(project.language || '中文');
-  const [localStyle, setLocalStyle] = useState(project.visualStyle || '写实');
-  const [localImageSize, setLocalImageSize] = useState(project.imageSize || '1440x2560');
-  const [localImageCount, setLocalImageCount] = useState(project.imageCount || 1);
+  const [localTitle, setLocalTitle] = useState(project?.title || '');
+  const [localDuration, setLocalDuration] = useState(project?.targetDuration || '60s');
+  const [localLanguage, setLocalLanguage] = useState(project?.language || '中文');
+  const [localStyle, setLocalStyle] = useState(project?.visualStyle || '真人写实');
+  const [localImageSize, setLocalImageSize] = useState(project?.imageSize || '1440x2560');
+  const [localImageCount, setLocalImageCount] = useState(project?.imageCount || 1);
+  const [localGenre, setLocalGenre] = useState(project?.genre || '剧情片');
   const [customDurationInput, setCustomDurationInput] = useState('');
+  const [customStyleInput, setCustomStyleInput] = useState('');
+  const [customGenreInput, setCustomGenreInput] = useState('');
   const [modelConfigs, setModelConfigs] = useState<any[]>([]);
-  const [localLlmProvider, setLocalLlmProvider] = useState(project.modelProviders?.llm || '');
-  const [localText2imageProvider, setLocalText2imageProvider] = useState(project.modelProviders?.text2image || '');
-  const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project.modelProviders?.image2video || '');
+  const [localLlmProvider, setLocalLlmProvider] = useState(project?.modelProviders?.llm || '');
+  const [localText2imageProvider, setLocalText2imageProvider] = useState(project?.modelProviders?.text2image || '');
+  const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project?.modelProviders?.image2video || '');
 
   // Load model configs when modal opens
   useEffect(() => {
     if (isOpen) {
       loadModelConfigs();
+      //initSystemModelProviders();
       // Reset local state when opening modal
       setLocalTitle(project.title);
-      setLocalDuration(project.targetDuration || '60s');
       setLocalLanguage(project.language || '中文');
-      setLocalStyle(project.visualStyle || '写实');
+
+      const currentStyle = project.visualStyle || '真人写实';
+      const isCustomStyle = !STYLE_OPTIONS.some(opt => opt.value === currentStyle);
+      setCustomStyleInput(isCustomStyle ? currentStyle : '');
+      setLocalStyle(isCustomStyle?'custom':currentStyle);
+
+      const currentGenre = project.genre || '剧情片';
+      const isCustomGenre = !GENRE_OPTIONS.some(opt => opt.value === currentGenre);
+      setCustomGenreInput(isCustomGenre ? currentGenre : '');
+      setLocalGenre(isCustomGenre?'custom':currentGenre);
+      
       setLocalImageSize(project.imageSize || '1440x2560');
       setLocalImageCount(project.imageCount || 1);
-      setCustomDurationInput(project.targetDuration === 'custom' ? project.targetDuration : '');
-      setLocalLlmProvider(project.modelProviders?.llm || '');
-      setLocalText2imageProvider(project.modelProviders?.text2image || '');
-      setLocalImage2videoProvider(project.modelProviders?.image2video || '');
+
+      const currentDuration = project.targetDuration || '60s';
+      const isCustomDuration = !DURATION_OPTIONS.some(opt => opt.value === project.targetDuration);
+      setLocalDuration(isCustomDuration?'custom':currentDuration);
+      setCustomDurationInput(isCustomDuration ? currentDuration : '');
+
     }
   }, [isOpen, project]);
 
+  const initSystemModelProviders = async () => {
+    const llm = await getEnabledConfigByType('llm');
+    const text2image = await getEnabledConfigByType('text2image');
+    const image2video = await getEnabledConfigByType('image2video');
+    setLocalLlmProvider(project.modelProviders.llm || llm.id);
+    setLocalText2imageProvider(project.modelProviders?.text2image || text2image.id);
+    setLocalImage2videoProvider(project.modelProviders?.image2video || image2video.id);
+  };
   const loadModelConfigs = async () => {
     try {
       const configs = await getAllModelConfigs();
@@ -93,6 +138,8 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
   const saveSettings = () => {
     const finalDuration = localDuration === 'custom' ? customDurationInput : localDuration;
+    const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
+    const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
     const newModelProviders = {
       ...project.modelProviders,
       llm: localLlmProvider,
@@ -104,7 +151,8 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       title: localTitle,
       targetDuration: finalDuration,
       language: localLanguage,
-      visualStyle: localStyle,
+      visualStyle: finalStyle,
+      genre: finalGenre,
       imageSize: localImageSize,
       imageCount: localImageCount,
       modelProviders: newModelProviders
@@ -120,26 +168,26 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-150 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#0e0e28] border border-slate-800 rounded-lg w-[480px] max-w-[90vw] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between shrink-0">
-          <h3 className="text-sm font-bold text-white tracking-wide flex items-center gap-2">
-            <Settings className="w-4 h-4 text-slate-400" />
+      <div className="bg-slate-600/80 border border-slate-600 w-[480px] max-w-[90vw] h-[85vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col select-text">
+        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
+          <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-slate-400" />
             项目设置
           </h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-full text-slate-500 hover:text-white transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-50 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
+        <div className="p-2 md:p-6 space-y-5 flex-1 overflow-y-auto bg-slate-700">
           {/* Title Input */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">项目标题</label>
@@ -147,9 +195,10 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               type="text"
               value={localTitle}
               onChange={(e) => setLocalTitle(e.target.value)}
-              className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all"
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all"
               placeholder="输入项目名称..."
             />
+            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">id:{project.id}</label>
           </div>
 
           {/* Language and Visual Style in one row */}
@@ -161,7 +210,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 <select
                   value={localLanguage}
                   onChange={(e) => setLocalLanguage(e.target.value)}
-                  className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                 >
                   {LANGUAGE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -173,28 +222,6 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               </div>
             </div>
 
-            {/* Visual Style Selection */}
-            <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">画面风格</label>
-              <div className="relative">
-                <select
-                  value={localStyle}
-                  onChange={(e) => setLocalStyle(e.target.value)}
-                  className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {STYLE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Image Size and Image Count in one row */}
-          <div className="grid grid-cols-2 gap-3">
             {/* Image Size Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">图片尺寸</label>
@@ -202,7 +229,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 <select
                   value={localImageSize}
                   onChange={(e) => setLocalImageSize(e.target.value)}
-                  className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                 >
                   {IMAGE_SIZE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -213,17 +240,22 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Image Count Selection */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Genre Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">出图数量</label>
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">题材类型</label>
               <div className="relative">
                 <select
-                  value={localImageCount}
-                  onChange={(e) => setLocalImageCount(Number(e.target.value))}
-                  className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                  value={localGenre}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setLocalGenre(value);
+                  }}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
                 >
-                  {IMAGE_COUNT_OPTIONS.map(opt => (
+                  {GENRE_OPTIONS.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
@@ -231,7 +263,45 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                   <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
                 </div>
               </div>
-              <p className="text-[10px] text-slate-600">文生图模型一次生成的画面数</p>
+              {localGenre === 'custom' && (
+                <input
+                  type="text"
+                  value={customGenreInput}
+                  onChange={(e) => setCustomGenreInput(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all placeholder:text-slate-600"
+                  placeholder="输入自定义类型..."
+                />
+              )}
+            </div>
+            {/* Visual Style Selection */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">画面风格</label>
+              <div className="relative">
+                <select
+                  value={localStyle}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setLocalStyle(value);
+                  }}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                >
+                  {STYLE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-3 pointer-events-none">
+                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
+                </div>
+              </div>
+              {localStyle === 'custom' && (
+                <input
+                  type="text"
+                  value={customStyleInput}
+                  onChange={(e) => setCustomStyleInput(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all placeholder:text-slate-600"
+                  placeholder="输入自定义画面风格..."
+                />
+              )}
             </div>
           </div>
 
@@ -243,31 +313,51 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 <button
                   key={opt.value}
                   onClick={() => setLocalDuration(opt.value)}
-                  className={`px-2 py-2.5 text-[11px] font-medium rounded-md transition-all text-center border ${
+                  className={`px-2 py-2.5 text-xs font-medium rounded-md transition-all duration-200 transition-all text-center border cursor-pointer ${
                     localDuration === opt.value
-                      ? 'bg-slate-100 text-black border-slate-100 shadow-sm'
-                      : 'bg-transparent border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200'
+                    ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-md shadow-slate-500/25'
+                    : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-300 hover:text-slate-300 hover:bg-slate-800'
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
-            </div>
             {localDuration === 'custom' && (
               <div className="pt-1">
                 <input
                   type="text"
                   value={customDurationInput}
                   onChange={(e) => setCustomDurationInput(e.target.value)}
-                  className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none font-mono placeholder:text-slate-700"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none font-mono placeholder:text-slate-600"
                   placeholder="输入时长 (如: 90s, 3m)"
                 />
               </div>
             )}
+            </div>
           </div>
-
+          {/* Image Size and Image Count in one row */}
+          <div className="grid gap-3">
+            {/* Image Count Selection */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">参考图数</label>
+              <div className="relative">
+                <select
+                  value={localImageCount}
+                  onChange={(e) => setLocalImageCount(Number(e.target.value))}
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                >
+                  {IMAGE_COUNT_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-3 pointer-events-none">
+                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
+                </div>
+              </div>
+            </div>
+          </div>
           {/* Divider */}
-          <div className="border-t border-slate-800 pt-4">
+          <div className="border-t border-slate-600 pt-4">
             <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-4">模型供应商</p>
           </div>
 
@@ -281,12 +371,12 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               <select
                 value={localLlmProvider}
                 onChange={(e) => setLocalLlmProvider(e.target.value)}
-                className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
               >
-                <option value="">默认模型</option>
+                <option value="">系统默认模型</option>
                 {modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => (
                   <option key={config.id} value={config.id}>
-                    {config.provider} - {config.model || config.description}
+                    {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
                   </option>
                 ))}
               </select>
@@ -306,12 +396,12 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               <select
                 value={localText2imageProvider}
                 onChange={(e) => setLocalText2imageProvider(e.target.value)}
-                className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
               >
-                <option value="">默认模型</option>
+                <option value="">系统默认模型</option>
                 {modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => (
                   <option key={config.id} value={config.id}>
-                    {config.provider} - {config.model || config.description}
+                    {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
                   </option>
                 ))}
               </select>
@@ -331,12 +421,12 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               <select
                 value={localImage2videoProvider}
                 onChange={(e) => setLocalImage2videoProvider(e.target.value)}
-                className="w-full bg-[#0c0c2d] border border-slate-800 text-white px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
               >
-                <option value="">默认模型</option>
+                <option value="">系统默认模型</option>
                 {modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => (
                   <option key={config.id} value={config.id}>
-                    {config.provider} - {config.model || config.description}
+                    {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
                   </option>
                 ))}
               </select>
@@ -347,16 +437,16 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-800 flex gap-3 shrink-0">
+        <div className="p-6 border-t border-slate-600 flex gap-3 shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-slate-900 text-slate-400 hover:text-white text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"
+            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
           >
             取消
           </button>
           <button
             onClick={saveSettings}
-            className="flex-1 py-3 bg-white text-black hover:bg-slate-200 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors"
+            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
           >
             保存设置
           </button>

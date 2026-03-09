@@ -1,9 +1,10 @@
 import { AIModelConfig, ProjectState } from '../types';
 
 const DB_NAME = 'CineGenDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_NAME = 'projects';
 const MODEL_STORE_NAME = 'aiModels';
+const MEDIA_HISTORY_STORE_NAME = 'mediaHistory';
 
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -17,6 +18,9 @@ const openDB = (): Promise<IDBDatabase> => {
       }
       if (!db.objectStoreNames.contains(MODEL_STORE_NAME)) {
         db.createObjectStore(MODEL_STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(MEDIA_HISTORY_STORE_NAME)) {
+        db.createObjectStore(MEDIA_HISTORY_STORE_NAME, { keyPath: 'id' });
       }
     };
   });
@@ -128,6 +132,222 @@ export const deleteModelConfig = async (id: string): Promise<void> => {
 };
 
 
+// ==================== Media History Functions ====================
+
+export interface MediaHistoryItem {
+  id: string;
+  projectId: string;
+  character: MediaFile[];
+  scene: MediaFile[];
+  keyframe: MediaFile[];
+  video: MediaFile[];
+  audio: MediaFile[];
+}
+
+export interface MediaFile {
+  id: string;
+  fileUrl: string;
+  fileName: string;
+  timestamp: number;
+  fileType: 'image' | 'video' | 'audio';
+  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition';
+  prompt: string;
+}
+
+// Simple MD5 hash function for file URLs
+export async function md5Hash(str: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex.substring(0, 32); // Use first 32 chars as MD5-like hash
+}
+
+export const addMediaHistory = async (
+  projectId: string,
+  fileUrl: string,
+  fileName: string,
+  fileType: 'image' | 'video' | 'audio',
+  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition',
+  prompt: string
+): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_HISTORY_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(MEDIA_HISTORY_STORE_NAME);
+
+    md5Hash(fileUrl).then(id => {
+      const mediaFile: MediaFile = {
+        id,
+        fileUrl,
+        fileName,
+        timestamp: Date.now(),
+        fileType,
+        mediaType,
+        prompt
+      };
+
+      // Get existing project history
+      const getRequest = store.get(projectId);
+      getRequest.onsuccess = () => {
+        let projectHistory: MediaHistoryItem | null = getRequest.result;
+
+        if (!projectHistory) {
+          // Create new project history
+          projectHistory = {
+            id: projectId,
+            projectId,
+            character: [],
+            scene: [],
+            keyframe: [],
+            video: [],
+            audio: []
+          };
+        }
+
+        // Add media file to appropriate category
+        if (mediaType === 'character') {
+          // Check if file already exists
+          if(fileType=='audio'){
+            const exists = projectHistory.audio.some(f => f.id === id);
+            if (!exists) {
+              projectHistory.audio.push(mediaFile);
+            }
+          }else{
+            const exists = projectHistory.character.some(f => f.id === id);
+            if (!exists) {
+              projectHistory.character.push(mediaFile);
+            }
+          }
+        } else if (mediaType === 'scene') {
+          const exists = projectHistory.scene.some(f => f.id === id);
+          if (!exists) {
+            projectHistory.scene.push(mediaFile);
+          }
+        } else if (mediaType === 'full' || mediaType === 'start' || mediaType === 'end') {
+          const exists = projectHistory.keyframe.some(f => f.id === id);
+          if (!exists) {
+            projectHistory.keyframe.push(mediaFile);
+          }
+        } else {
+          const exists = projectHistory.video.some(f => f.id === id);
+          if (!exists) {
+            projectHistory.video.push(mediaFile);
+          }
+        }
+
+        // Sort category by timestamp descending
+        const sortCategory = (category: MediaFile[]) => {
+          category.sort((a, b) => b.timestamp - a.timestamp);
+        };
+        sortCategory(projectHistory.character);
+        sortCategory(projectHistory.scene);
+        sortCategory(projectHistory.keyframe);
+        sortCategory(projectHistory.video);
+
+        // Save updated history
+        const putRequest = store.put(projectHistory);
+        putRequest.onsuccess = () => resolve();
+        putRequest.onerror = () => reject(putRequest.error);
+      };
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+  });
+};
+
+export const getProjectMediaHistory = async (
+  projectId: string,
+  mediaType?: 'character' | 'scene' | 'keyframe' | 'video'
+): Promise<MediaFile[]> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_HISTORY_STORE_NAME, 'readonly');
+    const store = tx.objectStore(MEDIA_HISTORY_STORE_NAME);
+    const request = store.get(projectId);
+    request.onsuccess = () => {
+      const projectHistory = request.result as MediaHistoryItem | undefined;
+      if (!projectHistory) {
+        resolve([]);
+        return;
+      }
+
+      // Return all media if no type specified, otherwise return specific type
+      if (!mediaType) {
+        const allMedia = [
+          ...projectHistory.character,
+          ...projectHistory.scene,
+          ...projectHistory.keyframe,
+          ...projectHistory.video
+        ];
+        allMedia.sort((a, b) => b.timestamp - a.timestamp);
+        resolve(allMedia);
+      } else {
+        resolve(projectHistory[mediaType] || []);
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const deleteMediaHistory = async (id: string): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_HISTORY_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(MEDIA_HISTORY_STORE_NAME);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const deleteSingleMediaFile = async (
+  projectId: string,
+  mediaFileId: string
+): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_HISTORY_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(MEDIA_HISTORY_STORE_NAME);
+    const getRequest = store.get(projectId);
+    getRequest.onsuccess = () => {
+      const projectHistory = getRequest.result as MediaHistoryItem | undefined;
+      if (!projectHistory) {
+        resolve();
+        return;
+      }
+
+      // 从所有分类中查找并删除指定文件
+      projectHistory.character = projectHistory.character.filter(f => f.id !== mediaFileId);
+      projectHistory.scene = projectHistory.scene.filter(f => f.id !== mediaFileId);
+      projectHistory.keyframe = projectHistory.keyframe.filter(f => f.id !== mediaFileId);
+      projectHistory.video = projectHistory.video.filter(f => f.id !== mediaFileId);
+
+      // 保存更新后的历史记录
+      const putRequest = store.put(projectHistory);
+      putRequest.onsuccess = () => resolve();
+      putRequest.onerror = () => reject(putRequest.error);
+    };
+    getRequest.onerror = () => reject(getRequest.error);
+  });
+};
+
+export const deleteProjectMediaHistory = async (projectId: string): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_HISTORY_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(MEDIA_HISTORY_STORE_NAME);
+    const index = store.index('projectId');
+    const request = index.getAllKeys(projectId);
+    request.onsuccess = () => {
+      const keys = request.result;
+      keys.forEach(key => store.delete(key));
+      tx.oncomplete = () => resolve();
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
 // Initial template for new projects
 export const createNewProjectState = (): ProjectState => {
   const id = 'proj_' + Date.now().toString(36);
@@ -139,9 +359,9 @@ export const createNewProjectState = (): ProjectState => {
     stage: 'script',
     targetDuration: '60s', // Default duration now 60s
     language: '中文', // Default language
-    visualStyle: '写实',
+    visualStyle: '真人写实',
     imageSize: '1440x2560', // Default image size (vertical)
-    imageCount: 1, // Default image count (1 image per generation)
+    imageCount: 0, // Default image count (1 image per generation)
     rawScript: `标题：示例剧本
 
 场景 1
@@ -170,6 +390,7 @@ export const exportProjectToFile = (project: ProjectState): void => {
   const url = URL.createObjectURL(dataBlob);
   const link = document.createElement('a');
   link.href = url;
+  link.target = "_blank";
   link.download = `${project.title}_${project.id}.json`;
   document.body.appendChild(link);
   link.click();

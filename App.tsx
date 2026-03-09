@@ -2,14 +2,15 @@ import { CheckCircle, Save } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ApiKeyModal from './components/ApiKeyModal'; // 新增
 import Dashboard from './components/Dashboard';
+import { DialogProvider } from './components/dialog';
 import Sidebar from './components/Sidebar';
+import SidebarMobile from './components/SidebarMobile';
 import StageAssets from './components/StageAssets';
 import StageDirector from './components/StageDirector';
 import StageExport from './components/StageExport';
+import StageImage from './components/StageImage';
 import StageScript from './components/StageScript';
-
-import { initializeCozeConfig } from './services/cozeService';
-import { setGlobalApiKey } from './services/doubaoService';
+import { initializeCozeConfig } from './services/modelproviders/cozeService';
 import { ModelService } from './services/modelService';
 import { saveProjectToDB } from './services/storageService';
 import { ProjectState } from './types';
@@ -17,13 +18,11 @@ import { ProjectState } from './types';
 function App() {
   const [project, setProject] = useState<ProjectState | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
-  const [cozeWorkflowId, setCozeWorkflowId] = useState('');
-  const [cozeApiKey, setCozeApiKey] = useState('');
-  const [fileUploadServiceUrl, setFileUploadServiceUrl] = useState('');
-  const [fileAccessDomain, setFileAccessDomain] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMd, setIsMd] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Ref to hold debounce timer
   const saveTimeoutRef = useRef<any>(null);
@@ -33,23 +32,7 @@ function App() {
     const storedKey = localStorage.getItem('cinegen_api_key');
     if (storedKey) {
       setApiKey(storedKey);
-      setGlobalApiKey(storedKey);
-    }
-    const storedCozeWorkflowId = localStorage.getItem('cinegen_coze_workflow_id');
-    if (storedCozeWorkflowId) {
-      setCozeWorkflowId(storedCozeWorkflowId);
-    }
-    const storedCozeApiKey = localStorage.getItem('cinegen_coze_api_key');
-    if (storedCozeApiKey) {
-      setCozeApiKey(storedCozeApiKey);
-    }
-    const storedFileUploadServiceUrl = localStorage.getItem('cinegen_file_upload_service_url');
-    if (storedFileUploadServiceUrl) {
-      setFileUploadServiceUrl(storedFileUploadServiceUrl);
-    }
-    const storedFileAccessDomain = localStorage.getItem('cinegen_file_access_domain');
-    if (storedFileAccessDomain) {
-      setFileAccessDomain(storedFileAccessDomain);
+      ModelService.setApiKey('doubao', storedKey);
     }
     // Initialize Coze service config
     initializeCozeConfig();
@@ -57,11 +40,37 @@ function App() {
     ModelService.initialize().catch(err => {
       console.error('ModelService初始化失败:', err);
     });
+
+    // 定义媒体查询
+    let mdQuery = window.matchMedia('(max-width: 768px)');
+    let lgQuery = window.matchMedia('(min-width: 1280px)');
+    // 更新状态的函数
+    const updateBreakpoints = () => {
+
+      // 定义媒体查询
+      mdQuery = window.matchMedia('(max-width: 768px)');
+      lgQuery = window.matchMedia('(min-width: 1280px)');
+      ////console.log('md (mobile):', mdQuery.matches);
+      ////console.log('lg (desktop):', lgQuery.matches);
+      setIsMobile(mdQuery.matches);
+      setIsMd(!lgQuery.matches);
+    };
+
+    // 初始化执行+添加监听
+    updateBreakpoints();
+    mdQuery.addListener(updateBreakpoints);
+    lgQuery.addListener(updateBreakpoints);
+
+    // 卸载移除监听
+    return () => {
+      mdQuery.removeListener(updateBreakpoints);
+      lgQuery.removeListener(updateBreakpoints);
+    };
   }, []);
 
   // Auto-save logic
   useEffect(() => {
-    if (!project) return;
+    if (!project || !project.isParsingScript) return;
 
     setSaveStatus('unsaved');
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -81,39 +90,18 @@ function App() {
     };
   }, [project]);
 
-  const handleSaveKey = (newKey: string, newCozeWorkflowId?: string, newCozeApiKey?: string, newFileUploadServiceUrl?: string, newFileAccessDomain?: string) => {
+  const handleSaveKey = (newKey: string) => {
     if (!newKey.trim()) return;
     setApiKey(newKey);
-    setGlobalApiKey(newKey);
-    localStorage.setItem('cinegen_api_key', newKey);
-    if (newCozeWorkflowId !== undefined) {
-      setCozeWorkflowId(newCozeWorkflowId);
-      localStorage.setItem('cinegen_coze_workflow_id', newCozeWorkflowId);
-    }
-    if (newCozeApiKey !== undefined) {
-      setCozeApiKey(newCozeApiKey);
-      localStorage.setItem('cinegen_coze_api_key', newCozeApiKey);
-    }
-    if (newFileUploadServiceUrl !== undefined) {
-      setFileUploadServiceUrl(newFileUploadServiceUrl);
-      localStorage.setItem('cinegen_file_upload_service_url', newFileUploadServiceUrl);
-    }
-    if (newFileAccessDomain !== undefined) {
-      setFileAccessDomain(newFileAccessDomain);
-      localStorage.setItem('cinegen_file_access_domain', newFileAccessDomain);
-    }
-  };
-
-  const handleClearKey = () => {
-      localStorage.removeItem('cinegen_api_key');
-      setApiKey('');
-      setGlobalApiKey('');
-      setProject(null);
+    ModelService.setApiKey('doubao', newKey);
   };
 
   const updateProject = (updates: Partial<ProjectState>) => {
     if (!project) return;
     setProject(prev => prev ? ({ ...prev, ...updates }) : null);
+    if(project.stage=='script'){
+      ModelService.setCurrentProjectProviders(project.modelProviders);
+    }
   };
 
   const setStage = (stage: 'script' | 'assets' | 'director' | 'export') => {
@@ -126,9 +114,16 @@ function App() {
     setProject(proj);
   };
 
+  const handleClearKey = () => {
+      localStorage.removeItem('cinegen_api_key');
+      setApiKey('');
+      ModelService.setApiKey('doubao', '');
+      setProject(null);
+  };
+
   const handleExitProject = async () => {
     // Force save before exiting
-    if (project) {
+    if (project && project.isParsingScript) {
         await saveProjectToDB(project);
     }
     // 清除项目供应商配置
@@ -140,89 +135,92 @@ function App() {
     if (!project) return null;
     switch (project.stage) {
       case 'script':
-        return <StageScript project={project} updateProject={updateProject} />;
+        return <StageScript project={project} updateProject={updateProject} isMobile={isMobile} />;
       case 'assets':
         return <StageAssets project={project} updateProject={updateProject} />;
       case 'director':
-        return <StageDirector project={project} updateProject={updateProject} />;
+        return <StageDirector project={project} updateProject={updateProject} isMobile={isMobile} />;
       case 'export':
         return <StageExport project={project} updateProject={updateProject} />;
+      case 'images':
+        return <StageImage project={project} />;
       default:
-        return <div className="text-white">未知阶段</div>;
+        return <div className="text-slate-50">未知阶段</div>;
     }
   };
 
   // API Key Entry Screen (Industrial Design)
   if (!apiKey) {
     return (
-      <div className="h-screen bg-[#0e1229] flex items-center justify-center p-8 relative overflow-hidden">
-        {/* Background Accents */}
-        <div className="absolute top-0 right-0 p-64 bg-indigo-900/5 blur-[150px] rounded-full pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 p-48 bg-slate-900/10 blur-[120px] rounded-full pointer-events-none"></div>
+      <DialogProvider>
+        <div className="h-screen bg-slate-900 flex items-center justify-center p-8 relative overflow-hidden">
+          {/* Background Accents */}
+          <div className="absolute top-0 right-0 p-64 bg-slate-900/5 blur-[150px] rounded-full pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 p-48 bg-slate-900/10 blur-[120px] rounded-full pointer-events-none"></div>
 
-        <ApiKeyModal
-          isOpen={true}
-          onClose={() => {}}
-          onSave={handleSaveKey}
-          currentKey={''}
-          cozeWorkflowId={cozeWorkflowId}
-          cozeApiKey={cozeApiKey}
-          currentFileUploadServiceUrl={fileUploadServiceUrl}
-          currentFileAccessDomain={fileAccessDomain}
-          providerName="火山引擎 / 豆包"
-          providerDescription="本应用需要火山引擎的 API 访问权限。请确保您的 API Key 已开通相应的服务权限。"
-          documentationUrl="https://www.volcengine.com/docs/82379"
-        />
-      </div>
+          <ApiKeyModal
+            isOpen={true}
+            onClose={() => {}}
+            onSave={handleSaveKey}
+          />
+        </div>
+      </DialogProvider>
     );
   }
 
   // Dashboard View
   if (!project) {
     return (
-       <>
-         <button onClick={handleClearKey} className="fixed top-4 right-4 z-50 text-[12px] text-slate-600 hover:text-red-500 transition-colors uppercase font-mono tracking-widest">
-            Sign Out
-         </button>
-         <Dashboard onOpenProject={handleOpenProject} />
-       </>
+      <DialogProvider>
+        <Dashboard onOpenProject={handleOpenProject} isMobile={isMobile} onClearKey={handleClearKey} />
+      </DialogProvider>
     );
   }
 
   // Workspace View
   return (
-    <div className="flex h-screen bg-[#0e1229] font-sans text-gray-100 selection:bg-indigo-500/30">
-      <Sidebar
-        currentStage={project.stage}
-        setStage={setStage}
-        onExit={handleExitProject}
-        onOpenSettings={() => setShowSettings(true)}
-        onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
-        collapsed={sidebarCollapsed}
-        projectName={project.title}
-        project={project}
-        updateProject={updateProject}
-      />
+    <DialogProvider>
+      <div className={`${isMobile?'':'flex'} h-screen overflow-hidden bg-slate-600 min-h-screen font-sans text-slate-50`} style={{paddingTop: 'env(safe-area-inset-top)'}}>
+        {isMobile ? (
+          <>
+            <SidebarMobile
+              currentStage={project.stage}
+              setStage={setStage}
+              onExit={handleExitProject}
+              onOpenSettings={() => setShowSettings(true)}
+              projectName={project.title}
+              project={project}
+              updateProject={updateProject}
+            />
+          </>
+        ) : (
+          <>
+            <Sidebar
+              currentStage={project.stage}
+              setStage={setStage}
+              onExit={handleExitProject}
+              onOpenSettings={() => setShowSettings(true)}
+              onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+              collapsed={isMd||sidebarCollapsed}
+              projectName={project.title}
+              project={project}
+              updateProject={updateProject}
+            />
+          </>
+        )}
 
-      <main className={`transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'ml-20' : 'ml-72'} flex-1 h-screen overflow-hidden relative`}>
+      <main className={`transition-allduration-300 ease-in-out ${isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-20' : 'xl:ml-72 ml-20')} flex-1 h-screen overflow-hidden relative`}
+      style={ isMobile ? { paddingBottom: 'calc(112px + env(safe-area-inset-top))'} : {}}>
         {renderStage()}
         {showSettings && (
+          <>
   <ApiKeyModal
             isOpen={showSettings}
             onClose={() => setShowSettings(false)}
-    onSave={handleSaveKey}
-    currentKey={apiKey}
-    cozeWorkflowId={cozeWorkflowId}
-    cozeApiKey={cozeApiKey}
-    currentFileUploadServiceUrl={fileUploadServiceUrl}
-    currentFileAccessDomain={fileAccessDomain}
-    providerName="火山引擎 / 豆包"
-    providerDescription="本应用需要火山引擎的 API 访问权限。请确保您的 API Key 已开通相应的服务权限。"
-    documentationUrl="https://www.volcengine.com/docs/82379"
+            onSave={handleSaveKey}
           />
-        )}
         {/* Save Status Indicator */}
-        <div className="relative top-4 right-6 pointer-events-none opacity-50 flex items-center gap-2 text-xs font-mono text-slate-400 bg-black/50 px-2 py-1 rounded-full backdrop-blur-sm z-50">
+        <div className="relative top-4 right-6 pointer-events-none opacity-50 flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-700/50 px-2 py-1 rounded-full backdrop-blur-sm z-50">
            {saveStatus === 'saving' ? (
              <>
                <Save className="w-3 h-3 animate-pulse" />
@@ -235,12 +233,12 @@ function App() {
              </>
            )}
         </div>
+        </>
+        )}
       </main>
       
-      <div className="lg:hidden fixed inset-0 bg-black z-[100] flex items-center justify-center p-8 text-center">
-        <p className="text-slate-500">为了获得最佳体验，请使用桌面浏览器访问。</p>
       </div>
-    </div>
+    </DialogProvider>
   );
 }
 

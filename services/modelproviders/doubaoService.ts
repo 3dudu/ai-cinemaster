@@ -1,13 +1,14 @@
-// services/doubaoService.ts
+// services/modelproviders/doubaoService.ts
 
-import { Character, Scene, ScriptData, Shot } from "../types";
-import { getEnabledConfigByType } from "./modelConfigService";
-import { PROMPT_TEMPLATES } from "./promptTemplates";
+import { ScriptData, Shot } from "../../types";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
+import { getEnabledConfigByType } from "../modelConfigService";
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // 火山引擎配置
 const DOUBAO_CONFIG = {
   // 文本生成模型（替代 gemini-2.5-flash）
-  TEXT_MODEL: "doubao-1-5-pro-32k-250115", // 或 "doubao-pro-128k"
+  TEXT_MODEL: "doubao-seed-1-8-251228", // 或 "doubao-pro-128k"
 
   // 图片生成模型（替代 gemini-2.5-flash-image）
   IMAGE_MODEL: "doubao-seedream-4-5-251128", // 火山引擎的图片生成模型
@@ -15,7 +16,7 @@ const DOUBAO_CONFIG = {
   // 视频生成模型（替代 veo-3.1-fast-generate-preview）
   //VIDEO_MODEL: "doubao-seedance-1-5-pro-251215", // 火山引擎的视频生成模型
   //VIDEO_MODEL: "doubao-seedance-1-0-pro-250528", // 火山引擎的视频生成模型
-  VIDEO_MODEL: "doubao-seedance-1-0-lite-i2v-250428", // 火山引擎的视频生成模型
+  VIDEO_MODEL: "doubao-seedance-1-0-pro-250528", // 火山引擎的视频生成模型
 
   // API 端点
   API_ENDPOINT: "https://ark.cn-beijing.volces.com/api/v3",
@@ -67,21 +68,21 @@ export const initializeDoubaoConfig = async () => {
     const llmConfig = await getEnabledConfigByType('llm');
     if (llmConfig && llmConfig.provider === 'doubao' && llmConfig.model) {
       runtimeTextModel = llmConfig.model;
-      console.log('Doubao LLM 模型已加载:', runtimeTextModel);
+      //console.log('Doubao LLM 模型已加载:', runtimeTextModel);
     }
 
     // 加载图片生成配置
     const imageConfig = await getEnabledConfigByType('text2image');
     if (imageConfig && imageConfig.provider === 'doubao' && imageConfig.model) {
       runtimeImageModel = imageConfig.model;
-      console.log('Doubao Image 模型已加载:', runtimeImageModel);
+      //console.log('Doubao Image 模型已加载:', runtimeImageModel);
     }
 
     // 加载视频生成配置
     const videoConfig = await getEnabledConfigByType('image2video');
     if (videoConfig && videoConfig.provider === 'doubao' && videoConfig.model) {
       runtimeVideoModel = videoConfig.model;
-      console.log('Doubao Video 模型已加载:', runtimeVideoModel);
+      //console.log('Doubao Video 模型已加载:', runtimeVideoModel);
     }
   } catch (error) {
     console.error('加载 Doubao 配置失败:', error);
@@ -90,79 +91,30 @@ export const initializeDoubaoConfig = async () => {
 
 // Helper for authentication headers
 const getAuthHeaders = () => {
+  if (!runtimeApiKey || runtimeApiKey.trim() === "") {
+    throw new Error("API Key 未配置或为空，请先设置有效的 API Key");
+  }
+
   return {
     "Authorization": `Bearer ${runtimeApiKey}`,
     "Content-Type": "application/json",
   };
 };
 
-// Helper for retry logic
-const retryOperation = async <T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 2000
-): Promise<T> => {
-  let lastError: Error | null = null;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (e: any) {
-      lastError = e;
-      // Check for quota/rate limit errors (429)
-      if (
-        e.status === 429 ||
-        e.code === 429 ||
-        e.message?.includes("429") ||
-        e.message?.includes("quota") ||
-        e.message?.includes("RATE_LIMIT")
-      ) {
-        const delay = baseDelay * Math.pow(2, i);
-        console.warn(
-          `Hit rate limit, retrying in ${delay}ms... (Attempt ${
-            i + 1
-          }/${maxRetries})`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
-      }
-      throw e;
-    }
-  }
-  throw lastError;
-};
-
 // Helper to make HTTP requests to Volcengine API
 const fetchWithRetry = async (
   endpoint: string,
   options: RequestInit,
-  retries: number = 3
+  retries: number = 1
 ): Promise<any> => {
-  return retryOperation(async () => {
-    const response = await fetch(endpoint, {
-      ...options,
-      headers: {
-        ...getAuthHeaders(),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `API Error (${response.status}): ${error.error?.message || error.message}`
-      );
-    }
-
-    return response.json();
-  }, retries);
-};
-
-// Helper to clean JSON string from Markdown fences
-const cleanJsonString = (str: string): string => {
-  if (!str) return "{}";
-  // Remove ```json ... ``` or ``` ... ```
-  let cleaned = str.replace(/```json\n?/g, "").replace(/```/g, "");
-  return cleaned.trim();
+  const requestOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options.headers,
+    },
+  };
+  return apiFetchWithRetry(endpoint, requestOptions, retries, true);
 };
 
 /**
@@ -170,34 +122,26 @@ const cleanJsonString = (str: string): string => {
  * Uses Doubao for fast, structured text generation.
  */
 export const parseScriptToData = async (
-  rawText: string,
+  prompt: string,
   language: string = "中文"
 ): Promise<ScriptData> => {
-  const endpoint = `${runtimeApiUrl}/chat/completions`;
-
-  const prompt = PROMPT_TEMPLATES.PARSE_SCRIPT(rawText, language);
-
-  const response = await retryOperation(async () => {
-    return await fetchWithRetry(endpoint, {
-      method: "POST",
-      body: JSON.stringify({
-        model: runtimeTextModel,
-        messages: [
-          {
-            role: "system",
-            content:
-              PROMPT_TEMPLATES.SYSTEM_SCRIPT_ANALYZER,
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 8192,
-        response_format: { type: "json_object" }, // 结构化输出
-      }),
-    });
+    const endpoint = `${runtimeApiUrl}/chat/completions`;
+    const response = await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify({
+      model: runtimeTextModel,
+      messages: [
+        {
+          role: "system",
+          content: renderTemplate('SYSTEM_SCRIPT_ANALYZER'),
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      ...MODEL_GENERATION_CONFIG.PARSE_SCRIPT,
+    }),
   });
 
   const content = response.choices?.[0]?.message?.content || "{}";
@@ -205,7 +149,7 @@ export const parseScriptToData = async (
   let parsed: any = {};
   try {
     const text = cleanJsonString(content);
-    console.log("Parsed JSON:", text);
+    //console.log("Parsed JSON:", text);
     parsed = JSON.parse(text);
   } catch (e) {
     console.error("Failed to parse script data JSON:", e);
@@ -232,7 +176,7 @@ export const parseScriptToData = async (
 
   return {
     title: parsed.title || "未命名剧本",
-    genre: parsed.genre || "剧情片",
+    genre: parsed.genre || "",
     logline: parsed.logline || "",
     language: language,
     characters,
@@ -248,29 +192,9 @@ export const parseScriptToData = async (
  * @param index - 场景索引
  */
 export const generateShotListForScene = async (
-  scriptData: ScriptData,
   scene: any,
-  index: number
+  prompt: string
 ): Promise<Shot[]> => {
-  const lang = scriptData.language || "中文";
-
-  const paragraphs = scriptData.storyParagraphs
-    .filter((p) => String(p.sceneRefId) === String(scene.id))
-    .map((p) => p.text)
-    .join("\n");
-
-  if (!paragraphs.trim()) return [];
-
-  const prompt = PROMPT_TEMPLATES.GENERATE_SHOTS(
-    index,
-    scene,
-    paragraphs,
-    scriptData.genre,
-    scriptData.targetDuration || "Standard",
-    scriptData.characters,
-    lang
-  );
-
   try {
     const endpoint = `${runtimeApiUrl}/chat/completions`;
     const response = await fetchWithRetry(endpoint, {
@@ -280,17 +204,14 @@ export const generateShotListForScene = async (
         messages: [
           {
             role: "system",
-            content:
-              PROMPT_TEMPLATES.SYSTEM_PHOTOGRAPHER,
+            content: renderTemplate('SYSTEM_PHOTOGRAPHER'),
           },
           {
             role: "user",
             content: prompt,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 8192,
-        response_format: { type: "json_object" },
+        ...MODEL_GENERATION_CONFIG.GENERATE_SHOTS,
       }),
     });
 
@@ -308,41 +229,6 @@ export const generateShotListForScene = async (
   }
 };
 
-export const generateShotList = async (
-  scriptData: ScriptData
-): Promise<Shot[]> => {
-  if (!scriptData.scenes || scriptData.scenes.length === 0) {
-    return [];
-  }
-
-  // Process scenes sequentially
-  const BATCH_SIZE = 1;
-  const allShots: Shot[] = [];
-
-  for (let i = 0; i < scriptData.scenes.length; i += BATCH_SIZE) {
-    if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const batch = scriptData.scenes.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map((scene, idx) => generateShotListForScene(scriptData, scene, i + idx))
-    );
-    batchResults.forEach((shots) => allShots.push(...shots));
-  }
-
-  // Re-index shots to be sequential globally
-  return allShots.map((s, idx) => ({
-    ...s,
-    id: `shot-${idx + 1}`,
-    keyframes: Array.isArray(s.keyframes)
-      ? s.keyframes.map((k: any) => ({
-          ...k,
-          id: `kf-${idx + 1}-${k.type}`,
-          status: "pending",
-        }))
-      : [],
-  }));
-};
-
 /**
  * Agent 0: Script Generation from simple prompt
  * 根据简单提示词生成完整剧本
@@ -355,24 +241,21 @@ export const generateScript = async (
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
 
-  const generationPrompt = PROMPT_TEMPLATES.GENERATE_SCRIPT(prompt, targetDuration, genre, language);
-
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify({
-      model: DOUBAO_CONFIG.TEXT_MODEL,
+      model: runtimeTextModel,
       messages: [
         {
           role: "system",
-          content: PROMPT_TEMPLATES.SYSTEM_SCREENWRITER
+          content: renderTemplate('SYSTEM_SCREENWRITER'),
         },
         {
           role: "user",
-          content: generationPrompt,
+          content: prompt,
         },
       ],
-      temperature: 0.8,
-      max_tokens: 8192,
+      ...MODEL_GENERATION_CONFIG.GENERATE_SCRIPT,
     }),
   });
 
@@ -384,25 +267,48 @@ export const generateScript = async (
  * Agent 3: Visual Design (Prompt Generation)
  */
 export const generateVisualPrompts = async (
-  type: "character" | "scene",
-  data: Character | Scene,
-  genre: string
+  prompt: string
 ): Promise<string> => {
-  const prompt = PROMPT_TEMPLATES.GENERATE_VISUAL_PROMPT(type, data, genre);
-
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify({
-      model: DOUBAO_CONFIG.TEXT_MODEL,
+      model: runtimeTextModel,
       messages: [
+        {
+            role: "system",
+            content: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+        },
         {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.8,
-      max_tokens: 500,
+      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+    }),
+  });
+
+  return response.choices?.[0]?.message?.content || "";
+};
+export const generateVideoPrompts = async (
+  prompt: string
+): Promise<string> => {
+  const endpoint = `${runtimeApiUrl}/chat/completions`;
+  const response = await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify({
+      model: runtimeTextModel,
+      messages: [
+        {
+            role: "system",
+            content: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
     }),
   });
 
@@ -417,7 +323,7 @@ export const generateImage = async (
   prompt: string,
   referenceImages: string[] = [],
   imageType: string = "character",
-  localStyle: string = "写实",
+  localStyle: string = "真人写实",
   imageSize: string = "2560x1440",
   imageCount: number = 1
 ): Promise<string> => {
@@ -453,18 +359,25 @@ export const generateImage = async (
   });
 
   // 提取图片 URL 或 base64 数据
-  if(response.data){
-    if(response.data.length>1){
-      let imagesGroup = [];
-      for(let i=0;i<response.data.length;i++){
-        imagesGroup.push(response.data[i].url)
-      }
-      return joinImage(imagesGroup,imageSize,imageCount)
-    }else{
-      return response.data[0].url;
+  if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+    throw new Error("图片生成失败: 无效的响应数据");
+  }
+
+  if (response.data.length > 1) {
+    const imagesGroup = response.data
+      .filter((item: any) => item && item.url)
+      .map((item: any) => item.url);
+    
+    if (imagesGroup.length === 0) {
+      throw new Error("图片生成失败: 没有有效的图片URL");
     }
-  }else{
-    throw new Error("图片生成失败");
+    
+    return joinImage(imagesGroup, imageSize, imageCount);
+  } else {
+    if (!response.data[0] || !response.data[0].url) {
+      throw new Error("图片生成失败: 缺少图片URL");
+    }
+    return response.data[0].url;
   }
 };
 
@@ -480,12 +393,22 @@ export const joinImage = async (
   imageCount: number = 1
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/images/generations`;
-  if(imageCount==1){
-    return referenceImages[0];
+  
+  // 验证输入参数
+  if (!Array.isArray(referenceImages) || referenceImages.length === 0) {
+    throw new Error("参考图片列表不能为空");
+  }
+  
+  if (imageCount === 1) {
+    const url = referenceImages[0];
+    if (!url || typeof url !== 'string') {
+      throw new Error("无效的图片URL");
+    }
+    return url;
   }
   const requestBody: any = {
     model: runtimeImageModel,
-    prompt: PROMPT_TEMPLATES.JOIN_IMAGES(imageCount, imageSize),
+    prompt: renderTemplate('JOIN_IMAGES', imageCount, imageSize),
     size: imageSize,
     watermark: false
   };
@@ -520,13 +443,20 @@ export const generateVideo = async (
   startImageBase64?: string,
   endImageBase64?: string,
   duration: number = 5,
-  full_frame: boolean = false
+  full_frame: boolean = false,
+  generate_audio: boolean = false
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks`;
 
+  let p_duration = duration;
+  if(duration<4){
+    p_duration = 4;
+  }else if(duration>12){
+    p_duration = 12;
+  }
   const requestBody: any = {
     model: runtimeVideoModel,
-    duration: duration>6?10:5,
+    duration: p_duration,
     watermark: false,
     content: [{
       type: "text",
@@ -534,9 +464,7 @@ export const generateVideo = async (
     }]
   };
 
-  if(runtimeVideoModel.indexOf("1-5")>0){
-    requestBody.generate_audio = true;
-  }
+  requestBody.generate_audio = generate_audio;
   // 处理起始图片
   if (startImageBase64) {
     requestBody.content.push({

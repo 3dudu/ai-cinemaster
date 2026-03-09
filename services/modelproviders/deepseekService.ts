@@ -1,8 +1,9 @@
-// services/deepseekService.ts
+// services/modelproviders/deepseekService.ts
 
-import { Character, Scene, ScriptData, Shot } from "../types";
-import { getEnabledConfigByType } from "./modelConfigService";
-import { PROMPT_TEMPLATES } from "./promptTemplates";
+import { ScriptData, Shot } from "../../types";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
+import { getEnabledConfigByType } from "../modelConfigService";
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // DeepSeek 配置
 const DEEPSEEK_CONFIG = {
@@ -38,9 +39,9 @@ export const initializeDeepseekConfig = async () => {
       runtimeApiUrl = enabledConfig.apiUrl || DEEPSEEK_CONFIG.API_ENDPOINT;
       if (enabledConfig.model) {
         runtimeTextModel = enabledConfig.model;
-        console.log('DeepSeek 模型已加载:', runtimeTextModel);
+        //console.log('DeepSeek 模型已加载:', runtimeTextModel);
       }
-      console.log('DeepSeek 配置已加载');
+      //console.log('DeepSeek 配置已加载');
     }
   } catch (error) {
     console.error('加载 DeepSeek 配置失败:', error);
@@ -55,73 +56,20 @@ const getAuthHeaders = () => {
   };
 };
 
-// Helper for retry logic
-const retryOperation = async <T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 2000
-): Promise<T> => {
-  let lastError: Error | null = null;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (e: any) {
-      lastError = e;
-      // Check for quota/rate limit errors (429)
-      if (
-        e.status === 429 ||
-        e.code === 429 ||
-        e.message?.includes("429") ||
-        e.message?.includes("quota") ||
-        e.message?.includes("RATE_LIMIT")
-      ) {
-        const delay = baseDelay * Math.pow(2, i);
-        console.warn(
-          `Hit rate limit, retrying in ${delay}ms... (Attempt ${
-            i + 1
-          }/${maxRetries})`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
-      }
-      throw e;
-    }
-  }
-  throw lastError || new Error("Operation failed");
-};
-
 // Helper to make HTTP requests to DeepSeek API
 const fetchWithRetry = async (
   endpoint: string,
   options: RequestInit,
-  retries: number = 3
+  retries: number = 1
 ): Promise<any> => {
-  return retryOperation(async () => {
-    const response = await fetch(endpoint, {
-      ...options,
-      headers: {
-        ...getAuthHeaders(),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `API Error (${response.status}): ${error.error?.message || error.message}`
-      );
-    }
-
-    return response.json();
-  }, retries);
-};
-
-// Helper to clean JSON string from Markdown fences
-const cleanJsonString = (str: string): string => {
-  if (!str) return "{}";
-  // Remove ```json ... ``` or ``` ... ```
-  let cleaned = str.replace(/```json\n?/g, "").replace(/```/g, "");
-  return cleaned.trim();
+  const requestOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options.headers,
+    },
+  };
+  return apiFetchWithRetry(endpoint, requestOptions, retries, true);
 };
 
 /**
@@ -129,33 +77,26 @@ const cleanJsonString = (str: string): string => {
  * 分析剧本并结构化数据
  */
 export const parseScriptToData = async (
-  rawText: string,
+  prompt: string,
   language: string = "中文"
 ): Promise<ScriptData> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
-
-  const prompt = PROMPT_TEMPLATES.PARSE_SCRIPT(rawText, language);
-
-  const response = await retryOperation(async () => {
-    return await fetchWithRetry(endpoint, {
-      method: "POST",
-      body: JSON.stringify({
-        model: runtimeTextModel,
-        messages: [
-          {
-            role: "system",
-            content: PROMPT_TEMPLATES.SYSTEM_SCRIPT_ANALYZER,
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 8192,
-        response_format: { type: "json_object" },
-      }),
-    });
+  const response = await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify({
+      model: runtimeTextModel,
+      messages: [
+        {
+          role: "system",
+          content: renderTemplate('SYSTEM_SCRIPT_ANALYZER'),
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      ...MODEL_GENERATION_CONFIG.PARSE_SCRIPT,
+    }),
   });
 
   const content = response.choices?.[0]?.message?.content || "{}";
@@ -163,7 +104,7 @@ export const parseScriptToData = async (
   let parsed: any = {};
   try {
     const text = cleanJsonString(content);
-    console.log("Parsed JSON:", text);
+    //console.log("Parsed JSON:", text);
     parsed = JSON.parse(text);
   } catch (e) {
     console.error("Failed to parse script data JSON:", e);
@@ -190,7 +131,7 @@ export const parseScriptToData = async (
 
   return {
     title: parsed.title || "未命名剧本",
-    genre: parsed.genre || "剧情片",
+    genre: parsed.genre || "",
     logline: parsed.logline || "",
     language: language,
     characters,
@@ -207,28 +148,9 @@ export const parseScriptToData = async (
  * DeepSeek: 为单个场景生成镜头清单
  */
 export const generateShotListForScene = async (
-  scriptData: ScriptData,
   scene: any,
-  index: number
+  prompt: string
 ): Promise<Shot[]> => {
-  const lang = scriptData.language || "中文";
-
-  const paragraphs = scriptData.storyParagraphs
-    .filter((p) => String(p.sceneRefId) === String(scene.id))
-    .map((p) => p.text)
-    .join("\n");
-
-  if (!paragraphs.trim()) return [];
-
-  const prompt = PROMPT_TEMPLATES.GENERATE_SHOTS(
-    index,
-    scene,
-    paragraphs,
-    scriptData.genre,
-    scriptData.targetDuration || "Standard",
-    scriptData.characters,
-    lang
-  );
 
   try {
     const endpoint = `${runtimeApiUrl}/chat/completions`;
@@ -239,16 +161,14 @@ export const generateShotListForScene = async (
         messages: [
           {
             role: "system",
-            content: PROMPT_TEMPLATES.SYSTEM_PHOTOGRAPHER,
+            content: renderTemplate('SYSTEM_PHOTOGRAPHER'),
           },
           {
             role: "user",
             content: prompt,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 8192,
-        response_format: { type: "json_object" },
+        ...MODEL_GENERATION_CONFIG.GENERATE_SHOTS,
       }),
     });
 
@@ -266,41 +186,6 @@ export const generateShotListForScene = async (
   }
 };
 
-export const generateShotList = async (
-  scriptData: ScriptData
-): Promise<Shot[]> => {
-  if (!scriptData.scenes || scriptData.scenes.length === 0) {
-    return [];
-  }
-
-  // Process scenes sequentially
-  const BATCH_SIZE = 1;
-  const allShots: Shot[] = [];
-
-  for (let i = 0; i < scriptData.scenes.length; i += BATCH_SIZE) {
-    if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const batch = scriptData.scenes.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map((scene, idx) => generateShotListForScene(scriptData, scene, i + idx))
-    );
-    batchResults.forEach((shots) => allShots.push(...shots));
-  }
-
-  // Re-index shots to be sequential globally
-  return allShots.map((s, idx) => ({
-    ...s,
-    id: `shot-${idx + 1}`,
-    keyframes: Array.isArray(s.keyframes)
-      ? s.keyframes.map((k: any) => ({
-          ...k,
-          id: `kf-${idx + 1}-${k.type}`,
-          status: "pending",
-        }))
-      : [],
-  }));
-};
-
 /**
  * DeepSeek: Script Generation from simple prompt
  * 根据简单提示词生成完整剧本
@@ -313,8 +198,6 @@ export const generateScript = async (
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
 
-  const generationPrompt = PROMPT_TEMPLATES.GENERATE_SCRIPT(prompt, targetDuration, genre, language);
-
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify({
@@ -322,15 +205,14 @@ export const generateScript = async (
       messages: [
         {
           role: "system",
-          content: PROMPT_TEMPLATES.SYSTEM_SCREENWRITER,
+          content: renderTemplate('SYSTEM_SCREENWRITER'),
         },
         {
           role: "user",
-          content: generationPrompt,
+          content: prompt,
         },
       ],
-      temperature: 0.8,
-      max_tokens: 8192,
+      ...MODEL_GENERATION_CONFIG.GENERATE_SCRIPT,
     }),
   });
 
@@ -343,12 +225,8 @@ export const generateScript = async (
  * 生成视觉提示词
  */
 export const generateVisualPrompts = async (
-  type: "character" | "scene",
-  data: Character | Scene,
-  genre: string
+  prompt: string,
 ): Promise<string> => {
-  const prompt = PROMPT_TEMPLATES.GENERATE_VISUAL_PROMPT(type, data, genre);
-
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
@@ -356,12 +234,44 @@ export const generateVisualPrompts = async (
       model: runtimeTextModel,
       messages: [
         {
+            role: "system",
+            content: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+        },
+        {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.8,
-      max_tokens: 500,
+      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+    }),
+  });
+
+  return response.choices?.[0]?.message?.content || "";
+};
+
+/**
+ * DeepSeek: Visual Design (Prompt Generation)
+ * 生成视觉提示词
+ */
+export const generateVideoPrompts = async (
+  prompt: string,
+): Promise<string> => {
+  const endpoint = `${runtimeApiUrl}/chat/completions`;
+  const response = await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify({
+      model: runtimeTextModel,
+      messages: [
+        {
+            role: "system",
+            content: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
     }),
   });
 

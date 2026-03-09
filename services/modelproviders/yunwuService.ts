@@ -1,7 +1,8 @@
-// services/yunwuService.ts
+// services/modelproviders/yunwuService.ts
 
-import { Character, Scene, ScriptData, Shot } from "../types";
-import { PROMPT_TEMPLATES } from "./promptTemplates";
+import { ScriptData, Shot } from "../../types";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // 云雾API配置
 const YUNWU_CONFIG = {
@@ -57,73 +58,20 @@ const getAuthHeaders = () => {
   };
 };
 
-// Helper for retry logic
-const retryOperation = async <T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 2000
-): Promise<T> => {
-  let lastError: Error | null = null;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (e: any) {
-      lastError = e;
-      // Check for quota/rate limit errors (429)
-      if (
-        e.status === 429 ||
-        e.code === 429 ||
-        e.message?.includes("429") ||
-        e.message?.includes("quota") ||
-        e.message?.includes("RATE_LIMIT")
-      ) {
-        const delay = baseDelay * Math.pow(2, i);
-        console.warn(
-          `Hit rate limit, retrying in ${delay}ms... (Attempt ${
-            i + 1
-          }/${maxRetries})`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
-      }
-      throw e;
-    }
-  }
-  throw lastError;
-};
-
 // Helper to make HTTP requests to Yunwu API
 const fetchWithRetry = async (
   endpoint: string,
   options: RequestInit,
-  retries: number = 3
+  retries: number = 1
 ): Promise<any> => {
-  return retryOperation(async () => {
-    const response = await fetch(endpoint, {
-      ...options,
-      headers: {
-        ...getAuthHeaders(),
-        ...options.headers,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `API Error (${response.status}): ${error.error?.message || error.message || response.statusText}`
-      );
-    }
-
-    return response.json();
-  }, retries);
-};
-
-// Helper to clean JSON string from Markdown fences
-const cleanJsonString = (str: string): string => {
-  if (!str) return "{}";
-  // Remove ```json ... ``` or ``` ... ```
-  let cleaned = str.replace(/```json\n?/g, "").replace(/```/g, "");
-  return cleaned.trim();
+  const requestOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options.headers,
+    },
+  };
+  return apiFetchWithRetry(endpoint, requestOptions, retries, true);
 };
 
 /**
@@ -135,14 +83,11 @@ export const parseScriptToData = async (
   language: string = "中文"
 ): Promise<ScriptData> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
-
-  const prompt = PROMPT_TEMPLATES.PARSE_SCRIPT(rawText, language);
-
   const requestBody = {
     systemInstruction: {
       parts: [
         {
-          text: PROMPT_TEMPLATES.SYSTEM_SCRIPT_ANALYZER,
+          text: renderTemplate('SYSTEM_SCRIPT_ANALYZER'),
         },
       ],
     },
@@ -157,16 +102,13 @@ export const parseScriptToData = async (
       },
     ],
     generationConfig: {
-      temperature: 0.7,
-      topP: 0.95,
+      ...MODEL_GENERATION_CONFIG.PARSE_SCRIPT,
     },
   };
 
-  const response = await retryOperation(async () => {
-    return await fetchWithRetry(endpoint, {
-      method: "POST",
-      body: JSON.stringify(requestBody),
-    });
+  const response = await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
   });
 
   // 从云雾API的响应格式中提取内容
@@ -176,7 +118,7 @@ export const parseScriptToData = async (
   let parsed: any = {};
   try {
     const text = cleanJsonString(content);
-    console.log("Parsed JSON:", text);
+    //console.log("Parsed JSON:", text);
     parsed = JSON.parse(text);
   } catch (e) {
     console.error("Failed to parse script data JSON:", e);
@@ -203,7 +145,7 @@ export const parseScriptToData = async (
 
   return {
     title: parsed.title || "未命名剧本",
-    genre: parsed.genre || "剧情片",
+    genre: parsed.genre || "",
     logline: parsed.logline || "",
     language: language,
     characters,
@@ -222,7 +164,8 @@ export const generateVideo = async (
   startImageBase64?: string,
   endImageBase64?: string,
   duration: number = 5,
-  full_frame: boolean = false
+  full_frame: boolean = false,
+  imageSize: string = '720x1280',
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1/video/create`;
 
@@ -233,19 +176,24 @@ export const generateVideo = async (
     images: [],
   };
 
+  // 根据 imageSize 判断横竖屏
+  const [width, height] = imageSize.split('x').map(Number);
+  const isLandscape = width > height;
+  const size = isLandscape ? '1280x720' : '720x1280';
+
   if(runtimeVideoModel.indexOf("veo") !== -1) {
     requestBody.enhance_prompt=true;
     requestBody.enable_upsample=true;
-    requestBody.aspect_ratio="16:9";
+    requestBody.aspect_ratio=isLandscape?"16:9":"9:16";
   }
   if(runtimeVideoModel.indexOf("sora") !== -1) {
     requestBody.size = "small";
-    requestBody.orientation="portrait";
+    requestBody.orientation=isLandscape?"portrait":"landscape";
     requestBody.watermark=false;
   }
   if(runtimeVideoModel.indexOf("grok") !== -1) {
     requestBody.size = "720P";
-    requestBody.aspect_ratio="3:2";
+    requestBody.aspect_ratio=isLandscape?"3:2":"2:3";
   }
 
   // 处理起始图片
@@ -258,11 +206,9 @@ export const generateVideo = async (
     requestBody.images.push(endImageBase64);
   }
 
-  const response = await retryOperation(async () => {
-    return await fetchWithRetry(endpoint, {
-      method: "POST",
-      body: JSON.stringify(requestBody),
-    });
+  const response = await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
   });
 
   // 获取任务ID
@@ -271,7 +217,7 @@ export const generateVideo = async (
     throw new Error("视频生成失败 (No task ID returned)");
   }
 
-  console.log(`视频任务已创建: ${taskId}, 状态: ${response.status}`);
+  //console.log(`视频任务已创建: ${taskId}, 状态: ${response.status}`);
 
   // 轮询任务状态直到完成
   const videoUrl = await pollVideoTask(taskId);
@@ -285,27 +231,25 @@ export const generateVideo = async (
  */
 const pollVideoTask = async (taskId: string): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1/video/query`;
-  const maxAttempts = 240; // 最多轮询10分钟（每5秒一次）
-  const pollInterval = 5000; // 5秒
+  const maxAttempts = 120; // 最多轮询10分钟（每5秒一次）
+  const pollInterval = 10000; // 5秒
 
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((resolve) => setTimeout(resolve, pollInterval));
 
-    const response = await retryOperation(async () => {
-      return await fetchWithRetry(`${endpoint}?id=${taskId}`, {
-        method: "GET",
-      });
+    const response =  await fetchWithRetry(`${endpoint}?id=${taskId}`, {
+      method: "GET",
     });
 
     const status = response.status;
 
     if (status === "completed" || status === "succeeded" || status === "video_upsampling" || status === "video_generation_completed") {
-      console.log(`视频生成完成: ${taskId}`);
+      //console.log(`视频生成完成: ${taskId}`);
       return response.video_url || response.content?.video_url || response.detail?.video_url || "";
     } else if (status === "failed") {
       throw new Error(`视频生成失败: ${response.error || "未知错误"}`);
     } else if (status === "pending" || status === "processing" || status === "video_generating" || status === "image_downloading" || status === "queued") {
-      console.log(`视频生成中... (${i + 1}/${maxAttempts})`);
+      //console.log(`视频生成中... (${i + 1}/${maxAttempts})`);
       continue;
     } else {
       throw new Error(`未知任务状态: ${status}`);
@@ -323,7 +267,7 @@ export const generateImage = async (
   prompt: string,
   referenceImages: string[] = [],
   ischaracter: string = "character",
-  localStyle: string = "写实",
+  localStyle: string = "真人写实",
   imageSize: string = "2560x1440",
   imageCount: number = 1
 ): Promise<string> => {
@@ -356,11 +300,9 @@ export const generateImage = async (
     ]
   };
 
-  const response = await retryOperation(async () => {
-    return await fetchWithRetry(endpoint, {
-      method: "POST",
-      body: JSON.stringify(requestBody),
-    });
+  const response = await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
   });
 
   // 提取图片 base64 数据
@@ -389,60 +331,11 @@ export const generateScript = async (
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
 
-  const generationPrompt = PROMPT_TEMPLATES.GENERATE_SCRIPT(prompt, targetDuration, genre, language);
-
   const requestBody = {
     systemInstruction: {
       parts: [
         {
-          text: PROMPT_TEMPLATES.SYSTEM_SCREENWRITER,
-        },
-      ],
-    },
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: generationPrompt,
-          },
-        ],
-      },
-    ],
-    generationConfig: {
-      temperature: 0.8,
-      topP: 0.95,
-    },
-  };
-
-  const response = await retryOperation(async () => {
-    return await fetchWithRetry(endpoint, {
-      method: "POST",
-      body: JSON.stringify(requestBody),
-    });
-  });
-
-  const content = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  return content.trim();
-};
-
-/**
- * Agent 3: Visual Design (Prompt Generation)
- */
-export const generateVisualPrompts = async (
-  type: "character" | "scene",
-  data: Character | Scene,
-  genre: string
-): Promise<string> => {
-  const prompt = PROMPT_TEMPLATES.GENERATE_VISUAL_PROMPT(type, data, genre);
-
-  const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
-
-  const requestBody = {
-    systemInstruction: {
-      parts: [
-        {
-          text: PROMPT_TEMPLATES.SYSTEM_VISUAL_DESIGNER,
+          text: renderTemplate('SYSTEM_SCREENWRITER'),
         },
       ],
     },
@@ -457,16 +350,86 @@ export const generateVisualPrompts = async (
       },
     ],
     generationConfig: {
-      temperature: 0.8,
-      topP: 0.95,
+      ...MODEL_GENERATION_CONFIG.GENERATE_SCRIPT,
     },
   };
 
-  const response = await retryOperation(async () => {
-    return await fetchWithRetry(endpoint, {
-      method: "POST",
-      body: JSON.stringify(requestBody),
-    });
+  const response = await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  const content = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  return content.trim();
+};
+
+/**
+ * Agent 3: Visual Design (Prompt Generation)
+ */
+export const generateVisualPrompts = async (
+  prompt: string
+): Promise<string> => {
+  const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
+  const requestBody = {
+    systemInstruction: {
+      parts: [
+        {
+          text: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+        },
+      ],
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+    ],
+    generationConfig: {
+      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+    },
+  };
+
+  const response =  await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
+  });
+
+  return response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+};
+export const generateVideoPrompts = async (
+  prompt: string
+): Promise<string> => {
+  const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
+  const requestBody = {
+    systemInstruction: {
+      parts: [
+        {
+          text: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
+        },
+      ],
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
+      },
+    ],
+    generationConfig: {
+      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+    },
+  };
+
+  const response =  await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify(requestBody),
   });
 
   return response.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -479,36 +442,16 @@ export const generateVisualPrompts = async (
  * @param index - 场景索引
  */
 export const generateShotListForScene = async (
-  scriptData: ScriptData,
   scene: any,
-  index: number
+  prompt: string
 ): Promise<Shot[]> => {
-  const lang = scriptData.language || "中文";
-
-  const paragraphs = scriptData.storyParagraphs
-    .filter((p) => String(p.sceneRefId) === String(scene.id))
-    .map((p) => p.text)
-    .join("\n");
-
-  if (!paragraphs.trim()) return [];
-
-  const prompt = PROMPT_TEMPLATES.GENERATE_SHOTS(
-    index,
-    scene,
-    paragraphs,
-    scriptData.genre,
-    scriptData.targetDuration || "Standard",
-    scriptData.characters,
-    lang
-  );
-
   try {
     const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
     const requestBody = {
       systemInstruction: {
         parts: [
           {
-            text: PROMPT_TEMPLATES.SYSTEM_PHOTOGRAPHER,
+            text: renderTemplate('SYSTEM_PHOTOGRAPHER'),
           },
         ],
       },
@@ -523,16 +466,13 @@ export const generateShotListForScene = async (
         },
       ],
       generationConfig: {
-        temperature: 0.7,
-        topP: 0.95,
+        ...MODEL_GENERATION_CONFIG.GENERATE_SHOTS,
       },
     };
 
-    const response = await retryOperation(async () => {
-      return await fetchWithRetry(endpoint, {
-        method: "POST",
-        body: JSON.stringify(requestBody),
-      });
+    const response =  await fetchWithRetry(endpoint, {
+      method: "POST",
+      body: JSON.stringify(requestBody),
     });
 
     const content = response.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
@@ -549,39 +489,4 @@ export const generateShotListForScene = async (
   }
 };
 
-/**
- * 为剧本生成镜头清单
- */
-export const generateShotList = async (scriptData: ScriptData): Promise<Shot[]> => {
-  if (!scriptData.scenes || scriptData.scenes.length === 0) {
-    return [];
-  }
-
-  // Process scenes sequentially
-  const BATCH_SIZE = 1;
-  const allShots: Shot[] = [];
-
-  for (let i = 0; i < scriptData.scenes.length; i += BATCH_SIZE) {
-    if (i > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const batch = scriptData.scenes.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      batch.map((scene, idx) => generateShotListForScene(scriptData, scene, i + idx))
-    );
-    batchResults.forEach((shots) => allShots.push(...shots));
-  }
-
-  // Re-index shots to be sequential globally
-  return allShots.map((s, idx) => ({
-    ...s,
-    id: `shot-${idx + 1}`,
-    keyframes: Array.isArray(s.keyframes)
-      ? s.keyframes.map((k: any) => ({
-          ...k,
-          id: `kf-${idx + 1}-${k.type}`,
-          status: "pending",
-        }))
-      : [],
-  }));
-};
 

@@ -16,9 +16,11 @@
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
+    "@tailwindcss/vite": "^4.1.18",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
