@@ -391,7 +391,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-6">
             {project.scriptData.characters.map((char) => (
               <div key={char.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[3/4] bg-slate-900 relative overflow-hidden">
@@ -431,7 +431,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                        </button>
                      </div>
                   )}
-                  <div className="absolute bottom-0 right-0 flex flex-col md:flex-row items-end gap-1 p-1"> 
+                  <div className="absolute bottom-0 right-0 flex flex-col xl:flex-row items-end gap-1 p-1"> 
                   {/* Action Buttons */}
                   {char.referenceImage && (
                     <>
