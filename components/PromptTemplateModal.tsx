@@ -314,7 +314,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
   // 变量提示
   const variables: Record<string, string[]> = {
     'PARSE_SCRIPT': ['{text}', '{lang}', '{genre}'],
-    'GENERATE_SHOTS': ['{scenendex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}'],
+    'GENERATE_SHOTS': ['{sceneindex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}'],
     'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}'],
     'GENERATE_VISUAL_PROMPT': ['{type}', '{desc}', '{genre}', '{visualStyle}'],
     'JOIN_IMAGES': ['{imageCount}', '{imageSize}'],
