@@ -80,9 +80,13 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
       if (type === 'character') {
         imagesize = '1728x2304';
         const char = project.scriptData?.characters.find(c => String(c.id) === String(id));
+        imageUrl = char?.referenceImage;
+        prompt = char?.visualPrompt;
         if (char) prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, project.scriptData?.genre || '剧情片',project.visualStyle);
       } else {
         const scene = project.scriptData?.scenes.find(s => String(s.id) === String(id));
+        imageUrl = scene?.referenceImage;
+        prompt = scene?.visualPrompt;
         if (scene) prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, project.scriptData?.genre || '剧情片',project.visualStyle);
       }
       let new_prompt = prompt;
@@ -104,15 +108,6 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
           : `场景_${project.scriptData?.scenes.find(s => String(s.id) === String(id))?.id || id}`;
         await addMediaHistory(project.id, imageUrl, fileName, 'image', type,new_prompt);
       }
-
-    } catch (e) {
-      console.error(e);
-      if(e.message?.includes("enough")){
-        await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
-      }else{
-        await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
-      }
-    } finally {
       // Update state
       if (project.scriptData) {
         const newData = { ...project.scriptData };
@@ -131,6 +126,14 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
         }
         updateProject({ scriptData: newData });
       }
+    } catch (e) {
+      console.error(e);
+      if(e.message?.includes("enough")){
+        await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+      }else{
+        await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+      }
+    } finally {
       setProcessingState(null);
     }
   };
