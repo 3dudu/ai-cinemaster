@@ -154,14 +154,96 @@ export interface MediaFile {
   prompt: string;
 }
 
-// Simple MD5 hash function for file URLs
+// SHA-256 hash function compatible with all contexts
 export async function md5Hash(str: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex.substring(0, 32); // Use first 32 chars as MD5-like hash
+  // 优先使用 crypto.subtle（安全上下文）
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(str);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex.substring(0, 32);
+    } catch {
+      // 回退到纯 JS 实现
+    }
+  }
+  // 纯 JS SHA-256 实现（兼容所有环境）
+  return sha256Js(str).substring(0, 32);
+}
+
+// 纯 JavaScript SHA-256 实现
+function sha256Js(message: string): string {
+  // ROTLEFT 函数
+  const ROTL = (x: number, n: number) => (x << n) | (x >>> (32 - n));
+  // ROTRIGHT 函数
+  const ROTR = (x: number, n: number) => (x >>> n) | (x << (32 - n));
+  // SHIFT 函数
+  const SHR = (x: number, n: number) => x >>> n;
+
+  // 椭圆函数
+  const Ch = (x: number, y: number, z: number) => (x & y) ^ (~x & z);
+  const Maj = (x: number, y: number, z: number) => (x & y) ^ (x & z) ^ (y & z);
+  const Sigma0 = (x: number) => ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22);
+  const Sigma1 = (x: number) => ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25);
+  const sigma0 = (x: number) => ROTR(x, 7) ^ ROTR(x, 18) ^ SHR(x, 3);
+  const sigma1 = (x: number) => ROTR(x, 17) ^ ROTR(x, 19) ^ SHR(x, 10);
+
+  // SHA-256 常量
+  const K: number[] = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+
+  // 初始化哈希值
+  let H0 = 0x6a09e667, H1 = 0xbb67ae85, H2 = 0x3c6ef372, H3 = 0xa54ff53a;
+  let H4 = 0x510e527f, H5 = 0x9b05688c, H6 = 0x1f83d9ab, H7 = 0x5be0cd19;
+
+  // 消息预处理
+  const msgLen = message.length;
+  const padLen = (msgLen % 64 < 56) ? (56 - msgLen % 64) : (120 - msgLen % 64);
+  const paddedMsg = new Uint8Array(msgLen + padLen + 8);
+  paddedMsg.set(new TextEncoder().encode(message), 0);
+  paddedMsg[msgLen] = 0x80;
+  const view = new DataView(paddedMsg.buffer);
+  view.setUint32(paddedMsg.length - 4, msgLen * 8, false);
+
+  // 处理消息块
+  for (let chunk = 0; chunk < paddedMsg.length; chunk += 64) {
+    const w = new Uint32Array(64);
+    for (let i = 0; i < 16; i++) {
+      w[i] = view.getUint32(chunk + i * 4, false);
+    }
+    for (let i = 16; i < 64; i++) {
+      w[i] = sigma1(w[i - 2]) + w[i - 7] + sigma0(w[i - 15]) + w[i - 16];
+    }
+
+    let a = H0, b = H1, c = H2, d = H3;
+    let e = H4, f = H5, g = H6, h = H7;
+
+    for (let i = 0; i < 64; i++) {
+      const t1 = h + Sigma1(e) + Ch(e, f, g) + K[i] + w[i];
+      const t2 = Sigma0(a) + Maj(a, b, c);
+      h = g; g = f; f = e; e = d + t1;
+      d = c; c = b; b = a; a = t1 + t2;
+    }
+
+    H0 += a; H1 += b; H2 += c; H3 += d;
+    H4 += e; H5 += f; H6 += g; H7 += h;
+  }
+
+  // 输出哈希值
+  const hash = [
+    H0, H1, H2, H3, H4, H5, H6, H7
+  ].map(v => v.toString(16).padStart(8, '0')).join('');
+  return hash;
 }
 
 export const addMediaHistory = async (
@@ -359,6 +441,7 @@ export const createNewProjectState = (): ProjectState => {
     stage: 'script',
     targetDuration: '60s', // Default duration now 60s
     language: '中文', // Default language
+    genre: '剧情片',
     visualStyle: '真人写实',
     imageSize: '1440x2560', // Default image size (vertical)
     imageCount: 0, // Default image count (1 image per generation)
