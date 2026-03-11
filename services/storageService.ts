@@ -254,14 +254,14 @@ export const addMediaHistory = async (
   mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition',
   prompt: string
 ): Promise<void> => {
+  const filehash = await md5Hash(fileUrl);
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(MEDIA_HISTORY_STORE_NAME, 'readwrite');
     const store = tx.objectStore(MEDIA_HISTORY_STORE_NAME);
 
-    md5Hash(fileUrl).then(id => {
       const mediaFile: MediaFile = {
-        id,
+        id:filehash,
         fileUrl,
         fileName,
         timestamp: Date.now(),
@@ -292,28 +292,28 @@ export const addMediaHistory = async (
         if (mediaType === 'character') {
           // Check if file already exists
           if(fileType=='audio'){
-            const exists = projectHistory.audio.some(f => f.id === id);
+            const exists = projectHistory.audio.some(f => f.id === projectId);
             if (!exists) {
               projectHistory.audio.push(mediaFile);
             }
           }else{
-            const exists = projectHistory.character.some(f => f.id === id);
+            const exists = projectHistory.character.some(f => f.id === projectId);
             if (!exists) {
               projectHistory.character.push(mediaFile);
             }
           }
         } else if (mediaType === 'scene') {
-          const exists = projectHistory.scene.some(f => f.id === id);
+          const exists = projectHistory.scene.some(f => f.id === projectId);
           if (!exists) {
             projectHistory.scene.push(mediaFile);
           }
         } else if (mediaType === 'full' || mediaType === 'start' || mediaType === 'end') {
-          const exists = projectHistory.keyframe.some(f => f.id === id);
+          const exists = projectHistory.keyframe.some(f => f.id === projectId);
           if (!exists) {
             projectHistory.keyframe.push(mediaFile);
           }
         } else {
-          const exists = projectHistory.video.some(f => f.id === id);
+          const exists = projectHistory.video.some(f => f.id === projectId);
           if (!exists) {
             projectHistory.video.push(mediaFile);
           }
@@ -335,7 +335,6 @@ export const addMediaHistory = async (
       };
       getRequest.onerror = () => reject(getRequest.error);
     });
-  });
 };
 
 export const getProjectMediaHistory = async (
