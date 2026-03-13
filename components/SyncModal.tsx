@@ -35,10 +35,9 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
 
   // 从 localStorage 加载 syncKey
   useEffect(() => {
+    const savedKey = localStorage.getItem('cinegen_sync_key') || '';
+    setSyncKey(savedKey);
     if (isOpen) {
-      const savedKey = localStorage.getItem('cinegen_sync_key') || '';
-      setSyncKey(savedKey);
-      
       // 如果已有 syncKey，自动开始同步
       if (savedKey) {
         handleStartSync();
