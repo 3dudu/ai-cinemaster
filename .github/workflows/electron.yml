@@ -13,132 +13,111 @@ on:
         required: false
         type: string
 
+# 抽取重复步骤为复用模板，减少冗余
+defaults:
+  run:
+    shell: bash  # 统一shell，避免跨平台兼容问题
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  # 构建通用步骤模板（复用）
+  build-base:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false  # 一个平台构建失败不影响其他平台
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            dist-script: npm run dist:win
+            artifacts: |
+              dist/*.exe
+              dist/*.zip
+            artifact-name: windows-builds
+          - os: macos-latest
+            dist-script: npm run dist:mac
+            artifacts: |
+              dist/*.dmg
+              dist/*.zip
+            artifact-name: macos-builds
+          - os: ubuntu-latest
+            dist-script: npm run dist:linux
+            artifacts: |
+              dist/*.AppImage
+              dist/*.deb
+            artifact-name: linux-builds
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 拉取完整历史，避免Electron打包时git信息缺失
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "npm"
+          cache-dependency-path: package-lock.json  # 精准缓存npm依赖
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm clean-install  # 更严格的依赖安装，避免版本不一致
+          # Linux平台额外安装Electron构建依赖
+          if [[ ${{ matrix.os }} == "ubuntu-latest" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y libgtk-3-dev libnss3-dev libasound2-dev
+          fi
 
       - name: Build application
         run: npm run build
 
-      - name: Build Windows installer
-        run: npm run dist:win
+      - name: Build platform installer
+        run: ${{ matrix.dist-script }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-builds
-          path: |
-            dist/*.exe
-            dist/*.zip
-          retention-days: 30
-
-  build-macos:
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build application
-        run: npm run build
-
-      - name: Build macOS installer
-        run: npm run dist:mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-builds
-          path: |
-            dist/*.dmg
-            dist/*.zip
-          retention-days: 30
-
-  build-linux:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build application
-        run: npm run build
-
-      - name: Build Linux installer
-        run: npm run dist:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-builds
-          path: |
-            dist/*.AppImage
-            dist/*.deb
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifacts }}
           retention-days: 30
 
   release:
-    needs: [build-windows, build-macos, build-linux]
+    needs: build-base  # 依赖重构后的build-base job
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-
     permissions:
-      contents: write
+      contents: write  # 授予创建Release的权限
+      packages: read   # 额外授予读取权限，避免权限不足
 
     steps:
+      - name: Create dist directory
+        run: mkdir -p dist  # 确保dist目录存在
+
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
           name: windows-builds
-          path: dist
+          path: dist/windows  # 分目录存放，避免文件冲突
 
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
           name: macos-builds
-          path: dist
+          path: dist/macos
 
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
           name: linux-builds
-          path: dist
+          path: dist/linux
+
+      - name: Collect all artifacts to root dist
+        run: |
+          # 将各平台文件复制到根dist目录，方便Release上传
+          cp dist/windows/* dist/ || true
+          cp dist/macos/* dist/ || true
+          cp dist/linux/* dist/ || true
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
