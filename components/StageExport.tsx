@@ -20,6 +20,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   const completedShots = project.shots.filter(s => s.interval?.videoUrl);
   const totalShots = project.shots.length;
@@ -271,8 +272,9 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
   };
 
   const handleDownloadSelected = async () => {
+    if(downloadStatus)return;
     if (selectedShotIds.size === 0) return;
-
+    setDownloadStatus('downloading');
     const shotsToDownload = project.shots.filter(s => selectedShotIds.has(s.id) && s.interval?.videoUrl);
 
     for (let i = 0; i < shotsToDownload.length; i++) {
@@ -330,6 +332,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
         await new Promise(r => setTimeout(r, 500));
       }
     }
+    setDownloadStatus(null);
   };
 
     if (!project.shots.length) return (
@@ -672,7 +675,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                </button>
                <button
                   onClick={handleDownloadSelected}
-                  disabled={selectedShotIds.size === 0}
+                  disabled={selectedShotIds.size === 0 || !!downloadStatus}
                   className={`h-12 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all border cursor-pointer ${
                     selectedShotIds.size > 0
                       ? 'bg-slate-700 text-slate-50 hover:bg-slate-600 border-slate-500 shadow-lg shadow-slate-600/20'

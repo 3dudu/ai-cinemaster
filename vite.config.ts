@@ -22,6 +22,13 @@ export default defineConfig(({ mode }) => {
             /tmp/,
             // 可根据项目情况添加其他无需监听的目录，如：/public/assets/large-files
           ]
+        },
+        proxy: {
+          '/api': {
+            target: 'http://127.0.0.1:8080/api',
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/api/, '')
+          }
         }
       },
       plugins: [

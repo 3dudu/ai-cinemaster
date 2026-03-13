@@ -460,7 +460,7 @@ export class ModelService {
    * 为剧本生成镜头清单
    * @param scriptData - 剧本数据
    */
-  static async generateShotList(scriptData: ScriptData): Promise<Shot[]> {
+  static async generateShotList(scriptData: ScriptData,imageCount:number): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
 
     if (!scriptData.scenes || scriptData.scenes.length === 0) {
@@ -495,7 +495,8 @@ export class ModelService {
             scriptData.genre,
             scriptData.targetDuration || "30s",
             characters,
-            lang
+            lang,
+            imageCount
           );
           switch (provider.provider) {
             case 'deepseek':
@@ -545,7 +546,8 @@ export class ModelService {
   static async generateShotListForScene(
     scriptData: ScriptData,
     scene: any,
-    sceneIndex: number
+    sceneIndex: number,
+    imageCount:number
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
@@ -572,7 +574,8 @@ export class ModelService {
       scriptData.genre,
       scriptData.targetDuration || "30s",
       characters,
-      lang
+      lang,
+      imageCount
     );
     switch (provider.provider) {
       case 'deepseek':
@@ -1063,7 +1066,7 @@ export class ModelService {
     switch (provider.provider) {
       case 'doubao':
         const generate_audio = provider.description.indexOf("sound")>-1;
-        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio);
+        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio,imageSize);
         break;
       case 'gemini':
         videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);
@@ -1090,7 +1093,7 @@ export class ModelService {
         videoUrl = await (await this.getProviderModule('skyreels')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame, imageSize);
         break;
       case 'openai':
-        videoUrl = await (await this.getProviderModule('openai')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame);
+        videoUrl = await (await this.getProviderModule('openai')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame,imageSize);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的图生视频`);

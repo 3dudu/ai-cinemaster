@@ -24,10 +24,13 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   const [localStyle, setLocalStyle] = useState(project.visualStyle || '真人写实');
   const [imageSize, setImageSize] = useState(project.imageSize || '2560x1440');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
   const [uploadingItem, setUploadingItem] = useState<{id: string, type: 'character'|'scene'}|null>(null);
   const [voiceSynthesisModalOpen, setVoiceSynthesisModalOpen] = useState(false);
   const [selectedVoiceCharId, setSelectedVoiceCharId] = useState<string | null>(null);
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   // Variation Form State
   const [editingSceneVisualPrompt, setEditingSceneVisualPrompt] = useState("");
@@ -211,7 +214,13 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   };
 
   const handleDownloadImage = async (imageUrl: string, charName: string) => {
-    await downloadImage(imageUrl, `${project.scriptData?.title}-${charName}.png`, dialog);
+    if(downloadStatus)return;
+    setDownloadStatus('downloading');
+    try{
+      await downloadImage(imageUrl, `${project.scriptData?.title}-${charName}.png`, dialog);
+    }finally{
+      setDownloadStatus(null);
+    }
   };
 
   if (!project.scriptData) return (
@@ -295,7 +304,15 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       <MapPin className="w-4 h-4" /> 场景图像
                     </h4>
                     <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
-                      <div className="aspect-[16/9] bg-slate-900 rounded-lg overflow-hidden mb-4 relative cursor-pointer" onClick={() => setPreviewImage(selectedScene.referenceImage)}>
+                      <div className="aspect-[16/9] bg-slate-900 rounded-lg overflow-hidden mb-4 relative cursor-pointer" onClick={() => {
+                        const sceneImages = project.scriptData.scenes
+                          .filter(s => s.referenceImage)
+                          .map(s => s.referenceImage);
+                        const idx = sceneImages.indexOf(selectedScene.referenceImage);
+                        setPreviewImages(sceneImages);
+                        setPreviewIndex(idx >= 0 ? idx : 0);
+                        setPreviewImage(selectedScene.referenceImage);
+                      }}>
                         {selectedScene.referenceImage ? (
                           <img src={selectedScene.referenceImage} className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
                         ) : (
@@ -408,7 +425,15 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       ) : (
                         <div className={`absolute inset-0 bg-slate-700/60 opacity-0 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm ${batchProgress || processingState ? 'pointer-events-none opacity-50' : 'group-hover:opacity-80'}`}>
                           <button
-                            onClick={() => { setPreviewImage(char.referenceImage); }}
+                            onClick={() => {
+                              const charImages = project.scriptData.characters
+                                .filter(c => c.referenceImage)
+                                .map(c => c.referenceImage);
+                              const idx = charImages.indexOf(char.referenceImage);
+                              setPreviewImages(charImages);
+                              setPreviewIndex(idx >= 0 ? idx : 0);
+                              setPreviewImage(char.referenceImage);
+                            }}
                             disabled={!!batchProgress || !!processingState}
                             className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold uppercase flex items-center gap-2 tracking-wider rounded border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
@@ -449,6 +474,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       {/* Download Button */}
                       <button
                         onClick={(e) => { handleDownloadImage(char.referenceImage!, '角色-'+char.name); }}
+                        disabled={!!downloadStatus}
                         className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="下载图片"
                       >
@@ -538,7 +564,15 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       ) : (
                         <div className={`absolute inset-0 bg-slate-700/60 opacity-0 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm ${batchProgress || processingState ? 'pointer-events-none opacity-50' : 'group-hover:opacity-80'}`}>
                           <button
-                            onClick={(e) => {setPreviewImage(scene.referenceImage); }}
+                            onClick={(e) => {
+                              const sceneImages = project.scriptData.scenes
+                                .filter(s => s.referenceImage)
+                                .map(s => s.referenceImage);
+                              const idx = sceneImages.indexOf(scene.referenceImage);
+                              setPreviewImages(sceneImages);
+                              setPreviewIndex(idx >= 0 ? idx : 0);
+                              setPreviewImage(scene.referenceImage);
+                            }}
                             disabled={!!batchProgress || !!processingState}
                             className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold uppercase tracking-wider rounded flex items-center gap-2 border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
@@ -649,20 +683,62 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
       {previewImage && (
         <div
           className="fixed inset-0 z-[100] bg-slate-700/90 backdrop-blur-sm flex items-center justify-center"
-          onClick={() => setPreviewImage(null)}
+          onClick={() => { setPreviewImage(null); setPreviewImages([]); }}
         >
+          {/* 左导航按钮 */}
+          {previewImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const newIndex = previewIndex > 0 ? previewIndex - 1 : previewImages.length - 1;
+                setPreviewIndex(newIndex);
+                setPreviewImage(previewImages[newIndex]);
+              }}
+              className="absolute left-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
           <img
             src={previewImage}
             alt="Full screen preview"
             className="max-w-[95vw] max-h-[95vh] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
+
+          {/* 右导航按钮 */}
+          {previewImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const newIndex = previewIndex < previewImages.length - 1 ? previewIndex + 1 : 0;
+                setPreviewIndex(newIndex);
+                setPreviewImage(previewImages[newIndex]);
+              }}
+              className="absolute right-16 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
           <button
-            onClick={() => setPreviewImage(null)}
+            onClick={() => { setPreviewImage(null); setPreviewImages([]); }}
             className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
           >
             <X className="w-6 h-6" />
           </button>
+
+          {/* 图片信息 */}
+          {previewImages.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900/80 text-slate-50 rounded-full text-sm">
+              {previewIndex + 1} / {previewImages.length}
+            </div>
+          )}
         </div>
       )}
 
