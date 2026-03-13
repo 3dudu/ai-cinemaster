@@ -13,6 +13,7 @@ dist-ssr
 *.local
 electron-dist
 dev-dist
+upload
 
 # Editor directories and files
 .vscode/*
