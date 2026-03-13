@@ -1,8 +1,8 @@
-const express = require('express');
-const multer = require('multer');
-const axios = require('axios');
-const { resultMiddleware } = require('../middleware/result');
-const { getFileStorageService } = require('../services/fileStorage.service');
+import express from 'express';
+import multer from 'multer';
+import axios from 'axios';
+import { resultMiddleware } from '../middleware/result.js';
+import { getFileStorageService } from '../services/fileStorage.service.js';
 
 const router = express.Router();
 router.use(resultMiddleware);
@@ -213,4 +213,4 @@ function getContentType(filename) {
   return contentTypes[ext] || 'application/octet-stream';
 }
 
-module.exports = router;
+export default router;

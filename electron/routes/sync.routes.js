@@ -1,7 +1,7 @@
-const express = require('express');
-const multer = require('multer');
-const { resultMiddleware } = require('../middleware/result');
-const { getSyncService } = require('../services/sync.service');
+import express from 'express';
+import multer from 'multer';
+import { resultMiddleware } from '../middleware/result.js';
+import { getSyncService } from '../services/sync.service.js';
 
 const router = express.Router();
 router.use(resultMiddleware);
@@ -72,7 +72,12 @@ router.post('/upload', upload.single('file'), (req, res) => {
 router.post('/upload/json', express.text({ type: '*/*' }), (req, res) => {
   try {
     const { syncKey, fileName } = req.query;
-    const jsonContent = req.body;
+    let jsonContent = req.body;
+
+    // 如果jsonContent是对象，转换为字符串
+    if (typeof jsonContent === 'object') {
+      jsonContent = JSON.stringify(jsonContent);
+    }
 
     const syncService = getSyncService();
     const success = syncService.uploadFileJson(syncKey, fileName, jsonContent);
@@ -115,4 +120,4 @@ router.delete('/delete', (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

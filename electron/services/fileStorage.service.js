@@ -1,8 +1,10 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import config from '../config/default.json' assert { type: 'json' };
 
-// 配置
-const config = require('../../config/default.json');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class FileStorageService {
   constructor() {
@@ -184,4 +186,4 @@ function getFileStorageService() {
   return instance;
 }
 
-module.exports = { FileStorageService, getFileStorageService };
+export { FileStorageService, getFileStorageService };

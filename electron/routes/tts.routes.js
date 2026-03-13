@@ -1,5 +1,5 @@
-const express = require('express');
-const { getBaiduTtsService } = require('../services/baiduTts.service');
+import express from 'express';
+import { getBaiduTtsService } from '../services/baiduTts.service.js';
 
 const router = express.Router();
 
@@ -37,4 +37,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

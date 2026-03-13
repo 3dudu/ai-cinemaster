@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const { getFileStorageService } = require('./fileStorage.service');
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { getFileStorageService } from './fileStorage.service.js';
 
 const SYNC_DIR = 'sync';
 const SYNC_KEY_LENGTH = 8;
@@ -255,4 +255,4 @@ function getSyncService() {
   return instance;
 }
 
-module.exports = { SyncService, getSyncService };
+export { SyncService, getSyncService };

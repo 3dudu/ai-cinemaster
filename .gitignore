@@ -19,6 +19,7 @@ dev-dist
 electron/out
 electron/.vscode
 .DS_Store
+upload
 
 # Editor directories and files
 .vscode/*

@@ -1,7 +1,6 @@
-const axios = require('axios');
-const FormData = require('form-data');
-
-const config = require('../../config/default.json');
+import axios from 'axios';
+import FormData from 'form-data';
+import config from '../config/default.json' assert { type: 'json' };
 
 class BaiduTtsService {
   constructor() {
@@ -61,4 +60,4 @@ function getBaiduTtsService() {
   return instance;
 }
 
-module.exports = { BaiduTtsService, getBaiduTtsService };
+export { BaiduTtsService, getBaiduTtsService };
