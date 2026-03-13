@@ -148,10 +148,10 @@ jobs:
           prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
           generate_release_notes: true
           files: |
-            dist/*.exe
-            dist/*.zip
-            dist/*.dmg
-            dist/*.AppImage
-            dist/*.deb
+            electron-dist/*.exe
+            electron-dist/*.zip
+            electron-dist/*.dmg
+            electron-dist/*.AppImage
+            electron-dist/*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
