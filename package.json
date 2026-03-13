@@ -13,7 +13,7 @@
     "build:pages": "vite build -c vite.config.pages.ts",
     "build:gitlab": "vite build -c vite.gitlab.ts",
     "preview": "vite preview"
-    "dist": "npm run build && electron-builder",
+    "dist:linux": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac",
   },
