@@ -26,12 +26,12 @@ const openDB = (): Promise<IDBDatabase> => {
   });
 };
 
-export const saveProjectToDB = async (project: ProjectState): Promise<void> => {
+export const saveProjectToDB = async (project: ProjectState, sync: boolean = false): Promise<void> => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    const p = { ...project, lastModified: Date.now() };
+    const p = sync ? { ...project, lastModified: Date.now() } : project;
     const request = store.put(p);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);

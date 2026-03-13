@@ -379,7 +379,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
     setRegeneratingSceneId(sceneId);
     try {
-      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex);
+      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex ,project.imageCount);
 
       // 删除该场景的旧分镜
       const otherShots = project.shots.filter(s => s.sceneId !== sceneId);
@@ -512,7 +512,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
           const scene = scriptData.scenes[i];
           setProcessingStep(`正在生成第 ${i + 1}/${totalScenes} 场的分镜...`);
   
-          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i);
+          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i,project.imageCount);
           allShots.push(...sceneShots);
   
           // 短暂延迟，避免请求过快

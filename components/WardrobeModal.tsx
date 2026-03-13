@@ -37,6 +37,7 @@ const WardrobeModal: React.FC<Props> = ({
   const [editingVisualPrompt, setEditingVisualPrompt] = useState("");
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
   const [uploadingVariationId, setUploadingVariationId] = useState<string | null>(null);
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   // Sync visual prompt when character is selected
   useEffect(() => {
@@ -140,7 +141,14 @@ const WardrobeModal: React.FC<Props> = ({
   };
 
   const handleDownloadImage = async (imageUrl: string, name: string) => {
-    await downloadImage(imageUrl, `${project.scriptData?.title}-${character.name}-造型-${name}.png`, dialog);
+    if(downloadStatus)return;
+    setDownloadStatus('downloading');
+    try{
+        await downloadImage(imageUrl, `${project.scriptData?.title}-${character.name}-造型-${name}.png`, dialog);
+    }finally{
+        setDownloadStatus(null);
+    }
+
   };
 
   const handleFileUploadClick = (varId: string) => {
@@ -250,6 +258,7 @@ const WardrobeModal: React.FC<Props> = ({
                                             onClick={(e) => { e.stopPropagation(); handleDownloadImage(variation.referenceImage!, variation.name); }}
                                             className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
                                             title="下载图片"
+                                            disabled={!!downloadStatus}
                                         >
                                             <Download className="w-3 h-3" />
                                         </button>

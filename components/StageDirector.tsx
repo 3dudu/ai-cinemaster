@@ -380,7 +380,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
       }
     } finally {
-      setTransitionGeneratingShotId(null);
+      setProcessingState(null);
     }
   };
 
@@ -397,7 +397,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       });
       if (!confirmed) return;
     }
-
+    setProcessingState({ id: shot.interval.id, type: 'video' });
     // 生成视频拍摄提示词（如果还没有）
     if (!shot.interval.videoPrompt && project.scriptData) {
       try {
@@ -444,7 +444,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     prompt = prompt + (dialogueText?"\n###对白\n "+dialogueText:"");
     prompt = prompt+"\n\n##按照上面描述生成 "+localStyle+" 风格的视频！";
 
-    setProcessingState({ id: shot.interval.id, type: 'video' });
     try {
       const videoUrl = await ModelService.generateVideo(
           prompt,
@@ -478,7 +477,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
       }
     } finally {
-      setTransitionGeneratingShotId(null);
+      setProcessingState(null);
     }
   };
 
@@ -537,6 +536,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       if (!confirmed) return;
     }
 
+    setTransitionGeneratingShotId(shot.id);
     const nextShot = project.shots[currentIndex + 1];
 
     // 获取当前 shot 的尾帧和下一个 shot 的首帧
@@ -556,7 +556,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     );
 
     try {
-      setTransitionGeneratingShotId(shot.id);
 
       // 调用 ModelService 生成转场视频
       const transitionUrl = await ModelService.generateVideo(
@@ -590,6 +589,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         type: 'success',
       });
     } catch (error) {
+      setTransitionGeneratingShotId(null);
       console.error('生成转场失败:', error);
       await dialog.alert({
         title: '错误',

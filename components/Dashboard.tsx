@@ -1,11 +1,12 @@
-import { AlertTriangle, Calendar, Check, ChevronRight, Copy, Download, Edit, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createNewProjectState, deleteProjectFromDB, exportProjectToFile, getAllProjectsMetadata, importProjectFromFile, saveProjectToDB } from '../services/storageService';
 import { ProjectState } from '../types';
 import ApiKeyModal from './ApiKeyModal';
 import { useDialog } from './dialog';
 import ModalSettings from './ModalSettings';
 import ProjectSettingsModal from './ProjectSettingsModal';
+import SyncModal from './SyncModal';
 import { ThemeToggle } from './ThemeToggle';
 
 interface Props {
@@ -25,6 +26,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [currentProject, setCurrentProject] = useState<ProjectState | null>(null);
   const [project, setProject] = useState<ProjectState | null>(null);
   const [apiKey, setApiKey] = useState<string>('');
@@ -249,7 +251,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   // 随机选择N张图片
   const getRandomImages = (images: string[], count: number): string[] => {
     if (images.length === 0) return [];
-    
+
     // 如果图片数量不足，返回所有图片
     if (images.length <= count) {
       return [...images];
@@ -260,8 +262,18 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     return shuffled.slice(0, count);
   };
 
+  // 缓存每个项目的随机图片，避免重渲染时刷新
+  const projectPreviewImages = useMemo(() => {
+    const map = new Map<string, string[]>();
+    projects.forEach(proj => {
+      const allImages = getProjectImages(proj);
+      map.set(proj.id, getRandomImages(allImages, 4));
+    });
+    return map;
+  }, [projects]);
+
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-300 p-8 pt-2 md:p-12 font-sans">
+    <div className="min-h-screen bg-slate-900 text-slate-300 p-4 pt-2 md:p-12 font-sans">
       <div className="max-w-7xl mx-auto">
         <header className={`border-b border-slate-900 pb-4 ${isMobile ? '' : 'mb-16 flex items-end'} justify-between`}>
           <div className='flex items-center justify-between'>
@@ -275,7 +287,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             </button>
 </div>
           </div>
-          <div className="flex gap-3 flex-end justify-end">
+          <div className="flex gap-2 md:gap-3 flex-end justify-end">
             <button
               onClick={handleCreate}
               className="group flex items-center gap-3 px-6 py-3 bg-slate-600/50 text-slate-50 hover:bg-slate-600 transition-colors cursor-pointer"
@@ -290,6 +302,14 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             >
               <Upload className="w-4 h-4" />
               {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">{importing ? '导入中...' : '导入项目'}</span>}
+            </button>
+            <button
+              onClick={() => setShowSyncModal(true)}
+              className="group flex items-center gap-3 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-slate-50 transition-colors cursor-pointer"
+              title="同步数据"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">同步数据</span>}
             </button>
             <button
               onClick={() => setShowModelSettings(true)}
@@ -462,25 +482,20 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
 
                          {/* 图片预览 */}
                   <div className="px-2 py-4 border-t border-slate-900 flex gap-1 items-center justify-center">
-                    {(() => {
-                      const projectImages = getRandomImages(getProjectImages(proj), 4);
-                      return (
-                        <div className="flex gap-1">
-                          {projectImages.map((imgUrl, idx) => (
-                            <div
-                              key={idx}
-                              className="w-14 h-14 bg-slate-900 rounded overflow-hidden flex-shrink-0 border border-slate-600 hover:border-slate-300 transition-colors cursor-pointer group/img"
-                            >
-                              <img
-                                src={imgUrl}
-                                alt={`Preview ${idx + 1}`}
-                                className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-200"
-                              />
-                            </div>
-                          ))}
+                    <div className="flex gap-1">
+                      {projectPreviewImages.get(proj.id)?.map((imgUrl, idx) => (
+                        <div
+                          key={idx}
+                          className="w-14 h-14 bg-slate-900 rounded overflow-hidden flex-shrink-0 border border-slate-600 hover:border-slate-300 transition-colors cursor-pointer group/img"
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Preview ${idx + 1}`}
+                            className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-200"
+                          />
                         </div>
-                      );
-                    })()}
+                      ))}
+                    </div>
                   </div>
                      </div>
                   </div>
@@ -508,6 +523,13 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       <ApiKeyModal
         isOpen={apiKeyModalOpen}
         onClose={() => setApiKeyModalOpen(false)}
+      />
+
+      {/* Sync Modal */}
+      <SyncModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
+        onSyncComplete={loadProjects}
       />
 
       {/* Project Settings Modal */}

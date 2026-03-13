@@ -43,6 +43,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const selectedItemRef = useRef<HTMLButtonElement>(null);
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   // 加载所有项目
   useEffect(() => {
@@ -70,9 +71,23 @@ const StageImage: React.FC<Props> = ({ project }) => {
   }, [project]);
 
   const handleDownloadImage = async (imageUrl: string, charName: string) => {
-    await downloadImage(imageUrl, `${charName}.png`, null);
+    if(downloadStatus)return;
+    setDownloadStatus('downloading');
+    try{
+      await downloadImage(imageUrl, `${charName}.png`, null);
+    }finally{
+      setDownloadStatus(null);
+    }
   };
-
+  const handleDownloadVideo = async (imageUrl: string, charName: string) => {
+    if(downloadStatus)return;
+    setDownloadStatus('downloading');
+    try{
+      await downloadVideo(imageUrl, `${charName}.mp4`, null);
+    }finally{
+      setDownloadStatus(null);
+    }
+  };
   const handleDeleteHistory = async (image: ImageItem, e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -644,11 +659,12 @@ const StageImage: React.FC<Props> = ({ project }) => {
                     onClick={(e) => {
                       e.stopPropagation();
                       if (image.mediaType === 'video') {
-                        downloadVideo(image.imageUrl!, image.downname, null);
+                        handleDownloadVideo(image.imageUrl!, image.downname);
                       } else {
                         handleDownloadImage(image.imageUrl!, image.downname);
                       }
                     }}
+                    disabled={!!downloadStatus}
                     className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                     title={image.mediaType === 'video' ? '下载视频' : '下载图片'}
                   >
