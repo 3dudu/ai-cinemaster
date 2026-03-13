@@ -444,7 +444,8 @@ export const generateVideo = async (
   endImageBase64?: string,
   duration: number = 5,
   full_frame: boolean = false,
-  generate_audio: boolean = false
+  generate_audio: boolean = false,
+  imageSize: string = "2560x1440",
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks`;
 
@@ -463,6 +464,13 @@ export const generateVideo = async (
       text: prompt
     }]
   };
+  const [width, height] = imageSize.split('x').map(Number);
+  const isLandscape = width > height;
+  if (isLandscape) {
+    requestBody.ratio = "16:9";
+  } else {
+    requestBody.ratio = "9:16";
+  }
 
   requestBody.generate_audio = generate_audio;
   // 处理起始图片

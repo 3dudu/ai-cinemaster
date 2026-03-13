@@ -28,8 +28,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
   const [localStyle, setLocalStyle] = useState(project.visualStyle || '真人写实');
   const [localGenre, setLocalGenre] = useState(project?.genre || '剧情片');
   const [customGenreInput, setCustomGenreInput] = useState('');
-  const [localImageSize, setLocalImageSize] = useState(project.imageSize || '1440x2560');
-  const [localImageCount, setLocalImageCount] = useState(project.imageCount || 1);
+  const [localImageSize, setLocalImageSize] = useState(project.imageSize || '2560x1440');
+  const [localImageCount, setLocalImageCount] = useState(project.imageCount || 0);
   const [customDurationInput, setCustomDurationInput] = useState('');
   const [customStyleInput, setCustomStyleInput] = useState('');
 
@@ -84,8 +84,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
     setCustomGenreInput(isCustomGenre ? currentGenre : '');
     setLocalGenre(isCustomGenre?'custom':currentGenre);
 
-    setLocalImageSize(project.imageSize || '1440x2560');
-    setLocalImageCount(project.imageCount || 1);
+    setLocalImageSize(project.imageSize || '2560x1440');
+    setLocalImageCount(project.imageCount || 0);
 
     // 加载模型配置
     loadModelConfigs();
@@ -379,7 +379,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
     setRegeneratingSceneId(sceneId);
     try {
-      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex);
+      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex ,project.imageCount);
 
       // 删除该场景的旧分镜
       const otherShots = project.shots.filter(s => s.sceneId !== sceneId);
@@ -512,7 +512,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
           const scene = scriptData.scenes[i];
           setProcessingStep(`正在生成第 ${i + 1}/${totalScenes} 场的分镜...`);
   
-          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i);
+          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i,project.imageCount);
           allShots.push(...sceneShots);
   
           // 短暂延迟，避免请求过快
@@ -1137,7 +1137,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                       <div className="pl-6 border-l-2 border-slate-600 group-hover:border-slate-300 transition-colors py-1">
                                          {shot.dialogue.map((dlg, idx) => (
                                            <p key={idx} className="text-slate-400 font-serif italic text-sm mb-1">
-                                             {dlg.character ? <span className="text-slate-300 font-medium">{dlg.character}:</span> : null} {dlg.value}
+                                             {dlg.character ? <span className="text-slate-300 font-medium">{dlg.character}:</span> : null} "{dlg.value}"
                                            </p>
                                          ))}
                                       </div>

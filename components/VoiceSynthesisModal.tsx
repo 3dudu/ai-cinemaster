@@ -33,7 +33,6 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
   const [previewAudio, setPreviewAudio] = useState<string | null>(null);
   const [generatedVoiceUrl, setGeneratedVoiceUrl] = useState<string | null>(null);
   const [dialogueText, setDialogueText] = useState<string>('');
-  const [showPreviewPlayer, setShowPreviewPlayer] = useState(false);
 
   // Load character's TTS params and voice URL when modal opens
   useEffect(() => {
@@ -46,7 +45,6 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       }
       setDialogueText(extractCharacterDialogue());
       setPreviewAudio(null);
-      setShowPreviewPlayer(true);
     }
   }, [isOpen, character]);
 
@@ -125,7 +123,6 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       const previewText = dialogueText.slice(0, 50);
       const previewUrl = await ModelService.generateSpeechUrl(previewText, {}, ttsParams, project.id,true);
       setPreviewAudio(previewUrl);
-      setShowPreviewPlayer(true);
       // Auto play preview
       const audio = new Audio(previewUrl);
       audio.play();
@@ -242,10 +239,10 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                         />
                         <button
                           onClick={() => downloadAudio(generatedVoiceUrl, `${character.name}_语音.mp3`)}
-                          className="px-2 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 hover:text-slate-900 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                          className="px-2 py-2 bg-slate-600 hover:bg-slate-500 text-slate-50 hover:text-slate-900 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
                           title="下载语音"
                         >
-                          <Download className="w-3.5 h-3.5" />
+                          <Download className="w-4 h-4" />
                         </button>
                       </>
                     )}
@@ -253,13 +250,13 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                   <button
                     onClick={handleGenerateVoice}
                     disabled={isGenerating}
-                    className="px-2 py-1.5 bg-slate-600 hover:bg-slate-400 text-slate-50 hover:text-slate-900 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                    className="px-2 py-2 bg-slate-600 hover:bg-slate-400 text-slate-50 hover:text-slate-900 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
                     title={generatedVoiceUrl ? "重新合成" : "合成语音"}
                   >
                     {isGenerating ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <AudioLines className="w-3.5 h-3.5" />
+                      <AudioLines className="w-4 h-4" />
                     )}
                   </button>
                 </div>

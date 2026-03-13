@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
+import { ProjectState } from '../types';
 
 export const DURATION_OPTIONS = [
   { label: '30秒 (广告)', value: '30s' },
@@ -69,7 +70,7 @@ export const GENRE_OPTIONS = [
 interface ProjectSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  project: any;
+  project: ProjectState;
   updateProject: (updates: any) => void;
 }
 
@@ -78,8 +79,8 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
   const [localDuration, setLocalDuration] = useState(project?.targetDuration || '60s');
   const [localLanguage, setLocalLanguage] = useState(project?.language || '中文');
   const [localStyle, setLocalStyle] = useState(project?.visualStyle || '真人写实');
-  const [localImageSize, setLocalImageSize] = useState(project?.imageSize || '1440x2560');
-  const [localImageCount, setLocalImageCount] = useState(project?.imageCount || 1);
+  const [localImageSize, setLocalImageSize] = useState(project?.imageSize || '2560x1440');
+  const [localImageCount, setLocalImageCount] = useState(project?.imageCount || 0);
   const [localGenre, setLocalGenre] = useState(project?.genre || '剧情片');
   const [customDurationInput, setCustomDurationInput] = useState('');
   const [customStyleInput, setCustomStyleInput] = useState('');
@@ -108,8 +109,8 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       setCustomGenreInput(isCustomGenre ? currentGenre : '');
       setLocalGenre(isCustomGenre?'custom':currentGenre);
       
-      setLocalImageSize(project.imageSize || '1440x2560');
-      setLocalImageCount(project.imageCount || 1);
+      setLocalImageSize(project.imageSize || '2560x1440');
+      setLocalImageCount(project.imageCount || 0);
 
       const currentDuration = project.targetDuration || '60s';
       const isCustomDuration = !DURATION_OPTIONS.some(opt => opt.value === project.targetDuration);

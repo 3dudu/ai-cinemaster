@@ -53,6 +53,7 @@ const ImageSelectorModal: React.FC<Props> = ({
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<{title: string, prompt: string, timestamp?: number} | null>(null);
   const selectedItemRef = useRef<HTMLButtonElement>(null);
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   // 加载所有项目
   useEffect(() => {
@@ -80,8 +81,25 @@ const ImageSelectorModal: React.FC<Props> = ({
     loadProjects();
   }, [isOpen, project]);
   const handleDownloadImage = async (imageUrl: string, charName: string) => {
-    await downloadImage(imageUrl, `${charName}.png`, null);
+    if(downloadStatus)return;
+    setDownloadStatus('downloading');
+    try{
+      await downloadImage(imageUrl, `${charName}.png`, null);
+    }finally{
+      setDownloadStatus(null);
+    }
   };
+
+  const handleDownloadVideo = async (imageUrl: string, charName: string) => {
+    if(downloadStatus)return;
+    setDownloadStatus('downloading');
+    try{
+      await downloadVideo(imageUrl, `${charName}.mp4`, null);
+    }finally{
+      setDownloadStatus(null);
+    }
+  };
+
 
   const handleDeleteHistory = async (image: ImageItem, e: React.MouseEvent) => {
     e.stopPropagation(); // 防止触发图片选择
@@ -639,11 +657,12 @@ const ImageSelectorModal: React.FC<Props> = ({
                     <button
                       onClick={(e) => {
                         if (image.mediaType === 'video') {
-                          downloadVideo(image.imageUrl!, image.downname,null);
+                          handleDownloadVideo(image.imageUrl!, image.downname);
                         } else {
                           handleDownloadImage(image.imageUrl!, image.downname);
                         }
                       }}
+                      disabled={!!downloadStatus}
                       className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                       title={image.mediaType === 'video' ? '下载视频' : '下载图片'}
                     >
@@ -666,7 +685,7 @@ const ImageSelectorModal: React.FC<Props> = ({
 </div>
         {/* 底部信息 */}
         <div className="p-4 border-t border-slate-700 flex justify-between items-center text-sm text-slate-400 bg-slate-600/80">
-          <span>共 {displayImages.length} 张图片</span>
+          <span>共 {displayImages.length} {activeTab=='all'?'个文件':activeTab=='video'?'个视频':'张图片'}</span>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors cursor-pointer"

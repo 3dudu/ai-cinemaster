@@ -380,7 +380,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
       }
     } finally {
-      setTransitionGeneratingShotId(null);
+      setProcessingState(null);
     }
   };
 
@@ -397,7 +397,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       });
       if (!confirmed) return;
     }
-
+    setProcessingState({ id: shot.interval.id, type: 'video' });
     // 生成视频拍摄提示词（如果还没有）
     if (!shot.interval.videoPrompt && project.scriptData) {
       try {
@@ -414,7 +414,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
     let dialogueText = '';
     if (shot.dialogue && shot.dialogue instanceof Array && shot.dialogue.length > 0) {
-      dialogueText = shot.dialogue.map(d => d.character ? `**${d.character}**: ${d.value}` : d.value).join('\n');
+      dialogueText = shot.dialogue.map(d => d.character ? `**${d.character}**: "${d.value}"` : `"${d.value}"`).join('\n');
     }
     // 优先使用生成的视频提示词，否则使用原有逻辑
     let prompt = shot.interval.videoPrompt || ("视频风格："+localStyle+"；景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:""));
@@ -444,7 +444,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     prompt = prompt + (dialogueText?"\n###对白\n "+dialogueText:"");
     prompt = prompt+"\n\n##按照上面描述生成 "+localStyle+" 风格的视频！";
 
-    setProcessingState({ id: shot.interval.id, type: 'video' });
     try {
       const videoUrl = await ModelService.generateVideo(
           prompt,
@@ -478,7 +477,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
       }
     } finally {
-      setTransitionGeneratingShotId(null);
+      setProcessingState(null);
     }
   };
 
@@ -537,6 +536,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       if (!confirmed) return;
     }
 
+    setTransitionGeneratingShotId(shot.id);
     const nextShot = project.shots[currentIndex + 1];
 
     // 获取当前 shot 的尾帧和下一个 shot 的首帧
@@ -556,7 +556,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     );
 
     try {
-      setTransitionGeneratingShotId(shot.id);
 
       // 调用 ModelService 生成转场视频
       const transitionUrl = await ModelService.generateVideo(
@@ -590,6 +589,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         type: 'success',
       });
     } catch (error) {
+      setTransitionGeneratingShotId(null);
       console.error('生成转场失败:', error);
       await dialog.alert({
         title: '错误',
@@ -680,101 +680,22 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           });
           
           try {
-            const referenceImages = getRefImagesForShot(shot);
-            const referencePrompt = getRefImagesDescForShot(shot);
+            const currentStartKf = shot.keyframes?.find(k => k.type === 'start');
+            const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
+            const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
 
-            if(imageCount > 1){
-                const startKey = shot.keyframes?.find(k => k.type === 'start');
-                const endKey = shot.keyframes?.find(k => k.type === 'end');
-                let full_prompt = shot.actionSummary;
-                if (startKey || endKey){
-                    full_prompt = `连环画开始：${startKey.visualPrompt} 连环画结束：${endKey.visualPrompt}`;
-                }
-                const existingFf = shot.keyframes?.find(k => k.type === 'full');
-                const ffId = existingFf?.id || `kf-${shot.id}-full-${Date.now()}`;
-
-                const new_prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), "full",imageSize);
-                const full_url = await ModelService.generateImage(new_prompt, referenceImages, "full", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
-
-                // Save to media history
-                if (full_url) {
-                  const fileName = `Shot${shot.id}_full`;
-                  await addMediaHistory(project.id, full_url, fileName, 'image', 'full',new_prompt);
-                }
-
-                currentShots = currentShots.map(s => {
-                    if (s.id !== shot.id) return s;
-                    const newKeyframes = [...(s.keyframes || [])];
-                    const idx = newKeyframes.findIndex(k => k.type === 'full');
-                    const newKf: Keyframe = {
-                        id: ffId,
-                        type: 'full',
-                        visualPrompt: full_prompt,
-                        imageUrl: full_url,
-                        status: 'completed'
-                    };
-                    if (idx >= 0) newKeyframes[idx] = newKf;
-                    else newKeyframes.push(newKf);
-                    return { ...s, keyframes: newKeyframes };
-                });
-            }else{
-                const existingKf = shot.keyframes?.find(k => k.type === 'start');
-                let prompt = existingKf?.visualPrompt || shot.actionSummary;
-                const kfId = existingKf?.id || `kf-${shot.id}-start-${Date.now()}`;
-                const new_prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), "start",imageSize);
-                const url = await ModelService.generateImage(new_prompt, referenceImages, "start", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
-
-                // Save to media history
-                if (url) {
-                  const fileName = `Shot${shot.id}_start`;
-                  await addMediaHistory(project.id, url, fileName, 'image', 'start',new_prompt);
-                }
-
-                currentShots = currentShots.map(s => {
-                    if (s.id !== shot.id) return s;
-                    const newKeyframes = [...(s.keyframes || [])];
-                    const idx = newKeyframes.findIndex(k => k.type === 'start');
-                    const newKf: Keyframe = {
-                        id: kfId,
-                        type: 'start',
-                        visualPrompt: prompt,
-                        imageUrl: url,
-                        status: 'completed'
-                    };
-                    if (idx >= 0) newKeyframes[idx] = newKf;
-                    else newKeyframes.push(newKf);
-                    return { ...s, keyframes: newKeyframes };
-                });
-
-                const existingEf = shot.keyframes?.find(k => k.type === 'end');
-                let end_prompt = existingEf?.visualPrompt || shot.actionSummary;
-                const efId = existingEf?.id || `kf-${shot.id}-end-${Date.now()}`;
-                end_prompt = await genKeyFramePrompt(end_prompt + (referencePrompt?referencePrompt:""), "end",imageSize);
-                const end_url = await ModelService.generateImage(end_prompt, referenceImages, "end", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
-                if (end_url) {
-                  const fileName = `Shot${shot.id}_end`;
-                  await addMediaHistory(project.id, end_url, fileName, 'image', 'end',end_prompt);
-                }
-
-                currentShots = currentShots.map(s => {
-                    if (s.id !== shot.id) return s;
-                    const newKeyframes = [...(s.keyframes || [])];
-                    const idx = newKeyframes.findIndex(k => k.type === 'end');
-                    const newEf: Keyframe = {
-                        id: efId,
-                        type: 'end',
-                        visualPrompt: end_prompt,
-                        imageUrl: end_url,
-                        status: 'completed'
-                    };
-                    if (idx >= 0) newKeyframes[idx] = newEf;
-                    else newKeyframes.push(newEf);
-                    return { ...s, keyframes: newKeyframes };
-                });
+            if(imageCount>0){
+              if (imageCount > 1 && !currentFullKf?.imageUrl) {
+                  await handleGenerateKeyframe(shot, 'full');
+              } else if (imageCount == 1 && (!currentStartKf?.imageUrl || !currentEndKf?.imageUrl)) {
+                  if (!currentStartKf?.imageUrl) {
+                      await handleGenerateKeyframe(shot, 'start');
+                  }
+                  if (!currentEndKf?.imageUrl) {
+                      await handleGenerateKeyframe(shot, 'end');
+                  }
+              }
             }
-
-             updateProject({ shots: currentShots });
-
           } catch (e) {
             if(e.message?.includes("enough")){
               await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
@@ -898,6 +819,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
           try {
               // Step 1: Generate images if needed
+              /*
               const currentStartKf = shot.keyframes?.find(k => k.type === 'start');
               const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
               const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
@@ -914,6 +836,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     }
                 }
               }
+              */
 
               // Step 2: Generate video
               // Wait a moment for images to be ready
@@ -989,101 +912,22 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         });
 
         try {
-            const referenceImages = getRefImagesForShot(shot);
-            const referencePrompt = getRefImagesDescForShot(shot);
+          const currentStartKf = shot.keyframes?.find(k => k.type === 'start');
+          const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
+          const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
 
-            if(imageCount>0){
-              if(imageCount > 1){
-                  const existingFf = shot.keyframes?.find(k => k.type === 'full');
-                  let full_prompt = existingFf?.visualPrompt || shot.actionSummary;
-                  const ffId = existingFf?.id || `kf-${shot.id}-full-${Date.now()}`;
-
-                  full_prompt = await genKeyFramePrompt(full_prompt + (referencePrompt?referencePrompt:""), "full",imageSize);
-                  const full_url = await ModelService.generateImage(full_prompt, referenceImages, "full", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
-
-                  // Save to media history
-                  if (full_url) {
-                    const fileName = `Shot${shot.id}_full`;
-                    await addMediaHistory(project.id, full_url, fileName, 'image', 'full',full_prompt);
-                  }
-
-                  currentShots = currentShots.map(s => {
-                      if (s.id !== shot.id) return s;
-                      const newKeyframes = [...(s.keyframes || [])];
-                      const idx = newKeyframes.findIndex(k => k.type === 'full');
-                      const newKf: Keyframe = {
-                          id: ffId,
-                          type: 'full',
-                          visualPrompt: full_prompt,
-                          imageUrl: full_url,
-                          status: 'completed'
-                      };
-                      if (idx >= 0) newKeyframes[idx] = newKf;
-                      else newKeyframes.push(newKf);
-                      return { ...s, keyframes: newKeyframes };
-                  });
-              }else{
-                  const existingKf = shot.keyframes?.find(k => k.type === 'start');
-                  let prompt = existingKf?.visualPrompt || shot.actionSummary;
-                  const kfId = existingKf?.id || `kf-${shot.id}-start-${Date.now()}`;
-                  prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), "start",imageSize);
-                  const url = await ModelService.generateImage(prompt, referenceImages, "start", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
-
-                  // Save to media history
-                  if (url) {
-                    const fileName = `Shot${shot.id}_start`;
-                    await addMediaHistory(project.id, url, fileName, 'image', 'start',prompt);
-                  }
-
-                  currentShots = currentShots.map(s => {
-                      if (s.id !== shot.id) return s;
-                      const newKeyframes = [...(s.keyframes || [])];
-                      const idx = newKeyframes.findIndex(k => k.type === 'start');
-                      const newKf: Keyframe = {
-                          id: kfId,
-                          type: 'start',
-                          visualPrompt: prompt,
-                          imageUrl: url,
-                          status: 'completed'
-                      };
-                      if (idx >= 0) newKeyframes[idx] = newKf;
-                      else newKeyframes.push(newKf);
-                      return { ...s, keyframes: newKeyframes };
-                  });
-
-                  const existingEf = shot.keyframes?.find(k => k.type === 'end');
-                  let end_prompt = existingEf?.visualPrompt || shot.actionSummary;
-                  const efId = existingEf?.id || `kf-${shot.id}-end-${Date.now()}`;
-
-                  end_prompt = await genKeyFramePrompt(end_prompt + (referencePrompt?referencePrompt:""), "end",imageSize);
-                  const end_url = await ModelService.generateImage(end_prompt, referenceImages, "end", localStyle, imageSize, 1, shot.modelProviders,project.id,shot.id);
-
-                  // Save to media history
-                  if (end_url) {
-                    const fileName = `Shot${shot.id}_end`;
-                    await addMediaHistory(project.id, end_url, fileName, 'image', 'end',end_prompt);
-                  }
-
-                  currentShots = currentShots.map(s => {
-                      if (s.id !== shot.id) return s;
-                      const newKeyframes = [...(s.keyframes || [])];
-                      const idx = newKeyframes.findIndex(k => k.type === 'end');
-                      const newEf: Keyframe = {
-                          id: efId,
-                          type: 'end',
-                          visualPrompt: end_prompt,
-                          imageUrl: end_url,
-                          status: 'completed'
-                      };
-                      if (idx >= 0) newKeyframes[idx] = newEf;
-                      else newKeyframes.push(newEf);
-                      return { ...s, keyframes: newKeyframes };
-                  });
-              }
+          if(imageCount>0){
+            if (imageCount > 1 && !currentFullKf?.imageUrl) {
+                await handleGenerateKeyframe(shot, 'full');
+            } else if (imageCount == 1 && (!currentStartKf?.imageUrl || !currentEndKf?.imageUrl)) {
+                if (!currentStartKf?.imageUrl) {
+                    await handleGenerateKeyframe(shot, 'start');
+                }
+                if (!currentEndKf?.imageUrl) {
+                    await handleGenerateKeyframe(shot, 'end');
+                }
             }
-
-             updateProject({ shots: currentShots });
-
+          }
         } catch (e) {
             if(e.message?.includes("enough")){
                 await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
@@ -1093,7 +937,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             console.error(`Failed to generate for shot ${shot.id}`, e);
         }
     }
-
     setBatchProgress(null);
   };
 
@@ -1125,6 +968,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         });
 
         try {
+          /*
             const currentStartKf = shot.keyframes?.find(k => k.type === 'start');
             const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
             const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
@@ -1143,9 +987,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
             await new Promise(r => setTimeout(r, 1000));
 
+            */
             const updatedShot = project.shots.find(s => s.id === shot.id);
             if (!updatedShot) continue;
-
             await handleGenerateVideo(updatedShot);
         } catch (e) {
             console.error(`Failed to generate video for shot ${shot.id}`, e);
@@ -1349,6 +1193,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     <Edit className="w-3.5 h-3.5" />
                  </button>
                  <div className="flex-1 flex justify-end items-center">
+                  {imageCount>0 && (
                     <button
                         onClick={() => handleSceneBatchGenerateImages(scene.id)}
                         disabled={!!batchProgress || !!batchVideoProgress}
@@ -1358,6 +1203,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                         <Camera className="w-3 h-3" />
                         生图
                     </button>
+                  )}
                     <button
                         onClick={() => handleSceneBatchGenerateVideos(scene.id)}
                         disabled={!!batchProgress || !!batchVideoProgress}

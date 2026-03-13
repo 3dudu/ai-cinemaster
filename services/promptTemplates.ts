@@ -219,7 +219,8 @@ export const PROMPT_TEMPLATES = {
     genre: string,
     duration: string,
     characters: string,
-    lang: string
+    lang: string,
+    imageCount: number
   ) => `
     担任专业摄影师，为第${sceneindex}场戏制作一份详尽的镜头清单（镜头调度设计）。
     ## 文本输出语言: ${lang}。
@@ -247,7 +248,9 @@ export const PROMPT_TEMPLATES = {
     5. 镜头情节概述：详细描述该镜头内发生的情节（使用 ${lang} 语言描述），遵循下面表述方式：主体+运动+环境（非必须）+运镜/切镜（非必须）+美学描述（非必须）+声音（非必须）。
     6. 视觉提示语：用于图像生成的详细${lang}描述，字数控制在 120 词以内。
     7. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
-    8. 关键帧提示词：visualPrompt, 使用 ${lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
+    8. 对话：如果需要，为每个角色生成对话，包含角色名字、内容。
+    9. 关键帧：可以是：起始帧，结束帧或者独立的连环画帧，如果 ${imageCount} 是0，则忽略关键帧，如果是1，则生成一个起始帧，如果大于1则是一张完整连环画。
+    10. 关键帧提示词：visualPrompt, 使用 ${lang} 语言描述，起始帧，描述镜头的开始画面，结束帧，描述镜头结束画面，连环帧，描述镜头的连环画画面。描述遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
 
     ## 输出格式：JSON 数组，数组内对象包含以下字段：
     - id（字符串类型）
@@ -257,7 +260,7 @@ export const PROMPT_TEMPLATES = {
     - cameraMovement（字符串类型）
     - shotSize（字符串类型）
     - characters（字符串数组类型）
-    - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end"]）、visualPrompt（使用 ${lang} 语言描述） 字段）
+    - keyframes（对象数组类型，每个对象定义不同的帧，对象包含如下属性： id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 ${lang} 语言描述） 字段）
     - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   `,
 
@@ -288,9 +291,9 @@ export const PROMPT_TEMPLATES = {
   GENERATE_VISUAL_PROMPT: (type: string, desc: string, genre: string,visualStyle:string) => `
     为 ${genre} 类视频中的 ${type} 生成高还原度图像提示词，图像风格必须为：${visualStyle}。
     ${type} 的描述信息如下: ${desc}
-     - 角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
-     - 场景要描述时间、地点、景色、光线、氛围等，不要出现角色。
-    中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。
+     - 如果是 角色 要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
+     - 如果是 场景 要描述时间、地点、景色、光线、氛围等，不要出现角色。
+    只要输出 ${type} 的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。
   `,
 
   // ============ 图片拼接 ============

@@ -460,7 +460,7 @@ export class ModelService {
    * 为剧本生成镜头清单
    * @param scriptData - 剧本数据
    */
-  static async generateShotList(scriptData: ScriptData): Promise<Shot[]> {
+  static async generateShotList(scriptData: ScriptData,imageCount:number): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
 
     if (!scriptData.scenes || scriptData.scenes.length === 0) {
@@ -495,7 +495,8 @@ export class ModelService {
             scriptData.genre,
             scriptData.targetDuration || "30s",
             characters,
-            lang
+            lang,
+            imageCount
           );
           switch (provider.provider) {
             case 'deepseek':
@@ -545,7 +546,8 @@ export class ModelService {
   static async generateShotListForScene(
     scriptData: ScriptData,
     scene: any,
-    sceneIndex: number
+    sceneIndex: number,
+    imageCount:number
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
@@ -572,7 +574,8 @@ export class ModelService {
       scriptData.genre,
       scriptData.targetDuration || "30s",
       characters,
-      lang
+      lang,
+      imageCount
     );
     switch (provider.provider) {
       case 'deepseek':
@@ -711,7 +714,7 @@ export class ModelService {
     if(shot.dialogue){
       if(shot.dialogue instanceof Array){
         shot.dialogue.forEach((d) => {
-          dialogues.push(d.character + "：" + d.value);
+          dialogues.push(d.character + '："' + d.value+'"');
         });
       }else{
         dialogues.push(shot.dialogue);
@@ -886,17 +889,16 @@ export class ModelService {
 
       // 将 Blob 转换为 Base64 格式以便上传
       const audioBase64 = await (await this.getProviderModule('baidu')).blobToBase64(audioBlob);
-      const audioDataUrl = `data:audio/mp3;base64,${audioBase64}`;
       //console.log('audioDataUrl:', audioDataUrl);
       // 上传到文件服务器
       if(preview){
-        return audioDataUrl;
+        return audioBase64;
       }
 
       const uploadResponse = await uploadFileToService({
         fileType: projectId + '/audio/tts',
         base64Data: audioBase64,
-        fileName: 's.mp3'
+        fileName: projectId+'_tts.mp3'
       });
 
       if (uploadResponse.success && uploadResponse.data?.fileUrl) {
@@ -905,7 +907,7 @@ export class ModelService {
       } else {
         console.error(`音频上传失败: ${uploadResponse.error}`);
         // 上传失败时，返回 Base64 data URL
-        return audioDataUrl;
+        return audioBase64;
       }
     } catch (error) {
       console.error('语音合成失败:', error);
@@ -1064,7 +1066,7 @@ export class ModelService {
     switch (provider.provider) {
       case 'doubao':
         const generate_audio = provider.description.indexOf("sound")>-1;
-        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio);
+        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio,imageSize);
         break;
       case 'gemini':
         videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);
@@ -1091,7 +1093,7 @@ export class ModelService {
         videoUrl = await (await this.getProviderModule('skyreels')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame, imageSize);
         break;
       case 'openai':
-        videoUrl = await (await this.getProviderModule('openai')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame);
+        videoUrl = await (await this.getProviderModule('openai')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration, full_frame,imageSize);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的图生视频`);
