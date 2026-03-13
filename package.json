@@ -3,12 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
+    "start": "electron .",
     "dev": "vite",
+    "dev:electron": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "build": "vite build",
+    "build:electron": "npm run build && electron-builder",
     "build:pages": "vite build -c vite.config.pages.ts",
     "build:gitlab": "vite build -c vite.gitlab.ts",
-    "build:fc": "vite build -c vite.config.cloudflare.js",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -23,8 +26,47 @@
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.8",
     "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^8.2.2",
+    "electron": "^30.0.0",
+    "electron-builder": "^26.0.12",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
+    "wait-on": "^7.2.0",
     "vite-plugin-pwa": "^1.2.0"
+  },
+  "build": {
+    "appId": "com.cinegen.ai",
+    "productName": "CineGen AI",
+    "directories": {
+      "output": "electron-dist"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
