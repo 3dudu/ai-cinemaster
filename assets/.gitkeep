@@ -1,0 +1,66 @@
+# Application Icons
+
+此目录用于存放 Electron 桌面应用的图标文件。
+
+## 所需图标文件
+
+### Windows (icon.ico)
+- 格式: ICO
+- 推荐尺寸: 256x256 或更大
+- 文件名: `icon.ico`
+
+### macOS (icon.icns)
+- 格式: ICNS
+- 推荐尺寸: 1024x1024
+- 文件名: `icon.icns`
+- 可以使用 macOS 的 `iconutil` 命令从 PNG 转换:
+  ```bash
+  mkdir icon.iconset
+  sips -z 16 16     icon.png --out icon.iconset/icon_16x16.png
+  sips -z 32 32     icon.png --out icon.iconset/icon_16x16@2x.png
+  sips -z 32 32     icon.png --out icon.iconset/icon_32x32.png
+  sips -z 64 64     icon.png --out icon.iconset/icon_32x32@2x.png
+  sips -z 128 128   icon.png --out icon.iconset/icon_128x128.png
+  sips -z 256 256   icon.png --out icon.iconset/icon_128x128@2x.png
+  sips -z 256 256   icon.png --out icon.iconset/icon_256x256.png
+  sips -z 512 512   icon.png --out icon.iconset/icon_256x256@2x.png
+  sips -z 512 512   icon.png --out icon.iconset/icon_512x512.png
+  iconutil -c icns icon.iconset -o icon.icns
+  ```
+
+### Linux (icon.png)
+- 格式: PNG
+- 推荐尺寸: 512x512
+- 文件名: `icon.png`
+
+## 图标生成工具
+
+推荐使用以下工具生成图标：
+
+1. **在线工具**
+   - [favicon.io](https://favicon.io/) - 支持多种格式
+   - [CloudConvert](https://cloudconvert.com/) - 格式转换
+   - [ConvertICO](https://convertico.com/) - 专门用于 ICO 格式
+
+2. **命令行工具**
+   - ImageMagick: `convert icon.png -define icon:auto-resize=256,48,32,16 icon.ico`
+   - png2ico: `png2ico icon.ico icon.png`
+
+3. **设计工具**
+   - Adobe Illustrator/Photoshop
+   - Sketch (macOS)
+   - Figma (可以导出 PNG，然后使用在线工具转换)
+
+## 注意事项
+
+- 图标应简洁、清晰，在小尺寸下也能识别
+- 使用圆角或平滑边缘，避免过多的锯齿
+- 测试不同尺寸下的显示效果
+- 确保图标背景透明度正确
+
+## 暂时没有图标？
+
+如果暂时没有准备图标，可以：
+1. 注释掉 `package.json` 中 `build` 配置的 `icon` 字段
+2. Electron 将使用默认图标
+3. 发布前准备好自定义图标以提升应用外观
