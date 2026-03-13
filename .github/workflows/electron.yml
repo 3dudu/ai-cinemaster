@@ -43,8 +43,8 @@ jobs:
         with:
           name: windows-builds
           path: |
-            dist/*.exe
-            dist/*.zip
+            electron-dist/*.exe
+            electron-dist/*.zip
           retention-days: 30
 
   build-macos:
@@ -76,8 +76,8 @@ jobs:
         with:
           name: macos-builds
           path: |
-            dist/*.dmg
-            dist/*.zip
+            electron-dist/*.dmg
+            electron-dist/*.zip
           retention-days: 30
 
   build-linux:
@@ -109,8 +109,8 @@ jobs:
         with:
           name: linux-builds
           path: |
-            dist/*.AppImage
-            dist/*.deb
+            electron-dist/*.AppImage
+            electron-dist/*.deb
           retention-days: 30
 
   release:
@@ -126,19 +126,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: windows-builds
-          path: dist
+          path: electron-dist
 
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
           name: macos-builds
-          path: dist
+          path: electron-dist
 
       - name: Download Linux artifacts
         uses: actions/download-artifact@v4
         with:
           name: linux-builds
-          path: dist
+          path: electron-dist
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
