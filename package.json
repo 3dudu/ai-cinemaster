@@ -12,7 +12,10 @@
     "build:electron": "npm run build && electron-builder",
     "build:pages": "vite build -c vite.config.pages.ts",
     "build:gitlab": "vite build -c vite.gitlab.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dist:linux": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
@@ -35,8 +38,8 @@
     "vite-plugin-pwa": "^1.2.0"
   },
   "build": {
-    "appId": "com.cinegen.ai",
-    "productName": "CineGen AI",
+    "appId": "com.cinemaster.ai",
+    "productName": "CineMaster",
     "directories": {
       "output": "electron-dist"
     },
