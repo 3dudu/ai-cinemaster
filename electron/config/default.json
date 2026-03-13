@@ -1,0 +1,20 @@
+{
+  "server": {
+    "port": 8080,
+    "apiPrefix": "/api"
+  },
+  "storage": {
+    "type": "local",
+    "local": {
+      "path": "./upload",
+      "urlPrefix": "http://localhost:8080/api/files"
+    }
+  },
+  "baidu": {
+    "tts": {
+      "apiUrl": "https://tsn.baidu.com",
+      "connectTimeout": 5000,
+      "readTimeout": 30000
+    }
+  }
+}

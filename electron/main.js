@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, shell } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+const { startServer } = require('./index');
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,7 @@ const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let mainWindow;
 
 function createWindow() {
+  const server = startServer(8080);
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
