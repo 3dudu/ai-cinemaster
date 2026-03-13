@@ -28,8 +28,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
   const [localStyle, setLocalStyle] = useState(project.visualStyle || '真人写实');
   const [localGenre, setLocalGenre] = useState(project?.genre || '剧情片');
   const [customGenreInput, setCustomGenreInput] = useState('');
-  const [localImageSize, setLocalImageSize] = useState(project.imageSize || '1440x2560');
-  const [localImageCount, setLocalImageCount] = useState(project.imageCount || 1);
+  const [localImageSize, setLocalImageSize] = useState(project.imageSize || '2560x1440');
+  const [localImageCount, setLocalImageCount] = useState(project.imageCount || 0);
   const [customDurationInput, setCustomDurationInput] = useState('');
   const [customStyleInput, setCustomStyleInput] = useState('');
 
@@ -84,8 +84,8 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
     setCustomGenreInput(isCustomGenre ? currentGenre : '');
     setLocalGenre(isCustomGenre?'custom':currentGenre);
 
-    setLocalImageSize(project.imageSize || '1440x2560');
-    setLocalImageCount(project.imageCount || 1);
+    setLocalImageSize(project.imageSize || '2560x1440');
+    setLocalImageCount(project.imageCount || 0);
 
     // 加载模型配置
     loadModelConfigs();
