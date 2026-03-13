@@ -38,8 +38,8 @@
     "vite-plugin-pwa": "^1.2.0"
   },
   "build": {
-    "appId": "com.cinegen.ai",
-    "productName": "CineGen AI",
+    "appId": "com.cinemaster.ai",
+    "productName": "CineMaster",
     "directories": {
       "output": "electron-dist"
     },
