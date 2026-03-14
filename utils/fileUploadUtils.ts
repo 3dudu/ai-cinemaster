@@ -13,13 +13,46 @@ export interface UploadFileParams {
   fileName?: string; // 可选的文件名，如不提供则自动生成
 }
 
-/**
- * 获取文件上传服务配置
- * @returns 文件上传服务地址，如果没有配置则返回 null
- */
-function getFileUploadServiceConfig(): string | null {
-  const uploadServiceUrl = localStorage.getItem('cinegen_file_upload_service_url');
-  return uploadServiceUrl || null;
+// MIME 类型到扩展名的映射
+const mimeToExtension: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/svg+xml': 'svg',
+  'image/bmp': 'bmp',
+  'image/tiff': 'tiff',
+  'image/x-icon': 'ico',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'video/ogg': 'ogv',
+  'audio/mpeg': 'mp3',
+  'audio/wav': 'wav',
+  'audio/ogg': 'oga',
+  'application/pdf': 'pdf',
+  'text/plain': 'txt',
+  'application/json': 'json',
+  'application/xml': 'xml'
+};
+
+// 获取服务器根地址
+function getServerBaseUrl(): string | null {
+  return localStorage.getItem('cinegen_file_upload_service_url') || null;
+}
+
+// 获取 token
+function getToken(): string {
+  const uploadServiceUrl = getServerBaseUrl();
+  if (!uploadServiceUrl) return '';
+  
+  try {
+    const url = new URL(uploadServiceUrl);
+    const token = url.searchParams.get('token');
+    return token || '';
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -56,7 +89,7 @@ function processFileUrl(originalUrl: string): string {
       }
     } else {
       // 默认使用 ofs.good365.net:6443
-      return `//ofs.good365.net:6443${path}`;
+      return `http://127.0.0.1:8080${path}`;
     }
   } catch (error) {
     console.error('处理URL失败:', error);
@@ -92,7 +125,7 @@ export async function uploadFileToService(params: UploadFileParams): Promise<Upl
   const { fileType, fileUrl, base64Data, fileName } = params;
 
   // 检查是否配置了上传服务地址
-  const uploadServiceUrl = getFileUploadServiceConfig();
+  const uploadServiceUrl = getServerBaseUrl();
   if (!uploadServiceUrl) {
     //console.log('未配置文件上传服务地址，跳过文件上传');
 
@@ -103,7 +136,7 @@ export async function uploadFileToService(params: UploadFileParams): Promise<Upl
         data: {
           url: base64Data,
           fileUrl: base64Data,
-          fileName: fileName || 'image',
+          fileName: fileName || 'image.png',
           fileType: fileType || 'image'
         }
       };
@@ -155,8 +188,13 @@ export async function uploadFileToService(params: UploadFileParams): Promise<Upl
       formData.fileUrl = fileUrl!;
     }
 
+  const token = getToken();
+  const serverUrl = new URL(uploadServiceUrl);
+  const baseurl =  `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ':' + serverUrl.port : ''}`;
+  const url = `${baseurl}/api/file/extupload?token=`+token;
+
     // 使用配置的上传服务地址
-    const response = await fetch(uploadServiceUrl, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Accept': '*/*',
@@ -221,7 +259,8 @@ function detectFileExtensionFromBase64(base64Data: string): string {
   // 检查是否有MIME类型前缀
   const mimeMatch = base64Data.match(/^data:(.+?);base64,/);
   if (mimeMatch) {
-    return mimeMatch[1];
+    const mimeType = mimeMatch[1];
+    return mimeToExtension[mimeType] || 'png';
   }
 
   // 如果没有MIME类型，默认使用png

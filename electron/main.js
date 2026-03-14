@@ -1,17 +1,17 @@
 import { app, BrowserWindow, Menu, shell } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { startServer } from './index.js';
 
-// Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Check if we're in development mode
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 let mainWindow;
 
 function createWindow() {
+  const server = startServer(8080);
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -22,31 +22,25 @@ function createWindow() {
       contextIsolation: true,
       enableRemoteModule: false,
       preload: path.join(__dirname, 'preload.js'),
-      webSecurity: false, // 允许加载本地文件和外部资源
-      allowRunningInsecureContent: true // 允许混合内容
+      webSecurity: false,
+      allowRunningInsecureContent: true
     },
     icon: path.join(__dirname, '../assets/icon.png'),
     webSecurity: false,
     show: false
   });
 
-  // Load the app
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    // 在打包环境中，正确处理文件路径
-    // 判断是否在asar包内
     if (__dirname.includes('app.asar')) {
-      // 在asar包内，使用相对路径
       mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     } else {
-      // 不在asar包内，使用应用根目录
       mainWindow.loadFile(path.join(process.cwd(), 'dist/index.html'));
     }
   }
 
-  // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
   });
@@ -56,7 +50,6 @@ function createWindow() {
   });
 }
 
-// Create menu
 function createMenu() {
   const template = [
     {
@@ -130,7 +123,6 @@ function createMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-// App event listeners
 app.whenReady().then(() => {
   createWindow();
   createMenu();
@@ -148,7 +140,6 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Handle external links
 app.on('web-contents-created', (event, contents) => {
   contents.on('new-window', (event, navigationUrl) => {
     event.preventDefault();

@@ -63,7 +63,7 @@ export async function initSync(syncKey: string): Promise<SyncResult> {
 
     const data = await response.json();
     return {
-      success: true,
+      success: (data.code==200 && data.data)? true : false,
       message: data.message || '初始化成功',
       syncKey: data.data || data.syncKey || syncKey
     };
