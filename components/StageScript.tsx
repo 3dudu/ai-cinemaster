@@ -578,7 +578,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
               剧本和故事
             </h2>
            </div>
-           {isMobile && (
+           {isMobile && project.scriptData && (
            <button
                onClick={() => setActiveTab('script')}
                className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
@@ -651,7 +651,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
             <h2 className="text-lg font-bold text-slate-50 tracking-tight flex items-center gap-3">
               项目配置
             </h2>
-
+            {project.scriptData && (
             <button
                onClick={() => setActiveTab('script')}
                className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
@@ -659,6 +659,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                <List className="w-3 h-3" />
                分镜列表
             </button>
+            )}
         </div>
 
         <div className="flex-1 overflow-y-auto md:p-6 md:pt-2 p-2 space-y-6">
@@ -1035,7 +1036,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                  </div>
                               </div>
                               <div className="flex items-center justify-between md:gap-4 gap-1 text-[11px] font-mono uppercase tracking-widest text-slate-500">
-                                 <span className="flex items-center gap-1.5 whitespace-nowrap"><Clock className="w-3 h-3"/> {scene.time}</span>
+                                 <span className="flex items-center gap-1.5 whitespace-wrap"><Clock className="w-3 h-3"/> {scene.time}</span>
                                  <span className="text-slate-600">|</span>
                                  <span className="">{scene.atmosphere}</span>
                               </div>
