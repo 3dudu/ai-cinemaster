@@ -66,9 +66,10 @@ function saveCustomStoragePath(customPath) {
 }
 
 let mainWindow;
+let server;
 
 function createWindow() {
-  const server = startServer(8080,getStorageRoot());
+  server = startServer(8080,getStorageRoot());
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -104,6 +105,9 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    if(server){
+      server.close();
+    }
   });
 }
 
