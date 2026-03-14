@@ -46,6 +46,24 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     loadProjects();
   }, []);
 
+  // 监听 Electron 菜单事件
+  useEffect(() => {
+    if (window.electron) {
+      window.electron.on('new-project', () => {
+        handleCreate();
+      });
+      window.electron.on('import-project', () => {
+        handleImport();
+      });
+    }
+    return () => {
+      if (window.electron) {
+        window.electron.removeAllListeners('new-project');
+        window.electron.removeAllListeners('import-project');
+      }
+    };
+  }, []);
+
 
 
   const handleCreate = () => {
@@ -85,8 +103,8 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     exportProjectToFile(proj);
   };
 
-  const handleImport = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleImport = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     try {
       setImporting(true);
       const importedProject = await importProjectFromFile();

@@ -7,7 +7,8 @@
     "type": "local",
     "local": {
       "path": "./upload",
-      "urlPrefix": "http://localhost:8080/api/files"
+      "urlPrefix": "http://localhost:8080/api/files",
+      "note": "在 Electron 环境中，path 会被覆盖为 userData 目录，解决 macOS 权限问题"
     }
   },
   "baidu": {

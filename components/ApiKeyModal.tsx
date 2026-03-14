@@ -143,6 +143,8 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                  API Key 已配置: {inputKey.substring(0, 8)}...
                </span>
              </div>
+             {/**
+              * Coze 工作流 ID
            <div>
              <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">
                Coze 工作流 ID
@@ -158,7 +160,6 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                配置 Coze 工作流 ID 用于等功能。
              </p>
            </div>
-
            <div>
              <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">
                Coze API Key
@@ -192,6 +193,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                </a>
              </p>
            </div>
+              */}
 
            <div>
              <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">
