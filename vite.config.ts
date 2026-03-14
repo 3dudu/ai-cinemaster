@@ -22,7 +22,8 @@ export default defineConfig(({ mode }) => {
             /\.git/,
             /\.log$/,
             /tmp/,
-            /electron/
+            /electron/,
+            /upload/
             // 可根据项目情况添加其他无需监听的目录，如：/public/assets/large-files
           ]
         },
