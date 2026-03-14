@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, shell, dialog } from 'electron';
+import { app, BrowserWindow, dialog, Menu, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -16,6 +16,23 @@ process.env.ELECTRON_USER_DATA_PATH = app.getPath('userData');
 // 获取用户配置文件路径
 function getConfigPath() {
   return path.join(app.getPath('userData'), 'config.json');
+}
+
+/**
+ * 获取存储根目录
+ * 优先级：用户自定义目录 > Electron userData > 配置文件
+ */
+function getStorageRoot() {
+  // 1. 优先使用用户自定义目录（通过菜单设置）
+  if (process.env.CUSTOM_STORAGE_PATH) {
+    return process.env.CUSTOM_STORAGE_PATH;
+  }
+  // 2. 其次使用 Electron userData 目录，解决 macOS 权限问题
+  if (process.env.ELECTRON_USER_DATA_PATH) {
+    return path.join(process.env.ELECTRON_USER_DATA_PATH, 'upload');
+  }
+  // 3. 最后使用配置文件中的路径（兼容独立服务器模式）
+  return path.resolve(__dirname, '../../', config.storage.local.path);
 }
 
 // 获取用户自定义存储目录
@@ -51,7 +68,7 @@ function saveCustomStoragePath(customPath) {
 let mainWindow;
 
 function createWindow() {
-  const server = startServer(8080);
+  const server = startServer(8080,getStorageRoot());
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -123,7 +140,7 @@ function createMenu() {
           accelerator: 'CmdOrCtrl+Shift+D',
           click: async () => {
             const result = await dialog.showOpenDialog(mainWindow, {
-              properties: ['openDirectory'],
+              properties: ['openDirectory','createDirectory'],
               title: '选择文件存储目录'
             });
             if (!result.canceled && result.filePaths.length > 0) {

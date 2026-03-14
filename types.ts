@@ -140,3 +140,19 @@ export interface AIModelConfig {
   enabled: boolean;
   description: string;
 }
+
+// Electron API types
+declare global {
+  interface Window {
+    electron?: {
+      send: (channel: string, data?: any) => void;
+      on: (channel: string, func: (...args: any[]) => void) => void;
+      removeAllListeners: (channel: string) => void;
+    };
+    platform?: {
+      isElectron: boolean;
+      platform: string;
+      arch: string;
+    };
+  }
+}
