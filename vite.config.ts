@@ -18,9 +18,11 @@ export default defineConfig(({ mode }) => {
           ignored: [
             /node_modules/,
             /dist/,
+            /dev-dist/,
             /\.git/,
             /\.log$/,
             /tmp/,
+            /electron/
             // 可根据项目情况添加其他无需监听的目录，如：/public/assets/large-files
           ]
         },

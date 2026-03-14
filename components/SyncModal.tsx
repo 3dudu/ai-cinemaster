@@ -11,8 +11,6 @@ interface SyncModalProps {
   onSyncComplete: () => void;
 }
 
-type SyncStep = 'input' | 'conflict';
-
 interface ConflictItem {
   localProject?: ProjectState;
   serverFile: SyncFileInfo;
@@ -27,9 +25,10 @@ interface ConflictItem {
 
 const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }) => {
   const dialog = useDialog();
-  const [step, setStep] = useState<SyncStep>('input');
   const [syncKey, setSyncKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [initError, setInitError] = useState<string>('');
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
   const [serverFiles, setServerFiles] = useState<SyncFileInfo[]>([]);
 
@@ -47,6 +46,9 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
 
   const handleStartSync = async () => {
     setIsLoading(true);
+    setIsInitialized(false);
+    setInitError('');
+    setConflicts([]);
 
     try {
       let actualSyncKey = syncKey.trim();
@@ -55,8 +57,13 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
       const initResult = await initSync(actualSyncKey);
 
       if (!initResult.success) {
-        throw new Error(initResult.error || '初始化失败');
+        setInitError(initResult.error || '初始化失败');
+        setIsInitialized(false);
+        return;
       }
+
+      // 初始化成功，标记为已初始化
+      setIsInitialized(true);
 
       // 使用服务器返回的 syncKey（如果有的话）
       if (initResult.syncKey) {
@@ -156,10 +163,10 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
       } else {
         // 始终显示文件列表，让用户查看和确认
         setConflicts(conflictItems);
-        setStep('conflict');
       }
     } catch (err) {
-      await dialog.alert({ title: '同步失败', message: err instanceof Error ? err.message : '同步失败', type: 'error' });
+      setInitError(err instanceof Error ? err.message : '同步失败');
+      setIsInitialized(false);
     } finally {
       setIsLoading(false);
     }
@@ -294,7 +301,8 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
   };
 
   const handleClose = () => {
-    setStep('input');
+    setIsInitialized(false);
+    setInitError('');
     setSyncKey('');
     setConflicts([]);
     setServerFiles([]);
@@ -318,7 +326,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
           </button>
         </div>
 
-        {/* Input Step */}
+        {/* Input Section */}
           <div className="flex-1 overflow-y-auto md:p-6 p-2 bg-slate-700 space-y-5">
             <div className="space-y-4">
               <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-2">
@@ -353,9 +361,13 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
             </div>
           </div>
 
-        {/* Conflict Step */}
-        {step === 'conflict' && (
-          <div className="p-2 md:p-6 pt-0 md:pt-0 space-y-5 flex-1 overflow-y-auto bg-slate-700">
+        {/* File List Section */}
+        <div className="p-2 md:p-6 pt-0 md:pt-0 space-y-5 flex-1 overflow-y-auto bg-slate-700">
+            {initError && (
+              <div className="bg-red-900/30 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm">
+                {initError}
+              </div>
+            )}
             <div className="max-h-[50vh] overflow-y-auto">
               <div className="space-y-2">
                 {conflicts.map((item, index) => {
@@ -473,8 +485,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
                 })}
               </div>
             </div>
-          </div>
-        )}
+        </div>
 
         <div className="px-6 py-2 border-t border-slate-600 flex items-center justify-between gap-3 shrink-0 bg-slate-600/80">
           <div className="flex items-start gap-2 text-slate-400 text-[12px] flex-col">
@@ -483,7 +494,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
           </div>
           <button
             onClick={handleConfirmSync}
-            disabled={conflicts.filter(i => i.action !== null).length === 0 || step != 'conflict'}
+            disabled={!isInitialized || conflicts.filter(i => i.action !== null).length === 0 || isLoading}
             className="py-3 px-6 bg-slate-800 text-slate-300 font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />

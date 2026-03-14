@@ -201,7 +201,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                type="text"
                value={inputFileUploadServiceUrl}
                onChange={(e) => setInputFileUploadServiceUrl(e.target.value)}
-               placeholder="https://apppub.good365.net:6443/apppub_api/thirdparty/upload"
+               placeholder="http://127.0.0.1:8080"
                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-3 text-sm rounded-lg focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-900 transition-all font-mono placeholder:text-slate-400"
              />
              <p className="mt-3 text-[12px] text-slate-400 leading-relaxed">
@@ -218,7 +218,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                type="text"
                value={inputFileAccessDomain}
                onChange={(e) => setInputFileAccessDomain(e.target.value)}
-               placeholder="ofs.good365.net:6443"
+               placeholder="http://127.0.0.1:8080"
                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-3 text-sm rounded-lg focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-900 transition-all font-mono placeholder:text-slate-400"
              />
              <p className="mt-3 text-[12px] text-slate-400 leading-relaxed">

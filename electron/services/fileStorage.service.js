@@ -1,11 +1,11 @@
-import fs from 'fs';
+import fs, { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import config from '../config/default.json' assert { type: 'json' };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const config = JSON.parse(readFileSync(path.join(__dirname, '../config/default.json'), 'utf-8'));
 class FileStorageService {
   constructor() {
     this.storageType = config.storage.type;
@@ -47,8 +47,6 @@ class FileStorageService {
     // 生成唯一文件名
     const uniqueName = this.generateUniqueFileName(file.originalname);
     const filePath = path.join(targetDir, uniqueName);
-
-    // 写入文件
     fs.writeFileSync(filePath, file.buffer);
 
     // 生成 URL

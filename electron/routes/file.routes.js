@@ -1,6 +1,6 @@
+import axios from 'axios';
 import express from 'express';
 import multer from 'multer';
-import axios from 'axios';
 import { resultMiddleware } from '../middleware/result.js';
 import { getFileStorageService } from '../services/fileStorage.service.js';
 
@@ -140,7 +140,6 @@ router.post('/extupload', async (req, res) => {
       mimetype: getContentType(originalFileName),
       size: fileBytes.length
     };
-
     const filePath = generateFilePath(fileType);
     const service = getFileStorageService();
     const fileUrlResult = service.upload(file, filePath);

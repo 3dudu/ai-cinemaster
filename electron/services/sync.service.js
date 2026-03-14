@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { getFileStorageService } from './fileStorage.service.js';
 
@@ -31,10 +29,6 @@ class SyncService {
         // 检查用户目录是否存在
         const userPath = this.getUserPath(syncKey);
         const files = this.storageService.listFiles(userPath);
-
-        if (files.length === 0) {
-          throw new Error('同步密钥对应的目录不存在');
-        }
 
         console.log(`用户初始化成功，使用现有同步密钥: ${syncKey}`);
         return syncKey;
@@ -255,4 +249,4 @@ function getSyncService() {
   return instance;
 }
 
-export { SyncService, getSyncService };
+export { getSyncService, SyncService };

@@ -18,7 +18,7 @@ const upload = multer({
  */
 router.post('/init', (req, res) => {
   try {
-    const { syncKey } = req.body;
+    const { syncKey } = req.query;
     const syncService = getSyncService();
     const resultKey = syncService.initUser(syncKey);
     res.success(resultKey, '用户初始化成功');
@@ -50,7 +50,7 @@ router.get('/files', (req, res) => {
  */
 router.post('/upload', upload.single('file'), (req, res) => {
   try {
-    const { syncKey, fileName } = req.body;
+    const { syncKey, fileName } = req.query;
     
     if (!req.file) {
       return res.error('上传文件不能为空');

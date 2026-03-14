@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,7 +10,7 @@ const __dirname = path.dirname(__filename);
 import fileRoutes from './routes/file.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 import ttsRoutes from './routes/tts.routes.js';
-import config from './config/default.json' assert { type: 'json' };
+const config = JSON.parse(readFileSync(path.join(__dirname, './config/default.json'), 'utf-8'));
 
 const app = express();
 
