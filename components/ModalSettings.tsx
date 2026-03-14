@@ -109,7 +109,12 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
     try {
       await createDefaultModelConfigs();
       const allConfigs = await getAllModelConfigs();
-      setConfigs(allConfigs);
+      // 按 modelType 排序: llm -> text2image -> image2video -> tts -> stt
+      const typeOrder = ['llm', 'text2image', 'image2video', 'tts', 'stt'];
+      const sortedConfigs = allConfigs.sort((a, b) => {
+        return typeOrder.indexOf(a.modelType) - typeOrder.indexOf(b.modelType);
+      });
+      setConfigs(sortedConfigs);
     } catch (error) {
       console.error('Failed to load configs:', error);
     }
