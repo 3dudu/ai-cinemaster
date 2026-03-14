@@ -89,13 +89,12 @@ function processFileUrl(originalUrl: string): string {
       }
     } else {
       // 默认使用 ofs.good365.net:6443
-      return `http://127.0.0.1:8080${path}`;
+      return originalUrl;
     }
   } catch (error) {
     console.error('处理URL失败:', error);
     // 如果URL解析失败，尝试简单处理：移除查询参数
-    const pathWithoutParams = originalUrl.split('?')[0];
-    return pathWithoutParams;
+    return originalUrl;
   }
 }
 

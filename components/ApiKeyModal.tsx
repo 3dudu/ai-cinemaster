@@ -27,8 +27,8 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
       const apiKey = localStorage.getItem('cinegen_api_key') || '';
       const cozeWorkflowId = localStorage.getItem('cinegen_coze_workflow_id') || '';
       const cozeApiKey = localStorage.getItem('cinegen_coze_api_key') || '';
-      const fileUploadServiceUrl = localStorage.getItem('cinegen_file_upload_service_url') || process.env.OSS_UP_ENDPOINT || '';
-      const fileAccessDomain = localStorage.getItem('cinegen_file_access_domain') || process.env.OSS_ACCESS_ENDPOINT || '';
+      const fileUploadServiceUrl = localStorage.getItem('cinegen_file_upload_service_url')==null ? process.env.OSS_UP_ENDPOINT : localStorage.getItem('cinegen_file_upload_service_url');
+      const fileAccessDomain = localStorage.getItem('cinegen_file_access_domain')==null ? process.env.OSS_ACCESS_ENDPOINT : localStorage.getItem('cinegen_file_access_domain');
 
       setInputKey(apiKey);
       setInputCozeWorkflowId(cozeWorkflowId);
@@ -144,7 +144,6 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                </span>
              </div>
              {/**
-              * Coze 工作流 ID
            <div>
              <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">
                Coze 工作流 ID
@@ -193,7 +192,9 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                </a>
              </p>
            </div>
+              * 
               */}
+
 
            <div>
              <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">
