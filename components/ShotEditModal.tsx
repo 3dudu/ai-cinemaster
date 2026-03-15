@@ -1,8 +1,9 @@
-import { Aperture, Check, ChevronRight, Plus, RefreshCw, Trash, X } from 'lucide-react';
+import { Aperture, Check, Plus, RefreshCw, Trash, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Keyframe, Props, Shot } from '../types';
+import CustomSelect from './CustomSelect';
 import VideoPromptModal from './VideoPromptModal';
 
 const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, imageCount, scriptData, visualStyle = '真人写实' }) => {
@@ -116,19 +117,21 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
             <div className="space-y-2">
               {tempShot.dialogue && tempShot.dialogue instanceof Array && (tempShot.dialogue || []).map((dlg, index) => (
                 <div key={index} className="flex gap-2 items-start">
-                  <select value={dlg.character || ''}
-                    onChange={(e) => {
+                  <CustomSelect
+                    className="shrink-0 w-[140px]"
+                    options={[
+                      { value: '', label: '选择角色' },
+                      ...characters.map(char => ({ value: char.name, label: char.name }))
+                    ]}
+                    value={dlg.character || ''}
+                    onChange={(value) => {
                       const updatedDialogue = [...(tempShot.dialogue || [])];
-                      updatedDialogue[index] = { ...updatedDialogue[index], character: e.target.value };
+                      updatedDialogue[index] = { ...updatedDialogue[index], character: value };
                       setTempShot({ ...tempShot, dialogue: updatedDialogue });
                     }}
-                    className="bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md focus:border-slate-600 focus:outline-none transition-all cursor-pointer shrink-0 w-[140px]"
-                  >
-                    <option value="">选择角色</option>
-                    {characters.map(char => (
-                      <option key={char.name} value={char.name}>{char.name}</option>
-                    ))}
-                  </select>
+                    placeholder="选择角色"
+                    size="sm"
+                  />
                   <input
                     type="text"
                     value={dlg.value || ''}
@@ -169,87 +172,68 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">景别</label>
-              <div className="relative">
-                <select
-                  value={tempShot.shotSize || 'MED'}
-                  onChange={(e) => setTempShot({ ...tempShot, shotSize: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  <option value="特写">特写</option>
-                  <option value="大特写">大特写</option>
-                  <option value="中近景">中近景</option>
-                  <option value="中景">中景</option>
-                  <option value="中远景">中远景</option>
-                  <option value="远景">远景</option>
-                  <option value="全景">全景</option>
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={[
+                  { value: '特写', label: '特写' },
+                  { value: '大特写', label: '大特写' },
+                  { value: '中近景', label: '中近景' },
+                  { value: '中景', label: '中景' },
+                  { value: '中远景', label: '中远景' },
+                  { value: '远景', label: '远景' },
+                  { value: '全景', label: '全景' }
+                ]}
+                value={tempShot.shotSize || '特写'}
+                onChange={(value) => setTempShot({ ...tempShot, shotSize: value })}
+                className="w-full"
+              />
             </div>
 
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">镜头运动</label>
-              <div className="relative">
-                <select
-                  value={tempShot.cameraMovement || '固定'}
-                  onChange={(e) => setTempShot({ ...tempShot, cameraMovement: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  <option value="固定">固定</option>
-                  <option value="前推">前推</option>
-                  <option value="后拉">后拉</option>
-                  <option value="左摇">左摇</option>
-                  <option value="右摇">右摇</option>
-                  <option value="上移">上移</option>
-                  <option value="下移">下移</option>
-                  <option value="跟随">跟随</option>
-                  <option value="手持">手持</option>
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={[
+                  { value: '固定', label: '固定' },
+                  { value: '前推', label: '前推' },
+                  { value: '后拉', label: '后拉' },
+                  { value: '左摇', label: '左摇' },
+                  { value: '右摇', label: '右摇' },
+                  { value: '上移', label: '上移' },
+                  { value: '下移', label: '下移' },
+                  { value: '跟随', label: '跟随' },
+                  { value: '手持', label: '手持' }
+                ]}
+                value={tempShot.cameraMovement || '固定'}
+                onChange={(value) => setTempShot({ ...tempShot, cameraMovement: value })}
+                className="w-full"
+              />
             </div>
 
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">时长 (秒)</label>
-              <div className="relative">
-                <select
-                  value={tempShot.interval?.duration || 5}
-                  onChange={(e) => setTempShot({
-                    ...tempShot,
-                    interval: {
-                      ...tempShot.interval,
-                      duration: Number(e.target.value)
-                    } as any
-                  })}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {Array.from({ length: 30 }, (_, i) => i + 1).map(sec => (
-                    <option key={sec} value={sec}>{sec} 秒</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={Array.from({ length: 30 }, (_, i) => i + 1).map(sec => ({
+                  value: sec.toString(),
+                  label: `${sec} 秒`
+                }))}
+                value={tempShot.interval?.duration?.toString() || '5'}
+                onChange={(value) => setTempShot({ ...tempShot, interval: { ...tempShot.interval, duration: Number(value) } as any })}
+                className="w-full"
+              />
             </div>
           </div>
 
           {/* Video Prompt */}
           {shot.interval && (
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-between">
-                <span>视频拍摄提示词</span>
+              <div className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-between">
+                <span className='flex-1'>视频拍摄提示词</span>
                 <button
                   onClick={() => setIsVideoPromptModalOpen(true)}
                   className="text-[11px] text-slate-400 hover:text-slate-50 transition-colors cursor-pointer"
                 >
                   编辑提示词
                 </button>
-              </label>
+              </div>
               <div
                 className={`p-3 rounded-md border text-xs ${
                   shot.interval.videoPrompt
@@ -326,15 +310,16 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                 <div key={kf.id || kfIdx} className="bg-slate-800 border border-slate-600 rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
-                      <select
+                      <CustomSelect
+                        options={[
+                          { value: 'start', label: '起始帧' },
+                          { value: 'end', label: '结束帧' },
+                          { value: 'full', label: '连环画' }
+                        ]}
                         value={kf.type || 'start'}
-                        onChange={(e) => updateKeyframe(kfIdx, 'type', e.target.value)}
-                        className="bg-slate-800 border border-slate-600 text-slate-50 text-xs px-2 py-1 rounded focus:border-slate-600 focus:outline-none"
-                      >
-                        <option value="start">起始帧</option>
-                        <option value="end">结束帧</option>
-                        <option value="full">连环画</option>
-                      </select>
+                        onChange={(value) => updateKeyframe(kfIdx, 'type', value)}
+                        size="sm"
+                      />
                     </div>
                     <button
                       onClick={() => deleteKeyframe(kfIdx)}
@@ -392,61 +377,37 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
               {/* Text2Image Provider */}
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">图像模型</label>
-                <div className="relative">
-                  <select
-                    value={tempShot.modelProviders?.text2image || ''}
-                    onChange={(e) => setTempShot({
-                      ...tempShot,
-                      modelProviders: {
-                        ...tempShot.modelProviders,
-                        text2image: e.target.value || undefined
-                      }
-                    })}
-                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                  >
-                    <option value="">使用项目默认</option>
-                    {modelConfigs
-                      .filter(c => c.modelType === 'text2image' && c.apiKey)
-                      .map(config => (
-                    <option key={config.id} value={config.id}>
-                      {config.provider} - {config.model || config.description}
-                    </option>
-                  ))}
-                  </select>
-                  <div className="absolute right-3 top-2.5 pointer-events-none">
-                    <ChevronRight className="w-3 h-3 text-slate-600 rotate-90" />
-                  </div>
-                </div>
+                <CustomSelect
+                  options={[
+                    { value: '', label: '使用项目默认' },
+                    ...modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => ({
+                      value: config.id,
+                      label: `${config.provider} - ${config.model || config.description}`
+                    }))
+                  ]}
+                  value={tempShot.modelProviders?.text2image || ''}
+                  onChange={(value) => setTempShot({ ...tempShot, modelProviders: { ...tempShot.modelProviders, text2image: value || undefined } })}
+                  placeholder="使用项目默认"
+                  dropdownPosition="top"
+                />
               </div>
 
               {/* Image2Video Provider */}
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">视频模型</label>
-                <div className="relative">
-                  <select
-                    value={tempShot.modelProviders?.image2video || ''}
-                    onChange={(e) => setTempShot({
-                      ...tempShot,
-                      modelProviders: {
-                        ...tempShot.modelProviders,
-                        image2video: e.target.value || undefined
-                      }
-                    })}
-                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                  >
-                    <option value="">使用项目默认</option>
-                    {modelConfigs
-                      .filter(c => c.modelType === 'image2video' && c.apiKey)
-                      .map(config => (
-                    <option key={config.id} value={config.id}>
-                      {config.provider} - {config.model || config.description}
-                    </option>
-                  ))}
-                  </select>
-                  <div className="absolute right-3 top-2.5 pointer-events-none">
-                    <ChevronRight className="w-3 h-3 text-slate-600 rotate-90" />
-                  </div>
-                </div>
+                <CustomSelect
+                  options={[
+                    { value: '', label: '使用项目默认' },
+                    ...modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => ({
+                      value: config.id,
+                      label: `${config.provider} - ${config.model || config.description}`
+                    }))
+                  ]}
+                  value={tempShot.modelProviders?.image2video || ''}
+                  onChange={(value) => setTempShot({ ...tempShot, modelProviders: { ...tempShot.modelProviders, image2video: value || undefined } })}
+                  placeholder="使用项目默认"
+                  dropdownPosition="top"
+                />
               </div>
             </div>
           </div>

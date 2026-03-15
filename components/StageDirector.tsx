@@ -5,12 +5,13 @@ import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
 import { addMediaHistory, getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Keyframe, ProjectState, Scene, Shot } from '../types';
+import CustomSelect from './CustomSelect';
+import { useDialog } from './dialog';
 import FileUploadModal, { downloadImage, downloadVideo } from './FileUploadModal';
 import SceneEditModal from './SceneEditModal';
 import ShotEditModal from './ShotEditModal';
 import VideoPromptModal from './VideoPromptModal';
 import WardrobeModal from './WardrobeModal';
-import { useDialog } from './dialog';
 
 interface Props {
   project: ProjectState;
@@ -1067,16 +1068,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
                                      <div className="flex items-center gap-2">
                                          {hasVars && (
-                                             <select
+                                             <CustomSelect
+                                                options={[
+                                                    { value: '', label: '默认' },
+                                                    ...char.variations.map(v => ({ value: v.id, label: v.name }))
+                                                ]}
                                                 value={activeShot.characterVariations?.[String(char.id)] || ""}
-                                                onChange={(e) => handleVariationChange(activeShot.id, String(char.id), e.target.value)}
-                                                className="bg-slate-700 text-[12px] text-slate-400 border border-slate-600 rounded px-1.5 py-0.5 min-w-[60px] outline-none focus:border-slate-500"
-                                             >
-                                                 <option value="">默认</option>
-                                                 {char.variations.map(v => (
-                                                     <option key={v.id} value={v.id}>{v.name}</option>
-                                                 ))}
-                                             </select>
+                                                onChange={(value) => handleVariationChange(activeShot.id, String(char.id), value)}
+                                                className="min-w-[60px]"
+                                                size="sm"
+                                             />
                                          )}
                                          <button
                                              onClick={() => setSelectedCharId(char.id)}
@@ -1447,67 +1448,59 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                {/* Text2Image Provider */}
                                <div className="space-y-2">
                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">图像模型</label>
-                                   <div className="relative">
-                                       <select
-                                           value={activeShot.modelProviders?.text2image || project.modelProviders?.text2image}
-                                           onChange={(e) => {
-                                               const text2image = e.target.value || undefined;
-                                               updateShot(activeShot.id, (s) => ({
-                                                   ...s,
-                                                   modelProviders: {
-                                                       ...s.modelProviders,
-                                                       text2image
-                                                   }
-                                               }));
-                                           }}
-                                           className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                                       >
-                                           <option value="">使用项目默认</option>
-                                           {modelConfigs
+                                   <CustomSelect
+                                       options={[
+                                           { value: '', label: '使用项目默认' },
+                                           ...modelConfigs
                                                .filter(c => c.modelType === 'text2image' && c.apiKey)
-                                               .map(config => (
-                    <option key={config.id} value={config.id}>
-                      {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
-                    </option>
-                  ))}
-                                       </select>
-                                       <div className="absolute right-3 top-2.5 pointer-events-none">
-                                           <ChevronRight className="w-3 h-3 text-slate-600 rotate-90" />
-                                       </div>
-                                   </div>
+                                               .map(config => ({
+                                                   value: config.id,
+                                                   label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                                               }))
+                                       ]}
+                                       value={activeShot.modelProviders?.text2image || project.modelProviders?.text2image}
+                                       onChange={(value) => {
+                                           const text2image = value || undefined;
+                                           updateShot(activeShot.id, (s) => ({
+                                               ...s,
+                                               modelProviders: {
+                                                   ...s.modelProviders,
+                                                   text2image
+                                               }
+                                           }));
+                                       }}
+                                       className="w-full"
+                                       size="sm"
+                                   />
                                </div>
 
                                {/* Image2Video Provider */}
                                <div className="space-y-2">
                                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">视频模型</label>
-                                   <div className="relative">
-                                       <select
-                                           value={activeShot.modelProviders?.image2video || project.modelProviders?.image2video}
-                                           onChange={(e) => {
-                                               const image2video = e.target.value || undefined;
-                                               updateShot(activeShot.id, (s) => ({
-                                                   ...s,
-                                                   modelProviders: {
-                                                       ...s.modelProviders,
-                                                       image2video
-                                                   }
-                                               }));
-                                           }}
-                                           className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2 text-xs rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                                       >
-                                           <option value="">使用项目默认</option>
-                                           {modelConfigs
+                                   <CustomSelect
+                                       options={[
+                                           { value: '', label: '使用项目默认' },
+                                           ...modelConfigs
                                                .filter(c => c.modelType === 'image2video' && c.apiKey)
-                                               .map(config => (
-                    <option key={config.id} value={config.id}>
-                      {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
-                    </option>
-                  ))}
-                                       </select>
-                                       <div className="absolute right-3 top-2.5 pointer-events-none">
-                                           <ChevronRight className="w-3 h-3 text-slate-600 rotate-90" />
-                                       </div>
-                                   </div>
+                                               .map(config => ({
+                                                   value: config.id,
+                                                   label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                                               }))
+                                       ]}
+                                       value={activeShot.modelProviders?.image2video || project.modelProviders?.image2video}
+                                       onChange={(value) => {
+                                           const image2video = value || undefined;
+                                           updateShot(activeShot.id, (s) => ({
+                                               ...s,
+                                               modelProviders: {
+                                                   ...s.modelProviders,
+                                                   image2video
+                                               }
+                                           }));
+                                       }}
+                                       className="w-full"
+                                       size="sm"
+                                   />
                                </div>
                            </div>
                        </div>

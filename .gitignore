@@ -14,6 +14,7 @@ electron-dist
 *.local
 electron-dist
 dev-dist
+upload
 
 # Electron specific
 electron/out

@@ -1,4 +1,4 @@
-import { AlertCircle, Aperture, BookOpen, BrainCircuit, ChevronRight, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
+import { AlertCircle, Aperture, BookOpen, BrainCircuit, ChevronDown, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
@@ -8,6 +8,7 @@ import { useDialog } from './dialog';
 import { DURATION_OPTIONS, GENRE_OPTIONS, IMAGE_COUNT_OPTIONS, IMAGE_SIZE_OPTIONS, LANGUAGE_OPTIONS, STYLE_OPTIONS } from './ProjectSettingsModal';
 import SceneEditModal from './SceneEditModal';
 import ShotEditModal from './ShotEditModal';
+import CustomSelect from './CustomSelect';
 
 interface Props {
   project: ProjectState;
@@ -677,23 +678,12 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
             {/* Language Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                输出语言
-              </label>
-              <div className="relative">
-                <select
-                  value={localLanguage}
-                  onChange={(e) => setLocalLanguage(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {LANGUAGE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                   <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={LANGUAGE_OPTIONS}
+                value={localLanguage}
+                onChange={setLocalLanguage}
+                className="w-full"
+              />
             </div>
 
             {/* Visual Style Selection */}
@@ -702,23 +692,12 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 画面风格
               </label>
               <div className="grid grid-cols-2 gap-3">
-              <div className="relative">
-                <select
-                  value={localStyle}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    handleStyleSelect(value);
-                  }}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {STYLE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                   <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={STYLE_OPTIONS}
+                value={localStyle}
+                onChange={handleStyleSelect}
+                className="w-full"
+              />
               <div className="relative"> 
               {localStyle === 'custom' && (
                 <input
@@ -737,23 +716,12 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">题材类型</label>
               <div className="grid grid-cols-2 gap-3">
-              <div className="relative">
-                <select
-                  value={localGenre}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setLocalGenre(value);
-                  }}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {GENRE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={GENRE_OPTIONS}
+                value={localGenre}
+                onChange={setLocalGenre}
+                className="w-full"
+              />
               <div className="relative"> 
               {localGenre === 'custom' && (
                 <input
@@ -773,20 +741,12 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                 图片尺寸
               </label>
-              <div className="relative">
-                <select
-                  value={localImageSize}
-                  onChange={(e) => setLocalImageSize(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {IMAGE_SIZE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                   <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={IMAGE_SIZE_OPTIONS}
+                value={localImageSize}
+                onChange={setLocalImageSize}
+                className="w-full"
+              />
             </div>
 
             {/* Image Count Selection */}
@@ -794,20 +754,12 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                 出图数量
               </label>
-              <div className="relative">
-                <select
-                  value={localImageCount}
-                  onChange={(e) => setLocalImageCount(Number(e.target.value))}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {IMAGE_COUNT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                   <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={IMAGE_COUNT_OPTIONS}
+                value={localImageCount.toString()}
+                onChange={(value) => setLocalImageCount(Number(value))}
+                className="w-full"
+              />
             </div>
 
             {/* Duration Selection */}
@@ -854,31 +806,23 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 <Sparkles className="w-3 h-3" />
                 大语言模型 (LLM)
               </label>
-              <div className="relative">
-                <select
-                  value={project.modelProviders?.llm || localLlmProvider}
-                  onChange={(e) => {
-                    const currentProviders = project.modelProviders || {};
-                    updateProject({
-                      modelProviders: {
-                        ...currentProviders,
-                        llm: e.target.value || undefined
-                      }
-                    });
-                  }}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  <option value="">系统默认模型</option>
-                  {modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => (
-                    <option key={config.id} value={config.id}>
-                      {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                   <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => ({
+                  value: config.id,
+                  label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                }))]}
+                value={project.modelProviders?.llm || localLlmProvider}
+                onChange={(value) => {
+                  const currentProviders = project.modelProviders || {};
+                  updateProject({
+                    modelProviders: {
+                      ...currentProviders,
+                      llm: value || undefined
+                    }
+                  });
+                }}
+                className="w-full"
+              />
             </div>
 
             {/* Text2Image Provider Selection */}
@@ -887,31 +831,23 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 <Image className="w-3 h-3" />
                 文生图模型
               </label>
-              <div className="relative">
-                <select
-                  value={project.modelProviders?.text2image || localText2imageProvider}
-                  onChange={(e) => {
-                    const currentProviders = project.modelProviders || {};
-                    updateProject({
-                      modelProviders: {
-                        ...currentProviders,
-                        text2image: e.target.value || undefined
-                      }
-                    });
-                  }}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  <option value="">系统默认模型</option>
-                  {modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => (
-                    <option key={config.id} value={config.id}>
-                      {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                   <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => ({
+                  value: config.id,
+                  label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                }))]}
+                value={project.modelProviders?.text2image || localText2imageProvider}
+                onChange={(value) => {
+                  const currentProviders = project.modelProviders || {};
+                  updateProject({
+                    modelProviders: {
+                      ...currentProviders,
+                      text2image: value || undefined
+                    }
+                  });
+                }}
+                className="w-full"
+              />
             </div>
 
             {/* Image2Video Provider Selection */}
@@ -920,31 +856,23 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 <Film className="w-3 h-3" />
                 图生视频模型
               </label>
-              <div className="relative">
-                <select
-                  value={project.modelProviders?.image2video || localImage2videoProvider}
-                  onChange={(e) => {
-                    const currentProviders = project.modelProviders || {};
-                    updateProject({
-                      modelProviders: {
-                        ...currentProviders,
-                        image2video: e.target.value || undefined
-                      }
-                    });
-                  }}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  <option value="">系统默认模型</option>
-                  {modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => (
-                    <option key={config.id} value={config.id}>
-                      {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                   <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => ({
+                  value: config.id,
+                  label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                }))]}
+                value={project.modelProviders?.image2video || localImage2videoProvider}
+                onChange={(value) => {
+                  const currentProviders = project.modelProviders || {};
+                  updateProject({
+                    modelProviders: {
+                      ...currentProviders,
+                      image2video: value || undefined
+                    }
+                  });
+                }}
+                className="w-full"
+              />
             </div>
         </div>
 
@@ -1195,18 +1123,13 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                    </div>
                    {editingGenre ? (
                      <div className="relative">
-                       <select
+                       <CustomSelect
+                         options={GENRE_OPTIONS}
                          value={tempGenre}
-                         onChange={(e) => setTempGenre(e.target.value)}
-                         className="w-full bg-slate-800 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1.5 appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                       >
-                         {GENRE_OPTIONS.map(opt => (
-                           <option key={opt.value} value={opt.value}>{opt.label}</option>
-                         ))}
-                       </select>
-                       <div className="absolute right-2 top-2 pointer-events-none">
-                         <ChevronRight className="w-3 h-3 text-slate-600 rotate-90" />
-                       </div>
+                         onChange={setTempGenre}
+                         className="w-full"
+                         size="sm"
+                       />
                        <div className="flex gap-2 mt-2">
                          <button onClick={saveGenre} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
                          <button onClick={() => setEditingGenre(false)} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
@@ -1271,15 +1194,17 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                              className="w-full bg-slate-900 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
                              placeholder="角色名"
                            />
-                           <select
+                           <CustomSelect
+                             options={[
+                               { value: '男', label: '男' },
+                               { value: '女', label: '女' },
+                               { value: '其他', label: '其他' }
+                             ]}
                              value={tempCharacter.gender || '男'}
-                             onChange={(e) => setTempCharacter({ ...tempCharacter, gender: e.target.value })}
-                             className="w-full bg-slate-900 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                           >
-                             <option value="男">男</option>
-                             <option value="女">女</option>
-                             <option value="其他">其他</option>
-                           </select>
+                             onChange={(value) => setTempCharacter({ ...tempCharacter, gender: value })}
+                             className="w-full"
+                             size="sm"
+                           />
                            <input
                              type="text"
                              value={tempCharacter.age || ''}
@@ -1311,15 +1236,17 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                   className="w-full bg-slate-800 border border-slate-600 text-slate-50 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
                                   placeholder="角色名"
                                 />
-                                <select
+                                <CustomSelect
+                                  options={[
+                                    { value: '男', label: '男' },
+                                    { value: '女', label: '女' },
+                                    { value: '其他', label: '其他' }
+                                  ]}
                                   value={tempCharacter.gender || '男'}
-                                  onChange={(e) => setTempCharacter({ ...tempCharacter, gender: e.target.value })}
-                                  className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded px-2 py-1 focus:border-slate-600 focus:outline-none"
-                                >
-                                  <option value="男">男</option>
-                                  <option value="女">女</option>
-                                  <option value="其他">其他</option>
-                                </select>
+                                  onChange={(value) => setTempCharacter({ ...tempCharacter, gender: value })}
+                                  className="w-full"
+                                  size="sm"
+                                />
                                 <input
                                   type="text"
                                   value={tempCharacter.age || ''}

@@ -1,9 +1,10 @@
-import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, Speech,ChevronRight, X } from 'lucide-react';
+import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, Speech, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { VOICE_LIBRARY, VOICE_LIBRARY_TYPE_NAMES } from '../config/voiceLibrary';
 import { ModelService } from '../services/modelService';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Shot, TtsParams } from '../types';
+import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
 
 interface VoiceSynthesisModalProps {
@@ -274,48 +275,40 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
               <div className="bg-slate-800 p-3 rounded-xl border border-slate-600">
               <div className="flex items-center gap-3">
                 {/* Voice Library Filter */}
-                <div className="flex-1 min-w-0 relative">
-                  <select
-                    value={selectedVoiceLibrary}
-                    onChange={(e) => setSelectedVoiceLibrary(e.target.value)}
-                    className="w-full bg-slate-700 border border-slate-600 text-slate-50 px-2 py-2 text-xs rounded-md appearance-none focus:border-slate-500 focus:outline-none transition-all cursor-pointer"
-                  >
-                    <option value="all">全部音色</option>
-                    <option value="basic">基础音库</option>
-                    <option value="premium">精品音库</option>
-                    <option value="exquisite">臻品音库</option>
-                    <option value="llm">大模型音库</option>
-                  </select>
-                  <div className="absolute right-3 top-3 pointer-events-none">
-                    <ChevronRight className="w-3 h-3 text-slate-400 rotate-90" />
-                  </div>
-                </div>
+                <CustomSelect
+                  className="flex-1 min-w-0"
+                  options={[
+                    { value: 'all', label: '全部音色' },
+                    { value: 'basic', label: '基础音库' },
+                    { value: 'premium', label: '精品音库' },
+                    { value: 'exquisite', label: '臻品音库' },
+                    { value: 'llm', label: '大模型音库' }
+                  ]}
+                  value={selectedVoiceLibrary}
+                  onChange={setSelectedVoiceLibrary}
+                  placeholder="选择音库"
+                  dropdownPosition="top"
+                />
 
                 {/* Voice Person */}
-                <div className="flex-1 min-w-0 relative">
-                  <select
-                    value={ttsParams.per}
-                    onChange={(e) => setTtsParams({ ...ttsParams, per: parseInt(e.target.value) })}
-                    className="w-full bg-slate-700 border border-slate-600 text-slate-50 px-2 py-2 text-xs rounded-md appearance-none focus:border-slate-500 focus:outline-none transition-all cursor-pointer"
-                  >
-                    {selectedVoiceLibrary === 'all' ? (
-                      VOICE_LIBRARY.map((voice) => (
-                        <option key={voice.per} value={voice.per}>
-                          {voice.name} ({VOICE_LIBRARY_TYPE_NAMES[voice.library]})
-                        </option>
-                      ))
-                    ) : (
-                      VOICE_LIBRARY.filter(v => v.library === selectedVoiceLibrary).map((voice) => (
-                        <option key={voice.per} value={voice.per}>
-                          {voice.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <div className="absolute right-3 top-3 pointer-events-none">
-                    <ChevronRight className="w-3 h-3 text-slate-400 rotate-90" />
-                  </div>
-                </div>
+                <CustomSelect
+                  className="flex-1 min-w-0"
+                  options={
+                    selectedVoiceLibrary === 'all'
+                      ? VOICE_LIBRARY.map(voice => ({
+                          value: String(voice.per),
+                          label: `${voice.name} (${VOICE_LIBRARY_TYPE_NAMES[voice.library]})`
+                        }))
+                      : VOICE_LIBRARY.filter(v => v.library === selectedVoiceLibrary).map(voice => ({
+                          value: String(voice.per),
+                          label: voice.name
+                        }))
+                  }
+                  value={String(ttsParams.per)}
+                  onChange={(value) => setTtsParams({ ...ttsParams, per: parseInt(value) })}
+                  placeholder="选择音色"
+                  dropdownPosition="top"
+                />
 
                 {/* Preview Button */}
                 <button

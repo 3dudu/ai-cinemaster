@@ -1,9 +1,10 @@
-import { ChevronRight, Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
+import { Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
 import { ProjectState } from '../types';
+import CustomSelect from './CustomSelect';
 
 export const DURATION_OPTIONS = [
   { label: '30秒 (广告)', value: '30s' },
@@ -41,12 +42,12 @@ export const IMAGE_SIZE_OPTIONS = [
 ];
 
 export const IMAGE_COUNT_OPTIONS = [
-  { label: '文生视频', value: 0 },
-  { label: '首尾帧', value: 1 },
-  { label: '4 张', value: 4 },
-  { label: '6 张', value: 6 },
-  { label: '8 张', value: 8 },
-  { label: '9 张', value: 9 }
+  { label: '文生视频', value: '0' },
+  { label: '首尾帧', value: '1' },
+  { label: '4 张', value: '4' },
+  { label: '6 张', value: '6' },
+  { label: '8 张', value: '8' },
+  { label: '9 张', value: '9' }
 ];
 
 export const GENRE_OPTIONS = [
@@ -207,39 +208,23 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
             {/* Language Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">输出语言</label>
-              <div className="relative">
-                <select
-                  value={localLanguage}
-                  onChange={(e) => setLocalLanguage(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {LANGUAGE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={LANGUAGE_OPTIONS}
+                value={localLanguage}
+                onChange={setLocalLanguage}
+                className="w-full"
+              />
             </div>
 
             {/* Image Size Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">图片尺寸</label>
-              <div className="relative">
-                <select
-                  value={localImageSize}
-                  onChange={(e) => setLocalImageSize(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {IMAGE_SIZE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={IMAGE_SIZE_OPTIONS}
+                value={localImageSize}
+                onChange={setLocalImageSize}
+                className="w-full"
+              />
             </div>
           </div>
 
@@ -247,23 +232,12 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
             {/* Genre Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">题材类型</label>
-              <div className="relative">
-                <select
-                  value={localGenre}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setLocalGenre(value);
-                  }}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {GENRE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={GENRE_OPTIONS}
+                value={localGenre}
+                onChange={setLocalGenre}
+                className="w-full"
+              />
               {localGenre === 'custom' && (
                 <input
                   type="text"
@@ -277,23 +251,12 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
             {/* Visual Style Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">画面风格</label>
-              <div className="relative">
-                <select
-                  value={localStyle}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setLocalStyle(value);
-                  }}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {STYLE_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={STYLE_OPTIONS}
+                value={localStyle}
+                onChange={setLocalStyle}
+                className="w-full"
+              />
               {localStyle === 'custom' && (
                 <input
                   type="text"
@@ -341,20 +304,12 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
             {/* Image Count Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">参考图数</label>
-              <div className="relative">
-                <select
-                  value={localImageCount}
-                  onChange={(e) => setLocalImageCount(Number(e.target.value))}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                >
-                  {IMAGE_COUNT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-3 pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                </div>
-              </div>
+              <CustomSelect
+                options={IMAGE_COUNT_OPTIONS}
+                value={localImageCount.toString()}
+                onChange={(value) => setLocalImageCount(Number(value))}
+                className="w-full"
+              />
             </div>
           </div>
           {/* Divider */}
@@ -368,23 +323,19 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               <Sparkles className="w-3 h-3" />
               大语言模型 (LLM)
             </label>
-            <div className="relative">
-              <select
-                value={localLlmProvider}
-                onChange={(e) => setLocalLlmProvider(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-              >
-                <option value="">系统默认模型</option>
-                {modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => (
-                  <option key={config.id} value={config.id}>
-                    {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-3 pointer-events-none">
-                <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-              </div>
-            </div>
+            <CustomSelect
+              options={modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => ({
+                value: config.id,
+                label: `${config.provider} - ${config.description || config.model}`,
+                suffix: config.enabled ? ' ✅' : ''
+              }))}
+              value={localLlmProvider}
+              onChange={setLocalLlmProvider}
+              className="w-full"
+              allowEmpty
+              emptyLabel="系统默认模型"
+              dropdownPosition="top"
+            />
           </div>
 
           {/* Text2Image Provider Selection */}
@@ -393,23 +344,19 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               <ImageIcon className="w-3 h-3" />
               文生图模型
             </label>
-            <div className="relative">
-              <select
-                value={localText2imageProvider}
-                onChange={(e) => setLocalText2imageProvider(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-              >
-                <option value="">系统默认模型</option>
-                {modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => (
-                  <option key={config.id} value={config.id}>
-                    {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-3 pointer-events-none">
-                <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-              </div>
-            </div>
+            <CustomSelect
+              options={modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => ({
+                value: config.id,
+                label: `${config.provider} - ${config.description || config.model}`,
+                suffix: config.enabled ? ' ✅' : ''
+              }))}
+              value={localText2imageProvider}
+              onChange={setLocalText2imageProvider}
+              className="w-full"
+              allowEmpty
+              emptyLabel="系统默认模型"
+              dropdownPosition="top"
+            />
           </div>
 
           {/* Image2Video Provider Selection */}
@@ -418,23 +365,19 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               <Film className="w-3 h-3" />
               图生视频模型
             </label>
-            <div className="relative">
-              <select
-                value={localImage2videoProvider}
-                onChange={(e) => setLocalImage2videoProvider(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-              >
-                <option value="">系统默认模型</option>
-                {modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => (
-                  <option key={config.id} value={config.id}>
-                    {config.provider} - {config.description || config.model}{config.enabled ? '✅' : null}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-3 pointer-events-none">
-                <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-              </div>
-            </div>
+            <CustomSelect
+              options={modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => ({
+                value: config.id,
+                label: `${config.provider} - ${config.description || config.model}`,
+                suffix: config.enabled ? ' ✅' : ''
+              }))}
+              value={localImage2videoProvider}
+              onChange={setLocalImage2videoProvider}
+              className="w-full"
+              allowEmpty
+              emptyLabel="系统默认模型"
+              dropdownPosition="top"
+            />
           </div>
         </div>
 
