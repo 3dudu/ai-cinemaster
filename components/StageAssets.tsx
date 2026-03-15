@@ -633,7 +633,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                 <div className="p-3 border-t border-slate-600 bg-slate-900">
                   <div className="flex justify-between items-center mb-1">
                      <h3 className="font-bold text-slate-200 text-sm truncate">{scene.location}</h3>
-                     <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 uppercase font-mono whitespace-nowrap">{scene.time}</span>
+                     <span className="max-w-32 line-clamp-1 mb-2 truncate px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 uppercase font-mono whitespace-nowrap">{scene.time}</span>
                   </div>
                   <p className="text-[12px] text-slate-500 line-clamp-1 mb-2">{scene.atmosphere}</p>
                   {scene.visualPrompt && (

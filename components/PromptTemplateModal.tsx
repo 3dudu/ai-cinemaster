@@ -1,6 +1,7 @@
-import { ChevronDown, Download, NotebookPen, RotateCcw, Save, Upload, X } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Download, NotebookPen, RotateCcw, Save, Upload, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { PROMPT_TEMPLATES } from '../services/promptTemplates';
+import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
 
 interface Template {
@@ -19,9 +20,6 @@ const PromptTemplateModal: React.FC<{
   const [selectedKey, setSelectedKey] = useState<string>('PARSE_SCRIPT');
   const [customContent, setCustomContent] = useState<Record<string, string>>({});
   const [currentContent, setCurrentContent] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const selectedItemRef = useRef<HTMLButtonElement>(null);
 
   // 模板列表
   const templates: Template[] = useMemo(() => [
@@ -55,32 +53,6 @@ const PromptTemplateModal: React.FC<{
       }
     }
   }, []);
-
-  // 点击外部关闭下拉列表
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-
-    if (showDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      // 滚动到选中项
-      setTimeout(() => {
-        if (selectedItemRef.current) {
-          selectedItemRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest'
-          });
-        }
-      }, 0);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showDropdown]);
 
   // 更新当前内容
   useEffect(() => {
@@ -354,38 +326,17 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
           <div className="px-2 py-2 md:py-4 md:px-6 bg-slate-600/80 border-t border-slate-600 shrink-0">
             <div className="flex gap-2 items-center flex-col md:flex-row">
               {/* 模板选择器 */}
-              <div className="relative flex-1 w-full" ref={dropdownRef}>
-                <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <span className="font-medium">{currentTemplate?.name}</span>
-                  <ChevronDown className={`w-4 h-4 ml-2 flex-shrink-0 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showDropdown && (
-                  <div className="absolute z-10 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto">
-                    {templates.map((template) => (
-                      <button
-                        key={template.key}
-                        ref={selectedKey === template.key ? selectedItemRef : null}
-                        onClick={() => {
-                          setSelectedKey(template.key);
-                          setShowDropdown(false);
-                        }}
-                        className={`w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer ${
-                          selectedKey === template.key
-                            ? 'bg-slate-700 text-slate-100'
-                            : 'text-slate-300 hover:bg-slate-600'
-                        }`}
-                      >
-                        <div className="font-medium">{template.name}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">{template.description}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <CustomSelect
+                className="flex-1 min-w-0 w-full"
+                options={templates.map(t => ({
+                  value: t.key,
+                  label: t.name,
+                  description: t.description
+                }))}
+                value={selectedKey}
+                onChange={setSelectedKey}
+                placeholder="选择模板"
+              />
 
               {/* 操作按钮 */}
               <div className="flex w-full md:w-auto gap-2 items-center justify-end"> 

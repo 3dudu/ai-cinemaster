@@ -1,10 +1,11 @@
-import { ArrowRightLeft, ChevronDown, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
+import { ArrowRightLeft, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deleteSingleMediaFile, getAllProjectsMetadata, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
 import { ProjectState } from '../types';
 import { useDialog } from './dialog';
 import { downloadImage, downloadVideo } from './FileUploadModal';
 import PromptDetailModal from './PromptDetailModal';
+import CustomSelect from './CustomSelect';
 
 interface ImageItem {
   id: string;
@@ -33,16 +34,12 @@ const StageImage: React.FC<Props> = ({ project }) => {
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [loadingProjects, setLoadingProjects] = useState(false);
-  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [showVideo, setShowVideo] = useState(true);
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<{title: string, prompt: string, timestamp?: number} | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const selectedItemRef = useRef<HTMLButtonElement>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   // 加载所有项目
@@ -121,43 +118,6 @@ const StageImage: React.FC<Props> = ({ project }) => {
       setShowPromptModal(true);
     }
   };
-
-  // 延迟关闭下拉列表
-  const handleMouseLeave = useCallback(() => {
-    if (dropdownTimeoutRef.current) {
-      clearTimeout(dropdownTimeoutRef.current);
-    }
-    dropdownTimeoutRef.current = setTimeout(() => {
-      setShowProjectDropdown(false);
-    }, 300);
-  }, []);
-
-  const handleMouseEnter = useCallback(() => {
-    if (dropdownTimeoutRef.current) {
-      clearTimeout(dropdownTimeoutRef.current);
-      dropdownTimeoutRef.current = null;
-    }
-  }, []);
-
-  // 清理定时器
-  useEffect(() => {
-    if(showProjectDropdown){
-      // 滚动到选中项
-      setTimeout(() => {
-        if (selectedItemRef.current) {
-          selectedItemRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest'
-          });
-        }
-      }, 0);
-    }
-    return () => {
-      if (dropdownTimeoutRef.current) {
-        clearTimeout(dropdownTimeoutRef.current);
-      }
-    };
-  }, [showProjectDropdown]);
 
   // 收集所有图片数据
   const [allImages, setAllImages] = useState<ImageItem[]>([]);
@@ -490,57 +450,14 @@ const StageImage: React.FC<Props> = ({ project }) => {
         <div className="border-b border-slate-600 bg-slate-700 space-y-1 p-2">
           <div className="flex gap-2 md:flex-row flex-col">
             {/* 项目选择器 */}
-            <div
-              ref={dropdownRef}
-              className="relative min-w-64"
-              onMouseLeave={handleMouseLeave}
-              onMouseEnter={handleMouseEnter}
-            >
-              <button
-                onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+            <div className="min-w-64">
+              <CustomSelect
+                options={allProjects.map(proj => ({ value: proj.id, label: proj.title || '未命名项目' }))}
+                value={selectedProjectId}
+                onChange={setSelectedProjectId}
+                placeholder={loadingProjects ? '加载项目...' : '选择项目'}
                 disabled={loadingProjects || allProjects.length === 0}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-left text-slate-100 flex items-center justify-between hover:border-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <span className="truncate">
-                  {loadingProjects ? '加载项目...' : (
-                    selectedProjectId ? (
-                      allProjects.find(p => p.id === selectedProjectId)?.title || '选择项目'
-                    ) : '选择项目'
-                  )}
-                </span>
-                <ChevronDown className={`w-4 h-4 ml-2 flex-shrink-0 transition-transform ${showProjectDropdown ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showProjectDropdown && (
-                <div
-                  onMouseLeave={handleMouseLeave}
-                  onMouseEnter={handleMouseEnter}
-                  className="absolute z-30 w-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-64 overflow-y-auto"
-                >
-                  {allProjects.map(proj => (
-                    <button
-                      key={proj.id}
-                      ref={selectedProjectId === proj.id ? selectedItemRef : null}
-                      onClick={() => {
-                        setSelectedProjectId(proj.id);
-                        setShowProjectDropdown(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-sm transition-colors cursor-pointer ${
-                        proj.id === selectedProjectId
-                          ? 'bg-slate-700 text-slate-100'
-                          : 'text-slate-300 hover:bg-slate-600'
-                      }`}
-                    >
-                      {proj.title || '未命名项目'}
-                    </button>
-                  ))}
-                  {allProjects.length === 0 && !loadingProjects && (
-                    <div className="px-4 py-3 text-sm text-slate-400 text-center">
-                      暂无项目
-                    </div>
-                  )}
-                </div>
-              )}
+              />
             </div>
 
             {/* 搜索框 */}

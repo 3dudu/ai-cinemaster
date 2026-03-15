@@ -1,10 +1,11 @@
-import { Check, ChevronRight, Download, Edit, Eye, EyeOff, Film, Globe, Image, Key, Link, Music, Plus, Sparkles, Tags, Trash2, Upload, X } from 'lucide-react';
+import { Check, Download, Edit, Eye, EyeOff, Film, Globe, Image, Key, Link, Music, Plus, Sparkles, Tags, Trash2, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { triggerModelConfigChanged } from '../services/modelConfigEvents';
 import { createDefaultModelConfigs, saveModelConfigWithExclusiveEnabled, toggleConfigEnabled } from '../services/modelConfigService';
 import { deleteModelConfig, getAllModelConfigs, saveModelConfig } from '../services/storageService';
 import { AIModelConfig } from '../types';
 import { useDialog } from './dialog';
+import CustomSelect from './CustomSelect';
 
 interface Props {
   isOpen: boolean;
@@ -373,31 +374,21 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
               {/* Provider Selection */}
               <div className="space-y-2">
                 <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">服务提供商</label>
-                <div className="relative">
-                  <select
-                    value={formData.provider}
-                    onChange={(e) => {
-                      const newProvider = e.target.value as AIModelConfig['provider'];
-                      const supportedTypes = getModelTypesForProvider(newProvider);
-                      const firstSupportedType = supportedTypes[0]?.value as AIModelConfig['modelType'];
-
-                      setFormData({
-                        ...formData,
-                        provider: newProvider,
-                        modelType: firstSupportedType || 'llm',
-                        model: '' // 切换供应商时清空模型名称
-                      });
-                    }}
-                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                  >
-                    {PROVIDER_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-3 pointer-events-none">
-                    <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                  </div>
-                </div>
+                <CustomSelect
+                  options={PROVIDER_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
+                  value={formData.provider}
+                  onChange={(value) => {
+                    const supportedTypes = getModelTypesForProvider(value as AIModelConfig['provider']);
+                    const firstSupportedType = supportedTypes[0]?.value as AIModelConfig['modelType'];
+                    setFormData({
+                      ...formData,
+                      provider: value as AIModelConfig['provider'],
+                      modelType: firstSupportedType || 'llm',
+                      model: ''
+                    });
+                  }}
+                  placeholder="选择服务提供商"
+                />
                 {/* API Key 申请链接 */}
                 {(() => {
                   const selectedProvider = PROVIDER_OPTIONS.find(p => p.value === formData.provider);
@@ -419,27 +410,12 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
               {/* Model Type Selection */}
               <div className="space-y-2">
                 <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">模型类型</label>
-                <div className="relative">
-                  <select
-                    value={formData.modelType}
-                    onChange={(e) => {
-                      const newModelType = e.target.value as AIModelConfig['modelType'];
-                      setFormData({ ...formData, modelType: newModelType });
-                      // 如果模型名称不属于新类型，清空模型名称
-                      if (formData.model && !getModelTypesForProvider(formData.provider).find(opt => opt.value === newModelType)) {
-                        setFormData(prev => ({ ...prev, model: '' }));
-                      }
-                    }}
-                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md appearance-none focus:border-slate-600 focus:outline-none transition-all cursor-pointer"
-                  >
-                    {getModelTypesForProvider(formData.provider).map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-3 pointer-events-none">
-                    <ChevronRight className="w-4 h-4 text-slate-600 rotate-90" />
-                  </div>
-                </div>
+                <CustomSelect
+                  options={getModelTypesForProvider(formData.provider).map(opt => ({ value: opt.value, label: opt.label }))}
+                  value={formData.modelType}
+                  onChange={(value) => setFormData({ ...formData, modelType: value as AIModelConfig['modelType'] })}
+                  placeholder="选择模型类型"
+                />
               </div>
 
               {/* API Key */}
