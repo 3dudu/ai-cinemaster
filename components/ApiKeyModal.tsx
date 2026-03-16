@@ -111,7 +111,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                  value={inputKey}
                  onChange={(e) => setInputKey(e.target.value)}
                  placeholder="Enter your API Key..."
-                 className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-3 pr-10 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+                 className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 pr-10 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
                />
                <button
                  type="button"
@@ -153,7 +153,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                value={inputCozeWorkflowId}
                onChange={(e) => setInputCozeWorkflowId(e.target.value)}
                placeholder="Enter Coze Workflow ID..."
-               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-3 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
              />
              <p className="mt-3 text-[12px] text-slate-400 leading-relaxed">
                配置 Coze 工作流 ID 用于等功能。
@@ -169,7 +169,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                  value={inputCozeApiKey}
                  onChange={(e) => setInputCozeApiKey(e.target.value)}
                  placeholder="Enter Coze API Key..."
-                 className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-3 pr-10 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+                 className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 pr-10 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
                />
                <button
                  type="button"
@@ -205,7 +205,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                value={inputFileUploadServiceUrl}
                onChange={(e) => setInputFileUploadServiceUrl(e.target.value)}
                placeholder="http://127.0.0.1:8080"
-               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-3 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
              />
              <p className="mt-3 text-[12px] text-slate-400 leading-relaxed">
                配置后，AI 生成的图片和视频将上传到此服务。
@@ -222,7 +222,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                value={inputFileAccessDomain}
                onChange={(e) => setInputFileAccessDomain(e.target.value)}
                placeholder="http://127.0.0.1:8080"
-               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-3 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
              />
              <p className="mt-3 text-[12px] text-slate-400 leading-relaxed">
                上传后的文件将使用此域名访问，不包含协议头。
