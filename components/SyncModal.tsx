@@ -338,7 +338,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
                   value={syncKey}
                   onChange={(e) => setSyncKey(e.target.value)}
                   placeholder="留空则自动生成新的同步密钥"
-                  className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-3 text-sm rounded-lg focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-900 transition-all font-mono placeholder:text-slate-400"
+                  className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-3 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
                 />
                 <button
                   onClick={handleStartSync}

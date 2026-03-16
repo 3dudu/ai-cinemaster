@@ -105,7 +105,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
             <textarea
               value={tempShot.actionSummary || ''}
               onChange={(e) => setTempShot({ ...tempShot, actionSummary: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md focus:border-slate-600 focus:outline-none transition-all resize-none"
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none"
               rows={2}
               placeholder="描述镜头中的动作..."
             />
@@ -130,7 +130,6 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                       setTempShot({ ...tempShot, dialogue: updatedDialogue });
                     }}
                     placeholder="选择角色"
-                    size="sm"
                   />
                   <input
                     type="text"
@@ -140,7 +139,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                       updatedDialogue[index] = { ...updatedDialogue[index], value: e.target.value };
                       setTempShot({ ...tempShot, dialogue: updatedDialogue });
                     }}
-                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md focus:border-slate-600 focus:outline-none transition-all"
+                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-xs rounded-md focus:border-slate-500 focus:outline-none transition-all"
                     placeholder="输入对话内容..."
                   />
                   <button
@@ -335,7 +334,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                     <textarea
                       value={kf.visualPrompt || ''}
                       onChange={(e) => updateKeyframe(kfIdx, 'visualPrompt', e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2 text-xs rounded-md focus:border-slate-600 focus:outline-none transition-all resize-none font-mono"
+                      className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2 text-xs rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none font-mono"
                       rows={3}
                       placeholder="输入视觉提示词，用于 AI 生成图像..."
                     />

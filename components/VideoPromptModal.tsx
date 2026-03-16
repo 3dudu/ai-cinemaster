@@ -169,7 +169,7 @@ const VideoPromptModal: React.FC<Props> = ({
                 setHasChanges(true);
               }}
               disabled={isGenerating}
-              className="w-full h-full bg-slate-800 text-slate-100 p-4 font-mono text-sm resize-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-full bg-slate-800 text-slate-100 p-4 font-mono text-sm resize-none focus:border-slate-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="点击 重新生成 按钮通过 LLM 生成视频拍摄提示词，或在此手动编辑..."
               spellCheck={false}
             />
