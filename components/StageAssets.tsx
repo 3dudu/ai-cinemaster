@@ -356,7 +356,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       onChange={(e) => setEditingSceneVisualPrompt(e.target.value)}
                       onBlur={handleSaveSceneVisualPrompt}
                       placeholder="输入场景的视觉描述..."
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-sm text-slate-50 placeholder:text-slate-600  focus:border-slate-500 focus:outline-none transition-all resize-none h-32 font-mono"
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-sm text-slate-50 placeholder:text-slate-600  focus:border-slate-500 focus:outline-none transition-all resize-none h-32 font-mono"
                     />
                   </div>
                 </div>
