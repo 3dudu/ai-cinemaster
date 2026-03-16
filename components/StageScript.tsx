@@ -402,6 +402,11 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
       updateProject({
         shots: [...otherShots, ...indexedShots]
       });
+
+      // 清理可能失效的编辑状态
+      setEditingShotId(null);
+      setAddingShotForSceneId(null);
+      setEditingSceneId(null);
     } catch (err: any) {
       console.error(err);
       await dialog.alert({
@@ -975,6 +980,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                               <div className="flex gap-2">
                                  <button
                                     onClick={() => setEditingSceneInMain(scene)}
+                                    disabled={regeneratingSceneId === scene.id}
                                     className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-50 bg-slate-700/80 border border-slate-600 hover:bg-slate-600/80 hover:border-slate-300 rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                                     title="编辑场景"
                                  >
@@ -983,6 +989,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                  </button>
                                  <button
                                     onClick={() => startAddShot(scene.id)}
+                                    disabled={regeneratingSceneId === scene.id}
                                     className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-400 bg-slate-700/80 border hover:bg-slate-600/80 border-slate-600 hover:border-slate-300 rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                                     title="添加分镜"
                                  >
@@ -1000,6 +1007,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                  </button>
                                  <button
                                     onClick={() => deleteScene(scene.id)}
+                                    disabled={regeneratingSceneId === scene.id}
                                     className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-red-400 bg-slate-700/80 border border-slate-600 hover:bg-slate-600/80 hover:border-red-900/50 rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                                     title="删除场景"
                                  >
@@ -1038,7 +1046,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                    <div className="flex py-1 items-center justify-between flex-col pb-2">
                                      <div className="flex gap-1 items-center justify-between w-full">
                                        <div className="text-xs font-mono text-slate-500 group-hover:text-slate-50 transition-colors">
-                                         分镜-{(project.shots.indexOf(shot) + 1).toString().padStart(3, '0')}
+                                         分镜-{(sceneShots.indexOf(shot) + 1).toString().padStart(3, '0')}
                                        </div>
                                        {shot.interval?.duration && (
                                          <div className="text-xs font-mono text-slate-400">

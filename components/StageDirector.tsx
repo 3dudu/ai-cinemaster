@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
@@ -38,6 +38,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
   const [uploadingKeyframe, setUploadingKeyframe] = useState<{shotId: string, type: 'start'|'end'|'full'} | null>(null);
   const [videoPromptShotId, setVideoPromptShotId] = useState<string | null>(null);
+  const [hoveredShotId, setHoveredShotId] = useState<string | null>(null);
+  const [hoverTimers, setHoverTimers] = useState<Record<string, NodeJS.Timeout>>({});
+  const [selectedShotIds, setSelectedShotIds] = useState<Set<string>>(new Set());
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
   // 连环画规格常量
   const IMAGE_X = [
@@ -861,6 +865,84 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       setBatchVideoProgress(null);
   };
 
+  const handleDownloadSelected = async () => {
+    if (downloadStatus) return;
+    if (selectedShotIds.size === 0) return;
+    setDownloadStatus('downloading');
+    const shotsToDownload = project.shots.filter(s => selectedShotIds.has(s.id) && s.interval?.videoUrl);
+
+    for (let i = 0; i < shotsToDownload.length; i++) {
+      const shot = shotsToDownload[i];
+      const videoUrl = shot.interval?.videoUrl;
+      if (!videoUrl) continue;
+
+      try {
+        const response = await fetch(videoUrl);
+        if (!response.ok) {
+          throw new Error(`下载失败: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.download = `${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}.mp4`;
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        if (shot.transitionUrl) {
+          const transitionResponse = await fetch(shot.transitionUrl);
+          if (transitionResponse.ok) {
+            const transitionBlob = await transitionResponse.blob();
+            const transitionUrl = window.URL.createObjectURL(transitionBlob);
+            const transitionA = document.createElement('a');
+            transitionA.href = transitionUrl;
+            transitionA.target = '_blank';
+            transitionA.download = `${project.scriptData?.title || 'shot'}-${String(project.shots.indexOf(shot) + 1).padStart(3, '0')}-transition.mp4`;
+
+            document.body.appendChild(transitionA);
+            transitionA.click();
+            document.body.removeChild(transitionA);
+          }
+        }
+        window.URL.revokeObjectURL(url);
+
+        if (i < shotsToDownload.length - 1) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+      } catch (error) {
+        console.error(`下载镜头 ${shot.id} 失败:`, error);
+      }
+    }
+    setDownloadStatus(null);
+  };
+
+  const toggleShotSelection = (shotId: string) => {
+    setSelectedShotIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(shotId)) {
+        newSet.delete(shotId);
+      } else {
+        newSet.add(shotId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllShots = () => {
+    const completedShotIds = project.shots
+      .filter(s => s.interval?.videoUrl)
+      .map(s => s.id);
+    setSelectedShotIds(new Set(completedShotIds));
+  };
+
+  const deselectAllShots = () => {
+    setSelectedShotIds(new Set());
+  };
+
   const goToPrevShot = () => {
     if (activeShotIndex > 0) {
       setActiveShotId(project.shots[activeShotIndex - 1].id);
@@ -1170,6 +1252,34 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   <Video className="w-3 h-3" />
                   {project.shots.every(s => s.interval?.videoUrl) ? '重新生成' : '批量视频'}
               </button>
+              {selectedShotIds.size > 0 && (
+                  <button
+                      onClick={handleDownloadSelected}
+                      disabled={!!downloadStatus}
+                      className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-700 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
+                  >
+                      <Download className="w-3 h-3" />
+                      {downloadStatus ? '下载中...' : `下载选中 (${selectedShotIds.size})`}
+                  </button>
+              )}
+              <button
+                  onClick={selectAllShots}
+                  disabled={!!batchProgress || !!batchVideoProgress}
+                  className="px-3 py-2 rounded-lg border border-slate-600 bg-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-1 hover:bg-slate-600 hover:text-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  title="全选已完成的镜头"
+              >
+                  <Check className="w-3 h-3" />
+                  全选
+              </button>
+              <button
+                  onClick={deselectAllShots}
+                  disabled={selectedShotIds.size === 0}
+                  className="px-3 py-2 rounded-lg border border-slate-600 bg-slate-800 text-slate-400 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-1 hover:bg-slate-600 hover:text-slate-50 hover:border-red-400 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  title="取消选择"
+              >
+                  <X className="w-3 h-3" />
+                  取消
+              </button>
           </div>
       </div>
       )}
@@ -1216,7 +1326,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     </button>
                     </div>
                  </div>
-                <div className={`grid gap-4 pb-4 ${activeShotId ? 'grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4': 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5'}`}>
+                <div className={`grid gap-4 pb-4 ${activeShotId ? 'grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4': 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5'}`}>
                     {sceneShots.map((shot, idx) => {
                         const sKf = shot.keyframes?.find(k => k.type === 'start');
                         const fKf = shot.keyframes?.find(k => k.type === 'full');
@@ -1261,11 +1371,25 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                 <div
                                   className="aspect-video bg-slate-800/50 relative overflow-hidden"
                                   onMouseEnter={() => {
+                                    setHoveredShotId(shot.id);
                                     if (hasVideo && !videoPlayingShots.has(shot.id)) {
-                                      setVideoPlayingShots(prev => new Set([...prev, shot.id]));
+                                      const timer = setTimeout(() => {
+                                        setVideoPlayingShots(prev => new Set([...prev, shot.id]));
+                                      }, 2000);
+                                      setHoverTimers(prev => ({ ...prev, [shot.id]: timer }));
                                     }
                                   }}
-                                  
+                                  onMouseLeave={() => {
+                                    setHoveredShotId(null);
+                                    if (hoverTimers[shot.id]) {
+                                      clearTimeout(hoverTimers[shot.id]);
+                                      setHoverTimers(prev => {
+                                        const newTimers = { ...prev };
+                                        delete newTimers[shot.id];
+                                        return newTimers;
+                                      });
+                                    }
+                                  }}
                                 >
                                     {videoReadyShots.has(shot.id) && hasVideo && videoPlayingShots.has(shot.id) ? (
                                         <video
@@ -1283,9 +1407,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                     ) : hasImage ? (
                                         <>
                                           <img src={sKf!.imageUrl || fKf!.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                          {/* Preload video in background */}
-                                          {
-                                            hasVideo && !videoReadyShots.has(shot.id) && (
+                                          {/* Preload video in background after 2 seconds hover */}
+                                          {hasVideo && !videoReadyShots.has(shot.id) && hoveredShotId === shot.id && (
                                             <video
                                               src={shot.interval?.videoUrl}
                                               className="hidden"
@@ -1295,7 +1418,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                 }
                                               }}
                                             />
-                                          ) }
+                                          )}
                                         </>
                                     ) : hasVideo ? (
                                         <video
@@ -1317,9 +1440,27 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                     )}
 
                                     {/* Badges */}
-                                    <div className="absolute top-2 right-2 flex flex-row gap-1 items-end">
-                                        {hasVideo && <div className="p-1 bg-green-500 text-slate-50 rounded shadow-lg backdrop-blur"><Video className="w-3 h-3" /></div>}
-                                        {shot.transitionUrl && <div className="p-1 bg-cyan-500 text-slate-50 rounded shadow-lg backdrop-blur"><ArrowRightLeft className="w-3 h-3" /></div>}
+                                    <div className="absolute top-2 left-2 right-2 flex flex-row justify-between items-end">
+                                        <div className="flex flex-row gap-1">
+                                           {hasVideo && <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleShotSelection(shot.id);
+                                                }}
+                                                className={`p-1 rounded shadow-lg backdrop-blur cursor-pointer transition-all ${
+                                                    selectedShotIds.has(shot.id)
+                                                        ? 'bg-emerald-500 text-slate-50'
+                                                        : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+                                                }`}
+                                            >
+                                                <Check className="w-3 h-3" />
+                                            </div>
+                                            }
+                                        </div>
+                                        <div className="flex flex-row gap-1">
+                                            {hasVideo && <div className="p-1 bg-green-500 text-slate-50 rounded shadow-lg backdrop-blur"><Video className="w-3 h-3" /></div>}
+                                            {shot.transitionUrl && <div className="p-1 bg-cyan-500 text-slate-50 rounded shadow-lg backdrop-blur"><ArrowRightLeft className="w-3 h-3" /></div>}
+                                        </div>
                                     </div>
 
                                     {!activeShotId && !hasImage && !hasVideo && (
