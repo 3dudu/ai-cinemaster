@@ -323,7 +323,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
         {/* 内容区域 */}
         <div className="flex-1 overflow-hidden flex flex-col bg-slate-700">
           {/* 工具栏 */}
-          <div className="px-2 py-2 md:py-4 md:px-6 bg-slate-600/80 border-t border-slate-600 shrink-0">
+          <div className="px-2 py-2 md:py-4 md:px-6 bg-slate-700 border-t border-slate-600 shrink-0">
             <div className="flex gap-2 items-center flex-col md:flex-row">
               {/* 模板选择器 */}
               <CustomSelect
@@ -350,7 +350,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
                 {isCustomized && (
                   <button
                     onClick={handleReset}
-                    className="px-4 py-2 bg-slate-700 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
+                    className="px-4 py-2.5 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4" />
                     重置
@@ -358,7 +358,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
                 )}
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-800 text-slate-300 hover:bg-slate-600 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   保存

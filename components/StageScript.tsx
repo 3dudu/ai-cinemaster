@@ -671,7 +671,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 type="text"
                 value={localTitle}
                 onChange={(e) => setLocalTitle(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none focus:ring-slate-700 transition-all placeholder:text-slate-600"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none focus:ring-slate-700 transition-all placeholder:text-slate-600"
                 placeholder="输入项目名称..."
               />
             </div>
@@ -704,7 +704,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                   type="text"
                   value={customStyleInput}
                   onChange={(e) => setCustomStyleInput(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                   placeholder="输入自定义画面风格..."
                 />
               )}
@@ -728,7 +728,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 type="text"
                 value={customGenreInput}
                 onChange={(e) => setCustomGenreInput(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                 placeholder="输入自定义类型..."
                 />
               )}
@@ -787,7 +787,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                     type="text"
                     value={customDurationInput}
                     onChange={(e) => setCustomDurationInput(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none font-mono placeholder:text-slate-600"
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none font-mono placeholder:text-slate-600"
                     placeholder="输入时长 (如: 90s, 3m)"
                   />
                 </div>
