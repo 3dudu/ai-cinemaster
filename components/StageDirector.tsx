@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
@@ -1216,7 +1216,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     </button>
                     </div>
                  </div>
-                <div className={`grid gap-4 pb-4 ${activeShotId ? 'grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4': 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5'}`}>
+                <div className={`grid gap-4 pb-4 ${activeShotId ? 'grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4': 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5'}`}>
                     {sceneShots.map((shot, idx) => {
                         const sKf = shot.keyframes?.find(k => k.type === 'start');
                         const fKf = shot.keyframes?.find(k => k.type === 'full');
@@ -1283,7 +1283,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                     ) : hasImage ? (
                                         <>
                                           <img src={sKf!.imageUrl || fKf!.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                                          {/* Preload video in background */}
+                                          {/* Preload video in background 
+                                            */}
                                           {
                                             hasVideo && !videoReadyShots.has(shot.id) && (
                                             <video
@@ -1317,9 +1318,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                     )}
 
                                     {/* Badges */}
-                                    <div className="absolute top-2 right-2 flex flex-row gap-1 items-end">
-                                        {hasVideo && <div className="p-1 bg-green-500 text-slate-50 rounded shadow-lg backdrop-blur"><Video className="w-3 h-3" /></div>}
-                                        {shot.transitionUrl && <div className="p-1 bg-cyan-500 text-slate-50 rounded shadow-lg backdrop-blur"><ArrowRightLeft className="w-3 h-3" /></div>}
+                                    <div className="absolute top-2 left-2 right-2 flex flex-row justify-between items-end">
+                                        <div className="flex flex-row gap-1">
+                                            <div className="p-1 bg-emerald-500 text-slate-50 rounded shadow-lg backdrop-blur"><Check className="w-3 h-3" /></div>
+                                        </div>
+                                        <div className="flex flex-row gap-1">
+                                            {hasVideo && <div className="p-1 bg-green-500 text-slate-50 rounded shadow-lg backdrop-blur"><Video className="w-3 h-3" /></div>}
+                                            {shot.transitionUrl && <div className="p-1 bg-cyan-500 text-slate-50 rounded shadow-lg backdrop-blur"><ArrowRightLeft className="w-3 h-3" /></div>}
+                                        </div>
                                     </div>
 
                                     {!activeShotId && !hasImage && !hasVideo && (
