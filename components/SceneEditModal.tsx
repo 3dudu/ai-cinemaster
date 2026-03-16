@@ -117,7 +117,7 @@ const SceneEditModal: React.FC<Props> = ({ scene, storyParagraphs, onSave, onClo
             <textarea
               value={tempStoryParagraph}
               onChange={(e) => setTempStoryParagraph(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-600 focus:outline-none transition-all resize-none"
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-3 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none"
               rows={6}
               placeholder="输入该场景的剧本段落内容..."
             />
