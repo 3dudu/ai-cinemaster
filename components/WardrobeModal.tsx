@@ -300,13 +300,13 @@ const WardrobeModal: React.FC<Props> = ({
                                         placeholder="造型名称（示例：穿校服）" 
                                         value={newVarName}
                                         onChange={e => setNewVarName(e.target.value)}
-                                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:outline-none focus:border-slate-600"
+                                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all"
                                     />
                                     <textarea 
                                         placeholder="服饰 / 状态的视觉描述……"
                                         value={newVarPrompt}
                                         onChange={e => setNewVarPrompt(e.target.value)}
-                                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:outline-none focus:border-slate-600 resize-none h-16"
+                                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all resize-none h-16"
                                     />
                                     <button
                                         onClick={handleAddVariation}

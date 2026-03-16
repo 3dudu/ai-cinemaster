@@ -1602,7 +1602,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                        <textarea
                                            value={fullKf.visualPrompt || ''}
                                            onChange={(e) => updateKeyframePrompt(activeShot.id, 'full', e.target.value)}
-                                           className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-colors"
+                                           className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-all"
                                            placeholder="输入宫格图画面描述..."
                                            rows={3}
                                        />
@@ -1689,7 +1689,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            <textarea
                                                value={startKf.visualPrompt || ''}
                                                onChange={(e) => updateKeyframePrompt(activeShot.id, 'start', e.target.value)}
-                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-colors"
+                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-all"
                                                placeholder="输入起始帧画面描述..."
                                                rows={3}
                                            />
@@ -1774,7 +1774,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            <textarea
                                                value={endKf.visualPrompt || ''}
                                                onChange={(e) => updateKeyframePrompt(activeShot.id, 'end', e.target.value)}
-                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-colors"
+                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-all"
                                                placeholder="输入结束帧画面描述..."
                                                rows={3}
                                            />

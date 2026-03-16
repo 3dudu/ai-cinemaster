@@ -102,7 +102,7 @@ const PromptDetailModal: React.FC<PromptDetailModalProps> = ({
             <textarea
               readOnly
               value={prompt}
-              className="w-full h-48 bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-sm text-slate-300 resize-none focus:outline-none focus:border-slate-500"
+              className="w-full h-48 bg-slate-900/50 border border-slate-700 rounded-lg p-3 text-sm text-slate-300 resize-none  focus:border-slate-500 focus:outline-none transition-all"
             />
           </div>
         </div>
