@@ -27,6 +27,27 @@ const IMAGE_X = [
 ];
 
 /**
+ * 根据 projectid 计算数字 seed
+ * 确保同一个 projectid 总是生成相同的 seed
+ * @param projectid - 项目ID字符串
+ * @returns 数字 seed
+ */
+export const generateSeedFromProjectId = (projectid: string): number => {
+  if (!projectid) return 0;
+  
+  // 使用简单的哈希算法将字符串转换为数字
+  let hash = 0;
+  for (let i = 0; i < projectid.length; i++) {
+    const char = projectid.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 转换为32位整数
+  }
+  
+  // 确保是正数
+  return Math.abs(hash);
+};
+
+/**
  * 模型包装服务
  * 根据启用的配置自动选择模型提供商
  */
@@ -1031,9 +1052,16 @@ export class ModelService {
     visualStyle: string = "真人写实",
     shotid: string = "0",
     referenceImages: string[] = [],
+    seed: number = 0,
   ): Promise<string> {
     const provider = await this.getEnabledVideoProvider(shotprovider || this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成视频`);
+
+    // 如果没有提供 seed，根据 projectid 计算
+    let finalSeed = seed;
+    if (finalSeed === 0 && projectid) {
+      finalSeed = generateSeedFromProjectId(projectid);
+    }
 
     // 处理起始图片：如果是HTTP/HTTPS URL则转换为Base64
     let processedStartImageBase64 = startImageBase64;
@@ -1066,7 +1094,7 @@ export class ModelService {
     switch (provider.provider) {
       case 'doubao':
         const generate_audio = provider.description.indexOf("sound")>-1;
-        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio,imageSize);
+        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio,imageSize, finalSeed);
         break;
       case 'gemini':
         videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);

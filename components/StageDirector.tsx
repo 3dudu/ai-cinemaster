@@ -460,7 +460,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           project.id,
           project.imageSize,
           localStyle,
-          shot.id
+          shot.id,
+          [],
+          project.seed
       );
 
       // Save to media history
@@ -573,7 +575,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         project.id,
         imageSize,
         localStyle,
-        shot.id
+        shot.id,
+        [],
+        project.seed
       );
 
       // Save to media history

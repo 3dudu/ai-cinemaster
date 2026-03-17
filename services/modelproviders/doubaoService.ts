@@ -325,7 +325,8 @@ export const generateImage = async (
   imageType: string = "character",
   localStyle: string = "真人写实",
   imageSize: string = "2560x1440",
-  imageCount: number = 1
+  imageCount: number = 1,
+  seed: number = 0,
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/images/generations`;
   const requestBody: any = {
@@ -334,6 +335,10 @@ export const generateImage = async (
     //sequential_image_generation: ischaracter?"disabled":"auto",
     watermark: false
   };
+
+  if(seed>0){
+    requestBody.seed = seed;
+  }
 
   /*
   if (imageCount > 1) {
@@ -446,6 +451,7 @@ export const generateVideo = async (
   full_frame: boolean = false,
   generate_audio: boolean = false,
   imageSize: string = "2560x1440",
+  seed: number = 0,
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks`;
 
@@ -464,6 +470,9 @@ export const generateVideo = async (
       text: prompt
     }]
   };
+  if(seed>0){
+    requestBody.seed = seed;
+  }
   const [width, height] = imageSize.split('x').map(Number);
   const isLandscape = width > height;
   if (isLandscape) {

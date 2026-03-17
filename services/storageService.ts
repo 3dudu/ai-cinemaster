@@ -435,6 +435,7 @@ export const createNewProjectState = (): ProjectState => {
   return {
     id,
     title: '未命名项目',
+    seed: Math.floor(Math.random() * 1000000000),
     createdAt: Date.now(),
     lastModified: Date.now(),
     stage: 'script',
