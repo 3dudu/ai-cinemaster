@@ -1,4 +1,4 @@
-import { Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
+import { Film, Image as ImageIcon, RefreshCw, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
@@ -138,6 +138,12 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
     }
   };
 
+  const regenerateSeed = () => {
+    // 生成范围 [0, 4294967295] 的随机整数
+    const newSeed = Math.floor(Math.random() * 4294967296);
+    updateProject({ seed: newSeed });
+  };
+
   const saveSettings = () => {
     const finalDuration = localDuration === 'custom' ? customDurationInput : localDuration;
     const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
@@ -200,7 +206,19 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
               placeholder="输入项目名称..."
             />
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">id:{project.id}</label>
+            <div className="flex items-center justify-between">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">id: {project.id}</label>
+              <div className="flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">seed: {project.seed}</label>
+                <button
+                  onClick={regenerateSeed}
+                  className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+                  title="重新生成随机seed"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Language and Visual Style in one row */}

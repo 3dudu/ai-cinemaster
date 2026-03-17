@@ -460,7 +460,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           project.id,
           project.imageSize,
           localStyle,
-          shot.id
+          shot.id,
+          [],
+          project.seed
       );
 
       // Save to media history
@@ -573,7 +575,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         project.id,
         imageSize,
         localStyle,
-        shot.id
+        shot.id,
+        [],
+        project.seed
       );
 
       // Save to media history
@@ -1241,7 +1245,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   } ${(!!batchProgress || !!batchVideoProgress) ? 'cursor-not-allowed' : ''}`}
               >
                   <Camera className="w-3 h-3" />
-                  {allStartFramesGenerated ? '重新生图' : '批量生图'}
+                  {!isMobile && (allStartFramesGenerated ? '重新生图' : '批量生图')}
               </button>
             )}
               <button
@@ -1250,7 +1254,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
               >
                   <Video className="w-3 h-3" />
-                  {project.shots.every(s => s.interval?.videoUrl) ? '重新生成' : '批量视频'}
+                  {!isMobile && (project.shots.every(s => s.interval?.videoUrl) ? '重新生成' : '批量视频')}
               </button>
               {selectedShotIds.size > 0 && (
                   <button
@@ -1259,7 +1263,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                       className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-700 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
                   >
                       <Download className="w-3 h-3" />
-                      {downloadStatus ? '下载中...' : `下载选中 (${selectedShotIds.size})`}
+                      {!isMobile && (downloadStatus ? '下载中...' : `下载选中 (${selectedShotIds.size})`)}
                   </button>
               )}
               <button
@@ -1269,7 +1273,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   title="全选已完成的镜头"
               >
                   <Check className="w-3 h-3" />
-                  全选
+                  {!isMobile && ('全选')}
               </button>
               <button
                   onClick={deselectAllShots}
@@ -1278,7 +1282,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   title="取消选择"
               >
                   <X className="w-3 h-3" />
-                  取消
+                  {!isMobile && ('取消')}
               </button>
           </div>
       </div>
@@ -1287,12 +1291,12 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden flex">
           {/* Grid View - Responsive Logic */}
-          <div className={`flex-1 overflow-y-auto transition-all duration-500 ease-in-out ${activeShotId ? (isMobile?'hidden':'md:p-6 p-2 border-r border-slate-600') : 'md:p-6 p-2'}`}>
+          <div className={`flex-1 overflow-y-auto transition-all duration-500 ease-in-out ${activeShotId && isMobile?'hidden':''}`}>
                   {project.scriptData?.scenes.map((scene, index) => {
                     const sceneShots = project.shots.filter(s => s.sceneId === scene.id);
                 return (
                   <div key={scene.id}>
- <div className="flex items-center gap-2 pb-1 border-b border-slate-600 mb-2">
+ <div className={`md:px-6 px-2 sticky top-0 z-10 flex bg-slate-900 items-center gap-2 border-b border-slate-600 py-2`}>
                     <MapPin className="w-4 h-4 text-slate-500" />
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">场景{scene.id}：{scene?.location || '未知场景'}
                     </span>
@@ -1326,7 +1330,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     </button>
                     </div>
                  </div>
-                <div className={`grid gap-4 pb-4 ${activeShotId ? 'grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4': 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5'}`}>
+                <div className={`md:p-6 p-2 grid gap-4 pb-4 ${activeShotId ? 'grid-cols-2 md:grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4': 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5'}`}>
                     {sceneShots.map((shot, idx) => {
                         const sKf = shot.keyframes?.find(k => k.type === 'start');
                         const fKf = shot.keyframes?.find(k => k.type === 'full');
@@ -1396,7 +1400,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                           data-shot-id={shot.id}
                                           src={shot.interval?.videoUrl}
                                           className="w-full h-full object-cover"
-                                          muted controls
+                                          muted controls autoPlay
                                           onMouseLeave={(e) => e.currentTarget.pause()}
                                           onCanPlay={() => {
                                             if (!videoReadyShots.has(shot.id)) {

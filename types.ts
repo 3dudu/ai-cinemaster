@@ -105,7 +105,7 @@ export interface ProjectState {
   createdAt: number;
   lastModified: number;
   stage: 'script' | 'assets' | 'director' | 'export' | 'images';
-
+  seed?: number;
   // Script Phase Data
   rawScript: string;
   targetDuration: string;

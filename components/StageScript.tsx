@@ -381,32 +381,39 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
     setRegeneratingSceneId(sceneId);
     try {
       const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex ,project.imageCount);
-
-      // 删除该场景的旧分镜
-      const otherShots = project.shots.filter(s => s.sceneId !== sceneId);
-
-      // 重新索引新分镜
-      const indexedShots = newShots.map((s, idx) => ({
-        ...s,
-        id: `shot-regen-${Date.now()}-${idx}`,
-        sceneId: sceneId,
-        keyframes: Array.isArray(s.keyframes)
-          ? s.keyframes.map((k: any) => ({
-              ...k,
-              id: `kf-regen-${idx}-${k.type}`,
-              status: "pending",
-            }))
-          : [],
-      }));
-
-      updateProject({
-        shots: [...otherShots, ...indexedShots]
-      });
-
-      // 清理可能失效的编辑状态
-      setEditingShotId(null);
-      setAddingShotForSceneId(null);
-      setEditingSceneId(null);
+      if(newShots && newShots.length > 0){
+        // 删除该场景的旧分镜
+        const otherShots = project.shots.filter(s => s.sceneId !== sceneId);
+  
+        // 重新索引新分镜
+        const indexedShots = newShots.map((s, idx) => ({
+          ...s,
+          id: `shot-regen-${Date.now()}-${idx}`,
+          sceneId: sceneId,
+          keyframes: Array.isArray(s.keyframes)
+            ? s.keyframes.map((k: any) => ({
+                ...k,
+                id: `kf-regen-${idx}-${k.type}`,
+                status: "pending",
+              }))
+            : [],
+        }));
+  
+        updateProject({
+          shots: [...otherShots, ...indexedShots]
+        });
+  
+        // 清理可能失效的编辑状态
+        setEditingShotId(null);
+        setAddingShotForSceneId(null);
+        setEditingSceneId(null);
+      }else{
+        await dialog.alert({
+          title: '错误',
+          message: `重新生成分镜失败"}`,
+          type: 'error',
+        });
+      }
     } catch (err: any) {
       console.error(err);
       await dialog.alert({
