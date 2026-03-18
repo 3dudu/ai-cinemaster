@@ -4,6 +4,12 @@ export interface CharacterVariation {
   visualPrompt: string;
   referenceImage?: string;
 }
+export interface PropertieVariation {
+  id: string;
+  name: string; // e.g., "Casual", "Tactical Gear", "Injured"
+  visualPrompt: string;
+  referenceImage?: string;
+}
 
 export interface Character {
   id: string;
@@ -96,7 +102,21 @@ export interface ScriptData {
   language?: string; 
   characters: Character[];
   scenes: Scene[];
+  props: Properties[];
   storyParagraphs: { id: number; text: string; sceneRefId: string }[];
+}
+
+export interface Properties {
+  id: string;
+  name: string;
+  shape: string;
+  material: string;
+  color: string;
+  size: string;
+  structural: string;
+  effects: string;
+  description: string;
+  variations: PropertieVariation[]; // Added: List of alternative looks
 }
 
 export interface ProjectState {

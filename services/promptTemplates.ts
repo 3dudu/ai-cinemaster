@@ -203,6 +203,7 @@ export const PROMPT_TEMPLATES = {
     提取title:标题、genre:类型、logline:故事梗概（以 ${lang} 语言呈现）。
     提取characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:性格）。
     提取scenes:场景信息（id:编号、location:地点、time:时间、atmosphere:氛围）。
+    提取props:道具信息（id:编号、name:名称、shape:形态、material:材质、color:颜色、size:大小、structural:结构、effects:效果、description:描述）。
     storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
 
     ## 输入：
@@ -220,7 +221,8 @@ export const PROMPT_TEMPLATES = {
     duration: string,
     characters: string,
     lang: string,
-    imageCount: number
+    imageCount: number,
+    properties: string
   ) => `
     担任专业摄影师，为第${sceneindex}场戏制作一份详尽的镜头清单（镜头调度设计）。
     ## 文本输出语言: ${lang}。
@@ -239,6 +241,9 @@ export const PROMPT_TEMPLATES = {
 
     ## 角色:
     ${characters}
+
+    ## 道具:
+    ${properties}
 
     ## 说明：
     1. 设计一组覆盖全部情节动作的镜头序列。
@@ -259,9 +264,10 @@ export const PROMPT_TEMPLATES = {
     - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
     - cameraMovement（字符串类型）
     - shotSize（字符串类型）
-    - characters（字符串数组类型）
+    - characters（字符串数组类型,角色名称列表）
     - keyframes（对象数组类型，每个对象定义不同的帧，对象包含如下属性： id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 ${lang} 语言描述） 字段）
     - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+    - properties（字符串数组类型，道具名称列表）
   `,
 
   // ============ 剧本生成 ============

@@ -129,6 +129,10 @@ export const parseScriptToData = async (
       }))
     : [];
 
+  const props = Array.isArray(parsed.props)
+    ? parsed.props.map((p: any) => ({ ...p, id: String(p.id), variations: [],}))
+    : [];
+
   return {
     title: parsed.title || "未命名剧本",
     genre: parsed.genre || "",
@@ -137,6 +141,7 @@ export const parseScriptToData = async (
     characters,
     scenes,
     storyParagraphs,
+    props
   };
 };
 
