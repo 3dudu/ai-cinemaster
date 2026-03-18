@@ -1020,6 +1020,9 @@ export class ModelService {
       case 'nanobanana':
         imageUrlOrBase64 = await (await this.getProviderModule('nanobanana')).generateImage(prompt, processedReferenceImages, imageType, localStyle, imageSize, imageCount);
         break;
+      case 'bigmore':
+        imageUrlOrBase64 = await (await this.getProviderModule('bigmore')).generateImage(prompt, processedReferenceImages, imageType, localStyle, imageSize, imageCount);
+        break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的文生图`);
     }

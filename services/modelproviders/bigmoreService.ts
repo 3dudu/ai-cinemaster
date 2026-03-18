@@ -1,11 +1,11 @@
 // services/modelproviders/bigmoreService.ts
-// BigMore AI 视频生成服务
+// BigMore AI 视频/图片生成服务
 
 import { fetchWithRetry, pollTask } from '../../utils/apiHelper';
 
 const BIGMORE_CONFIG = {
   // 视频生成模型
-  VIDEO_MODEL: "veo3_fast",
+  MODEL_NAME: "veo3_fast",
 
   // API 端点
   API_ENDPOINT: "https://bigmoreai.com",
@@ -19,7 +19,7 @@ let runtimeApiKey: string = "";
 let runtimeApiUrl: string = BIGMORE_CONFIG.API_ENDPOINT;
 
 // Runtime model name (can be overridden by config)
-let runtimeVideoModel: string = BIGMORE_CONFIG.VIDEO_MODEL;
+let runtimeModel: string = BIGMORE_CONFIG.MODEL_NAME;
 
 /**
  * 设置 API Key
@@ -53,14 +53,14 @@ export function getApiUrl(): string {
  * 设置模型名称
  */
 export function setModel(modelName: string): void {
-  runtimeVideoModel = modelName || BIGMORE_CONFIG.VIDEO_MODEL;
+  runtimeModel = modelName || BIGMORE_CONFIG.MODEL_NAME;
 }
 
 /**
  * 获取当前模型名称
  */
 export function getModel(): string {
-  return runtimeVideoModel;
+  return runtimeModel;
 }
 
 /**
@@ -90,10 +90,10 @@ export async function generateVideo(
   try {
     // 构建请求参数
     const requestBody: any = {
-      model: runtimeVideoModel,
+      model: runtimeModel,
       prompt: prompt,
     };
-    if(runtimeVideoModel.includes('sora')){
+    if(runtimeModel.includes('sora')){
       requestBody.orientation = isLandscape?'landscape':'portrait';
       requestBody.duration = duration>10?15:10;
       requestBody.removeWatermark = true;
@@ -118,7 +118,7 @@ export async function generateVideo(
       }
     }
     if(refImages.length > 0){
-      if(runtimeVideoModel.includes('sora')){
+      if(runtimeModel.includes('sora')){
         requestBody.imageList = refImages;
       }else{
         requestBody.images = refImages;
@@ -129,7 +129,7 @@ export async function generateVideo(
 
     // 发送生成请求
     let endpoint = '/ai/gemini/video/generate';
-    if(runtimeVideoModel.includes('sora')){
+    if(runtimeModel.includes('sora')){
       endpoint = '/ai/sora/video/generate';
     }
     const aikey = runtimeApiKey.split(':')[0];
@@ -172,7 +172,7 @@ export async function generateVideo(
 async function getTaskStatus(taskId: string): Promise<any> {
   // BigMore 查询接口 - 根据实际接口调整
   let endpoint = '/ai/gemini/result';
-  if(runtimeVideoModel.includes('sora')){
+  if(runtimeModel.includes('sora')){
     endpoint = '/ai/sora/result';
   }
   const accountPass = runtimeApiKey.split(':')[1];
@@ -224,4 +224,125 @@ async function pollTaskStatus(taskId: string): Promise<string> {
   }
 
   throw new Error('BigMore 视频生成失败，无法获取视频URL');
+}
+
+/**
+ * 生成图片（文生图/图生图）
+ * @param prompt - 图片提示词
+ * @param referenceImages - 参考图片URL数组（可选，用于图生图）
+ * @param imageType - 图片类型
+ * @param localStyle - 视觉风格
+ * @param imageSize - 图片尺寸 (如 "2560x1440")
+ * @param imageCount - 生成图片数量
+ * @returns 生成图片的URL
+ */
+export async function generateImage(
+  prompt: string,
+  referenceImages: string[] = [],
+  imageType: string = "character",
+  localStyle: string = "真人写实",
+  imageSize: string = "2560x1440",
+  imageCount: number = 1
+): Promise<string> {
+  if (!runtimeApiKey) {
+    throw new Error('BigMore API Key 未设置');
+  }
+
+  try {
+    // 解析图片尺寸
+    const [width, height] = imageSize.split('x').map(Number);
+    const isLandscape = width > height;
+    const aspectRatio = isLandscape ? '16:9' : '9:16';
+
+    // 构建请求体
+    const requestBody: any = {
+      prompt: prompt,
+      action: 'generate',
+      model: runtimeModel,
+      aspect_ratio: aspectRatio,
+      num_images: 1,
+      resolution: "2K"
+    };
+
+    // 如果有参考图片，添加到请求体
+    if (referenceImages.length > 0) {
+      // 过滤出有效的HTTP URL
+      const validImages = referenceImages.filter(img => img && img.startsWith('http'));
+      if (validImages.length > 0) {
+        requestBody.image_urls = validImages;
+      }
+    }
+
+    // console.log('调用 BigMore 图片生成:', requestBody);
+
+    const aikey = runtimeApiKey.split(':')[0];
+
+    // 发送生成请求
+    const generateData = await fetchWithRetry(runtimeApiUrl + '/ai/gemini/image/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'AIKey': aikey
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    // 检查响应状态
+    if (generateData.code !== 0) {
+      throw new Error(`BigMore 图片生成请求失败: ${generateData.info || '未知错误'}`);
+    }
+
+    const taskId = generateData.result?.taskCode;
+
+    if (!taskId) {
+      throw new Error('BigMore 未返回任务ID');
+    }
+
+    // console.log('BigMore 图片任务ID:', taskId);
+
+    // 轮询任务状态获取图片URL
+    return await pollImageTaskStatus(taskId);
+
+  } catch (error) {
+    console.error('BigMore 图片生成失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 轮询图片任务状态直到完成
+ * @param taskId - 任务ID
+ * @returns 图片URL
+ */
+async function pollImageTaskStatus(taskId: string): Promise<string> {
+  const imageUrl = await pollTask(
+    () => getTaskStatus(taskId),
+    (data) => {
+      if (data.code !== 0) {
+        throw new Error(`BigMore 查询失败: ${data.info || '未知错误'}`);
+      }
+      const status = data.result?.status;
+      return status === 1 ? 'success' : 'pending';
+    },
+    (data) => data.result?.videoUrl || data.result?.videoUrl,
+    (data) => {
+      if (data.code !== 0) {
+        return data.info || '未知错误';
+      }
+      return data.result?.error || '未知错误';
+    },
+    {
+      maxAttempts: 300,
+      pollInterval: 10000,
+      successStatuses: ['success'],
+      failedStatuses: [],
+      pendingStatuses: ['pending']
+    }
+  );
+
+  if (imageUrl) {
+    return imageUrl;
+  }
+
+  throw new Error('BigMore 图片生成失败，无法获取图片URL');
 }

@@ -48,7 +48,7 @@ const PROVIDER_MODEL_TYPES: Record<string, readonly string[]> = {
   kling: ['image2video'] as const,
   sora: ['image2video'] as const,
   wan: ['image2video'] as const,
-  bigmore: ['image2video'] as const,
+  bigmore: ['text2image','image2video'] as const,
   skyreels: ['image2video'] as const,
   baidu: ['tts'] as const,
   nanobanana: ['text2image'] as const,
