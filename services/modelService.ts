@@ -21,6 +21,7 @@ const loadWanModule = () => import("./modelproviders/wanService");
 const loadBigmoreModule = () => import("./modelproviders/bigmoreService");
 const loadSkyreelsModule = () => import("./modelproviders/skyreelsService");
 const loadBaiduTtsModule = () => import("./modelproviders/baiduTtsService");
+const loadNanobananaModule = () => import("./modelproviders/nanobananaService");
 
 const IMAGE_X = [
   '1','1x1','1x2','1x3','2x2','2x3','2x3','3x3','3x3','3x3'
@@ -95,6 +96,9 @@ export class ModelService {
           break;
         case 'baidu':
           loader = loadBaiduTtsModule;
+          break;
+        case 'nanobanana':
+          loader = loadNanobananaModule;
           break;
         default:
           throw new Error(`未知的模型提供商: ${provider}`);
@@ -297,6 +301,16 @@ export class ModelService {
             (await this.getProviderModule('baidu')).setApiUrl(config.apiUrl);
           }
           //console.log(`已更新 Baidu ${config.modelType} 配置`);
+          break;
+      case 'nanobanana':
+          (await this.getProviderModule('nanobanana')).setApiKey(config.apiKey);
+          if (config.apiUrl) {
+            (await this.getProviderModule('nanobanana')).setApiUrl(config.apiUrl);
+          }
+          if (config.model) {
+            (await this.getProviderModule('nanobanana')).setModel(config.model);
+          }
+          //console.log(`已更新 DeepSeek ${config.modelType} 配置`);
           break;
       }
     } catch (error) {
@@ -939,7 +953,7 @@ export class ModelService {
    * 获取当前使用的提供商信息
    */
   static async getProviderInfo(): Promise<{
-    provider: 'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu' | 'minimax' | 'kling' | 'sora' | 'wan' | 'bigmore' | 'baidu' | 'skyreels';
+    provider: 'doubao' | 'deepseek' | 'openai' | 'gemini' | 'yunwu' | 'minimax' | 'kling' | 'sora' | 'wan' | 'bigmore' | 'baidu' | 'skyreels' | 'nanobanana';
     enabled: boolean;
   }> {
     const config = await getEnabledConfigByType('llm');
@@ -1002,6 +1016,9 @@ export class ModelService {
         break;
       case 'openai':
         imageUrlOrBase64 = await (await this.getProviderModule('openai')).generateImage(prompt, processedReferenceImages, imageType, localStyle, imageSize, imageCount);
+        break;
+      case 'nanobanana':
+        imageUrlOrBase64 = await (await this.getProviderModule('nanobanana')).generateImage(prompt, processedReferenceImages, imageType, localStyle, imageSize, imageCount);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的文生图`);

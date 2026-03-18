@@ -291,13 +291,24 @@ export const generateImage = async (
     }
   });
 
+  const [width, height] = imageSize.split('x').map(Number);
+  const isLandscape = width > height;
+  if (isLandscape) {
+  } else {
+  }
+
   const requestBody = {
     contents: [
       {
         role: "user",
         parts: parts
       }
-    ]
+    ],
+    generationConfig:{
+      imageConfig:{
+        aspectRatio:isLandscape?"16:9":"9:16"
+      }
+    }
   };
 
   const response = await fetchWithRetry(endpoint, {

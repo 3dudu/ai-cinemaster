@@ -26,6 +26,7 @@ const PROVIDER_OPTIONS = [
   { value: 'bigmore', label: 'bigmoreai中转', apiUrl: 'https://bigmoreai.com/#/docs/veoo' },
   { value: 'skyreels', label: 'SkyReels ', apiUrl: 'https://skyreels.ai/' },
   { value: 'baidu', label: 'Baidu (百度)', apiUrl: 'https://cloud.baidu.com/' },
+  { value: 'nanobanana', label: 'nanobananaapi', apiUrl: 'https://nanobananaapi.dev/zh/docs' },
 ] as const;
 
 const MODEL_TYPE_OPTIONS = [
@@ -50,6 +51,7 @@ const PROVIDER_MODEL_TYPES: Record<string, readonly string[]> = {
   bigmore: ['image2video'] as const,
   skyreels: ['image2video'] as const,
   baidu: ['tts'] as const,
+  nanobanana: ['text2image'] as const,
 };
 
 // 根据供应商获取支持的模型类型选项
