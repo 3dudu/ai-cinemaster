@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Drill, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
@@ -8,6 +8,7 @@ import { AIModelConfig, Keyframe, ProjectState, Scene, Shot } from '../types';
 import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
 import FileUploadModal, { downloadImage, downloadVideo } from './FileUploadModal';
+import PropsModal from './modals/PropsModal';
 import SceneEditModal from './SceneEditModal';
 import ShotEditModal from './ShotEditModal';
 import VideoPromptModal from './VideoPromptModal';
@@ -21,7 +22,7 @@ interface Props {
 
 const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false  }) => {
   const dialog = useDialog();
-  const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
+  const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'|'props'}|null>(null);
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
   const [editingSceneInMain, setEditingSceneInMain] = useState<Scene | null>(null);
@@ -54,6 +55,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     setImageCount(project.imageCount || 0);
   }, [project.visualStyle, project.imageSize, project.imageCount]);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
+  const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
   const [oneClickProcessing, setOneClickProcessing] = useState<{shotId: string, step: 'images'|'video'}|null>(null);
   const [batchVideoProgress, setBatchVideoProgress] = useState<{current: number, total: number, currentShotName: string} | null>(null);
   const [modelConfigs, setModelConfigs] = useState<AIModelConfig[]>([]);
@@ -246,6 +248,29 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             }
           });
         }
+
+        // 3. Prop References
+        if (shot.properties) {
+          shot.properties.forEach(propName => {
+            const prop = project.scriptData?.props.find(p => String(p.name) === String(propName));
+            if (!prop) return;
+
+            // Check if a specific variation is selected for this shot
+            const varId = shot.propVariations?.[prop.name];
+            if (varId) {
+                const variation = prop.variations?.find(v => v.id === varId);
+                if (variation?.referenceImage) {
+                    referenceImages.push(variation.referenceImage);
+                    return; // Use variation image instead of base
+                }
+            }
+
+            // Fallback to base image
+            if (prop.referenceImage) {
+              referenceImages.push(prop.referenceImage);
+            }
+          });
+        }
       }
       return referenceImages;
   };
@@ -285,6 +310,31 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             // Fallback to base image
             if (char.referenceImage) {
                 referenceImages.push(" - 第"+imagecount+"张图是角色："+char.name);
+            }
+            imagecount++;
+          });
+        }
+
+        // 3. Prop References
+        if (shot.properties) {
+          shot.properties.forEach(propName => {
+            const prop = project.scriptData?.props.find(p => String(p.name) === String(propName));
+            if (!prop) return;
+
+            // Check if a specific variation is selected for this shot
+            const varId = shot.propVariations?.[prop.name];
+            if (varId) {
+                const variation = prop.variations?.find(v => v.id === varId);
+                if (variation?.referenceImage) {
+                    referenceImages.push(" - 第"+imagecount+"张图是道具："+prop.name);
+                    imagecount++;
+                    return; // Use variation image instead of base
+                }
+            }
+
+            // Fallback to base image
+            if (prop.referenceImage) {
+                referenceImages.push(" - 第"+imagecount+"张图是道具："+prop.name);
             }
             imagecount++;
           });
@@ -422,7 +472,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       dialogueText = shot.dialogue.map(d => d.character ? `**${d.character}**: "${d.value}"` : `"${d.value}"`).join('\n');
     }
     // 优先使用生成的视频提示词，否则使用原有逻辑
-    let prompt = shot.interval.videoPrompt || ("视频风格："+localStyle+"；景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:""));
+    let prompt = shot.interval.videoPrompt || ("视频风格："+localStyle+"；景别："+shot.shotSize+"；镜头运动："+shot.cameraMovement+""+(shot.interval.motionStrength?"；运动强度："+shot.interval.motionStrength:"")+"；\n剧情描述："+shot.actionSummary+""+ (shot.characters?" \n角色："+shot.characters:"")+ (shot.properties?" \n道具："+shot.properties:""));
     ////console.log("Generating Video for Shot:", shot, "with Prompt:", prompt);
     let sImageiurl = null;
     let eImageiurl = null;
@@ -724,6 +774,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
          characterVariations: {
              ...(s.characterVariations || {}),
              [charId]: varId
+         }
+     }));
+  };
+
+  const handlePropVariationChange = (shotId: string, propName: string, varId: string) => {
+     updateShot(shotId, (s) => ({
+         ...s,
+         propVariations: {
+             ...(s.propVariations || {}),
+             [propName]: varId
          }
      }));
   };
@@ -1178,6 +1238,58 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                          })}
                     </div>
                   </div>
+
+                  {/* 整行：道具列表 */}
+                  {activeShot.properties && activeShot.properties.length > 0 && (
+                    <div className="w-full space-y-2">
+                      <div className="flex flex-col gap-2 pt-2">
+                           {(() => {
+                               const activeProps = project.scriptData?.props?.filter(p => activeShot.properties.includes(p.name)) || [];
+                               return activeProps.map(prop => {
+                                   const hasVars = prop.variations && prop.variations.length > 0;
+                                   const selectedVarId = activeShot.propVariations?.[prop.name];
+                                   const selectedVar = prop.variations.find(v => v.id === selectedVarId);
+                                   const displayImage = selectedVar?.referenceImage || prop.referenceImage;
+                                   return (
+                                       <div key={prop.name} className="flex items-center justify-between bg-slate-800/50 rounded p-1.5 border border-slate-600">
+                                           <div className="flex items-center gap-2">
+                                               <div
+                                                 className="w-6 h-6 rounded-md bg-slate-700 overflow-hidden cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
+                                                 onClick={() => displayImage && setPreviewImageUrl(displayImage)}
+                                               >
+                                                   {displayImage && <img src={displayImage} className="w-full h-full object-cover" />}
+                                               </div>
+                                               <span className="text-[11px] text-slate-300 font-medium">{prop.name}</span>
+                                           </div>
+
+                                           <div className="flex items-center gap-2">
+                                               {hasVars && (
+                                                   <CustomSelect
+                                                      options={[
+                                                          { value: '', label: '默认' },
+                                                          ...prop.variations.map(v => ({ value: v.id, label: v.name }))
+                                                      ]}
+                                                      value={activeShot.propVariations?.[prop.name] || ""}
+                                                      onChange={(value) => handlePropVariationChange(activeShot.id, prop.name, value)}
+                                                      className="min-w-[60px]"
+                                                      size="sm"
+                                                   />
+                                               )}
+                                               <button
+                                                   onClick={() => setSelectedPropId(prop.name)}
+                                                   className="p-1.5 bg-slate-700/50 text-slate-400 hover:text-slate-50 rounded-full hover:bg-slate-800/20 transition-all border border-white/10 cursor-pointer"
+                                                   title="管理造型"
+                                               >
+                                                  <Drill className="w-3 h-3" />
+                                               </button>
+                                           </div>
+                                       </div>
+                                   );
+                               });
+                           })()}
+                      </div>
+                    </div>
+                  )}
               </div>
           </div>
       );
@@ -2069,6 +2181,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             <ShotEditModal
               shot={project.shots.find(s => s.id === editingShotId)!}
               characters={project.scriptData?.characters || []}
+              props={project.scriptData?.props || []}
               onSave={saveShot}
               onClose={() => setEditingShotId(null)}
               imageCount={project.imageCount}
@@ -2098,6 +2211,21 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               setProcessingState={setWardProcessingState}
               updateProject={updateProject}
               onClose={() => setSelectedCharId(null)}
+              setPreviewImage={setPreviewImageUrl}
+            />
+          )}
+
+          {/* Props Modal */}
+          {selectedPropId && project.scriptData && (
+            <PropsModal
+              prop={project.scriptData.props?.find(p => p.name === selectedPropId) || null}
+              project={project}
+              localStyle={localStyle}
+              imageSize={imageSize}
+              processingState={wardProcessingState}
+              setProcessingState={setWardProcessingState}
+              updateProject={updateProject}
+              onClose={() => setSelectedPropId(null)}
               setPreviewImage={setPreviewImageUrl}
             />
           )}

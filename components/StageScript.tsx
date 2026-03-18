@@ -1403,6 +1403,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
         <ShotEditModal
           shot={shot}
           characters={project.scriptData?.characters || []}
+          props={project.scriptData?.props || []}
           onSave={saveShot}
           onClose={() => {
             setEditingShotId(null);
@@ -1430,6 +1431,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
         <ShotEditModal
           shot={newShot}
           characters={project.scriptData?.characters || []}
+          props={project.scriptData?.props || []}
           onSave={saveShot}
           onClose={() => {
             setAddingShotForSceneId(null);

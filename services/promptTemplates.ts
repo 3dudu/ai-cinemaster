@@ -92,9 +92,20 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         genre: args[2] || '',
         lang: args[3] || '中文'
       };
-    case 'GENERATE_VISUAL_PROMPT':
+    case 'SYSTEM_CHARA_DESIGNER':
       return {
-        type: args[0] || 'character',
+        data: args[1] || {},
+        genre: args[2] || '',
+        visualStyle: args[3] || '真人写实'
+      };
+    case 'GENERATE_SCENE_PROMPT':
+      return {
+        data: args[1] || {},
+        genre: args[2] || '',
+        visualStyle: args[3] || '真人写实'
+      };
+    case 'GENERATE_PROPS_PROMPT':
+      return {
         data: args[1] || {},
         genre: args[2] || '',
         visualStyle: args[3] || '真人写实'
@@ -131,6 +142,18 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
       return {
         prompt: args[0] || '',
         visualStyle: args[1] || '真人写实'
+      };
+    case 'GENERATE_PROPS_IMAGE':
+      return {
+        prompt: args[0] || '',
+        visualStyle: args[1] || '真人写实'
+      };
+    case 'GENERATE_PROP_VARIATION':
+      return {
+        propName: args[0] || '',
+        visualStyle: args[1] || '真人写实',
+        variationPrompt: args[2] || '',
+        basePropPrompt: args[3] || ''
       };
     case 'GENERATE_VIDEO_PROMPT':
       return {
@@ -191,7 +214,9 @@ export const PROMPT_TEMPLATES = {
 
   SYSTEM_SCREENWRITER: "你是一名专业的编剧，擅长创作各种类型的广告，短剧，影视剧本。请以MarkDown格式输出剧本故事概要，包含标题、时间、地点、角色、天气、场景、对话等。",
 
-  SYSTEM_VISUAL_DESIGNER: "你是一名专业的影视美术设计师，擅长为影视角色和场景设计服装、造型、道具等，以专业词汇描述你设计的角色或场景。",
+  SYSTEM_CHARA_DESIGNER: "你是一名专业的影视美术设计师，擅长为影视设计角色，以专业词汇描述你设计的角色。",
+  SYSTEM_SCENE_DESIGNER: "你是一名专业的影视美术设计师，擅长为影视设计场景，以专业词汇描述你设计的场景。",
+  SYSTEM_PROPS_DESIGNER: "你是一名专业的影视美术设计师，擅长为影视设计道具，以专业词汇描述你设计的道具。",
 
   SYSTEM_VIDEO_DIRECTOR: "你是一名专业的影视导演，擅长为单个镜头创作详细的视频拍摄提示词。请始终以纯文本格式输出提示词，无任何解释、注释、多余文字。",
 
@@ -294,12 +319,23 @@ export const PROMPT_TEMPLATES = {
   `,
 
   // ============ 视觉提示词生成 ============
-  GENERATE_VISUAL_PROMPT: (type: string, desc: string, genre: string,visualStyle:string) => `
-    为 ${genre} 类视频中的 ${type} 生成高还原度图像提示词，图像风格必须为：${visualStyle}。
-    ${type} 的描述信息如下: ${desc}
-     - 如果是 角色 要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
-     - 如果是 场景 要描述时间、地点、景色、光线、氛围等，不要出现角色。
-    只要输出 ${type} 的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。
+  GENERATE_CHARA_PROMPT: (desc: string, genre: string,visualStyle:string) => `
+    为 ${genre} 类视频中的角色生成高还原度图像提示词，图像风格必须为：${visualStyle}。
+角色的描述信息如下: ${desc}
+ - 要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景，道具。
+输出角色的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。
+  `,
+  GENERATE_SCENE_PROMPT: (desc: string, genre: string,visualStyle:string) => `
+    为 ${genre} 类视频中的场景生成高还原度图像提示词，图像风格必须为：${visualStyle}。
+场景的描述信息如下: ${desc}
+ - 场景要描述时间、地点、景色、光线、氛围等，不要出现角色，道具。
+输出场景的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。
+  `,
+  GENERATE_PROPS_PROMPT: (desc: string, genre: string,visualStyle:string) => `
+    为 ${genre} 类视频中的道具生成高还原度图像提示词，图像风格必须为：${visualStyle}。
+道具的描述信息如下: ${desc}
+ - 道具要体现出形态、材质、颜色、效果、大小等，不要出现场景，角色。
+输出道具的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。
   `,
 
   // ============ 图片拼接 ============
@@ -360,6 +396,13 @@ export const PROMPT_TEMPLATES = {
     图片内容：${prompt}
 
     图片比例16:9，具体要求：图中无角色、无文字。
+  `,
+  // ============ 场景道具提示词生成 ============
+  GENERATE_PROPS_IMAGE: (prompt: string, visualStyle: string) => `
+    生成符合下面要求的道具图片，图片风格必须为：${visualStyle}。
+    图片内容：${prompt}
+
+    图片比例3:4，具体要求：纯白色背景、无角色、无道具、无文字。
   `,
 
   // ============ 视频拍摄提示词生成 ============

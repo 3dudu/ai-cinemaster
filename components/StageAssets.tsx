@@ -1,4 +1,4 @@
-import { AlertCircle, Camera, Check, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Camera, Check, Download, Drama, Drill, Expand, Loader2, MapPin, Mic, Package, Palette, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
@@ -8,6 +8,7 @@ import FileUploadModal, { downloadImage } from './FileUploadModal';
 import VoiceSynthesisModal from './VoiceSynthesisModal';
 import WardrobeModal from './WardrobeModal';
 import { useDialog } from './dialog';
+import PropsModal from './modals/PropsModal';
 
 
 interface Props {
@@ -17,17 +18,18 @@ interface Props {
 
 const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   const dialog = useDialog();
-  const [processingState, setProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
+  const [processingState, setProcessingState] = useState<{id: string, type: 'character'|'scene'|'props'}|null>(null);
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number} | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+  const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
   const [localStyle, setLocalStyle] = useState(project.visualStyle || '真人写实');
   const [imageSize, setImageSize] = useState(project.imageSize || '2560x1440');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
-  const [uploadingItem, setUploadingItem] = useState<{id: string, type: 'character'|'scene'}|null>(null);
+  const [uploadingItem, setUploadingItem] = useState<{id: string, type: 'character'|'scene'|'props'}|null>(null);
   const [voiceSynthesisModalOpen, setVoiceSynthesisModalOpen] = useState(false);
   const [selectedVoiceCharId, setSelectedVoiceCharId] = useState<string | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
@@ -51,20 +53,27 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     }
   }, [selectedSceneId, project.scriptData]);
 
-  const handleGenerateAsset = async (type: 'character' | 'scene', id: string, skipConfirm?: boolean) => {
+  const handleGenerateAsset = async (type: 'character' | 'scene' | 'props', id: string, skipConfirm?: boolean) => {
     // Check if item already has a reference image (regenerate)
-    const existingImage = type === 'character'
-      ? project.scriptData?.characters.find(c => String(c.id) === String(id))?.referenceImage
-      : project.scriptData?.scenes.find(s => String(s.id) === String(id))?.referenceImage;
+    let existingImage = null;
+    let itemName = '';
+
+    if (type === 'character') {
+      existingImage = project.scriptData?.characters.find(c => String(c.id) === String(id))?.referenceImage;
+      itemName = project.scriptData?.characters.find(c => String(c.id) === String(id))?.name || '';
+    } else if (type === 'scene') {
+      existingImage = project.scriptData?.scenes.find(s => String(s.id) === String(id))?.referenceImage;
+      itemName = project.scriptData?.scenes.find(s => String(s.id) === String(id))?.location || '';
+    } else if (type === 'props') {
+      existingImage = project.scriptData?.props.find(p => String(p.id) === String(id))?.referenceImage;
+      itemName = project.scriptData?.props.find(p => String(p.id) === String(id))?.name || '';
+    }
 
     if (existingImage && !skipConfirm) {
-      const itemName = type === 'character'
-        ? project.scriptData?.characters.find(c => String(c.id) === String(id))?.name
-        : project.scriptData?.scenes.find(s => String(s.id) === String(id))?.location;
-
+      const typeLabel = type === 'character' ? '角色' : type === 'scene' ? '场景' : '道具';
       const confirmed = await dialog.confirm({
         title: '确认重新生成',
-        message: `确定要重新生成${type === 'character' ? '角色' : '场景'}"${itemName}"的图片吗？`,
+        message: `确定要重新生成${typeLabel}"${itemName}"的图片吗？`,
         type: 'warning',
       });
 
@@ -86,19 +95,25 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
         imageUrl = char?.referenceImage;
         prompt = char?.visualPrompt;
         if (char) prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, project.scriptData?.genre || '剧情片',project.visualStyle);
-      } else {
+      } else if (type === 'scene') {
         const scene = project.scriptData?.scenes.find(s => String(s.id) === String(id));
         imageUrl = scene?.referenceImage;
         prompt = scene?.visualPrompt;
         if (scene) prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, project.scriptData?.genre || '剧情片',project.visualStyle);
+      } else if (type === 'props') {
+        const prop = project.scriptData?.props.find(p => String(p.id) === String(id));
+        imageUrl = prop?.referenceImage;
+        prompt = prop?.description;
+        if (prop) prompt = prop.description || await ModelService.generateVisualPrompts('props', prop, project.scriptData?.genre || '剧情片',project.visualStyle);
       }
+
       let new_prompt = prompt;
       if(type=='character'){
         new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', new_prompt, localStyle);
-      }
-
-      if(type=='scene'){
+      } else if(type=='scene'){
         new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', new_prompt, localStyle);
+      } else if(type=='props'){
+        new_prompt = renderTemplate('GENERATE_PROPS_IMAGE', new_prompt, localStyle);
       }
 
       // Real API Call
@@ -106,11 +121,17 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
 
       // Save to media history
       if (imageUrl) {
-        const fileName = type === 'character'
-          ? `角色_${project.scriptData?.characters.find(c => String(c.id) === String(id))?.name || id}`
-          : `场景_${project.scriptData?.scenes.find(s => String(s.id) === String(id))?.id || id}`;
+        let fileName = '';
+        if (type === 'character') {
+          fileName = `角色_${project.scriptData?.characters.find(c => String(c.id) === String(id))?.name || id}`;
+        } else if (type === 'scene') {
+          fileName = `场景_${project.scriptData?.scenes.find(s => String(s.id) === String(id))?.id || id}`;
+        } else if (type === 'props') {
+          fileName = `道具_${project.scriptData?.props.find(p => String(p.id) === String(id))?.name || id}`;
+        }
         await addMediaHistory(project.id, imageUrl, fileName, 'image', type,new_prompt);
       }
+
       // Update state
       if (project.scriptData) {
         const newData = { ...project.scriptData };
@@ -120,11 +141,16 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
             c.referenceImage = imageUrl;
             c.visualPrompt = prompt;
           }
-        } else {
+        } else if (type === 'scene') {
           const s = newData.scenes.find(s => String(s.id) === String(id));
           if (s) {
             s.referenceImage = imageUrl;
             s.visualPrompt = prompt;
+          }
+        } else if (type === 'props') {
+          const p = newData.props.find(p => String(p.id) === String(id));
+          if (p) {
+            p.referenceImage = imageUrl;
           }
         }
         updateProject({ scriptData: newData });
@@ -141,11 +167,13 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     }
   };
 
-  const handleBatchGenerate = async (type: 'character' | 'scene') => {
-    const items = type === 'character' 
-      ? project.scriptData?.characters 
-      : project.scriptData?.scenes;
-    
+  const handleBatchGenerate = async (type: 'character' | 'scene' | 'props') => {
+    const items = type === 'character'
+      ? project.scriptData?.characters
+      : type === 'scene'
+      ? project.scriptData?.scenes
+      : project.scriptData?.props;
+
     if (!items) return;
 
     // Filter items that need generation
@@ -155,7 +183,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     if (isRegenerate) {
        const confirmed = await dialog.confirm({
          title: '确认重新生成',
-         message: `确定要重新生成所有${type === 'character' ? '角色' : '场景'}图吗？`,
+         message: `确定要重新生成所有${type === 'character' ? '角色' : type === 'scene' ? '场景' : '道具'}图吗？`,
          type: 'warning',
        });
        if (!confirmed) return;
@@ -176,7 +204,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     setBatchProgress(null);
   };
 
-  const handleFileUploadClick = (itemId: string, itemType: 'character' | 'scene') => {
+  const handleFileUploadClick = (itemId: string, itemType: 'character' | 'scene' | 'props') => {
     setUploadingItem({ id: itemId, type: itemType });
     setFileUploadModalOpen(true);
   };
@@ -191,10 +219,15 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
       if (char) {
         char.referenceImage = fileUrl;
       }
-    } else {
+    } else if (uploadingItem.type === 'scene') {
       const scene = newData.scenes.find(s => s.id === uploadingItem.id);
       if (scene) {
         scene.referenceImage = fileUrl;
+      }
+    } else if (uploadingItem.type === 'props') {
+      const prop = newData.props.find(p => p.id === uploadingItem.id);
+      if (prop) {
+        prop.referenceImage = fileUrl;
       }
     }
 
@@ -232,7 +265,9 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   
   const allCharactersReady = project.scriptData.characters.every(c => c.referenceImage);
   const allScenesReady = project.scriptData.scenes.every(s => s.referenceImage);
+  const allPropsReady = project.scriptData.props ? project.scriptData.props.every(p => p.referenceImage) : true;
   const selectedChar = project.scriptData.characters.find(c => c.id === selectedCharId);
+  const selectedProp = project.scriptData.props ? project.scriptData.props.find(p => p.id === selectedPropId) : null;
 
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-hidden">
@@ -382,6 +417,11 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                  <span className="px-2 py-1 bg-slate-900 border border-slate-600 rounded text-[12px] text-slate-400 font-mono uppercase">
                     {project.scriptData.scenes.length} 场景
                  </span>
+                 {project.scriptData.props && (
+                   <span className="px-2 py-1 bg-slate-900 border border-slate-600 rounded text-[12px] text-slate-400 font-mono uppercase">
+                      {project.scriptData.props.length} 道具
+                   </span>
+                 )}
              </div>
           </div>
       </div>
@@ -664,6 +704,138 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
             ))}
           </div>
         </section>
+
+        {/* Props Section */}
+        {project.scriptData.props && project.scriptData.props.length > 0 && (
+          <section>
+            <div className="flex items-end justify-between mb-6 border-b border-slate-600 pb-4">
+              <div>
+                 <h3 className="text-sm font-bold text-slate-50 uppercase tracking-widest flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                   道具设计
+                 </h3>
+                 <p className="text-xs text-slate-500 mt-1 pl-3.5">为剧本道具生成参考图</p>
+              </div>
+              <button
+                onClick={() => handleBatchGenerate('props')}
+                disabled={!!batchProgress}
+                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
+                    allPropsReady
+                      ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
+                      : 'bg-slate-800 text-slate-50 hover:bg-slate-600 shadow-lg shadow-white/5'
+                }`}
+              >
+                {allPropsReady ? <RefreshCw className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+                {allPropsReady ? '重新批量生成' : '生成所有道具'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-6">
+              {project.scriptData.props.map((prop) => (
+                <div key={prop.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
+                  <div className="aspect-square bg-slate-800/50 relative overflow-hidden">
+                    {prop.referenceImage ? (
+                      <>
+                        <img src={prop.referenceImage} alt={prop.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        {processingState?.type === 'props' && processingState?.id === prop.id ? (
+                          <div className="absolute inset-0 bg-slate-700/80 flex items-center justify-center backdrop-blur-sm">
+                            <Loader2 className="w-8 h-8 text-slate-50 animate-spin" />
+                          </div>
+                        ) : (
+                          <div className={`absolute inset-0 bg-slate-700/60 opacity-0 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm ${batchProgress || processingState ? 'pointer-events-none opacity-50' : 'group-hover:opacity-80'}`}>
+                            <button
+                              onClick={() => {
+                                const propImages = project.scriptData.props
+                                  .filter(p => p.referenceImage)
+                                  .map(p => p.referenceImage);
+                                const idx = propImages.indexOf(prop.referenceImage);
+                                setPreviewImages(propImages);
+                                setPreviewIndex(idx >= 0 ? idx : 0);
+                                setPreviewImage(prop.referenceImage);
+                              }}
+                              disabled={!!batchProgress || !!processingState}
+                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold uppercase tracking-wider rounded flex items-center gap-2 border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              <Expand className="w-3 h-3" />
+                              全屏预览
+                            </button>
+                          </div>
+                        )}
+                        <div className="absolute top-2 right-2 p-1 bg-orange-300 text-slate-50 rounded shadow-lg backdrop-blur">
+                          <Package className="w-3 h-3" />
+                        </div>
+                      </>
+                    ) : (
+                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 p-4 text-center">
+                         <Package className="w-10 h-10 mb-3 opacity-10" />
+                         <button
+                            onClick={() => handleGenerateAsset('props', prop.id)}
+                            disabled={processingState?.type === 'props' && processingState?.id === prop.id || !!batchProgress || !!processingState}
+                            className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-bold transition-all border border-slate-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                         >
+                           {processingState?.type === 'props' && processingState?.id === prop.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Palette className="w-3 h-3" />}
+                           {processingState?.type === 'props' && processingState?.id === prop.id ? '生成中...' : '生成'}
+                         </button>
+                       </div>
+                    )}
+                    <div className="absolute bottom-0 right-0 flex flex-col xl:flex-row items-end gap-1 p-1">
+                    {/* Action Buttons */}
+                    {prop.referenceImage && (
+                      <>
+                        {/* Preview Button */}
+                        <button
+                          onClick={() => handleGenerateAsset('props', prop.id)}
+                          className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                          title="重新生成"
+                        >
+                          <Palette className="w-3 h-3" />
+                        </button>
+                        {/* Download Button */}
+                        <button
+                          onClick={() => handleDownloadImage(prop.referenceImage!, '道具-'+prop.name)}
+                          disabled={!!downloadStatus}
+                          className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                          title="下载图片"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => { handleFileUploadClick(prop.id, 'props'); }}
+                      disabled={!!batchProgress || !!processingState}
+                      className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                      title="上传图片"
+                    >
+                      <Upload className="w-3 h-3" />
+                    </button>
+                    <button
+                       onClick={() => { setSelectedPropId(prop.id); }}
+                       className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                       title="管理造型"
+                    >
+                      <Drill className="w-3 h-3" />
+                    </button>
+                    </div>
+                  </div>
+                  <div className="p-3 border-t border-slate-600 bg-slate-900">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-bold text-slate-200 truncate text-sm">{prop.name}</h3>
+                    </div>
+                    <p className="text-[12px] text-slate-500 line-clamp-2">{prop.description}</p>
+                    {prop.variations && prop.variations.length > 0 && (
+                      <div className="mt-2 flex items-center gap-1">
+                        <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 uppercase font-mono flex items-center gap-1">
+                          <Shirt className="w-2.5 h-2.5" /> +{prop.variations.length}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* File Upload Modal */}
@@ -671,12 +843,12 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
         isOpen={fileUploadModalOpen}
         onClose={() => setFileUploadModalOpen(false)}
         onUploadSuccess={handleFileUploadSuccess}
-        fileType={uploadingItem?.type === 'scene' ? 'scene' : 'character'}
+        fileType={uploadingItem?.type === 'scene' ? 'scene' : uploadingItem?.type === 'props' ? 'prop' : 'character'}
         acceptTypes="image/png,image/jpeg,image/jpg"
-        title={uploadingItem?.type === 'scene' ? '上传场景图片' : '上传角色图片'}
+        title={uploadingItem?.type === 'scene' ? '上传场景图片' : uploadingItem?.type === 'props' ? '上传道具图片' : '上传角色图片'}
         projectid={project.id}
         project={project}
-        filterType={uploadingItem?.type === 'scene' ? 'scene' : 'character'}
+        filterType={uploadingItem?.type === 'scene' ? 'scene' : uploadingItem?.type === 'props' ? 'props' : 'character'}
       />
 
       {/* Fullscreen Image Preview Modal */}
@@ -750,6 +922,21 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
           character={project.scriptData.characters.find(c => c.id === selectedVoiceCharId)!}
           project={project}
           updateProject={updateProject}
+        />
+      )}
+
+      {/* Props Modal */}
+      {selectedProp && project.scriptData && (
+        <PropsModal
+          prop={project.scriptData.props.find(p => p.id === selectedPropId) || null}
+          project={project}
+          localStyle={localStyle}
+          imageSize={imageSize}
+          processingState={processingState}
+          setProcessingState={setProcessingState}
+          updateProject={updateProject}
+          onClose={() => setSelectedPropId(null)}
+          setPreviewImage={setPreviewImage}
         />
       )}
 

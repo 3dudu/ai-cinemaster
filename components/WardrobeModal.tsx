@@ -12,7 +12,7 @@ interface Props {
   project: ProjectState;
   localStyle: string;
   imageSize: string;
-  processingState: {id: string, type: 'character'|'scene'}|null;
+  processingState: {id: string, type: 'character'|'scene'|'props'}|null;
   setProcessingState: (state: {id: string, type: 'character'|'scene'}|null) => void;
   updateProject: (updates: Partial<ProjectState>) => void;
   onClose: () => void;

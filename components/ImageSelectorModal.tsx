@@ -28,7 +28,7 @@ interface Props {
   onClose: () => void;
   project?: ProjectState;
   onSelectImage: (imageUrl: string, allImages?: string[]) => void;
-  filterType?: 'character' | 'scene' | 'keyframe' | 'all';
+  filterType?: 'character' | 'scene' | 'keyframe' | 'all' | 'props';
   previewMode?: boolean;
   showVideo?: boolean;
 }
@@ -44,7 +44,7 @@ const ImageSelectorModal: React.FC<Props> = ({
 }) => {
   const dialog = useDialog();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video'>(filterType);
+  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video' | 'props'>(filterType);
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [loadingProjects, setLoadingProjects] = useState(false);

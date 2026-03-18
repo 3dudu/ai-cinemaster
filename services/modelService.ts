@@ -661,7 +661,7 @@ export class ModelService {
    * @param genre - 题材类型
    */
   static async generateVisualPrompts(
-    type: "character" | "scene",
+    type: "character" | "scene" | "props",
     data: any,
     genre: string,
     visualStyle: string
@@ -682,23 +682,32 @@ export class ModelService {
       data.voiceUrl=null;
     }
     const desc = JSON.stringify(data);
-    const prompt = renderTemplate('GENERATE_VISUAL_PROMPT', type=='character'?'角色':'场景', desc, genre, visualStyle);
+    let prompt = renderTemplate('GENERATE_CHARA_PROMPT', desc, genre, visualStyle);
+
+    let sys_propmt = renderTemplate('SYSTEM_CHARA_DESIGNER');
+    if(type=='scene'){
+      prompt = renderTemplate('GENERATE_SCENE_PROMPT', desc, genre, visualStyle);
+      sys_propmt = renderTemplate('SYSTEM_SCENE_DESIGNER');
+    }else if(type=='props'){
+      prompt = renderTemplate('GENERATE_PROPS_PROMPT', desc, genre, visualStyle);
+      sys_propmt = renderTemplate('SYSTEM_PROPS_DESIGNER');
+    } 
     let visualPrompt = '';
     switch (provider.provider) {
       case 'deepseek':
-        visualPrompt = await (await this.getProviderModule('deepseek')).generateVisualPrompts(prompt);
+        visualPrompt = await (await this.getProviderModule('deepseek')).generateVisualPrompts(prompt,sys_propmt);
         break;
       case 'doubao':
-        visualPrompt = await (await this.getProviderModule('doubao')).generateVisualPrompts(prompt);
+        visualPrompt = await (await this.getProviderModule('doubao')).generateVisualPrompts(prompt,sys_propmt);
         break;
       case 'gemini':
-        visualPrompt = await (await this.getProviderModule('gemini')).generateVisualPrompts(prompt);
+        visualPrompt = await (await this.getProviderModule('gemini')).generateVisualPrompts(prompt,sys_propmt);
         break;
       case 'yunwu':
-        visualPrompt = await (await this.getProviderModule('yunwu')).generateVisualPrompts(prompt);
+        visualPrompt = await (await this.getProviderModule('yunwu')).generateVisualPrompts(prompt,sys_propmt);
         break;
       case 'openai':
-        visualPrompt = await (await this.getProviderModule('openai')).generateVisualPrompts(prompt);
+        visualPrompt = await (await this.getProviderModule('openai')).generateVisualPrompts(prompt,sys_propmt);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的视觉提示词生成`);

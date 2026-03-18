@@ -231,6 +231,8 @@ export const generateScript = async (
  */
 export const generateVisualPrompts = async (
   prompt: string,
+  sys_propmt: string,
+  type: "character" | "scene" | "prop",
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
@@ -240,7 +242,7 @@ export const generateVisualPrompts = async (
       messages: [
         {
             role: "system",
-            content: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+            content: sys_propmt,
         },
         {
           role: "user",

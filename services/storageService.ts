@@ -150,7 +150,7 @@ export interface MediaFile {
   fileName: string;
   timestamp: number;
   fileType: 'image' | 'video' | 'audio';
-  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition';
+  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition' | 'props';
   prompt: string;
 }
 
@@ -251,7 +251,7 @@ export const addMediaHistory = async (
   fileUrl: string,
   fileName: string,
   fileType: 'image' | 'video' | 'audio',
-  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition',
+  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition' | 'props',
   prompt: string
 ): Promise<void> => {
   const filehash = await md5Hash(fileUrl);

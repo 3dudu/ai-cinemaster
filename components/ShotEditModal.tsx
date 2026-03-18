@@ -6,7 +6,7 @@ import { AIModelConfig, Keyframe, Props, Shot } from '../types';
 import CustomSelect from './CustomSelect';
 import VideoPromptModal from './VideoPromptModal';
 
-const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, imageCount, scriptData, visualStyle = '真人写实' }) => {
+const ShotEditModal: React.FC<Props> = ({ shot, characters, props = [], onSave, onClose, imageCount, scriptData, visualStyle = '真人写实' }) => {
   const [tempShot, setTempShot] = useState<Partial<Shot>>({ ...shot });
   const [modelConfigs, setModelConfigs] = useState<AIModelConfig[]>([]);
   const [isVideoPromptModalOpen, setIsVideoPromptModalOpen] = useState(false);
@@ -47,6 +47,14 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
       ? currentChars.filter((c: string) => c !== charId)
       : [...currentChars, charId];
     setTempShot({ ...tempShot, characters: updatedChars });
+  };
+
+  const toggleProp = (propName: string) => {
+    const currentProps = tempShot.properties || [];
+    const updatedProps = currentProps.includes(propName)
+      ? currentProps.filter((p: string) => p !== propName)
+      : [...currentProps, propName];
+    setTempShot({ ...tempShot, properties: updatedProps });
   };
 
   const addKeyframe = () => {
@@ -290,6 +298,54 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
               </div>
             )}
           </div>
+
+          {/* Props */}
+          {props && props.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">道具</label>
+              <div className="flex flex-wrap gap-2">
+                {props.map(prop => {
+                  const isSelected = (tempShot.properties || []).includes(prop.name);
+                  const hasImage = !!prop.referenceImage;
+                  return (
+                    <button
+                      key={prop.name}
+                      onClick={() => toggleProp(prop.name)}
+                      className={`relative px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 border flex items-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? 'bg-orange-900/40 text-slate-50 border-orange-500/50 shadow-lg shadow-orange-500/25 scale-105'
+                          : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-orange-300 hover:text-slate-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      {/* 道具图标 */}
+                      {hasImage && (
+                        <div className={`w-5 h-5 rounded-md overflow-hidden flex-shrink-0 ${
+                          isSelected ? 'ring-2 ring-white/30' : 'opacity-70'
+                        }`}>
+                          <img
+                            src={prop.referenceImage}
+                            alt={prop.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      {/* 对勾图标 - 如果没有图片则显示 */}
+                      {isSelected && !hasImage && <Check className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={3} />}
+                      {/* 道具名 */}
+                      <span className="truncate">{prop.name}</span>
+                      {/* 选中且有图片时的对勾 */}
+                      {isSelected && hasImage && <Check className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
+              </div>
+              {(tempShot.properties || []).length > 0 && (
+                <div className="text-[11px] text-slate-500">
+                  已选择 {tempShot.properties?.length} 个道具
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Keyframes */}
           <div className="space-y-3">

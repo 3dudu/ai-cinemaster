@@ -142,7 +142,9 @@ export const parseScriptToData = async (
         sceneRefId: String(p.sceneRefId),
       }))
     : [];
-
+  const props = Array.isArray(parsed.props)
+    ? parsed.props.map((p: any) => ({ ...p, id: String(p.id), variations: [],}))
+    : [];
   return {
     title: parsed.title || "未命名剧本",
     genre: parsed.genre || "",
@@ -151,6 +153,7 @@ export const parseScriptToData = async (
     characters,
     scenes,
     storyParagraphs,
+    props
   };
 };
 
@@ -367,14 +370,15 @@ export const generateScript = async (
  * Agent 3: Visual Design (Prompt Generation)
  */
 export const generateVisualPrompts = async (
-  prompt: string
+  prompt: string,
+  sys_propmt: string
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
   const requestBody = {
     systemInstruction: {
       parts: [
         {
-          text: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+          text: sys_propmt,
         },
       ],
     },

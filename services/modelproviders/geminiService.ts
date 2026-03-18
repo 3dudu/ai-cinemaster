@@ -96,7 +96,9 @@ export const parseScriptToData = async (prompt: string, language: string = '中�
   })) : [];
   const scenes = Array.isArray(parsed.scenes) ? parsed.scenes.map((s: any) => ({...s, id: String(s.id)})) : [];
   const storyParagraphs = Array.isArray(parsed.storyParagraphs) ? parsed.storyParagraphs.map((p: any) => ({...p, sceneRefId: String(p.sceneRefId)})) : [];
-
+  const props = Array.isArray(parsed.props)
+    ? parsed.props.map((p: any) => ({ ...p, id: String(p.id), variations: [],}))
+    : [];
   return {
     title: parsed.title || "未命名剧本",
     genre: parsed.genre || "",
@@ -104,7 +106,8 @@ export const parseScriptToData = async (prompt: string, language: string = '中�
     language: language,
     characters,
     scenes,
-    storyParagraphs
+    storyParagraphs,
+    props
   };
 };
 
@@ -211,13 +214,13 @@ export const generateScript = async (
 /**
  * Agent 3: Visual Design (Prompt Generation)
  */
-export const generateVisualPrompts = async (prompt: string): Promise<string> => {
+export const generateVisualPrompts = async (prompt: string,sys_propmt: string): Promise<string> => {
    const ai = getAiClient();
    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
      model: 'gemini-2.5-flash',
      contents: prompt,
      config: {
-      systemInstruction: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+      systemInstruction: sys_propmt,
       maxOutputTokens: 8192,
      }
    }));

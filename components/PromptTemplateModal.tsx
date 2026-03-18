@@ -25,9 +25,12 @@ const PromptTemplateModal: React.FC<{
   const templates: Template[] = useMemo(() => [
     { key: 'PARSE_SCRIPT', name: '剧本分析员-剧本解析提示词', description: '解析原始文本提取剧本信息', hasParams: true },
     { key: 'GENERATE_SHOTS', name: '摄影师-镜头清单生成提示词', description: '生成场景的镜头调度设计', hasParams: true },
-    { key: 'GENERATE_VISUAL_PROMPT', name: '视觉设计师-角色/场景视觉提示词生成提示词', description: '为角色和场景生成图像提示词', hasParams: true },
+    { key: 'GENERATE_CHARA_PROMPT', name: '视觉设计师-角色视觉提示词生成提示词', description: '为角色生成图像提示词', hasParams: true },
+    { key: 'GENERATE_SCENE_PROMPT', name: '视觉设计师-场景视觉提示词生成提示词', description: '为场景生成图像提示词', hasParams: true },
+    { key: 'GENERATE_PROPS_PROMPT', name: '视觉设计师-道具视觉提示词生成提示词', description: '为道具生成图像提示词', hasParams: true },
     { key: 'GENERATE_CHARACTER_IMAGE', name: '视觉设计师-角色图片生成提示词', description: '生成角色三视图加大头照', hasParams: true },
     { key: 'GENERATE_SCENE_IMAGE', name: '视觉设计师-场景图片生成提示词', description: '生成场景图片', hasParams: true },
+    { key: 'GENERATE_PROPS_IMAGE', name: '视觉设计师-道具图片生成提示词', description: '生成道具图片', hasParams: true },
     { key: 'IMAGE_GENERATION_WITH_REFERENCE', name: '视觉设计师-带参考图的图片生成提示词', description: '生成带参考图的角色图片', hasParams: true },
     { key: 'GENERATE_CHARACTER_VARIATION', name: '视觉设计师-角色造型变体生成提示词', description: '生成角色的新造型', hasParams: true },
     { key: 'GENERATE_KEYFRAME_PROMPT', name: '视觉设计师-关键帧提示词生成提示词', description: '为关键帧生成连环画风格提示词', hasParams: true },
@@ -38,7 +41,9 @@ const PromptTemplateModal: React.FC<{
     { key: 'SYSTEM_SCRIPT_ANALYZER', name: '剧本分析员系统提示词', description: '用于剧本解析的系统提示词' },
     { key: 'SYSTEM_PHOTOGRAPHER', name: '摄影师系统提示词', description: '用于镜头清单生成的系统提示词' },
     { key: 'SYSTEM_SCREENWRITER', name: '编剧系统提示词', description: '用于剧本生成的系统提示词' },
-    { key: 'SYSTEM_VISUAL_DESIGNER', name: '视觉设计师系统提示词', description: '用于视觉提示词生成的系统提示词' },
+    { key: 'SYSTEM_CHARA_DESIGNER', name: '角色视觉设计师系统提示词', description: '用于视觉提示词生成的系统提示词' },
+    { key: 'SYSTEM_SCENE_DESIGNER', name: '场景视觉设计师系统提示词', description: '用于视觉提示词生成的系统提示词' },
+    { key: 'SYSTEM_PROPS_DESIGNER', name: '道具视觉设计师系统提示词', description: '用于视觉提示词生成的系统提示词' },
     { key: 'SYSTEM_VIDEO_DIRECTOR', name: '导演系统提示词', description: '用于视频拍摄提示词生成的系统提示词' },
   ], []);
 
@@ -144,11 +149,18 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 "{prompt}"
 
 请以Markdown格式输出剧本结构，不要使用 JSON 格式，直接输出可阅读的剧本文本。`,
-      'GENERATE_VISUAL_PROMPT': `为 {genre} 类视频中的 {type} 生成高还原度图像提示词，图像风格必须为：{visualStyle}。
-{type} 的描述信息如下: {desc}
- - 如果是 角色 要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
- - 如果是 场景 要描述时间、地点、景色、光线、氛围等，不要出现角色。
-只要输出 {type} 的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
+      'GENERATE_CHARA_PROMPT': `为 {genre} 类视频中的角色生成高还原度图像提示词，图像风格必须为：{visualStyle}。
+角色的描述信息如下: {desc}
+ - 要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景，道具。
+输出角色的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
+      'GENERATE_SCENE_PROMPT': `为 {genre} 类视频中的场景生成高还原度图像提示词，图像风格必须为：{visualStyle}。
+场景的描述信息如下: {desc}
+ - 场景要描述时间、地点、景色、光线、氛围等，不要出现角色，道具。
+输出场景的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
+      'GENERATE_PROPS_PROMPT': `为 {genre} 类视频中的道具生成高还原度图像提示词，图像风格必须为：{visualStyle}。
+道具的描述信息如下: {desc}
+ - 道具要体现出形态、材质、颜色、效果、大小等，不要出现场景，角色。
+输出道具的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
       'JOIN_IMAGES': `请将这些图片拼成一张{imageCount}宫格图片，图片之间留有1个像素的间隔，最终图片大小为{imageSize}。`,
       'IMAGE_GENERATION_WITH_REFERENCE': `生成符合下面描述的图画，画面风格必须为：{visualStyle}。
 图像描述：
@@ -202,7 +214,11 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
       'GENERATE_SCENE_IMAGE': `生成符合下面要求的场景图片，图片风格必须为：{visualStyle}。
 图片内容：{prompt}
 
-图片比例16:9，具体要求：图中无角色、无文字。`,
+图片比例16:9，具体要求：图中无角色、道具、无文字。`,
+      'GENERATE_PROPS_IMAGE': `生成符合下面要求的道具图片，图片风格必须为：{visualStyle}。
+图片内容：{prompt}
+
+图片比例3:4，具体要求：纯白色背景、无角色、无道具、无文字。`,
       'GENERATE_TRANSITION_VIDEO': `视频风格：{visualStyle}；故事从 {currentShotSummary} 过渡到 {nextShotSummary}。景别变化：从 {currentShotSize} 到 {nextShotSize}；制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
 镜头开始：{endFrameVisualPrompt}；
 镜头结束：{startFrameVisualPrompt}；
@@ -290,13 +306,16 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'PARSE_SCRIPT': ['{text}', '{lang}', '{genre}'],
     'GENERATE_SHOTS': ['{sceneindex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}', '{imageCount}'],
     'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}'],
-    'GENERATE_VISUAL_PROMPT': ['{type}', '{desc}', '{genre}', '{visualStyle}'],
+    'GENERATE_CHARA_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
+    'GENERATE_SCENE_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
+    'GENERATE_PROPS_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
     'JOIN_IMAGES': ['{imageCount}', '{imageSize}'],
     'IMAGE_GENERATION_WITH_REFERENCE': ['{prompt}', '{visualStyle}'],
     'GENERATE_CHARACTER_VARIATION': ['{character}', '{visualStyle}', '{variationPrompt}', '{baseCharacterPrompt}'],
     'GENERATE_KEYFRAME_PROMPT': ['{imageGridSpec}', '{imageCount}', '{imageRate}'],
     'GENERATE_CHARACTER_IMAGE': ['{prompt}', '{visualStyle}'],
     'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}'],
+    'GENERATE_PROPS_IMAGE': ['{prompt}', '{visualStyle}'],
     'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}'],
     'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
   };

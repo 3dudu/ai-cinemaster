@@ -67,7 +67,9 @@ export interface Shot {
   cameraMovement: string;
   shotSize?: string;
   characters: string[]; // Character IDs
+  properties: string[];  // Properties Name
   characterVariations?: { [characterId: string]: string }; // Added: Map char ID to variation ID for this shot
+  propVariations?: { [propName: string]: string }; // Map prop name to variation ID for this shot
   keyframes: Keyframe[];
   interval?: VideoInterval;
   audioUrl?: string; // 语音合成音频 URL
@@ -82,6 +84,7 @@ export interface Shot {
 export interface Props {
   shot: Shot;
   characters: Character[];
+  props?: Properties[];
   onSave: (updatedShot: Partial<Shot>) => void;
   onClose: () => void;
   imageCount: number;
@@ -117,6 +120,8 @@ export interface Properties {
   effects: string;
   description: string;
   variations: PropertieVariation[]; // Added: List of alternative looks
+  visualPrompt?: string;
+  referenceImage?: string; // Base URL
 }
 
 export interface ProjectState {
