@@ -60,6 +60,14 @@ const getModelTypesForProvider = (provider: AIModelConfig['provider']) => {
   return MODEL_TYPE_OPTIONS.filter(opt => supportedTypes.includes(opt.value as string));
 };
 
+// 根据模型类型获取支持的供应商选项
+const getProvidersForModelType = (modelType: AIModelConfig['modelType']) => {
+  return PROVIDER_OPTIONS.filter(provider => {
+    const supportedTypes = PROVIDER_MODEL_TYPES[provider.value] || ['llm'];
+    return supportedTypes.includes(modelType);
+  });
+};
+
 // 根据模型类型获取颜色样式
 const getModelTypeColorStyles = (modelType: AIModelConfig['modelType']) => {
   const colorMap = {
@@ -373,19 +381,36 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                 <p className="text-xs text-slate-500">配置您的 AI 模型服务提供商和 API 凭证</p>
               </div>
 
+              {/* Model Type Selection */}
+              <div className="space-y-2">
+                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">模型类型</label>
+                <CustomSelect
+                  options={MODEL_TYPE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
+                  value={formData.modelType}
+                  onChange={(value) => {
+                    const supportedProviders = getProvidersForModelType(value as AIModelConfig['modelType']);
+                    const firstSupportedProvider = supportedProviders[0]?.value as AIModelConfig['provider'];
+                    setFormData({
+                      ...formData,
+                      modelType: value as AIModelConfig['modelType'],
+                      provider: firstSupportedProvider || 'doubao',
+                      model: ''
+                    });
+                  }}
+                  placeholder="选择模型类型"
+                />
+              </div>
+
               {/* Provider Selection */}
               <div className="space-y-2">
                 <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">服务提供商</label>
                 <CustomSelect
-                  options={PROVIDER_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
+                  options={getProvidersForModelType(formData.modelType).map(opt => ({ value: opt.value, label: opt.label }))}
                   value={formData.provider}
                   onChange={(value) => {
-                    const supportedTypes = getModelTypesForProvider(value as AIModelConfig['provider']);
-                    const firstSupportedType = supportedTypes[0]?.value as AIModelConfig['modelType'];
                     setFormData({
                       ...formData,
                       provider: value as AIModelConfig['provider'],
-                      modelType: firstSupportedType || 'llm',
                       model: ''
                     });
                   }}
@@ -407,17 +432,6 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                     </a>
                   ) : null;
                 })()}
-              </div>
-
-              {/* Model Type Selection */}
-              <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">模型类型</label>
-                <CustomSelect
-                  options={getModelTypesForProvider(formData.provider).map(opt => ({ value: opt.value, label: opt.label }))}
-                  value={formData.modelType}
-                  onChange={(value) => setFormData({ ...formData, modelType: value as AIModelConfig['modelType'] })}
-                  placeholder="选择模型类型"
-                />
               </div>
 
               {/* API Key */}
