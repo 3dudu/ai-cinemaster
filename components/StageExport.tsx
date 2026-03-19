@@ -564,7 +564,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                      ref={videoRef}
                      controls
                      autoPlay
-                     className="w-full h-full object-cover"
+                     className="w-full h-full object-contain"
                      src={isPlayingSelected ? playSequence[currentPlayingShotIndex]?.url : project.mergedVideoUrl}
                      onEnded={isPlayingSelected ? handleVideoEnded : undefined}
                      onTimeUpdate={isPlayingSelected ? handleTimeUpdate : undefined}

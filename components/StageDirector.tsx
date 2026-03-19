@@ -1399,7 +1399,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                         <video
                                           data-shot-id={shot.id}
                                           src={shot.interval?.videoUrl}
-                                          className="w-full h-full object-cover"
+                                          className="w-full h-full object-contain"
                                           muted controls autoPlay
                                           onMouseLeave={(e) => e.currentTarget.pause()}
                                           onCanPlay={() => {
@@ -1410,7 +1410,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                         />
                                     ) : hasImage ? (
                                         <>
-                                          <img src={sKf!.imageUrl || fKf!.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                          <img src={sKf!.imageUrl || fKf!.imageUrl} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105" />
                                           {/* Preload video in background after 2 seconds hover */}
                                           {hasVideo && !videoReadyShots.has(shot.id) && hoveredShotId === shot.id && (
                                             <video
@@ -1427,7 +1427,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                     ) : hasVideo ? (
                                         <video
                                           data-shot-id={shot.id}
-                                          className="w-full h-full object-cover"
+                                          className="w-full h-full object-contain"
                                           src={shot.interval?.videoUrl}
                                           muted controls
                                           onMouseLeave={(e) => e.currentTarget.pause()}
@@ -1998,7 +1998,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                    <video
                                        src={activeShot.transitionUrl && playingTransition[activeShot.id] ? activeShot.transitionUrl : activeShot.interval?.videoUrl}
                                        controls
-                                       className="w-full h-full object-cover"
+                                       className="w-full h-full object-contain"
                                    />
                                    {activeShot.transitionUrl && playingTransition[activeShot.id] && (
                                        <div className="absolute top-2 right-2 px-2 py-1 bg-purple-500/80 text-white text-xs font-bold rounded">

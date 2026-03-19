@@ -529,7 +529,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                       // 视频使用 video 标签
                       <video
                         src={image.imageUrl}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         controls
                         muted
                         onMouseLeave={(e) => e.currentTarget.pause()}
@@ -539,7 +539,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                       <img
                         src={image.imageUrl}
                         alt={image.title}
-                        className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200"
+                        className="w-full h-full object-contain group-hover:scale-115 transition-transform duration-200"
                       />
                     )}
                     {/* 悬停遮罩 - 图片和视频都显示 */}

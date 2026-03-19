@@ -1,11 +1,11 @@
 import { ArrowRightLeft, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { deleteSingleMediaFile, getAllProjectsMetadata, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
 import { ProjectState } from '../types';
+import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
 import { downloadImage, downloadVideo } from './FileUploadModal';
 import PromptDetailModal from './PromptDetailModal';
-import CustomSelect from './CustomSelect';
 
 interface ImageItem {
   id: string;
@@ -529,7 +529,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                   {image.mediaType === 'video' ? (
                     <video
                       src={image.imageUrl}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                       controls
                       muted
                       onMouseLeave={(e) => e.currentTarget.pause()}
@@ -538,7 +538,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                     <img
                       src={image.imageUrl}
                       alt={image.title}
-                      className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200"
+                      className="w-full h-full object-contain group-hover:scale-115 transition-transform duration-200"
                     />
                   )}
                   {/* 悬停遮罩 */}
