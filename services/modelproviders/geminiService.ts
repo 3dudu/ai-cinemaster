@@ -217,7 +217,7 @@ export const generateVisualPrompts = async (prompt: string): Promise<string> => 
      model: 'gemini-2.5-flash',
      contents: prompt,
      config: {
-      systemInstruction: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+      systemInstruction: systemPrompt,
       maxOutputTokens: 8192,
      }
    }));

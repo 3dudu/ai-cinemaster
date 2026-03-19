@@ -1,4 +1,4 @@
-import { AlertCircle, Camera, Check, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Camera, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
@@ -8,6 +8,7 @@ import FileUploadModal, { downloadImage } from './FileUploadModal';
 import VoiceSynthesisModal from './VoiceSynthesisModal';
 import WardrobeModal from './WardrobeModal';
 import { useDialog } from './dialog';
+import SceneEditModal from './modals/SceneEditModal';
 
 
 interface Props {
@@ -32,24 +33,11 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
   const [selectedVoiceCharId, setSelectedVoiceCharId] = useState<string | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
-  // Variation Form State
-  const [editingSceneVisualPrompt, setEditingSceneVisualPrompt] = useState("");
-
   // Sync local state with project settings
   useEffect(() => {
     setLocalStyle(project.visualStyle || '真人写实');
     setImageSize(project.imageSize || '2560x1440');
   }, [project.visualStyle, project.imageSize]);
-
-  // Sync visual prompt when scene is selected
-  useEffect(() => {
-    if (selectedSceneId && project.scriptData) {
-      const scene = project.scriptData.scenes.find(s => s.id === selectedSceneId);
-      if (scene) {
-        setEditingSceneVisualPrompt(scene.visualPrompt || '');
-      }
-    }
-  }, [selectedSceneId, project.scriptData]);
 
   const handleGenerateAsset = async (type: 'character' | 'scene', id: string, skipConfirm?: boolean) => {
     // Check if item already has a reference image (regenerate)
@@ -79,26 +67,27 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     let prompt = "";
     try {
       // Find the item
-      let imagesize = '2560x1440';
+      let imagesize = '2304x1728';
+      let new_prompt = prompt;
       if (type === 'character') {
         imagesize = '1728x2304';
         const char = project.scriptData?.characters.find(c => String(c.id) === String(id));
         imageUrl = char?.referenceImage;
         prompt = char?.visualPrompt;
-        if (char) prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, project.scriptData?.genre || '剧情片',project.visualStyle);
+        new_prompt = prompt;
+        if (char) {
+          prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, project.scriptData?.genre || '剧情片',project.visualStyle);
+          new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', localStyle, prompt,char.name);
+        }
       } else {
         const scene = project.scriptData?.scenes.find(s => String(s.id) === String(id));
         imageUrl = scene?.referenceImage;
         prompt = scene?.visualPrompt;
-        if (scene) prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, project.scriptData?.genre || '剧情片',project.visualStyle);
-      }
-      let new_prompt = prompt;
-      if(type=='character'){
-        new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', new_prompt, localStyle);
-      }
-
-      if(type=='scene'){
-        new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', new_prompt, localStyle);
+        new_prompt = prompt;
+        if (scene) {
+          prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, project.scriptData?.genre || '剧情片',project.visualStyle);
+          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt,scene.atmosphere);
+        }
       }
 
       // Real API Call
@@ -202,17 +191,6 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     setUploadingItem(null);
   };
 
-  const handleSaveSceneVisualPrompt = () => {
-    if (!project.scriptData || !selectedSceneId) return;
-
-    const newData = { ...project.scriptData };
-    const scene = newData.scenes.find(s => s.id === selectedSceneId);
-    if (scene) {
-      scene.visualPrompt = editingSceneVisualPrompt;
-      updateProject({ scriptData: newData });
-    }
-  };
-
   const handleDownloadImage = async (imageUrl: string, charName: string) => {
     if(downloadStatus)return;
     setDownloadStatus('downloading');
@@ -275,96 +253,19 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
       )}
 
       {/* Scene Edit Modal */}
-      {selectedSceneId && project.scriptData && (() => {
-        const selectedScene = project.scriptData.scenes.find(s => s.id === selectedSceneId);
-        if (!selectedScene) return null;
-
-        return (
-          <div className="absolute inset-0 z-40 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
-            <div className="bg-slate-900 border border-slate-600 w-full max-h-[80vh] max-w-2xl rounded-2xl flex flex-col shadow-2xl overflow-hidden">
-              {/* Modal Header */}
-              <div className="h-16 px-8 border-b border-slate-600 flex items-center justify-between shrink-0 bg-slate-700">
-                <div className="flex items-center gap-4">
-                  <MapPin className="w-10 h-10 rounded-full bg-slate-800 p-2.5 text-green-500" />
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-50">{selectedScene.location}</h3>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedSceneId(null)} className="p-2 bg-slate-700 hover:bg-slate-800 rounded-full transition-colors cursor-pointer">
-                  <X className="w-5 h-5 text-slate-500" />
-                </button>
-              </div>
-
-              {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Scene Image */}
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <MapPin className="w-4 h-4" /> 场景图像
-                    </h4>
-                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
-                      <div className="aspect-[16/9] bg-slate-900 rounded-lg overflow-hidden mb-4 relative cursor-pointer" onClick={() => {
-                        const sceneImages = project.scriptData.scenes
-                          .filter(s => s.referenceImage)
-                          .map(s => s.referenceImage);
-                        const idx = sceneImages.indexOf(selectedScene.referenceImage);
-                        setPreviewImages(sceneImages);
-                        setPreviewIndex(idx >= 0 ? idx : 0);
-                        setPreviewImage(selectedScene.referenceImage);
-                      }}>
-                        {selectedScene.referenceImage ? (
-                          <img src={selectedScene.referenceImage} className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-slate-600">无图像</div>
-                        )}
-                        {selectedScene.referenceImage && (
-                          <div className="absolute inset-0 bg-slate-700/0 hover:bg-slate-700/20 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
-                            <span className="text-slate-50/80 text-xs font-bold uppercase tracking-wider">点击预览</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Scene Info */}
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <Check className="w-4 h-4" /> 场景信息
-                    </h4>
-                    <div className="space-y-4">
-                      <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
-                        <label className="text-[12px] text-slate-300 uppercase tracking-wider font-bold block mb-2">时间</label>
-                        <p className="text-sm text-slate-50">{selectedScene.time}</p>
-                      </div>
-                      <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
-                        <label className="text-[12px] text-slate-300 uppercase tracking-wider font-bold block mb-2">氛围</label>
-                        <p className="text-sm text-slate-50">{selectedScene.atmosphere}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Visual Prompt */}
-                <div className="mt-6">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" /> 视觉提示
-                  </h4>
-                  <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
-                    <textarea
-                      value={editingSceneVisualPrompt}
-                      onChange={(e) => setEditingSceneVisualPrompt(e.target.value)}
-                      onBlur={handleSaveSceneVisualPrompt}
-                      placeholder="输入场景的视觉描述..."
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-sm text-slate-50 placeholder:text-slate-600  focus:border-slate-500 focus:outline-none transition-all resize-none h-32 font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {selectedSceneId && project.scriptData && (
+        <SceneEditModal
+          scene={project.scriptData.scenes.find(s => s.id === selectedSceneId) || null}
+          project={project}
+          localStyle={localStyle}
+          imageSize={imageSize}
+          processingState={processingState}
+          setProcessingState={setProcessingState}
+          updateProject={updateProject}
+          onClose={() => setSelectedSceneId(null)}
+          setPreviewImage={setPreviewImage}
+        />
+      )}
 
       {/* Header - Consistent with Director */}
       <div className="h-14 border-b border-slate-600 bg-slate-700 md:px-6 px-2 flex items-center justify-between shrink-0">
@@ -649,7 +550,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                       </div>
                     </div>
                   )}
-                  {!scene.visualPrompt && scene.referenceImage && (
+                  {!scene.visualPrompt && (
                     <div className="mt-2 pt-2 border-t border-slate-600/50">
                       <button
                         onClick={() => setSelectedSceneId(scene.id)}

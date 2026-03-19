@@ -225,7 +225,8 @@ export const generateScript = async (
  * Agent 3: Visual Design (Prompt Generation)
  */
 export const generateVisualPrompts = async (
-  prompt: string
+  prompt: string,
+  systemPrompt: string = "视觉设计师",
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
@@ -235,7 +236,7 @@ export const generateVisualPrompts = async (
       messages: [
         {
             role: "system",
-            content: renderTemplate('SYSTEM_VISUAL_DESIGNER'),
+            content: systemPrompt,
         },
         {
           role: "user",
