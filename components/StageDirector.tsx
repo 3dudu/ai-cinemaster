@@ -490,8 +490,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
   const handleDownloadVideo = async (shot: Shot) => {
     if (!shot.interval?.videoUrl) {
-      await dialog.alert({
-        title: '提示',
+      dialog.toast({
         message: '视频尚未生成或不可用',
         type: 'warning',
       });
@@ -507,8 +506,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
   const handleDownloadTransition = async (shot: Shot) => {
     if (!shot.transitionUrl) {
-      await dialog.alert({
-        title: '提示',
+      dialog.toast({
         message: '转场视频尚未生成或不可用',
         type: 'warning',
       });
@@ -525,8 +523,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const handleGenerateTransition = async (shot: Shot) => {
     const currentIndex = project.shots.findIndex(s => s.id === shot.id);
     if (currentIndex === -1 || currentIndex === project.shots.length - 1) {
-      await dialog.alert({
-        title: '提示',
+      dialog.toast({
         message: '只能在两个分镜之间生成转场',
         type: 'warning',
       });
@@ -592,8 +589,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         transitionUrl: transitionUrl
       }));
 
-      await dialog.alert({
-        title: '成功',
+      dialog.toast({
         message: '转场视频生成成功',
         type: 'success',
       });

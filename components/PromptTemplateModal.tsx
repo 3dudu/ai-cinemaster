@@ -232,7 +232,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     }
     setCustomContent(newCustomContent);
     localStorage.setItem('promptTemplates', JSON.stringify(newCustomContent));
-    await dialog.alert({ title: '保存成功', message: '提示词模板已保存', type: 'success' });
+    dialog.toast({ message: '提示词模板已保存', type: 'success' });
   };
 
   // 重置为默认
@@ -242,7 +242,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     delete newCustomContent[selectedKey];
     setCustomContent(newCustomContent);
     localStorage.setItem('promptTemplates', JSON.stringify(newCustomContent));
-    await dialog.alert({ title: '重置成功', message: '模板已重置为默认值', type: 'success' });
+    dialog.toast({ message: '模板已重置为默认值', type: 'success' });
   };
 
   // 导出所有模板
@@ -277,13 +277,13 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
           setCustomContent(data.customContent);
           localStorage.setItem('promptTemplates', JSON.stringify(data.customContent));
           setCurrentContent(customContent[selectedKey] || getDefaultContent(selectedKey));
-          await dialog.alert({ title: '导入成功', message: '模板导入成功', type: 'success' });
+          dialog.toast({ message: '模板导入成功', type: 'success' });
         } else {
-          await dialog.alert({ title: '导入失败', message: '无效的模板文件格式', type: 'error' });
+          dialog.toast({ message: '无效的模板文件格式', type: 'error' });
         }
       } catch (e) {
         console.error('Failed to import templates:', e);
-        await dialog.alert({ title: '导入失败', message: '导入失败：文件格式错误', type: 'error' });
+        dialog.toast({ message: '导入失败：文件格式错误', type: 'error' });
       }
     };
     input.click();

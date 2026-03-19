@@ -36,18 +36,10 @@ const PromptDetailModal: React.FC<PromptDetailModalProps> = ({
   const handleCopyPrompt = async () => {
     try {
       await navigator.clipboard.writeText(prompt);
-      await dialog.alert({
-        title: '成功',
-        message: '提示词已复制到剪贴板',
-        type: 'success'
-      });
+      dialog.toast({ message: '提示词已复制到剪贴板', type: 'success' });
     } catch (error) {
       console.error('Failed to copy prompt:', error);
-      await dialog.alert({
-        title: '错误',
-        message: '复制失败，请手动复制',
-        type: 'error'
-      });
+      dialog.toast({ message: '复制失败，请手动复制', type: 'error' });
     }
   };
 

@@ -158,7 +158,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
 
       if (conflictItems.length === 0) {
         // 没有需要同步的项目
-        await dialog.alert({ title: '同步完成', message: '没有需要同步的项目', type: 'info' });
+        dialog.toast({ message: '没有需要同步的项目', type: 'info' });
         setSyncKey("");
         localStorage.setItem('cinegen_sync_key', '');
       } else {
@@ -235,9 +235,9 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
     setIsLoading(false);
 
     if (failCount === 0) {
-      await dialog.alert({ title: '同步完成', message: `同步成功！已处理 ${successCount} 个项目`, type: 'info' });
+      dialog.toast({ message: `同步成功！已处理 ${successCount} 个项目`, type: 'success' });
     } else {
-      await dialog.alert({ title: '同步完成', message: `同步完成：成功 ${successCount} 个，失败 ${failCount} 个`, type: 'warning' });
+      dialog.toast({ message: `同步完成：成功 ${successCount} 个，失败 ${failCount} 个`, type: 'warning' });
     }
 
     onSyncComplete();
@@ -269,14 +269,14 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
         const newConflicts = conflicts.filter((_, i) => i !== index);
         setConflicts(newConflicts);
         if (newConflicts.length === 0) {
-          await dialog.alert({ title: '同步完成', message: '没有需要同步的项目', type: 'info' });
+          dialog.toast({ message: '没有需要同步的项目', type: 'info' });
           handleClose();
         }
       } else {
-        await dialog.alert({ title: '删除失败', message: result.error || '删除失败', type: 'error' });
+        dialog.toast({ message: result.error || '删除失败', type: 'error' });
       }
     } catch (err) {
-      await dialog.alert({ title: '删除失败', message: err instanceof Error ? err.message : '删除失败', type: 'error' });
+      dialog.toast({ message: err instanceof Error ? err.message : '删除失败', type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -295,7 +295,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
     const itemsWithAction = conflicts.filter(item => item.action !== null);
 
     if (itemsWithAction.length === 0) {
-      dialog.alert({ title: '提示', message: '请至少选择一个操作', type: 'warning' });
+      dialog.toast({ message: '请至少选择一个操作', type: 'warning' });
       return;
     }
     executeSync(itemsWithAction);

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { AlertDialog } from './AlertDialog';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ToastContainer, ToastItem, ToastOptions } from './Toast';
 
 interface DialogOptions {
   title?: string;
@@ -13,6 +14,7 @@ interface DialogOptions {
 interface DialogContextType {
   alert: (options: DialogOptions) => Promise<void>;
   confirm: (options: DialogOptions) => Promise<boolean>;
+  toast: (options: ToastOptions) => void;
 }
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -37,6 +39,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     options: { message: '' },
     resolve: null,
   });
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const alert = useCallback((options: DialogOptions): Promise<void> => {
     return new Promise((resolve) => {
@@ -58,6 +61,15 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, []);
 
+  const toast = useCallback((options: ToastOptions) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setToasts((prev) => [...prev, { ...options, id }]);
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   const handleClose = useCallback(() => {
     if (dialog.resolve) {
       dialog.resolve(dialog.type === 'confirm' ? false : undefined);
@@ -73,16 +85,16 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [dialog]);
 
   return (
-    <DialogContext.Provider value={{ alert, confirm }}>
+    <DialogContext.Provider value={{ alert, confirm, toast }}>
       {children}
-      
+
       {dialog.type === 'alert' && (
         <AlertDialog
           {...dialog.options}
           onClose={handleClose}
         />
       )}
-      
+
       {dialog.type === 'confirm' && (
         <ConfirmDialog
           title={dialog.options.title}
@@ -94,6 +106,8 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           onConfirm={handleConfirm}
         />
       )}
+
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </DialogContext.Provider>
   );
 };

@@ -23,7 +23,7 @@ export const downloadImage = async (imageUrl: string, filename: string, dialogIn
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Download failed:', error);
-    await dialogInstance.alert({ title: '错误', message: '下载失败，请重试。'+error?.message, type: 'error' });
+    dialogInstance.toast({ message: '下载失败，请重试。'+error?.message, type: 'error' });
   }
 };
 
@@ -46,18 +46,10 @@ export const downloadVideo = async (videoUrl: string, filename: string, dialogIn
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 
-    await dialogInstance.alert({
-      title: '成功',
-      message: '视频下载已开始',
-      type: 'success',
-    });
+    dialogInstance.toast({ message: '视频下载已开始', type: 'success' });
   } catch (error: any) {
     console.error('下载视频失败:', error);
-    await dialogInstance.alert({
-      title: '错误',
-      message: `下载视频失败: ${error.message}`,
-      type: 'error',
-    });
+    dialogInstance.toast({ message: `下载视频失败: ${error.message}`, type: 'error' });
   }
 };
 
@@ -111,13 +103,13 @@ const FileUploadModal: React.FC<Props> = ({
     // Validate file type
     const validTypes = acceptTypes.split(',');
     if (!validTypes.includes(file.type)) {
-      await dialog.alert({ title: '错误', message: '请选择 PNG 或 JPG 格式的图片', type: 'error' });
+      dialog.toast({ message: '请选择 PNG 或 JPG 格式的图片', type: 'error' });
       return;
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      await dialog.alert({ title: '错误', message: '文件大小不能超过 10MB', type: 'error' });
+      dialog.toast({ message: '文件大小不能超过 10MB', type: 'error' });
       return;
     }
 
@@ -148,11 +140,11 @@ const FileUploadModal: React.FC<Props> = ({
           onClose();
         }, 800);
       } else {
-        await dialog.alert({ title: '错误', message: result.error || '上传失败，请重试。', type: 'error' });
+        dialog.toast({ message: result.error || '上传失败，请重试。', type: 'error' });
       }
     } catch (error) {
       console.error('Upload error:', error);
-      await dialog.alert({ title: '错误', message: '上传失败，请重试。'+error?.message, type: 'error' });
+      dialog.toast({ message: '上传失败，请重试。'+error?.message, type: 'error' });
     } finally {
       setUploading(false);
     }

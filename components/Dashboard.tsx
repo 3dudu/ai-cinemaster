@@ -70,7 +70,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
         await loadProjects();
     } catch (error) {
         console.error("Delete failed", error);
-        await dialog.alert({ title: '错误', message: '删除项目失败', type: 'error' });
+        dialog.toast({ message: '删除项目失败', type: 'error' });
     } finally {
         setDeleteConfirmId(null);
     }
@@ -104,7 +104,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       console.error('Import failed:', error);
       // 如果是用户取消，不显示错误提示
       if (error.message !== 'Import cancelled' && error.message !== 'No file selected') {
-        await dialog.alert({ title: '错误', message: error.message || '导入项目失败', type: 'error' });
+        dialog.toast({ message: error.message || '导入项目失败', type: 'error' });
       }
     } finally {
       setImporting(false);
@@ -134,7 +134,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       await loadProjects();
     } catch (error) {
       console.error('Duplicate project failed:', error);
-      await dialog.alert({ title: '错误', message: '复制项目失败', type: 'error' });
+      dialog.toast({ message: '复制项目失败', type: 'error' });
     }
   };
 
@@ -162,7 +162,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       await loadProjects();
     } catch (error) {
       console.error('Failed to update title:', error);
-      await dialog.alert({ title: '错误', message: '更新项目名失败', type: 'error' });
+      dialog.toast({ message: '更新项目名失败', type: 'error' });
     } finally {
       setEditingProjectId(null);
       setEditingTitle('');
@@ -197,7 +197,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       setCurrentProject(updatedProject);
     } catch (error) {
       console.error('Failed to update project:', error);
-      await dialog.alert({ title: '错误', message: '更新项目失败', type: 'error' });
+      dialog.toast({ message: '更新项目失败', type: 'error' });
     }
   };
 
