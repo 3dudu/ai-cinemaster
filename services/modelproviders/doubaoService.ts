@@ -536,7 +536,7 @@ const pollVideoTask = async (taskId: string): Promise<string> => {
     if (status === "completed" || status === "succeeded") {
       return response.video_url || response.content?.video_url;
     } else if (status === "failed") {
-      throw new Error(`视频生成失败: ${response.error}`);
+      throw new Error(`视频生成失败: ${response.error?.message || response.error?.code || response.error}`);
     }
 
     // 等待 5 秒后继续轮询
