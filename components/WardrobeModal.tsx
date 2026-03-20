@@ -87,7 +87,7 @@ const WardrobeModal: React.FC<Props> = ({
             prompt
           );
 
-          const imageUrl = await ModelService.generateImage(enhancedPrompt, refImages, "variation", localStyle, '1728x2304',1,{},project.id);
+          const imageUrl = await ModelService.generateImage(enhancedPrompt, refImages, "variation", localStyle, '1728x2304',1,{},project.id,character.id);
 
           // Save to media history
           if (imageUrl) {
@@ -327,7 +327,7 @@ const WardrobeModal: React.FC<Props> = ({
           isOpen={fileUploadModalOpen}
           onClose={() => setFileUploadModalOpen(false)}
           onUploadSuccess={handleFileUploadSuccess}
-          fileType="wardrobe"
+          filePath="variation/upload"
           acceptTypes="image/png,image/jpeg,image/jpg"
           title="上传造型图片"
           projectid={project.id}

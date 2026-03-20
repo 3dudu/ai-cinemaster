@@ -97,7 +97,7 @@ const CustomSelect: React.FC<Props> = ({
         onClick={() => !disabled && setShowDropdown(!showDropdown)}
         disabled={disabled}
         className={`w-full bg-slate-800 border border-slate-600 rounded-md text-left focus:outline-none focus:ring-1 focus:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between ${
-          size === 'sm' ? 'px-2 py-1 text-xs' : 'px-4 py-2.5 text-sm'
+          size === 'sm' ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'
         }`}
       >
         <span className={`flex-1 truncate ${selectedOption ? 'text-slate-400' : 'text-slate-300'}`}>
@@ -123,7 +123,7 @@ const CustomSelect: React.FC<Props> = ({
                 setShowDropdown(false);
               }}
               className={`w-full text-left hover:bg-slate-600 flex items-center justify-between ${
-                size === 'sm' ? 'px-2 py-1 text-xs' : 'px-4 py-2.5 text-sm'
+                size === 'sm' ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'
               } ${
                 value === ''
                   ? 'bg-slate-500/60 text-slate-300'
@@ -144,7 +144,7 @@ const CustomSelect: React.FC<Props> = ({
                 setShowDropdown(false);
               }}
               className={`w-full text-left hover:bg-slate-500/60 hover:text-slate-200 ${
-                size === 'sm' ? 'px-2 py-1 text-xs' : 'px-4 py-2.5 text-sm'
+                size === 'sm' ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'
               } ${
                 option.value === value
                   ? 'bg-slate-600 text-slate-300'

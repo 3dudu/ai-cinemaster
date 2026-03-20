@@ -1,6 +1,6 @@
 // services/modelproviders/deepseekService.ts
 
-import { ScriptData, Shot } from "../../types";
+import { Scene, ScriptData, Shot } from "../../types";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
 import { getEnabledConfigByType } from "../modelConfigService";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
@@ -185,6 +185,78 @@ export const generateShotListForScene = async (
     return [];
   }
 };
+export const importShotList = async (
+  prompt: string
+): Promise<Shot[]> => {
+
+  try {
+    const endpoint = `${runtimeApiUrl}/chat/completions`;
+    const response = await fetchWithRetry(endpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        model: runtimeTextModel,
+        messages: [
+          {
+            role: "system",
+            content: renderTemplate('SYSTEM_SCRIPT_IMPORTER'),
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
+      }),
+    });
+
+    const content = response.choices?.[0]?.message?.content || "[]";
+    const shots = JSON.parse(cleanJsonString(content));
+    const validShots = Array.isArray(shots) ? shots : [];
+    return shots;
+  } catch (e) {
+    console.error(`Failed to import shots`, e);
+    return [];
+  }
+};
+
+export const importShotListForScene = async (
+  scene:Scene,
+  prompt: string
+): Promise<Shot[]> => {
+
+  try {
+    const endpoint = `${runtimeApiUrl}/chat/completions`;
+    const response = await fetchWithRetry(endpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        model: runtimeTextModel,
+        messages: [
+          {
+            role: "system",
+            content: renderTemplate('SYSTEM_SCRIPT_IMPORTER'),
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
+      }),
+    });
+
+    const content = response.choices?.[0]?.message?.content || "[]";
+    const shots = JSON.parse(cleanJsonString(content));
+    const validShots = Array.isArray(shots) ? shots : [];
+    return validShots.map((s: any) => ({
+      ...s,
+      sceneId: String(scene.id),
+    }));
+  } catch (e) {
+    console.error(`Failed to import shots`, e);
+    return [];
+  }
+};
+
 
 /**
  * DeepSeek: Script Generation from simple prompt
@@ -278,3 +350,73 @@ export const generateVideoPrompts = async (
 
   return response.choices?.[0]?.message?.content || "";
 };
+
+
+/**
+ * DeepSeek: Script Structuring & Breakdown
+ * 分析剧本并结构化数据
+ */
+export const importScriptToData = async (
+  prompt: string,
+  language: string = "中文"
+): Promise<ScriptData> => {
+  const endpoint = `${runtimeApiUrl}/chat/completions`;
+  const response = await fetchWithRetry(endpoint, {
+    method: "POST",
+    body: JSON.stringify({
+      model: runtimeTextModel,
+      messages: [
+        {
+          role: "system",
+          content: renderTemplate('SYSTEM_SCRIPT_IMPORTER'),
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
+    }),
+  });
+
+  const content = response.choices?.[0]?.message?.content || "{}";
+
+  let parsed: any = {};
+  try {
+    const text = cleanJsonString(content);
+    //console.log("Parsed JSON:", text);
+    parsed = JSON.parse(text);
+  } catch (e) {
+    console.error("Failed to parse script data JSON:", e);
+    parsed = {};
+  }
+
+  // Enforce String IDs for consistency and init variations
+  const characters = Array.isArray(parsed.characters)
+    ? parsed.characters.map((c: any) => ({
+        ...c,
+        id: String(c.id),
+        variations: [],
+      }))
+    : [];
+  const scenes = Array.isArray(parsed.scenes)
+    ? parsed.scenes.map((s: any) => ({ ...s, id: String(s.id) }))
+    : [];
+  const storyParagraphs = Array.isArray(parsed.storyParagraphs)
+    ? parsed.storyParagraphs.map((p: any) => ({
+        ...p,
+        sceneRefId: String(p.sceneRefId),
+      }))
+    : [];
+
+  return {
+    title: parsed.title || "未命名剧本",
+    genre: parsed.genre || "",
+    logline: parsed.logline || "",
+    language: language,
+    characters,
+    scenes,
+    storyParagraphs,
+  };
+};
+

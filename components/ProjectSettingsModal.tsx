@@ -203,7 +203,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               type="text"
               value={localTitle}
               onChange={(e) => setLocalTitle(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
               placeholder="输入项目名称..."
             />
             <div className="flex items-center justify-between">
@@ -261,7 +261,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                   type="text"
                   value={customGenreInput}
                   onChange={(e) => setCustomGenreInput(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                   placeholder="输入自定义类型..."
                 />
               )}
@@ -280,7 +280,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                   type="text"
                   value={customStyleInput}
                   onChange={(e) => setCustomStyleInput(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                   placeholder="输入自定义画面风格..."
                 />
               )}
@@ -295,7 +295,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 <button
                   key={opt.value}
                   onClick={() => setLocalDuration(opt.value)}
-                  className={`px-4 py-2.5 text-sm font-medium rounded-md transition-all duration-200 transition-all text-center border cursor-pointer ${
+                  className={`px-4 py-2 text-sm font-medium rounded-md duration-200 transition-all text-center border cursor-pointer ${
                     localDuration === opt.value
                     ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-md shadow-slate-500/25'
                     : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-300 hover:text-slate-300 hover:bg-slate-800'
@@ -305,12 +305,12 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 </button>
               ))}
             {localDuration === 'custom' && (
-              <div className="pt-1">
+              <div>
                 <input
                   type="text"
                   value={customDurationInput}
                   onChange={(e) => setCustomDurationInput(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none font-mono placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none font-mono placeholder:text-slate-600"
                   placeholder="输入时长 (如: 90s, 3m)"
                 />
               </div>

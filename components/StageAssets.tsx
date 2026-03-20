@@ -572,7 +572,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
         isOpen={fileUploadModalOpen}
         onClose={() => setFileUploadModalOpen(false)}
         onUploadSuccess={handleFileUploadSuccess}
-        fileType={uploadingItem?.type === 'scene' ? 'scene' : 'character'}
+        filePath={(uploadingItem?.type === 'scene' ? 'scene' : 'character')+'/upload'}
         acceptTypes="image/png,image/jpeg,image/jpg"
         title={uploadingItem?.type === 'scene' ? '上传场景图片' : '上传角色图片'}
         projectid={project.id}

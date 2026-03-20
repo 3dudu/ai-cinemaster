@@ -364,7 +364,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
         <div className="max-w-6xl mx-auto space-y-8">
           
           {/* Main Status Panel */}
-          <div className="bg-slate-800 md:border border-slate-600 rounded-xl p-2 sm:p-6 shadow-2xl relative overflow-hidden group">
+          <div className="bg-slate-800 md:border border-slate-600 md:rounded-xl p-2 sm:p-6 shadow-2xl relative overflow-hidden group">
              {/* Background Decoration */}
              <div className="absolute top-0 right-0 p-48 bg-slate-900/5 blur-[120px] rounded-full pointer-events-none"></div>
              <div className="absolute bottom-0 left-0 p-32 bg-green-900/5 blur-[100px] rounded-full pointer-events-none"></div>

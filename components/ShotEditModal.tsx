@@ -105,7 +105,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
             <textarea
               value={tempShot.actionSummary || ''}
               onChange={(e) => setTempShot({ ...tempShot, actionSummary: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none"
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none"
               rows={2}
               placeholder="描述镜头中的动作..."
             />
@@ -116,11 +116,10 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
             <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">对白 (可选)</label>
             <div className="space-y-2">
               {tempShot.dialogue && tempShot.dialogue instanceof Array && (tempShot.dialogue || []).map((dlg, index) => (
-                <div key={index} className="flex gap-2 items-start">
+                <div key={index} className="flex gap-1 items-start">
                   <CustomSelect
-                    className="shrink-0 w-[140px]"
+                    className="w-[140px]"
                     options={[
-                      { value: '', label: '选择角色' },
                       ...characters.map(char => ({ value: char.name, label: char.name }))
                     ]}
                     value={dlg.character || ''}
@@ -139,7 +138,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                       updatedDialogue[index] = { ...updatedDialogue[index], value: e.target.value };
                       setTempShot({ ...tempShot, dialogue: updatedDialogue });
                     }}
-                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
                     placeholder="输入对话内容..."
                   />
                   <button
@@ -147,7 +146,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                       const updatedDialogue = (tempShot.dialogue || []).filter((_: any, i: number) => i !== index);
                       setTempShot({ ...tempShot, dialogue: updatedDialogue });
                     }}
-                    className="p-2 hover:bg-red-900/20 text-slate-600 hover:text-red-400 rounded transition-colors shrink-0 cursor-pointer"
+                    className="p-2.5 hover:bg-red-900/20 text-slate-600 hover:text-red-400 rounded transition-colors shrink-0 cursor-pointer"
                     title="删除对话"
                   >
                     <Trash className="w-3.5 h-3.5" />

@@ -61,8 +61,12 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
   const [localLlmProvider, setLocalLlmProvider] = useState(project.modelProviders?.llm || '');
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project.modelProviders?.text2image || '');
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project.modelProviders?.image2video || '');
+  const [scriptSourceMode, setScriptSourceMode] = useState<'generate' | 'import'>(project.scriptSourceMode || 'generate');
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check if script source mode is locked (shots already generated)
+  const isScriptSourceModeLocked = project.shots && project.shots.length > 0;
 
   useEffect(() => {
     setLocalScript(project.rawScript);
@@ -580,6 +584,106 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
     }
   };
 
+
+  const handleImport = async () => {
+    if (!localScript.trim()) {
+      dialog.alert({
+        title: '错误',
+        message: '请输入剧本内容。',
+        type: 'error',
+      });
+      return;
+    }
+
+    const finalDuration = getFinalDuration();
+    if (!finalDuration) {
+      dialog.alert({
+        title: '错误',
+        message: '请选择目标时长。',
+        type: 'error',
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    setProcessingStep('正在提取剧本结构...');
+    try {
+      const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
+      updateProject({
+        title: localTitle,
+        rawScript: localScript,
+        targetDuration: getFinalDuration(),
+        language: localLanguage,
+        visualStyle: getFinalStyle(),
+        imageSize: localImageSize,
+        imageCount: localImageCount,
+        genre: finalGenre || project.scriptData?.genre || '剧情片',
+      });
+      ModelService.setCurrentProjectProviders(project.modelProviders);
+      const scriptData = await ModelService.importScriptToData(localScript, localLanguage,localGenre);
+      console.log('scriptData', scriptData);
+      if(scriptData.scenes.length > 0){
+        updateProject({ isParsingScript: true });
+  
+        scriptData.targetDuration = finalDuration;
+        scriptData.language = localLanguage;
+  
+        if (localTitle && localTitle !== "未命名项目") {
+          scriptData.title = localTitle;
+        }
+        scriptData.genre = localGenre;
+        // 逐场景生成分镜
+        const allShots: any[] = [];
+  
+        const sceneShots = await ModelService.importShotList(scriptData,project.imageCount,localScript);
+        allShots.push(...sceneShots);
+  
+        // 重新索引 shots
+        const shots = allShots.map((s, idx) => ({
+          ...s,
+          id: `shot-${idx + 1}`,
+          keyframes: Array.isArray(s.keyframes)
+            ? s.keyframes.map((k: any) => ({
+                ...k,
+                id: `kf-${idx + 1}-${k.type}`,
+                status: "pending",
+              }))
+            : [],
+        }));
+  
+        setProcessingStep('正在保存分镜数据...');
+        updateProject({
+          scriptData,
+          shots,
+          title: scriptData.title,
+          genre: scriptData.genre || finalGenre
+        });
+  
+        setActiveTab('script');
+        setProcessingStep('');
+      }else{
+        setProcessingStep('');
+        await dialog.alert({
+          title: '错误',
+          message: `分析剧本失败`,
+          type: 'error',
+        });
+        return;
+      }
+
+    } catch (err: any) {
+      console.error(err);
+      dialog.alert({
+        title: '错误',
+        message: `错误: ${err.message || "AI 连接失败"}`,
+        type: 'error',
+      });
+      setProcessingStep('');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const renderStoryInput = () => (
     <div className={`flex h-full overflow-y-auto bg-slate-900 text-slate-300 ${isMobile ? 'flex-col' : 'flex-row'}`}>
       {/* Right: Text Editor - Optimized */}
@@ -610,7 +714,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                     type="text"
                     value={scriptPrompt}
                     onChange={(e) => setScriptPrompt(e.target.value)}
-                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                     placeholder="输入简单提示词（如：一个关于青春校园的励志故事）..."
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -622,7 +726,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                  <button
                     onClick={handleGenerateScript}
                     disabled={isGeneratingScript || !scriptPrompt.trim()}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
+                    className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
                       isGeneratingScript
                         ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                         : 'bg-slate-600 text-slate-50 hover:bg-slate-500 shadow-lg shadow-slate-600/20'
@@ -683,7 +787,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 type="text"
                 value={localTitle}
                 onChange={(e) => setLocalTitle(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none focus:ring-slate-700 transition-all placeholder:text-slate-600"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none focus:ring-slate-700 transition-all placeholder:text-slate-600"
                 placeholder="输入项目名称..."
               />
             </div>
@@ -716,7 +820,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                   type="text"
                   value={customStyleInput}
                   onChange={(e) => setCustomStyleInput(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                   placeholder="输入自定义画面风格..."
                 />
               )}
@@ -740,7 +844,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 type="text"
                 value={customGenreInput}
                 onChange={(e) => setCustomGenreInput(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                 placeholder="输入自定义类型..."
                 />
               )}
@@ -784,7 +888,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                   <button
                     key={opt.value}
                     onClick={() => handleDurationSelect(opt.value)}
-                    className={`px-2 py-2.5 text-[11px] font-medium rounded-md transition-all text-center border ${
+                    className={`px-2 py-2 text-[11px] font-medium rounded-md transition-all text-center border ${
                       localDuration === opt.value
                         ? 'bg-slate-200/50 text-slate-50 border-slate-400 shadow-sm'
                         : 'bg-transparent border-slate-600 text-slate-400 hover:border-slate-300 hover:text-slate-200'
@@ -799,12 +903,68 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                     type="text"
                     value={customDurationInput}
                     onChange={(e) => setCustomDurationInput(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none font-mono placeholder:text-slate-600"
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none font-mono placeholder:text-slate-600"
                     placeholder="输入时长 (如: 90s, 3m)"
                   />
                 </div>
               )}
               </div>
+            </div>
+
+            {/* Import or Create Switch Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">分镜来源</p>
+                {isScriptSourceModeLocked && (
+                  <span className="text-[10px] text-amber-500 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    已锁定
+                  </span>
+                )}
+              </div>
+              <div className={`flex bg-slate-800/50 p-1 rounded-lg border ${isScriptSourceModeLocked ? 'border-slate-700 opacity-60' : 'border-slate-600'}`}>
+                <button
+                  onClick={() => {
+                    if (!isScriptSourceModeLocked) {
+                      setScriptSourceMode('generate');
+                      updateProject({ scriptSourceMode: 'generate' });
+                    }
+                  }}
+                  disabled={isScriptSourceModeLocked}
+                  className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-2 ${
+                    scriptSourceMode === 'generate'
+                      ? 'bg-slate-600 text-slate-50 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  } ${isScriptSourceModeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  AI生成
+                </button>
+                <button
+                  onClick={() => {
+                    if (!isScriptSourceModeLocked) {
+                      setScriptSourceMode('import');
+                      updateProject({ scriptSourceMode: 'import' });
+                    }
+                  }}
+                  disabled={isScriptSourceModeLocked}
+                  className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-2 ${
+                    scriptSourceMode === 'import'
+                      ? 'bg-slate-600 text-slate-50 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  } ${isScriptSourceModeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  导入脚本
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                {isScriptSourceModeLocked
+                  ? '分镜已生成，无法更改来源模式'
+                  : scriptSourceMode === 'generate'
+                    ? 'AI将根据剧本内容自动分析并生成分镜脚本'
+                    : '导入已有的分镜脚本，系统将解析并应用'}
+              </p>
             </div>
 
             {/* Divider */}
@@ -886,14 +1046,15 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 className="w-full"
               />
             </div>
+
         </div>
 
         {/* Footer Action */}
         <div className="p-4 border-t border-slate-600 bg-slate-900">
            <button
-              onClick={handleAnalyze}
+              onClick={scriptSourceMode === 'generate' ? handleAnalyze : handleImport}
               disabled={isProcessing}
-              className={`w-full py-2 rounded-lg font-bold border border-slate-600 xt-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all  ${
+              className={`w-full py-2 rounded-lg font-bold border border-slate-600 text-md uppercase tracking-widest flex items-center justify-center gap-2 transition-all  ${
                 isProcessing
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : 'bg-slate-800 text-slate-50 hover:bg-slate-700 shadow-white/5'
@@ -902,12 +1063,21 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
               {isProcessing ? (
                 <>
                   <BrainCircuit className="w-4 h-4 animate-spin" />
-                  {processingStep || '智能分析中...'}
+                  {processingStep || (scriptSourceMode === 'generate' ? '智能分析中...' : '导入解析中...')}
                 </>
               ) : (
                 <>
-                  <Wand2 className="w-4 h-4" />
-                  生成分镜脚本
+                  {scriptSourceMode === 'generate' ? (
+                    <>
+                      <Wand2 className="w-4 h-4" />
+                      生成分镜脚本
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen className="w-4 h-4" />
+                      导入分镜脚本
+                    </>
+                  )}
                 </>
               )}
             </button>
@@ -1089,7 +1259,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                    {/* Tags/Characters */}
                                    <div className="flex flex-wrap gap-2 pt-2 opacity-50 group-hover:opacity-100 transition-opacity">
                                       {shot.characters.map(cid => {
-                                        const char = project.scriptData?.characters.find(c => c.id === cid);
+                                        const char = project.scriptData?.characters.find(c => c.name === cid);
                                         return char ? (
                                           <span key={cid} className="text-[12px] uppercase font-bold tracking-wider text-slate-500 border border-slate-600 px-2 py-0.5 rounded-full bg-slate-900">
                                               {char.name}
@@ -1241,7 +1411,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                          </div>
                        )}
                        {project.scriptData?.characters.map(c => (
-                         <div key={c.id} className="flex justify-between items-center group cursor-default p-2 rounded hover:bg-slate-900/100 transition-colors">
+                         <div key={c.id} className="flex justify-between gap-2 items-center group cursor-default p-2 rounded hover:bg-slate-900/100 transition-colors">
                             {editingCharacterId === c.id ? (
                               <div className="flex-1 space-y-2">
                                 <input
@@ -1283,12 +1453,18 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                               </div>
                             ) : (
                               <>
-                                <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{c.name}</span>
-                                <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                                  <span className="text-[12px] text-slate-500 font-mono">{c.gender}</span>
+                              <div className="flex-1 flex flex-col gap-0.5">
+                                <div className="flex items-center justify-between text-sm text-slate-300 font-medium group-hover:text-slate-50">{c.name} 
+                                  <span className="text-[11px] text-slate-500 font-mono">{c.gender} {c!.age}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                                  <span className="">{c!.personality}</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                                   <button onClick={() => startEditCharacter(c)} className="text-slate-500 hover:text-slate-50 cursor-pointer"><Edit className="w-3 h-3" /></button>
                                   <button onClick={() => deleteCharacter(c.id)} className="text-slate-500 hover:text-red-400 cursor-pointer"><Trash className="w-3 h-3" /></button>
-                                </div>
+                               </div>
                               </>
                             )}
                          </div>
