@@ -953,9 +953,14 @@ export class ModelService {
     try {
       // 判断是否是 Base64 格式
       const isBase64 = imageUrlOrBase64.startsWith('data:');
-
+      let finalpath = '';
+      if(imageType=="character" || imageType=="scene" || imageType=="variation"){
+        finalpath = projectid+'/'+imageType+'/'+shotid;
+      }else{
+        finalpath = projectid+'/shot/'+shotid+'/'+imageType;
+      }
       const uploadResponse = await uploadFileToService({
-        fileType: projectid+'/image/'+imageType+'/'+shotid,
+        fileType: finalpath,
         fileUrl: isBase64 ? undefined : imageUrlOrBase64,
         base64Data: isBase64 ? imageUrlOrBase64 : undefined
       });

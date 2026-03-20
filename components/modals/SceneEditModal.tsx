@@ -56,7 +56,7 @@ const SceneEditModal: React.FC<Props> = ({
         scene.atmosphere
       );
 
-      const imageUrl = await ModelService.generateImage(enhancedPrompt, [], "scene", localStyle, imageSize, 1, {}, project.id);
+      const imageUrl = await ModelService.generateImage(enhancedPrompt, [], "scene", localStyle, imageSize, 1, {}, project.id,scene.id);
 
       // Save to media history
       if (imageUrl) {
@@ -240,7 +240,7 @@ const SceneEditModal: React.FC<Props> = ({
         isOpen={fileUploadModalOpen}
         onClose={() => setFileUploadModalOpen(false)}
         onUploadSuccess={handleFileUploadSuccess}
-        fileType="scene"
+        filePath="scene/upload"
         acceptTypes="image/png,image/jpeg,image/jpg"
         title="上传场景图片"
         projectid={project.id}
