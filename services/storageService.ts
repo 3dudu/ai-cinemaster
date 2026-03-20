@@ -31,7 +31,7 @@ export const saveProjectToDB = async (project: ProjectState, sync: boolean = fal
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    const p = sync ? { ...project, lastModified: Date.now() } : project;
+    const p = !sync ? { ...project, lastModified: Date.now() } : project;
     const request = store.put(p);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);

@@ -70,7 +70,7 @@ function App() {
 
   // Auto-save logic
   useEffect(() => {
-    if (!project || !project.isParsingScript) return;
+    if (!project || project.shots.length==0) return;
 
     setSaveStatus('unsaved');
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -123,7 +123,7 @@ function App() {
 
   const handleExitProject = async () => {
     // Force save before exiting
-    if (project && project.isParsingScript) {
+    if (project && project.shots.length>0) {
         await saveProjectToDB(project);
     }
     // 清除项目供应商配置

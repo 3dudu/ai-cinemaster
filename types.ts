@@ -128,6 +128,9 @@ export interface ProjectState {
     text2image?: string; // Text-to-image model config ID
     image2video?: string; // Image-to-video model config ID
   };
+
+  // Script source mode: 'generate' (AI generate) or 'import' (import existing script)
+  scriptSourceMode?: 'generate' | 'import';
 }
 
 export interface AIModelConfig {

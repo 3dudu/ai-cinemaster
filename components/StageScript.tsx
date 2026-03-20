@@ -61,9 +61,12 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
   const [localLlmProvider, setLocalLlmProvider] = useState(project.modelProviders?.llm || '');
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project.modelProviders?.text2image || '');
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project.modelProviders?.image2video || '');
-  const [scriptSourceMode, setScriptSourceMode] = useState<'generate' | 'import'>('generate');
+  const [scriptSourceMode, setScriptSourceMode] = useState<'generate' | 'import'>(project.scriptSourceMode || 'generate');
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check if script source mode is locked (shots already generated)
+  const isScriptSourceModeLocked = project.shots && project.shots.length > 0;
 
   useEffect(() => {
     setLocalScript(project.rawScript);
@@ -910,35 +913,57 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
 
             {/* Import or Create Switch Selection */}
             <div className="space-y-3">
-              <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-3">分镜来源</p>
-              <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-600">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">分镜来源</p>
+                {isScriptSourceModeLocked && (
+                  <span className="text-[10px] text-amber-500 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    已锁定
+                  </span>
+                )}
+              </div>
+              <div className={`flex bg-slate-800/50 p-1 rounded-lg border ${isScriptSourceModeLocked ? 'border-slate-700 opacity-60' : 'border-slate-600'}`}>
                 <button
-                  onClick={() => setScriptSourceMode('generate')}
+                  onClick={() => {
+                    if (!isScriptSourceModeLocked) {
+                      setScriptSourceMode('generate');
+                      updateProject({ scriptSourceMode: 'generate' });
+                    }
+                  }}
+                  disabled={isScriptSourceModeLocked}
                   className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-2 ${
                     scriptSourceMode === 'generate'
                       ? 'bg-slate-600 text-slate-50 shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                  } ${isScriptSourceModeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <Wand2 className="w-3.5 h-3.5" />
                   AI生成
                 </button>
                 <button
-                  onClick={() => setScriptSourceMode('import')}
+                  onClick={() => {
+                    if (!isScriptSourceModeLocked) {
+                      setScriptSourceMode('import');
+                      updateProject({ scriptSourceMode: 'import' });
+                    }
+                  }}
+                  disabled={isScriptSourceModeLocked}
                   className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-2 ${
                     scriptSourceMode === 'import'
                       ? 'bg-slate-600 text-slate-50 shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                  } ${isScriptSourceModeLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
                   导入脚本
                 </button>
               </div>
               <p className="text-[10px] text-slate-500">
-                {scriptSourceMode === 'generate'
-                  ? 'AI将根据剧本内容自动分析并生成分镜脚本'
-                  : '导入已有的分镜脚本，系统将解析并应用'}
+                {isScriptSourceModeLocked
+                  ? '分镜已生成，无法更改来源模式'
+                  : scriptSourceMode === 'generate'
+                    ? 'AI将根据剧本内容自动分析并生成分镜脚本'
+                    : '导入已有的分镜脚本，系统将解析并应用'}
               </p>
             </div>
 
@@ -1234,7 +1259,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                    {/* Tags/Characters */}
                                    <div className="flex flex-wrap gap-2 pt-2 opacity-50 group-hover:opacity-100 transition-opacity">
                                       {shot.characters.map(cid => {
-                                        const char = project.scriptData?.characters.find(c => c.id === cid);
+                                        const char = project.scriptData?.characters.find(c => c.name === cid);
                                         return char ? (
                                           <span key={cid} className="text-[12px] uppercase font-bold tracking-wider text-slate-500 border border-slate-600 px-2 py-0.5 rounded-full bg-slate-900">
                                               {char.name}
