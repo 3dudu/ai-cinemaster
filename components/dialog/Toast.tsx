@@ -1,5 +1,5 @@
+import { AlertTriangle, CheckCircle, Info, X, XCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 export interface ToastOptions {
   message: string;
@@ -59,7 +59,7 @@ export const Toast: React.FC<ToastProps> = ({
   message,
   type = 'info',
   duration = 3000,
-  position = 'top-right',
+  position = 'top-center',
   onClose,
 }) => {
   const [progress, setProgress] = useState(100);

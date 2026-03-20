@@ -339,12 +339,12 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
                   value={syncKey}
                   onChange={(e) => setSyncKey(e.target.value)}
                   placeholder="留空则自动生成新的同步密钥"
-                  className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
+                  className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-400"
                 />
                 <button
                   onClick={handleStartSync}
                   disabled={isLoading}
-                className="py-2.5 px-6 bg-slate-800 text-slate-300 font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-slate-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="py-2 px-6 bg-slate-800 text-slate-300 font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-slate-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
@@ -365,7 +365,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
         {/* File List Section */}
         <div className="p-2 md:p-6 pt-0 md:pt-0 space-y-5 flex-1 overflow-y-auto bg-slate-700">
             {initError && (
-              <div className="bg-red-900/30 border border-red-500/30 text-red-400 px-4 py-2.5 rounded-lg text-sm">
+              <div className="bg-red-900/30 border border-red-500/30 text-red-400 px-4 py-2 rounded-lg text-sm">
                 {initError}
               </div>
             )}

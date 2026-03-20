@@ -1,10 +1,9 @@
-import { Check, Download, Loader2, MapPin, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
+import { Check, Loader2, MapPin, RefreshCw, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { renderTemplate } from '../../services/promptTemplates';
 import { addMediaHistory } from '../../services/storageService';
 import { ProjectState, Scene } from '../../types';
-import FileUploadModal, { downloadImage } from '../FileUploadModal';
 import { useDialog } from '../dialog';
 
 interface Props {
@@ -90,28 +89,6 @@ const SceneEditModal: React.FC<Props> = ({
     }
   };
 
-  const handleDownloadImage = async (imageUrl: string, name: string) => {
-    if (downloadStatus) return;
-    setDownloadStatus('downloading');
-    try {
-      await downloadImage(imageUrl, `${project.scriptData?.title}-${name}.png`, dialog);
-    } finally {
-      setDownloadStatus(null);
-    }
-  };
-
-  const handleFileUploadSuccess = (fileUrl: string) => {
-    if (!project.scriptData || !scene) return;
-
-    const newData = { ...project.scriptData };
-    const s = newData.scenes.find(s => s.id === scene.id);
-    if (s) {
-      s.referenceImage = fileUrl;
-      updateProject({ scriptData: newData });
-    }
-    setFileUploadModalOpen(false);
-  };
-
   if (!scene) return null;
 
   return (
@@ -148,9 +125,6 @@ const SceneEditModal: React.FC<Props> = ({
                       <MapPin className="w-8 h-8" />
                     </div>
                   )}
-                  <div className="absolute top-2 left-2 px-2 py-1 bg-slate-700/60 backdrop-blur rounded text-[12px] text-slate-50 font-bold uppercase border border-white/10">
-                    {scene.location}
-                  </div>
                   {scene.referenceImage && (
                     <div className="absolute inset-0 bg-slate-700/0 hover:bg-slate-700/20 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
                       <span className="text-slate-50/80 text-xs font-bold uppercase tracking-wider">点击预览</span>
@@ -161,32 +135,11 @@ const SceneEditModal: React.FC<Props> = ({
                       <Loader2 className="w-6 h-6 text-slate-50 animate-spin" />
                     </div>
                   )}
-                  {/* Action Buttons */}
-                  <div className="absolute bottom-2 right-2 flex items-center justify-center gap-1">
-                    {scene.referenceImage && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDownloadImage(scene.referenceImage!, scene.location); }}
-                        className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
-                        title="下载图片"
-                        disabled={!!downloadStatus}
-                      >
-                        <Download className="w-3 h-3" />
-                      </button>
-                    )}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setFileUploadModalOpen(true); }}
-                      disabled={!!processingState}
-                      className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="上传图片"
-                    >
-                      <Upload className="w-3 h-3" />
-                    </button>
-                  </div>
                 </div>
                 <button
                   onClick={handleGenerateImage}
                   disabled={!!processingState}
-                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2 bg-slate-600 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <RefreshCw className={`w-3 h-3 ${processingState?.type === 'scene' && processingState?.id === scene.id ? 'animate-spin' : ''}`} />
                   {processingState?.type === 'scene' && processingState?.id === scene.id ? '生成中...' : scene.referenceImage ? '重新生成' : '生成场景图'}
@@ -202,22 +155,15 @@ const SceneEditModal: React.FC<Props> = ({
               </h4>
               <div className="space-y-4">
                 <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
-                  <label className="text-[12px] text-slate-300 uppercase tracking-wider font-bold block mb-2">地点</label>
-                  <p className="text-sm text-slate-50">{scene.location}</p>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
-                  <label className="text-[12px] text-slate-300 uppercase tracking-wider font-bold block mb-2">时间</label>
-                  <p className="text-sm text-slate-50">{scene.time}</p>
-                </div>
-                <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
-                  <label className="text-[12px] text-slate-300 uppercase tracking-wider font-bold block mb-2">氛围</label>
-                  <p className="text-sm text-slate-50">{scene.atmosphere}</p>
+                  <label className="text-[12px] text-slate-300 uppercase tracking-wider font-bold block mb-2">地点: {scene.location}</label>
+                  <label className="text-[12px] text-slate-300 uppercase tracking-wider font-bold block mb-2">时间: {scene.time}</label>
+                  <label className="text-[12px] text-slate-300 uppercase tracking-wider font-bold block mb-2">氛围: {scene.atmosphere}</label>
                 </div>
               </div>
             </div>
           </div>
           {/* Visual Prompt */}
-          <div className="mt-6">
+          <div>
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-slate-400" />
               <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">视觉提示</span>
@@ -228,25 +174,12 @@ const SceneEditModal: React.FC<Props> = ({
                 onChange={(e) => setEditingVisualPrompt(e.target.value)}
                 onBlur={handleSaveVisualPrompt}
                 placeholder="输入场景的视觉描述..."
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-sm text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all resize-none h-32 font-mono"
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all resize-none h-32 font-mono"
               />
             </div>
           </div>
         </div>
       </div>
-
-      {/* File Upload Modal */}
-      <FileUploadModal
-        isOpen={fileUploadModalOpen}
-        onClose={() => setFileUploadModalOpen(false)}
-        onUploadSuccess={handleFileUploadSuccess}
-        filePath="scene/upload"
-        acceptTypes="image/png,image/jpeg,image/jpg"
-        title="上传场景图片"
-        projectid={project.id}
-        project={project}
-        filterType='scene'
-      />
     </div>
   );
 };

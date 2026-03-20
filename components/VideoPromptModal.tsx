@@ -58,10 +58,8 @@ const VideoPromptModal: React.FC<Props> = ({
   };
 
   const handleSave = () => {
-    if (videoPrompt.trim()) {
-      onSave(videoPrompt.trim());
-      onClose();
-    }
+    onSave(videoPrompt.trim());
+    onClose();
   };
 
   const handleReset = () => {
@@ -114,19 +112,12 @@ const VideoPromptModal: React.FC<Props> = ({
 
             {/* 操作按钮 */}
             <div className="flex gap-2 items-center">
-              {/* 状态指示 */}
-              {hasChanges && (
-                  <div className="flex items-center gap-2 text-sm text-green-600 bg-slate-900/20 px-3 py-2 rounded-lg border border-green-600">
-                  <div className="w-2 h-2 bg-green-600 rounded-full" />
-                  <span>已修改</span>
-                </div>
-              )}
               <div className="flex-1" />
               {hasChanges && (
                 <button
                   onClick={handleReset}
                   disabled={isGenerating}
-                  className="px-4 py-2 bg-slate-700 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-slate-600 text-slate-300 hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <RotateCcw className="w-4 h-4" />
                   重置
@@ -135,7 +126,7 @@ const VideoPromptModal: React.FC<Props> = ({
               <button
                 onClick={handleRegenerate}
                 disabled={isGenerating}
-                className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-900 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isGenerating ? (
                   <>
@@ -151,8 +142,8 @@ const VideoPromptModal: React.FC<Props> = ({
               </button>
               <button
                 onClick={handleSave}
-                disabled={!videoPrompt.trim() || isGenerating}
-                className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isGenerating}
+                className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-900 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />
                 保存
@@ -177,7 +168,14 @@ const VideoPromptModal: React.FC<Props> = ({
         </div>
 
         {/* 底部信息 */}
-        <div className="p-4 border-t border-slate-700 flex justify-end items-center text-sm text-slate-400 bg-slate-600 shrink-0">
+        <div className="p-4 border-t border-slate-700 flex justify-between items-center text-sm text-slate-400 bg-slate-600 shrink-0">
+            {/* 状态指示 */}
+            {hasChanges && (
+                <div className="flex items-center gap-2 text-sm text-green-600 px-3 py-2 rounded-lg">
+                <div className="w-2 h-2 bg-green-600 rounded-full" />
+                <span>已修改</span>
+              </div>
+            )}
           <span>字符数：{videoPrompt.length}</span>
         </div>
       </div>

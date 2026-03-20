@@ -42,7 +42,7 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
           <p className="text-slate-300 mb-6 whitespace-wrap line-clamp-6 tracking-wide">{message}</p>
           <button
             onClick={onClose}
-            className="w-full px-4 py-2.5 bg-slate-600 hover:bg-slate-700 text-slate-50 font-medium rounded-lg transition-colors"
+            className="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-slate-50 font-medium rounded-lg transition-colors"
           >
             确定
           </button>

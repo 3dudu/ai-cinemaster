@@ -421,7 +421,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
                 {isCustomized && (
                   <button
                     onClick={handleReset}
-                    className="px-4 py-2.5 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
+                    className="px-4 py-2 bg-slate-600 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4" />
                     重置
@@ -429,7 +429,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
                 )}
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2.5 bg-slate-800 text-slate-300 hover:bg-slate-600 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
+                  className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-600 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   保存

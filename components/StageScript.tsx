@@ -714,7 +714,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                     type="text"
                     value={scriptPrompt}
                     onChange={(e) => setScriptPrompt(e.target.value)}
-                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                     placeholder="输入简单提示词（如：一个关于青春校园的励志故事）..."
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -726,7 +726,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                  <button
                     onClick={handleGenerateScript}
                     disabled={isGeneratingScript || !scriptPrompt.trim()}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
+                    className={`px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
                       isGeneratingScript
                         ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                         : 'bg-slate-600 text-slate-50 hover:bg-slate-500 shadow-lg shadow-slate-600/20'
@@ -787,7 +787,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 type="text"
                 value={localTitle}
                 onChange={(e) => setLocalTitle(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none focus:ring-slate-700 transition-all placeholder:text-slate-600"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none focus:ring-slate-700 transition-all placeholder:text-slate-600"
                 placeholder="输入项目名称..."
               />
             </div>
@@ -820,7 +820,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                   type="text"
                   value={customStyleInput}
                   onChange={(e) => setCustomStyleInput(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                   placeholder="输入自定义画面风格..."
                 />
               )}
@@ -844,7 +844,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                 type="text"
                 value={customGenreInput}
                 onChange={(e) => setCustomGenreInput(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
                 placeholder="输入自定义类型..."
                 />
               )}
@@ -888,7 +888,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                   <button
                     key={opt.value}
                     onClick={() => handleDurationSelect(opt.value)}
-                    className={`px-2 py-2.5 text-[11px] font-medium rounded-md transition-all text-center border ${
+                    className={`px-2 py-2 text-[11px] font-medium rounded-md transition-all text-center border ${
                       localDuration === opt.value
                         ? 'bg-slate-200/50 text-slate-50 border-slate-400 shadow-sm'
                         : 'bg-transparent border-slate-600 text-slate-400 hover:border-slate-300 hover:text-slate-200'
@@ -903,7 +903,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                     type="text"
                     value={customDurationInput}
                     onChange={(e) => setCustomDurationInput(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none font-mono placeholder:text-slate-600"
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none font-mono placeholder:text-slate-600"
                     placeholder="输入时长 (如: 90s, 3m)"
                   />
                 </div>

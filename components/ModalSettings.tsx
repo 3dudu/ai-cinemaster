@@ -445,7 +445,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                     type={showApiKey ? "text" : "password"}
                     value={formData.apiKey}
                     onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 pr-10 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 pr-10 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                     placeholder="输入您的 API Key..."
                   />
                   <button
@@ -469,7 +469,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                   type="text"
                   value={formData.model}
                   onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                   placeholder="输入具体的模型名称（如：gpt-4、claude-3-sonnet）"
                 />
               </div>
@@ -484,7 +484,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                   type="text"
                   value={formData.apiUrl}
                   onChange={(e) => setFormData({ ...formData, apiUrl: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                   placeholder="输入 API 端点 URL（选填）..."
                 />
               </div>
@@ -499,7 +499,7 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
                   placeholder="输入备注（选填）"
                 />
               </div>
