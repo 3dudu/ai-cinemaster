@@ -42,6 +42,10 @@ const PromptTemplateModal: React.FC<{
     { key: 'SYSTEM_CHARA_DESIGNER', name: '角色设计师系统提示词', description: '用于角色提示词生成的系统提示词' },
     { key: 'SYSTEM_SCENE_DESIGNER', name: '场景设计师系统提示词', description: '用于场景提示词生成的系统提示词' },
     { key: 'SYSTEM_VIDEO_DIRECTOR', name: '导演系统提示词', description: '用于视频拍摄提示词生成的系统提示词' },
+    { key: 'SYSTEM_SCRIPT_IMPORTER', name: '影视策划系统提示词', description: '用于规划拍摄场景角色的系统提示词' },
+    { key: 'IMPORT_SCRIPT', name: '策划师-剧本导入提示词', description: '导入原始剧本，提取剧集基本信息', hasParams: true },
+    { key: 'IMPORT_SHOTS', name: '策划师-镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
+    { key: 'IMPORT_SHOTS_FOR_SCENE', name: '策划师-特定场景镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
   ], []);
 
   // 从 localStorage 加载自定义内容
@@ -82,6 +86,24 @@ const PromptTemplateModal: React.FC<{
   // 获取函数类型模板的预览（带变量占位符）
   const getFunctionTemplatePreview = (key: string): string => {
     const previews: Record<string, string> = {
+      'IMPORT_SCRIPT':`
+      读取输入的剧本大纲/分镜脚本，提取关键信息，并输出一个 JSON 对象。
+
+    ## 任务：
+    分析大纲：提取title:标题、genre:类型
+    分析具体剧集：
+    提取 logline:故事梗概。
+    提取 characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:性格）。
+    提取 scenes:场景信息（id:编号、location:地点、time:时间、atmosphere:氛围）。
+    提取 storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
+
+    ## 说明：
+    1. 剧本标题，角色姓名：直接使用原文内容，不需要翻译，只取一种语言，优先 {lang}。
+    2. 场景：只提取具体剧集中用到的场景
+
+    ## 剧本大纲/分镜脚本原文：
+    {text}
+    `,
       'PARSE_SCRIPT': `分析输入的故事或剧本，构思制作一部 {genre} 类型的视频，并输出一个 JSON 对象，字段值以 {lang} 语言呈现。
 
 ## 任务：
@@ -214,6 +236,44 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 镜头开始：{endFrameVisualPrompt}；
 镜头结束：{startFrameVisualPrompt}；
 按照上面描述生成 {visualStyle} 风格的转场视频！`,
+'IMPORT_SHOTS': `担任专业摄影师，从分镜脚本原文中读取分镜头清单。
+
+## 场景列表:
+{scenes}
+
+## 角色列表:
+{characters}
+
+## 说明：
+### 提取内容
+1. 提取分镜脚本中全部的镜头序列。
+2. 镜头画面描述actionSummary：详细描述该镜头内发生的情节。
+3. 场景id：镜头所属的场景id，在提供的场景列表数据中。
+3. 角色：镜头中出现的角色名，要在提供的角色列表中存在
+4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
+
+### 生成内容
+1. 镜头时长：设定每个镜头时长为 4-12 秒，。
+2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
+3. 景别：明确取景范围（如：大特写、中景、全景）。
+4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
+5. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
+6. 关键帧：生成规则 现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧和一个结束帧；如果imageCount大于 1 则是一张完整连环画帧。
+7. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
+
+## 输出格式：JSON 数组，数组内对象包含以下字段，避免出现 JSON 截断错误：
+- id（字符串类型）
+- sceneId（场景id，字符串类型）
+- actionSummary（字符串类型）
+- dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
+- cameraMovement（字符串类型）
+- shotSize（字符串类型）
+- characters（字符串数组类型）
+- keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+  
+## 脚本原文：
+    {scriptText}`,
     };
 
     return previews[key] || '';
@@ -295,7 +355,10 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
   // 变量提示
   const variables: Record<string, string[]> = {
     'PARSE_SCRIPT': ['{text}', '{lang}', '{genre}'],
+    'IMPORT_SCRIPT': ['{text}', '{lang}'],
     'GENERATE_SHOTS': ['{sceneindex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}', '{imageCount}'],
+    'IMPORT_SHOTS': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}'],
+    'IMPORT_SHOTS_FOR_SCENE': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}'],
     'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}'],
     'GENERATE_CHARACTER_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
     'GENERATE_SCENE_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
