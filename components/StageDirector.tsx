@@ -259,12 +259,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           referenceImages.push(" - 第1张图是镜头布景、环境。");
         }
         let imagecount = 2;
-        if(imageCount==0){
-          imagecount = 0;
-        }
-        if(imageCount>1){
-          imagecount = 1;
-        }
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
@@ -297,20 +291,20 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       let new_prompt = prompt;
       const image_rate = imageSize=="2560x1440" ? "16:9" : "9:16";
       if(imageType=='start' || imageType=='end' || imageType=='full' ){
-        new_prompt = imageCount > 1 ? renderTemplate('GENERATE_KEYFRAME_PROMPT', IMAGE_X[imageCount], imageCount, image_rate):'';
+        new_prompt = imageCount > 2 ? renderTemplate('GENERATE_KEYFRAME_PROMPT', IMAGE_X[imageCount], imageCount, image_rate):'';
         new_prompt = prompt + "\n" + new_prompt;
         new_prompt = renderTemplate('IMAGE_GENERATION_WITH_REFERENCE', new_prompt, localStyle);
       }
       return new_prompt;
   };
 
-  const handleGenerateKeyframe = async (shot: Shot, type: 'start' | 'end' | 'full') => {
+  const handleGenerateKeyframe = async (shot: Shot, type: 'start' | 'end' | 'full',force:boolean = false) => {
     // Robustly handle missing keyframe object
     let existingKf = shot.keyframes?.find(k => k.type === type);
     const kfId = existingKf?.id || `kf-${shot.id}-${type}-${Date.now()}`;
 
     // Check if already has an image (regenerate)
-    if (existingKf?.imageUrl) {
+    if (existingKf?.imageUrl && !force) {
       const confirmed = await dialog.confirm({
         title: '确认重新生成',
         message: `确定要重新生成${type === 'full' ? '连环画' : type === 'start' ? '起始帧' : '结束帧'}吗？`,
@@ -345,7 +339,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       const referenceImages = getRefImagesForShot(shot);
       const referencePrompt = getRefImagesDescForShot(shot);
       const new_prompt = await genKeyFramePrompt(prompt + (referencePrompt?referencePrompt:""), type,imageSize);
-      const url = await ModelService.generateImage(new_prompt, referenceImages, type, localStyle, imageSize,type === 'full'?imageCount:1, shot.modelProviders,project.id,shot.id);
+      const url = await ModelService.generateImage(new_prompt, referenceImages, type, localStyle, imageSize,imageCount, shot.modelProviders,project.id,shot.id);
 
       // Save to media history
       if (url) {
@@ -428,7 +422,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     let eImageiurl = null;
     if(imageCount>0){
       prompt = prompt+"\n###参考图";
-      if(imageCount > 1){
+      if(imageCount > 2){
           const sKf = shot.keyframes?.find(k => k.type === 'full');
           if(sKf){
             if(sKf.imageUrl){
@@ -441,9 +435,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           const sKf = shot.keyframes?.find(k => k.type === 'start');
           sImageiurl = sKf?.imageUrl;
           prompt = prompt+"\n1. **画面开始**:"+sKf?.visualPrompt+"；";
-          const eKf = shot.keyframes?.find(k => k.type === 'end');
-          eImageiurl = eKf?.imageUrl;
-          prompt = prompt+"\n2. **画面结束**:"+eKf?.visualPrompt+"；";
+          if(imageCount>1){
+            const eKf = shot.keyframes?.find(k => k.type === 'end');
+            eImageiurl = eKf?.imageUrl;
+            prompt = prompt+"\n2. **画面结束**:"+eKf?.visualPrompt+"；";
+          }
       }
     }
     prompt = prompt + (dialogueText?"\n###对白\n "+dialogueText:"");
@@ -455,7 +451,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           sImageiurl,
           eImageiurl, // Only pass if it exists
           shot.interval?.duration||5,
-          imageCount>1,
+          imageCount>2,
           shot.modelProviders,
           project.id,
           project.imageSize,
@@ -662,6 +658,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           // Process shots that don't have a start image URL (handles missing keyframe objects too)
           shotsToProcess = project.shots.filter(s => !s.keyframes?.find(k => k.type === 'start')?.imageUrl);
       }
+      let onlyStart = false;
+      if(imageCount==2){
+          onlyStart = await dialog.confirm({
+            title: '批量生成',
+            message: '是否只生成首帧？',
+            type: 'warning',
+          });
+      }
       
       if (shotsToProcess.length === 0) return;
 
@@ -685,20 +689,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           });
           
           try {
-            const currentStartKf = shot.keyframes?.find(k => k.type === 'start');
-            const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
-            const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
-
-            if(imageCount>0){
-              if (imageCount > 1 && !currentFullKf?.imageUrl) {
-                  await handleGenerateKeyframe(shot, 'full');
-              } else if (imageCount == 1 && (!currentStartKf?.imageUrl || !currentEndKf?.imageUrl)) {
-                  if (!currentStartKf?.imageUrl) {
-                      await handleGenerateKeyframe(shot, 'start');
-                  }
-                  if (!currentEndKf?.imageUrl) {
-                      await handleGenerateKeyframe(shot, 'end');
-                  }
+            if (imageCount > 2) {
+              await handleGenerateKeyframe(shot, 'full',true);
+            } else{
+              if (imageCount == 1 || imageCount == 2){
+                await handleGenerateKeyframe(shot, 'start',true);
+              }
+              if (imageCount == 2 && !onlyStart){
+                await handleGenerateKeyframe(shot, 'end',true);
               }
             }
           } catch (e) {
@@ -728,7 +726,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       if (!!processingState || !!batchProgress) return;
 
       // Check if this is a regenerate (existing images)
-      const isRegenerate = imageCount > 1 ? !!fullKf?.imageUrl : (!!startKf?.imageUrl && !!endKf?.imageUrl);
+      const isRegenerate = imageCount > 2 ? !!fullKf?.imageUrl : (!!startKf?.imageUrl && !!endKf?.imageUrl);
 
       if (isRegenerate) {
           const confirmed = await dialog.confirm({
@@ -739,27 +737,30 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           if (!confirmed) return;
       }
 
+      let onlyStart = false;
+      if(imageCount==2){
+          onlyStart = await dialog.confirm({
+            title: '批量生成',
+            message: '是否只生成首帧？',
+            type: 'warning',
+          });
+      }
+
       setOneClickProcessing({ shotId: shot.id, step: 'images' });
 
       try {
           // Step 1: Generate images
           if (imageCount > 0) {
-            if (imageCount > 1) {
-                // Generate full grid
-                //if (!fullKf?.imageUrl) {
-                    await handleGenerateKeyframe(shot, 'full');
-                //}
+            if (imageCount > 2) {
+              await handleGenerateKeyframe(shot, 'full',true);
             } else {
-                // Generate start and end frames
-                //if (!startKf?.imageUrl) {
-                  await handleGenerateKeyframe(shot, 'start');
-                //}
-                // Wait a moment for the first update to be applied
-                  await new Promise(r => setTimeout(r, 1000));
-
-                //if (!endKf?.imageUrl) {
-                  await handleGenerateKeyframe(shot, 'end');
-                //}
+              if (imageCount == 1 || imageCount == 2) {
+                await handleGenerateKeyframe(shot, 'start',true);
+              }
+              if(imageCount == 2 && !onlyStart){
+                await new Promise(r => setTimeout(r, 1000));
+                await handleGenerateKeyframe(shot, 'end',true);
+              }
             }
           }
 
@@ -778,10 +779,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
           // Check if images are ready
           if(imageCount > 0){
-            if (imageCount > 1 && !updatedFullKf?.imageUrl) {
+            if (imageCount > 2 && !updatedFullKf?.imageUrl) {
                 throw new Error("宫格图生成失败");
             }
-            if (imageCount <= 1 && !updatedStartKf?.imageUrl) {
+            if (imageCount <= 2 && !updatedStartKf?.imageUrl) {
                 throw new Error("起始帧生成失败");
             }
           }
@@ -823,26 +824,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           });
 
           try {
-              // Step 1: Generate images if needed
-              /*
-              const currentStartKf = shot.keyframes?.find(k => k.type === 'start');
-              const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
-              const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
-
-              if(imageCount>0){
-                if (imageCount > 1 && !currentFullKf?.imageUrl) {
-                    await handleGenerateKeyframe(shot, 'full');
-                } else if (imageCount <= 1 && (!currentStartKf?.imageUrl || !currentEndKf?.imageUrl)) {
-                    if (!currentStartKf?.imageUrl) {
-                        await handleGenerateKeyframe(shot, 'start');
-                    }
-                    if (!currentEndKf?.imageUrl) {
-                        await handleGenerateKeyframe(shot, 'end');
-                    }
-                }
-              }
-              */
-
               // Step 2: Generate video
               // Wait a moment for images to be ready
               await new Promise(r => setTimeout(r, 1000));
@@ -974,6 +955,15 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         shotsToProcess = sceneShots.filter(s => !s.keyframes?.find(k => k.type === 'start')?.imageUrl);
     }
 
+    let onlyStart = false;
+    if(imageCount==2){
+        onlyStart = await dialog.confirm({
+          title: '批量生成',
+          message: '是否只生成首帧？',
+          type: 'warning',
+        });
+    }
+
     if (shotsToProcess.length === 0) return;
 
     setBatchProgress({
@@ -995,20 +985,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         });
 
         try {
-          const currentStartKf = shot.keyframes?.find(k => k.type === 'start');
-          const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
-          const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
-
-          if(imageCount>0){
-            if (imageCount > 1 && !currentFullKf?.imageUrl) {
-                await handleGenerateKeyframe(shot, 'full');
-            } else if (imageCount == 1 && (!currentStartKf?.imageUrl || !currentEndKf?.imageUrl)) {
-                if (!currentStartKf?.imageUrl) {
-                    await handleGenerateKeyframe(shot, 'start');
-                }
-                if (!currentEndKf?.imageUrl) {
-                    await handleGenerateKeyframe(shot, 'end');
-                }
+          if (imageCount > 2) {
+              await handleGenerateKeyframe(shot, 'full',true);
+          } else {
+            if (imageCount == 1 || imageCount == 2){
+              await handleGenerateKeyframe(shot, 'start',true);
+            }
+            if (imageCount == 2 && !onlyStart) {
+              await handleGenerateKeyframe(shot, 'end',true);
             }
           }
         } catch (e) {
@@ -1051,26 +1035,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         });
 
         try {
-          /*
-            const currentStartKf = shot.keyframes?.find(k => k.type === 'start');
-            const currentEndKf = shot.keyframes?.find(k => k.type === 'end');
-            const currentFullKf = shot.keyframes?.find(k => k.type === 'full');
-            if(imageCount>0){
-              if (imageCount > 1 && !currentFullKf?.imageUrl) {
-                  await handleGenerateKeyframe(shot, 'full');
-              } else if (imageCount <= 1 && (!currentStartKf?.imageUrl || !currentEndKf?.imageUrl)) {
-                  if (!currentStartKf?.imageUrl) {
-                      await handleGenerateKeyframe(shot, 'start');
-                  }
-                  if (!currentEndKf?.imageUrl) {
-                      await handleGenerateKeyframe(shot, 'end');
-                  }
-              }
-            }
-
-            await new Promise(r => setTimeout(r, 1000));
-
-            */
             const updatedShot = project.shots.find(s => s.id === shot.id);
             if (!updatedShot) continue;
             await handleGenerateVideo(updatedShot);
@@ -1667,7 +1631,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                    ) : (
                                        <>
                                            <Sparkles className="w-3 h-3" />
-                                           {imageCount > 1 ? (!!fullKf?.imageUrl ? '一键重新制作' : '一键制作') : ((!!startKf?.imageUrl && !!endKf?.imageUrl) ? '一键重新制作' : '一键制作')}
+                                           {imageCount > 2 ? (!!fullKf?.imageUrl ? '一键重新制作' : '一键制作') : ((!!startKf?.imageUrl && !!endKf?.imageUrl) ? '一键重新制作' : '一键制作')}
                                        </>
                                    )}
                                </button>

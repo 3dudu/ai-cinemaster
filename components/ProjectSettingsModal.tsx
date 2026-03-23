@@ -43,7 +43,8 @@ export const IMAGE_SIZE_OPTIONS = [
 
 export const IMAGE_COUNT_OPTIONS = [
   { label: '文生视频', value: '0' },
-  { label: '首尾帧', value: '1' },
+  { label: '首帧', value: '1' },
+  { label: '首尾帧', value: '2' },
   { label: '4 张', value: '4' },
   { label: '6 张', value: '6' },
   { label: '8 张', value: '8' },

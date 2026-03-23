@@ -258,7 +258,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
 5. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
-6. 关键帧：生成规则 现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧和一个结束帧；如果imageCount大于 1 则是一张完整连环画帧。
+6. 关键帧：生成规则 现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧；如果imageCount是 2，则必须生成一个起始帧和一个结束帧；如果imageCount大于 2 则是一张完整连环画帧。
 7. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
 
 ## 输出格式：JSON 数组，数组内对象包含以下字段，避免出现 JSON 截断错误：
