@@ -371,12 +371,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         }) 
       });
     } catch (e: any) {
-      console.error(e);
       setProcessingState(null)
       if(e.message?.includes("enough")){
-        await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+        await dialog.toast({ message: '余额不足，请充值', type: 'error' });
       }else{
-        await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+        await dialog.toast({ message: '生成失败，请重试。'+e?.message, type: 'error' });
       }
     } finally {
       setProcessingState(null);
@@ -406,7 +405,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           interval: s.interval ? { ...s.interval, videoPrompt } : undefined
         }));
       } catch (e) {
-        console.error('生成视频提示词失败:', e);
+        dialog.toast({message: '生成视频提示词失败', type: 'warning'});
         // 继续执行，使用原有的 prompt 生成逻辑
       }
     }
@@ -472,12 +471,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         interval: s.interval ? { ...s.interval, videoUrl, status: 'completed' } : undefined
       }));
     } catch (e: any) {
-      console.error(e);
       setProcessingState(null);
       if(e.message?.includes("enough")){
-        await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+        await dialog.toast({ message: '余额不足，请充值', type: 'error' });
       }else{
-        await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+        await dialog.toast({ message: '生成失败，请重试。'+e?.message, type: 'error' });
       }
     } finally {
       setProcessingState(null);
@@ -591,9 +589,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       });
     } catch (error) {
       setTransitionGeneratingShotId(null);
-      console.error('生成转场失败:', error);
-      await dialog.alert({
-        title: '错误',
+      await dialog.toast({
         message: `生成转场失败: ${error}`,
         type: 'error',
       });
@@ -701,11 +697,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             }
           } catch (e) {
             if(e.message?.includes("enough")){
-              await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+              await dialog.toast({ message: '余额不足，请充值', type: 'error' });
             }else{
-              await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+              await dialog.toast({ message: '镜头'+shot.id+'生成失败，请重试。'+e?.message, type: 'error' });
             }
-            console.error(`Failed to generate for shot ${shot.id}`, e);
           }
       }
 
@@ -789,9 +784,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
           await handleGenerateVideo(finalShot);
       } catch (e: any) {
-          console.error(e);
           setOneClickProcessing(null);
-          await dialog.alert({ title: '错误', message: `一键制作失败: ${e.message}`, type: 'error' });
+          await dialog.toast({ message: `一键制作失败: ${e.message}`, type: 'error' });
       } finally {
           setOneClickProcessing(null);
       }
@@ -834,7 +828,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
               await handleGenerateVideo(updatedShot);
           } catch (e) {
-              console.error(`Failed to generate video for shot ${shot.id}`, e);
+              dialog.toast({ message: `${shot.id}:生成视频失败: ${e.message}`, type: 'error' });
           }
 
           // Small delay between shots
@@ -895,7 +889,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           await new Promise(r => setTimeout(r, 500));
         }
       } catch (error) {
-        console.error(`下载镜头 ${shot.id} 失败:`, error);
+        dialog.toast({ message: `下载镜头 ${shot.id} 失败:`, type: 'error' });
       }
     }
     setDownloadStatus(null);
@@ -997,11 +991,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           }
         } catch (e) {
             if(e.message?.includes("enough")){
-                await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+                await dialog.toast({ message: '余额不足，请充值', type: 'error' });
             }else{
-                await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+                await dialog.toast({ message: '镜头'+shot.id+'生成失败，请重试。'+e?.message, type: 'error' });
             }
-            console.error(`Failed to generate for shot ${shot.id}`, e);
         }
     }
     setBatchProgress(null);
@@ -1039,7 +1032,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             if (!updatedShot) continue;
             await handleGenerateVideo(updatedShot);
         } catch (e) {
-            console.error(`Failed to generate video for shot ${shot.id}`, e);
+            dialog.toast({ message: `生成视频失败，镜头： ${shot.id}`, type: 'error' });
         }
 
         if (i < targetShots.length - 1) {

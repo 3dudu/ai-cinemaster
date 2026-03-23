@@ -121,9 +121,9 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     } catch (e) {
       console.error(e);
       if(e.message?.includes("enough")){
-        await dialog.alert({ title: '错误', message: '余额不足，请充值', type: 'error' });
+        await dialog.toast({ message: '余额不足，请充值', type: 'error' });
       }else{
-        await dialog.alert({ title: '错误', message: '生成失败，请重试。'+e?.message, type: 'error' });
+        await dialog.toast({ message: '生成失败，请重试。'+e?.message, type: 'error' });
       }
     } finally {
       setProcessingState(null);
