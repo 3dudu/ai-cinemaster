@@ -375,19 +375,19 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       if(e.message?.includes("enough")){
         await dialog.toast({ message: '余额不足，请充值', type: 'error' });
       }else{
-        await dialog.toast({ message: '生成失败，请重试。'+e?.message, type: 'error' });
+        await dialog.toast({ message: '镜头 '+shot.id+' 帧图片生成失败，请重试'+e?.message, type: 'error' });
       }
     } finally {
       setProcessingState(null);
     }
   };
 
-  const handleGenerateVideo = async (shot: Shot) => {
+  const handleGenerateVideo = async (shot: Shot,force:boolean = false) => {
     ////console.log("Generating Video for Shot:", shot);
     if (!shot.interval) return;
 
     // Check if already has video (regenerate)
-    if (shot.interval.videoUrl) {
+    if (shot.interval.videoUrl && !force) {
       const confirmed = await dialog.confirm({
         title: '确认重新生成',
         message: '确定要重新生成视频吗？',
@@ -405,7 +405,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           interval: s.interval ? { ...s.interval, videoPrompt } : undefined
         }));
       } catch (e) {
-        dialog.toast({message: '生成视频提示词失败', type: 'warning'});
+        dialog.toast({message: '镜头 '+shot.id+' 生成视频提示词失败', type: 'warning'});
         // 继续执行，使用原有的 prompt 生成逻辑
       }
     }
@@ -473,9 +473,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     } catch (e: any) {
       setProcessingState(null);
       if(e.message?.includes("enough")){
-        await dialog.toast({ message: '余额不足，请充值', type: 'error' });
+        await dialog.toast({ message: '镜头 '+shot.id+' 余额不足，请充值', type: 'error' });
       }else{
-        await dialog.toast({ message: '生成失败，请重试。'+e?.message, type: 'error' });
+        await dialog.toast({ message: '镜头 '+shot.id+' 视频生成失败，请重试'+e?.message, type: 'error' });
       }
     } finally {
       setProcessingState(null);
@@ -699,7 +699,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             if(e.message?.includes("enough")){
               await dialog.toast({ message: '余额不足，请充值', type: 'error' });
             }else{
-              await dialog.toast({ message: '镜头'+shot.id+'生成失败，请重试。'+e?.message, type: 'error' });
+              await dialog.toast({ message: '镜头 '+shot.id+' 帧图片生成失败，请重试'+e?.message, type: 'error' });
             }
           }
       }
@@ -826,9 +826,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               const updatedShot = project.shots.find(s => s.id === shot.id);
               if (!updatedShot) continue;
 
-              await handleGenerateVideo(updatedShot);
+              await handleGenerateVideo(updatedShot,true);
           } catch (e) {
-              dialog.toast({ message: `${shot.id}:生成视频失败: ${e.message}`, type: 'error' });
+              dialog.toast({ message: `镜头 ${shot.id} 生成视频失败: ${e.message}`, type: 'error' });
           }
 
           // Small delay between shots
@@ -993,7 +993,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             if(e.message?.includes("enough")){
                 await dialog.toast({ message: '余额不足，请充值', type: 'error' });
             }else{
-                await dialog.toast({ message: '镜头'+shot.id+'生成失败，请重试。'+e?.message, type: 'error' });
+                await dialog.toast({ message: '镜头 '+shot.id+' 帧图片生成失败，请重试'+e?.message, type: 'error' });
             }
         }
     }
@@ -1030,9 +1030,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         try {
             const updatedShot = project.shots.find(s => s.id === shot.id);
             if (!updatedShot) continue;
-            await handleGenerateVideo(updatedShot);
+            await handleGenerateVideo(updatedShot,true);
         } catch (e) {
-            dialog.toast({ message: `生成视频失败，镜头： ${shot.id}`, type: 'error' });
+            dialog.toast({ message: `镜头： ${shot.id} 生成视频失败`, type: 'error' });
         }
 
         if (i < targetShots.length - 1) {

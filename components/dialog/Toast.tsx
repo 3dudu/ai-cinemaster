@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle, Info, X, XCircle } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export interface ToastOptions {
   message: string;
@@ -55,40 +55,49 @@ const positionMap = {
   'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
 };
 
-export const Toast: React.FC<ToastProps> = ({
+// Inject CSS keyframes for progress animation
+if (typeof document !== 'undefined') {
+  const styleId = 'toast-progress-animation';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      @keyframes progress-shrink {
+        from { transform: scaleX(1); }
+        to { transform: scaleX(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+interface ToastItemProps extends ToastOptions {
+  onClose: () => void;
+  index: number;
+}
+
+const ToastItemComponent: React.FC<ToastItemProps> = ({
   message,
   type = 'info',
   duration = 3000,
-  position = 'top-center',
   onClose,
+  index,
 }) => {
-  const [progress, setProgress] = useState(100);
   const [isExiting, setIsExiting] = useState(false);
   const Icon = iconMap[type];
   const colors = colorMap[type];
 
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    const startTime = Date.now();
-    const endTime = startTime + duration;
+    const timer = setTimeout(() => {
+      setIsExiting(true);
+      setTimeout(() => onCloseRef.current(), 300);
+    }, duration);
 
-    const updateProgress = () => {
-      const now = Date.now();
-      const remaining = Math.max(0, endTime - now);
-      const newProgress = (remaining / duration) * 100;
-
-      if (newProgress <= 0) {
-        setIsExiting(true);
-        setTimeout(onClose, 300); // Wait for exit animation
-      } else {
-        setProgress(newProgress);
-        requestAnimationFrame(updateProgress);
-      }
-    };
-
-    const animationFrame = requestAnimationFrame(updateProgress);
-
-    return () => cancelAnimationFrame(animationFrame);
-  }, [duration, onClose]);
+    return () => clearTimeout(timer);
+  }, [duration]);
 
   const handleClose = () => {
     setIsExiting(true);
@@ -97,9 +106,10 @@ export const Toast: React.FC<ToastProps> = ({
 
   return (
     <div
-      className={`fixed z-[9999] ${positionMap[position]} transition-all duration-300 ${
+      className={`transition-all duration-300 ${
         isExiting ? 'opacity-0 translate-y-[-20px]' : 'opacity-100 translate-y-0'
       }`}
+      style={{ marginTop: index > 0 ? '12px' : '0' }}
     >
       <div
         className={`${colors.bg} backdrop-blur-sm border ${colors.border} rounded-lg shadow-lg min-w-[300px] max-w-[400px] overflow-hidden`}
@@ -116,14 +126,40 @@ export const Toast: React.FC<ToastProps> = ({
             <X className="w-4 h-4 text-slate-400" />
           </button>
         </div>
-        {/* Progress bar */}
+        {/* Progress bar - CSS animation for smooth performance */}
         <div className="h-1 bg-slate-700/50">
           <div
-            className={`h-full ${colors.progress} transition-all duration-100`}
-            style={{ width: `${progress}%` }}
+            className={`h-full ${colors.progress} origin-left`}
+            style={{
+              animationName: 'progress-shrink',
+              animationDuration: `${duration}ms`,
+              animationTimingFunction: 'linear',
+              animationFillMode: 'forwards',
+            }}
           />
         </div>
       </div>
+    </div>
+  );
+};
+
+// Legacy single Toast component for backward compatibility
+export const Toast: React.FC<ToastProps> = ({
+  message,
+  type = 'info',
+  duration = 3000,
+  position = 'top-right',
+  onClose,
+}) => {
+  return (
+    <div className={`fixed z-[9999] ${positionMap[position]}`}>
+      <ToastItemComponent
+        message={message}
+        type={type}
+        duration={duration}
+        onClose={onClose}
+        index={0}
+      />
     </div>
   );
 };
@@ -138,18 +174,49 @@ interface ToastContainerProps {
   onRemove: (id: string) => void;
 }
 
+const containerPositionMap = {
+  'top-left': 'top-4 left-4',
+  'top-right': 'top-4 right-4',
+  'bottom-left': 'bottom-4 left-4',
+  'bottom-right': 'bottom-4 right-4',
+  'top-center': 'top-4 left-1/2 -translate-x-1/2',
+  'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
+};
+
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove }) => {
+  // Group toasts by position
+  const groupedToasts = toasts.reduce((acc, toast) => {
+    const pos = toast.position || 'top-center';
+    if (!acc[pos]) acc[pos] = [];
+    acc[pos].push(toast);
+    return acc;
+  }, {} as Record<string, ToastItem[]>);
+
   return (
     <>
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          duration={toast.duration}
-          position={toast.position}
-          onClose={() => onRemove(toast.id)}
-        />
+      {Object.entries(groupedToasts).map(([position, positionToasts]) => (
+        <div
+          key={position}
+          className={`fixed z-[9999] ${containerPositionMap[position as keyof typeof containerPositionMap]} flex flex-col`}
+          style={{
+            alignItems: position.includes('center')
+              ? 'center'
+              : position.includes('right')
+              ? 'flex-end'
+              : 'flex-start',
+          }}
+        >
+          {positionToasts.map((toast, index) => (
+            <ToastItemComponent
+              key={toast.id}
+              message={toast.message}
+              type={toast.type}
+              duration={toast.duration}
+              onClose={() => onRemove(toast.id)}
+              index={index}
+            />
+          ))}
+        </div>
       ))}
     </>
   );
