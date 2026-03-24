@@ -601,20 +601,20 @@ export class ModelService {
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成视觉提示词`);
-
-    if(data.referenceImage){
-      data.referenceImage=null;
+    const newdata = JSON.parse(JSON.stringify(data));
+    if(newdata.referenceImage){
+      newdata.referenceImage=null;
     }
-    if(data.variations){
-      data.variations=[];
+    if(newdata.variations){
+      newdata.variations=[];
     }
-    if(data.ttsParams){
-      data.ttsParams=null;
+    if(newdata.ttsParams){
+      newdata.ttsParams=null;
     }
-    if(data.voiceUrl){
-      data.voiceUrl=null;
+    if(newdata.voiceUrl){
+      newdata.voiceUrl=null;
     }
-    const desc = JSON.stringify(data);
+    const desc = JSON.stringify(newdata);
     const prompt = renderTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', genre,desc,visualStyle);
     let visualPrompt = renderTemplate('SYSTEM_CHARA_DESIGNER');
     if(type=='scene'){
