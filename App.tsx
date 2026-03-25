@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import ApiKeyModal from './components/ApiKeyModal'; // 新增
 import Dashboard from './components/Dashboard';
 import { DialogProvider } from './components/dialog';
+import SeriesManagerModal from './components/SeriesManagerModal';
 import Sidebar from './components/Sidebar';
 import SidebarMobile from './components/SidebarMobile';
 import StageAssets from './components/StageAssets';
@@ -12,8 +13,8 @@ import StageImage from './components/StageImage';
 import StageScript from './components/StageScript';
 import { initializeCozeConfig } from './services/modelproviders/cozeService';
 import { ModelService } from './services/modelService';
-import { loadSeriesFromDB, saveProjectToDB, saveSeriesToDB } from './services/storageService';
 import { getEffectiveCharacters, getEffectiveScenes } from './services/seriesService';
+import { getAllProjectsMetadata, loadSeriesFromDB, saveProjectToDB, saveSeriesToDB } from './services/storageService';
 import { Character, ProjectState, Scene, SeriesRecord } from './types';
 
 function App() {
@@ -25,6 +26,8 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMd, setIsMd] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showSeriesManager, setShowSeriesManager] = useState(false);
+  const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
 
   // Ref to hold debounce timer
   const saveTimeoutRef = useRef<any>(null);
@@ -138,6 +141,14 @@ function App() {
   const handleOpenProject = async (proj: ProjectState) => {
     // 设置项目的模型供应商配置
     ModelService.setCurrentProjectProviders(proj.modelProviders);
+    
+    // Load all projects for series manager
+    try {
+      const projects = await getAllProjectsMetadata();
+      setAllProjects(projects);
+    } catch (err) {
+      console.error('Failed to load projects:', err);
+    }
     
     // If project belongs to a series, load the series
     if (proj.seriesRefId) {
@@ -265,6 +276,8 @@ function App() {
               projectName={project.title}
               project={project}
               updateProject={updateProject}
+              isSeriesMode={isSeriesMode}
+              onOpenSeriesManager={() => setShowSeriesManager(true)}
             />
           </>
         ) : (
@@ -279,8 +292,23 @@ function App() {
               projectName={project.title}
               project={project}
               updateProject={updateProject}
+              isSeriesMode={isSeriesMode}
+              onOpenSeriesManager={() => setShowSeriesManager(true)}
             />
           </>
+        )}
+
+        {/* Series Manager Modal */}
+        {series && (
+          <SeriesManagerModal
+            isOpen={showSeriesManager}
+            onClose={() => setShowSeriesManager(false)}
+            series={series}
+            onSeriesUpdate={setSeries}
+            onSwitchEpisode={handleOpenProject}
+            allProjects={allProjects}
+            isMobile={isMobile}
+          />
         )}
 
       <main className={`transition-allduration-300 ease-in-out ${isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-20' : 'xl:ml-72 ml-20')} flex-1 h-screen overflow-hidden relative`}

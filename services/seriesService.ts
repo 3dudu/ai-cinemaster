@@ -1,4 +1,4 @@
-import { Character, ProjectState, Scene, ScriptData, SeriesLibrary, SeriesRecord } from '../types';
+import { Character, ProjectState, Scene, ScriptData, SeriesRecord, Shot } from '../types';
 
 // ==================== Series Creation ====================
 
@@ -451,4 +451,117 @@ export const getSeriesEpisodes = (
   return series.episodeOrder
     .map(id => projectMap.get(id))
     .filter((p): p is ProjectState => p !== undefined);
+};
+
+// ==================== Shots Remapping ====================
+
+/**
+ * Remap character references in shots after merging to library
+ * This is needed because shots store character IDs that need to be updated
+ * when characters are merged into the series library
+ */
+export const remapShotsCharRefs = (
+  shots: Shot[],
+  charIdMapping: Map<string, string>
+): Shot[] => {
+  return shots.map(shot => ({
+    ...shot,
+    characters: shot.characters.map(id => charIdMapping.get(id) || id),
+    characterVariations: shot.characterVariations
+      ? Object.fromEntries(
+          Object.entries(shot.characterVariations).map(([k, v]) => [
+            charIdMapping.get(k) || k, v
+          ])
+        )
+      : undefined
+  }));
+};
+
+/**
+ * Remap scene references in shots after merging to library
+ * This is needed because shots store sceneId that needs to be updated
+ * when scenes are merged into series library
+ */
+export const remapShotsSceneRefs = (
+  shots: Shot[],
+  sceneIdMapping: Map<string, string>
+): Shot[] => {
+  return shots.map(shot => ({
+    ...shot,
+    sceneId: sceneIdMapping.get(shot.sceneId) || shot.sceneId
+  }));
+};
+
+// ==================== Import Functions ====================
+
+/**
+ * Import a project as an episode of a series
+ * This handles the complete workflow:
+ * 1. Merge characters/scenes to library
+ * 2. Remap all references
+ * 3. Create lightweight references
+ * 4. Set seriesRefId
+ * 
+ * Returns the updated project and series
+ */
+export const importProjectAsEpisode = (
+  series: SeriesRecord,
+  project: ProjectState
+): { updatedProject: ProjectState; updatedSeries: SeriesRecord } => {
+  let updatedProject = { ...project };
+  let updatedSeries = { ...series };
+
+  // Generate new ID for the project to avoid conflicts
+  updatedProject.id = 'proj_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
+  updatedProject.createdAt = Date.now();
+  updatedProject.lastModified = Date.now();
+
+  // If project has scriptData, merge characters/scenes to library
+  if (updatedProject.scriptData) {
+    const characters = updatedProject.scriptData.characters || [];
+    const scenes = updatedProject.scriptData.scenes || [];
+
+    if (characters.length > 0 || scenes.length > 0) {
+      // Merge to library
+      const mergeResult = mergeToLibrary(updatedSeries, characters, scenes);
+      updatedSeries = mergeResult.series;
+
+      // Remap scriptData references
+      updatedProject.scriptData = remapScriptDataRefs(
+        updatedProject.scriptData,
+        mergeResult.charIdMapping,
+        mergeResult.sceneIdMapping
+      );
+
+      // Remap shots character references
+      if (updatedProject.shots && updatedProject.shots.length > 0) {
+        updatedProject.shots = remapShotsCharRefs(updatedProject.shots, mergeResult.charIdMapping);
+        updatedProject.shots = remapShotsSceneRefs(updatedProject.shots, mergeResult.sceneIdMapping);
+      }
+
+      // Create lightweight references for episode storage
+      updatedProject.scriptData.characters = createLightweightCharacters(
+        updatedProject.scriptData.characters,
+        mergeResult.charIdMapping
+      );
+      updatedProject.scriptData.scenes = createLightweightScenes(
+        updatedProject.scriptData.scenes,
+        mergeResult.sceneIdMapping
+      );
+    }
+  }
+
+  // Set series reference
+  updatedProject.seriesRefId = series.id;
+
+  // Add episode to series order
+  if (!updatedSeries.episodeOrder.includes(updatedProject.id)) {
+    updatedSeries = {
+      ...updatedSeries,
+      episodeOrder: [...updatedSeries.episodeOrder, updatedProject.id],
+      updatedAt: Date.now()
+    };
+  }
+
+  return { updatedProject, updatedSeries };
 };

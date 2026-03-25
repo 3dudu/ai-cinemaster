@@ -1,4 +1,4 @@
-import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, Images, List, NotebookPen, Settings, Sparkles } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderKanban, Images, List, NotebookPen, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import ModalSettings from './ModalSettings';
@@ -14,9 +14,11 @@ interface SidebarMobileProps {
   projectName?: string;
   project?: ProjectState;
   updateProject?: (updates: Partial<ProjectState>) => void;
+  isSeriesMode?: boolean;
+  onOpenSeriesManager?: () => void;
 }
 
-const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, onExit, onOpenSettings, projectName, project, updateProject }) => {
+const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, onExit, onOpenSettings, projectName, project, updateProject, isSeriesMode = false, onOpenSeriesManager }) => {
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showPromptTemplates, setShowPromptTemplates] = useState(false);
@@ -64,6 +66,15 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
 
         {/* 右侧：设置和项目设置按钮 */}
         <div className="flex items-center gap-2">
+          {isSeriesMode && onOpenSeriesManager && (
+            <button
+              onClick={onOpenSeriesManager}
+              className="text-indigo-400 hover:text-indigo-300 transition-colors p-1"
+              title="剧集管理"
+            >
+              <FolderKanban className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setShowModelSettings(true)}
             className="text-slate-400 hover:text-slate-50 transition-colors p-1"

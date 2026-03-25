@@ -1,4 +1,4 @@
-import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, Github as GithubIcon, Images, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
+import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderKanban, Github as GithubIcon, Images, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import ImageSelectorModal from './ImageSelectorModal';
@@ -22,9 +22,11 @@ interface SidebarProps {
   projectName?: string;
   project?: ProjectState;
   updateProject?: (updates: Partial<ProjectState>) => void;
+  isSeriesMode?: boolean;
+  onOpenSeriesManager?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpenSettings, onToggleSidebar, collapsed = false, projectName, project, updateProject }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpenSettings, onToggleSidebar, collapsed = false, projectName, project, updateProject, isSeriesMode = false, onOpenSeriesManager }) => {
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showImageBrowser, setShowImageBrowser] = useState(false);
@@ -124,6 +126,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       <div className="p-4 border-t border-slate-900 space-y-2">
         {!collapsed ? (
           <>
+          {isSeriesMode && onOpenSeriesManager && (
+            <button
+              onClick={onOpenSeriesManager}
+              className="flex items-center justify-between text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900/20 cursor-pointer transition-colors w-full px-3 py-2 rounded-lg"
+            >
+              <span className="font-mono text-[12px] uppercase tracking-widest">剧集管理</span>
+              <FolderKanban className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setShowImageBrowser(true)}
             className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
@@ -173,6 +184,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
           </>
         ) : (
             <div className="flex flex-col items-center gap-2">
+          {isSeriesMode && onOpenSeriesManager && (
+            <button
+              onClick={onOpenSeriesManager}
+              className="flex justify-center text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900/20 cursor-pointer transition-colors p-2 rounded-lg"
+              title="剧集管理"
+            >
+              <FolderKanban className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setShowImageBrowser(true)}
             className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"

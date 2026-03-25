@@ -1,18 +1,18 @@
 import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Film, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { 
-  createNewProjectState, 
-  deleteProjectFromDB, 
+import { createNewSeries, importProjectAsEpisode } from '../services/seriesService';
+import {
+  createNewProjectState,
+  deleteProjectFromDB,
   deleteSeriesFromDB,
-  exportProjectToFile, 
+  exportProjectToFile,
   exportSeriesToFile,
-  getAllProjectsMetadata, 
+  getAllProjectsMetadata,
   getAllSeriesFromDB,
   importFromFile,
   saveProjectToDB,
   saveSeriesToDB
 } from '../services/storageService';
-import { createNewSeries } from '../services/seriesService';
 import { ProjectState, SeriesRecord } from '../types';
 import ApiKeyModal from './ApiKeyModal';
 import { useDialog } from './dialog';
@@ -72,7 +72,11 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   };
 
   const handleCreateSeries = async () => {
-    const title = window.prompt('请输入剧集名称：', '未命名剧集');
+    const title = await dialog.prompt({
+      title: '新建剧集',
+      message: '请输入剧集名称：',
+      defaultValue: '未命名剧集'
+    });
     if (title) {
       const newSeries = createNewSeries(title);
       await saveSeriesToDB(newSeries);
@@ -179,25 +183,21 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
         onOpenProject(importedProject);
       } else if (result.type === 'series' && result.series) {
         // Import series with episodes
-        const importedSeries = result.series;
+        let importedSeries = result.series;
         importedSeries.id = 'series_' + Date.now().toString(36);
         importedSeries.createdAt = Date.now();
         importedSeries.updatedAt = Date.now();
+        importedSeries.episodeOrder = [];
         
-        // Generate new IDs for episodes and update series ref
-        const newEpisodeIds: string[] = [];
+        // Process each episode with proper library merge
         if (result.projects) {
           for (const ep of result.projects) {
-            const oldId = ep.id;
-            ep.id = 'proj_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
-            ep.seriesRefId = importedSeries.id;
-            ep.createdAt = Date.now();
-            ep.lastModified = Date.now();
-            await saveProjectToDB(ep);
-            newEpisodeIds.push(ep.id);
+            const { updatedProject, updatedSeries } = importProjectAsEpisode(importedSeries, ep);
+            importedSeries = updatedSeries;
+            await saveProjectToDB(updatedProject);
           }
         }
-        importedSeries.episodeOrder = newEpisodeIds;
+        
         await saveSeriesToDB(importedSeries);
         await loadData();
         dialog.toast({ message: '剧集导入成功', type: 'success' });
@@ -214,6 +214,36 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   
   const handleClearKey = () => {
       onClearKey();
+  };
+
+  // Handle import episode to existing series
+  const handleImportEpisodeToSeries = async (e: React.MouseEvent, series: SeriesRecord) => {
+    e.stopPropagation();
+    try {
+      setImporting(true);
+      const result = await importFromFile();
+      
+      if (result.type === 'standalone' && result.project) {
+        // Import single project as episode
+        const { updatedProject, updatedSeries } = importProjectAsEpisode(series, result.project);
+        
+        // Save to DB
+        await saveProjectToDB(updatedProject);
+        await saveSeriesToDB(updatedSeries);
+        await loadData();
+        
+        dialog.toast({ message: '分集导入成功', type: 'success' });
+      } else if (result.type === 'series') {
+        dialog.toast({ message: '请选择单个项目文件导入，不支持导入整套剧集', type: 'error' });
+      }
+    } catch (error: any) {
+      console.error('Import failed:', error);
+      if (error.message !== 'Import cancelled' && error.message !== 'No file selected') {
+        dialog.toast({ message: error.message || '导入失败', type: 'error' });
+      }
+    } finally {
+      setImporting(false);
+    }
   };
 
   const handleDuplicate = async (e: React.MouseEvent, proj: ProjectState) => {
@@ -526,6 +556,14 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                 {/* Series Content */}
                 <div className="flex-1 px-6 pt-2 relative flex flex-col">
                    <div className='flex flex-row items-center justify-end gap-1'>
+                     {/* Import Episode Button */}
+                     <button
+                        onClick={(e) => handleImportEpisodeToSeries(e, series)}
+                        className="group-hover:opacity-100 p-2 hover:bg-indigo-900/30 text-indigo-400 hover:text-indigo-300 transition-all rounded-sm z-10 cursor-pointer"
+                        title="导入单集"
+                     >
+                        <Upload className="w-4 h-4" />
+                     </button>
                      {/* Export Button */}
                      <button
                         onClick={(e) => handleExportSeries(e, series)}

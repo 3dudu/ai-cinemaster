@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { AlertDialog } from './AlertDialog';
 import { ConfirmDialog } from './ConfirmDialog';
+import { PromptDialog } from './PromptDialog';
 import { ToastContainer, ToastItem, ToastOptions } from './Toast';
 
 interface DialogOptions {
@@ -11,9 +12,18 @@ interface DialogOptions {
   type?: 'info' | 'success' | 'warning' | 'error';
 }
 
+interface PromptOptions {
+  title?: string;
+  message: string;
+  defaultValue?: string;
+  confirmText?: string;
+  cancelText?: string;
+}
+
 interface DialogContextType {
   alert: (options: DialogOptions) => Promise<void>;
   confirm: (options: DialogOptions) => Promise<boolean>;
+  prompt: (options: PromptOptions) => Promise<string | null>;
   toast: (options: ToastOptions) => void;
 }
 
@@ -28,9 +38,9 @@ export const useDialog = () => {
 };
 
 interface DialogState {
-  type: 'alert' | 'confirm' | null;
-  options: DialogOptions;
-  resolve: ((value: boolean | void | PromiseLike<boolean>) => void) | null;
+  type: 'alert' | 'confirm' | 'prompt' | null;
+  options: DialogOptions | PromptOptions;
+  resolve: ((value: boolean | void | string | null | PromiseLike<boolean | string | null>) => void) | null;
 }
 
 export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -61,6 +71,16 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, []);
 
+  const prompt = useCallback((options: PromptOptions): Promise<string | null> => {
+    return new Promise<string | null>((resolve) => {
+      setDialog({
+        type: 'prompt',
+        options,
+        resolve,
+      });
+    });
+  }, []);
+
   const toast = useCallback((options: ToastOptions) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setToasts((prev) => [...prev, { ...options, id }]);
@@ -72,7 +92,20 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const handleClose = useCallback(() => {
     if (dialog.resolve) {
-      dialog.resolve(dialog.type === 'confirm' ? false : undefined);
+      if (dialog.type === 'confirm') {
+        dialog.resolve(false);
+      } else if (dialog.type === 'prompt') {
+        dialog.resolve(null);
+      } else {
+        dialog.resolve(undefined);
+      }
+    }
+    setDialog({ type: null, options: { message: '' }, resolve: null });
+  }, [dialog]);
+
+  const handlePromptConfirm = useCallback((value: string) => {
+    if (dialog.resolve) {
+      dialog.resolve(value);
     }
     setDialog({ type: null, options: { message: '' }, resolve: null });
   }, [dialog]);
@@ -85,25 +118,37 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [dialog]);
 
   return (
-    <DialogContext.Provider value={{ alert, confirm, toast }}>
+    <DialogContext.Provider value={{ alert, confirm, prompt, toast }}>
       {children}
 
       {dialog.type === 'alert' && (
         <AlertDialog
-          {...dialog.options}
+          {...(dialog.options as DialogOptions)}
           onClose={handleClose}
         />
       )}
 
       {dialog.type === 'confirm' && (
         <ConfirmDialog
-          title={dialog.options.title}
+          title={(dialog.options as DialogOptions).title}
           message={dialog.options.message}
-          type={dialog.options.type === 'success' ? 'info' : dialog.options.type}
-          confirmText={dialog.options.confirmText}
-          cancelText={dialog.options.cancelText}
+          type={((dialog.options as DialogOptions).type === 'success' ? 'info' : (dialog.options as DialogOptions).type) as 'info' | 'warning' | 'error'}
+          confirmText={(dialog.options as DialogOptions).confirmText}
+          cancelText={(dialog.options as DialogOptions).cancelText}
           onClose={handleClose}
           onConfirm={handleConfirm}
+        />
+      )}
+
+      {dialog.type === 'prompt' && (
+        <PromptDialog
+          title={(dialog.options as PromptOptions).title}
+          message={dialog.options.message}
+          defaultValue={(dialog.options as PromptOptions).defaultValue}
+          confirmText={(dialog.options as PromptOptions).confirmText}
+          cancelText={(dialog.options as PromptOptions).cancelText}
+          onClose={handleClose}
+          onConfirm={handlePromptConfirm}
         />
       )}
 

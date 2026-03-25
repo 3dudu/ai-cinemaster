@@ -211,7 +211,7 @@ export const generateScript = async (
 /**
  * Agent 3: Visual Design (Prompt Generation)
  */
-export const generateVisualPrompts = async (prompt: string): Promise<string> => {
+export const generateVisualPrompts = async (prompt: string,systemPrompt: string = "视觉设计师"): Promise<string> => {
    const ai = getAiClient();
    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
      model: 'gemini-2.5-flash',
