@@ -3,7 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
-import { Character, ProjectState, Scene } from '../types';
+import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '../services/seriesService';
+import { Character, ProjectState, Scene, SeriesRecord } from '../types';
 import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
 import { DURATION_OPTIONS, GENRE_OPTIONS, IMAGE_COUNT_OPTIONS, IMAGE_SIZE_OPTIONS, LANGUAGE_OPTIONS, STYLE_OPTIONS } from './ProjectSettingsModal';
@@ -14,11 +15,23 @@ interface Props {
   project: ProjectState;
   updateProject: (updates: Partial<ProjectState>) => void;
   isMobile: boolean;
+  series?: SeriesRecord | null;
+  updateSeries?: (series: SeriesRecord) => void;
+  effectiveCharacters?: Character[];
+  effectiveScenes?: Scene[];
 }
 
 type TabMode = 'story' | 'script';
 
-const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }) => {
+const StageScript: React.FC<Props> = ({ 
+  project, 
+  updateProject, 
+  isMobile=false,
+  series,
+  updateSeries,
+  effectiveCharacters,
+  effectiveScenes
+}) => {
   const dialog = useDialog();
   const [activeTab, setActiveTab] = useState<TabMode>(project.scriptData ? 'script' : 'story');
 
@@ -506,7 +519,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
         genre: finalGenre || project.scriptData?.genre || '剧情片',
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
-      const scriptData = await ModelService.parseScriptToData(localScript, localLanguage,localGenre);
+      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage,localGenre);
       console.log('scriptData', scriptData);
       if(scriptData.scenes.length > 0){
         updateProject({ isParsingScript: true });
@@ -518,6 +531,24 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
           scriptData.title = localTitle;
         }
         scriptData.genre = localGenre;
+
+        // Series mode: merge to library and create lightweight refs
+        if (series && updateSeries) {
+          setProcessingStep('正在同步到剧集库...');
+          const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
+            mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+          
+          // Remap references in scriptData
+          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+          
+          // Create lightweight characters/scenes for episode
+          scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
+          scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+          
+          // Update series
+          updateSeries(updatedSeries);
+        }
+
         // 逐场景生成分镜
         const allShots: any[] = [];
         const totalScenes = scriptData.scenes.length;
@@ -1070,7 +1101,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
   const renderScriptBreakdown = () => {
     // Deduplication Logic
     const seenLocations = new Set();
-    const uniqueScenesList = (project.scriptData?.scenes || []).filter(scene => {
+    const uniqueScenesList = (effectiveScenes || []).filter(scene => {
       const normalizedLoc = scene.location.trim().toLowerCase();
       seenLocations.add(normalizedLoc);
       return true;
@@ -1103,7 +1134,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                       {/* Main: Script & Shots */}
            <div className="h-full flex-1 overflow-y-auto bg-slate-900 p-0 ">
               <div className="max-w-5xl mx-auto pb-2">
-                 {project.scriptData?.scenes.map((scene, index) => {
+                 {(effectiveScenes || []).map((scene, index) => {
                    const sceneShots = project.shots.filter(s => s.sceneId === scene.id);
                    //if (sceneShots.length === 0) return null;
 
@@ -1234,7 +1265,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                                    {/* Tags/Characters */}
                                    <div className="flex flex-wrap gap-2 pt-2 opacity-50 group-hover:opacity-100 transition-opacity">
                                       {shot.characters.map(cid => {
-                                        const char = project.scriptData?.characters.find(c => c.id === cid);
+                                        const char = (effectiveCharacters || []).find(c => c.id === cid);
                                         return char ? (
                                           <span key={cid} className="text-[12px] uppercase font-bold tracking-wider text-slate-500 border border-slate-600 px-2 py-0.5 rounded-full bg-slate-900">
                                               {char.name}
@@ -1385,7 +1416,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
                            </div>
                          </div>
                        )}
-                       {project.scriptData?.characters.map(c => (
+                       {(effectiveCharacters || []).map(c => (
                          <div key={c.id} className="flex justify-between gap-2 items-center group cursor-default p-2 rounded hover:bg-slate-900/100 transition-colors">
                             {editingCharacterId === c.id ? (
                               <div className="flex-1 space-y-2">
@@ -1553,7 +1584,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
       return (
         <ShotEditModal
           shot={shot}
-          characters={project.scriptData?.characters || []}
+          characters={effectiveCharacters || []}
           onSave={saveShot}
           onClose={() => {
             setEditingShotId(null);
@@ -1580,7 +1611,7 @@ const StageScript: React.FC<Props> = ({ project, updateProject, isMobile=false }
       return (
         <ShotEditModal
           shot={newShot}
-          characters={project.scriptData?.characters || []}
+          characters={effectiveCharacters || []}
           onSave={saveShot}
           onClose={() => {
             setAddingShotForSceneId(null);

@@ -4,7 +4,7 @@ import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
 import { addMediaHistory, getAllModelConfigs } from '../services/storageService';
-import { AIModelConfig, Keyframe, ProjectState, Scene, Shot } from '../types';
+import { AIModelConfig, Character, Keyframe, ProjectState, Scene, Shot } from '../types';
 import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
 import FileUploadModal, { downloadImage, downloadVideo } from './FileUploadModal';
@@ -17,9 +17,11 @@ interface Props {
   project: ProjectState;
   updateProject: (updates: Partial<ProjectState>) => void;
   isMobile: boolean;
+  effectiveCharacters?: Character[];
+  effectiveScenes?: Scene[];
 }
 
-const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false  }) => {
+const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false, effectiveCharacters, effectiveScenes  }) => {
   const dialog = useDialog();
   const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
@@ -227,7 +229,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
-            const char = project.scriptData?.characters.find(c => String(c.name) === String(charId));
+            const char = (effectiveCharacters || project.scriptData?.characters || []).find(c => String(c.name) === String(charId));
             if (!char) return;
 
             // Check if a specific variation is selected for this shot
@@ -262,7 +264,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
-            const char = project.scriptData?.characters.find(c => String(c.name) === String(charId));
+            const char = (effectiveCharacters || project.scriptData?.characters || []).find(c => String(c.name) === String(charId));
             if (!char) return;
 
             // Check if a specific variation is selected for this shot
@@ -1245,7 +1247,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       <div className="flex-1 overflow-hidden flex">
           {/* Grid View - Responsive Logic */}
           <div className={`flex-1 overflow-y-auto transition-all duration-500 ease-in-out ${activeShotId && isMobile?'hidden':''}`}>
-                  {project.scriptData?.scenes.map((scene, index) => {
+                  {(effectiveScenes || project.scriptData?.scenes || []).map((scene, index) => {
                     const sceneShots = project.shots.filter(s => s.sceneId === scene.id);
                 return (
                   <div key={scene.id}>
@@ -2021,7 +2023,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           {editingShotId && (
             <ShotEditModal
               shot={project.shots.find(s => s.id === editingShotId)!}
-              characters={project.scriptData?.characters || []}
+              characters={effectiveCharacters || project.scriptData?.characters || []}
               onSave={saveShot}
               onClose={() => setEditingShotId(null)}
               imageCount={project.imageCount}

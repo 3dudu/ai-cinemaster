@@ -7,6 +7,7 @@ export interface CharacterVariation {
 
 export interface Character {
   id: string;
+  refId?: string; // Reference to SeriesRecord.library.characters (for series episodes)
   name: string;
   gender: string;
   age: string;
@@ -27,6 +28,7 @@ export interface TtsParams {
 
 export interface Scene {
   id: string;
+  refId?: string; // Reference to SeriesRecord.library.scenes (for series episodes)
   location: string;
   time: string;
   atmosphere: string;
@@ -106,6 +108,7 @@ export interface ProjectState {
   lastModified: number;
   stage: 'script' | 'assets' | 'director' | 'export' | 'images';
   seed?: number;
+  seriesRefId?: string; // Reference to SeriesRecord.id (if this project is an episode of a series)
   // Script Phase Data
   rawScript: string;
   targetDuration: string;
@@ -139,4 +142,38 @@ export interface AIModelConfig {
   apiUrl: string;
   enabled: boolean;
   description: string;
+}
+
+// ==================== Series Types (Plan B) ====================
+
+export interface SeriesLibrary {
+  characters: Character[];
+  scenes: Scene[];
+}
+
+export interface SeriesRecord {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  library: SeriesLibrary;
+  episodeOrder: string[]; // Array of ProjectState.id in order
+  version: 1;
+}
+
+// Unified export bundle format (v2)
+export interface ExportBundle {
+  version: 2;
+  exportedAt: number;
+  type: 'standalone' | 'series';
+  // For standalone projects
+  project?: ProjectState;
+  // For series
+  series?: SeriesRecord;
+  projects?: ProjectState[]; // Episodes of the series
+}
+
+// Legacy v1 export format (for backward compatibility)
+export interface ExportBundleV1 extends ProjectState {
+  // No additional fields - this is just ProjectState itself
 }

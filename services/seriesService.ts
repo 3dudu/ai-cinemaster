@@ -1,0 +1,454 @@
+import { Character, ProjectState, Scene, ScriptData, SeriesLibrary, SeriesRecord } from '../types';
+
+// ==================== Series Creation ====================
+
+export const createNewSeries = (title: string): SeriesRecord => {
+  const id = 'series_' + Date.now().toString(36);
+  return {
+    id,
+    title: title || '未命名剧集',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    library: {
+      characters: [],
+      scenes: []
+    },
+    episodeOrder: [],
+    version: 1
+  };
+};
+
+// ==================== ID Mapping ====================
+
+export interface MergeResult {
+  series: SeriesRecord;
+  charIdMapping: Map<string, string>; // originalId -> libraryId
+  sceneIdMapping: Map<string, string>; // originalId -> libraryId
+}
+
+// ==================== Library Merge Functions ====================
+
+/**
+ * Merge characters into series library
+ * Returns a map of original IDs to library IDs
+ */
+export const mergeCharactersToLibrary = (
+  series: SeriesRecord,
+  characters: Character[]
+): { updatedSeries: SeriesRecord; charIdMapping: Map<string, string> } => {
+  const charIdMapping = new Map<string, string>();
+  const newLibrary = { ...series.library };
+  
+  characters.forEach(char => {
+    // Check if character already exists in library (by name and gender)
+    const existingIndex = newLibrary.characters.findIndex(
+      c => c.name === char.name && c.gender === char.gender
+    );
+    
+    if (existingIndex >= 0) {
+      // Use existing character ID
+      const existingChar = newLibrary.characters[existingIndex];
+      charIdMapping.set(char.id, existingChar.id);
+      
+      // Update existing character with any new information
+      newLibrary.characters[existingIndex] = {
+        ...existingChar,
+        age: char.age || existingChar.age,
+        personality: char.personality || existingChar.personality,
+        visualPrompt: char.visualPrompt || existingChar.visualPrompt,
+        referenceImage: char.referenceImage || existingChar.referenceImage,
+        variations: char.variations?.length ? char.variations : existingChar.variations,
+        ttsParams: char.ttsParams || existingChar.ttsParams,
+        voiceUrl: char.voiceUrl || existingChar.voiceUrl
+      };
+    } else {
+      // Add new character to library
+      const libraryCharId = `char_lib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      charIdMapping.set(char.id, libraryCharId);
+      newLibrary.characters.push({
+        ...char,
+        id: libraryCharId
+      });
+    }
+  });
+  
+  return {
+    updatedSeries: {
+      ...series,
+      library: newLibrary,
+      updatedAt: Date.now()
+    },
+    charIdMapping
+  };
+};
+
+/**
+ * Merge scenes into series library
+ * Returns a map of original IDs to library IDs
+ */
+export const mergeScenesToLibrary = (
+  series: SeriesRecord,
+  scenes: Scene[]
+): { updatedSeries: SeriesRecord; sceneIdMapping: Map<string, string> } => {
+  const sceneIdMapping = new Map<string, string>();
+  const newLibrary = { ...series.library };
+  
+  scenes.forEach(scene => {
+    // Check if scene already exists in library (by location and time)
+    const existingIndex = newLibrary.scenes.findIndex(
+      s => s.location === scene.location && s.time === scene.time
+    );
+    
+    if (existingIndex >= 0) {
+      // Use existing scene ID
+      const existingScene = newLibrary.scenes[existingIndex];
+      sceneIdMapping.set(scene.id, existingScene.id);
+      
+      // Update existing scene with any new information
+      newLibrary.scenes[existingIndex] = {
+        ...existingScene,
+        atmosphere: scene.atmosphere || existingScene.atmosphere,
+        visualPrompt: scene.visualPrompt || existingScene.visualPrompt,
+        referenceImage: scene.referenceImage || existingScene.referenceImage
+      };
+    } else {
+      // Add new scene to library
+      const librarySceneId = `scene_lib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sceneIdMapping.set(scene.id, librarySceneId);
+      newLibrary.scenes.push({
+        ...scene,
+        id: librarySceneId
+      });
+    }
+  });
+  
+  return {
+    updatedSeries: {
+      ...series,
+      library: newLibrary,
+      updatedAt: Date.now()
+    },
+    sceneIdMapping
+  };
+};
+
+/**
+ * Merge both characters and scenes to library in one operation
+ */
+export const mergeToLibrary = (
+  series: SeriesRecord,
+  characters: Character[],
+  scenes: Scene[]
+): MergeResult => {
+  // First merge characters
+  const charResult = mergeCharactersToLibrary(series, characters);
+  // Then merge scenes (using the updated series from charResult)
+  const sceneResult = mergeScenesToLibrary(charResult.updatedSeries, scenes);
+  
+  return {
+    series: sceneResult.updatedSeries,
+    charIdMapping: charResult.charIdMapping,
+    sceneIdMapping: sceneResult.sceneIdMapping
+  };
+};
+
+// ==================== Script Data Remapping ====================
+
+/**
+ * Remap all character/scene references in scriptData after merging to library
+ */
+export const remapScriptDataRefs = (
+  scriptData: ScriptData,
+  charIdMapping: Map<string, string>,
+  sceneIdMapping: Map<string, string>
+): ScriptData => {
+  const newScriptData = { ...scriptData };
+  
+  // Remap characters
+  if (newScriptData.characters) {
+    newScriptData.characters = newScriptData.characters.map(char => ({
+      ...char,
+      id: charIdMapping.get(char.id) || char.id
+    }));
+  }
+  
+  // Remap scenes
+  if (newScriptData.scenes) {
+    newScriptData.scenes = newScriptData.scenes.map(scene => ({
+      ...scene,
+      id: sceneIdMapping.get(scene.id) || scene.id
+    }));
+  }
+  
+  // Remap story paragraphs scene references
+  if (newScriptData.storyParagraphs) {
+    newScriptData.storyParagraphs = newScriptData.storyParagraphs.map(para => ({
+      ...para,
+      sceneRefId: sceneIdMapping.get(para.sceneRefId) || para.sceneRefId
+    }));
+  }
+  
+  return newScriptData;
+};
+
+// ==================== Lightweight Character/Scene Creation ====================
+
+/**
+ * Create lightweight character references for episode
+ * Episode stores only: id, refId, name, gender
+ */
+export const createLightweightCharacters = (
+  characters: Character[],
+  charIdMapping?: Map<string, string>
+): Character[] => {
+  return characters.map(char => {
+    const libraryId = charIdMapping?.get(char.id) || char.id;
+    return {
+      id: char.id, // Keep original episode-local ID
+      refId: libraryId, // Reference to library
+      name: char.name,
+      gender: char.gender,
+      age: '', // Not stored in episode
+      personality: '', // Not stored in episode
+      visualPrompt: '', // Not stored in episode
+      referenceImage: '', // Not stored in episode
+      variations: [] // Not stored in episode
+    };
+  });
+};
+
+/**
+ * Create lightweight scene references for episode
+ * Episode stores only: id, refId, location, time, atmosphere
+ */
+export const createLightweightScenes = (
+  scenes: Scene[],
+  sceneIdMapping?: Map<string, string>
+): Scene[] => {
+  return scenes.map(scene => {
+    const libraryId = sceneIdMapping?.get(scene.id) || scene.id;
+    return {
+      id: scene.id, // Keep original episode-local ID
+      refId: libraryId, // Reference to library
+      location: scene.location,
+      time: scene.time,
+      atmosphere: scene.atmosphere,
+      visualPrompt: '', // Not stored in episode
+      referenceImage: '' // Not stored in episode
+    };
+  });
+};
+
+// ==================== Library Update Functions ====================
+
+/**
+ * Update a character in the series library
+ */
+export const updateLibraryCharacter = (
+  series: SeriesRecord,
+  characterId: string,
+  updates: Partial<Character>
+): SeriesRecord => {
+  const newLibrary = { ...series.library };
+  const charIndex = newLibrary.characters.findIndex(c => c.id === characterId);
+  
+  if (charIndex >= 0) {
+    newLibrary.characters[charIndex] = {
+      ...newLibrary.characters[charIndex],
+      ...updates
+    };
+  }
+  
+  return {
+    ...series,
+    library: newLibrary,
+    updatedAt: Date.now()
+  };
+};
+
+/**
+ * Update a scene in the series library
+ */
+export const updateLibraryScene = (
+  series: SeriesRecord,
+  sceneId: string,
+  updates: Partial<Scene>
+): SeriesRecord => {
+  const newLibrary = { ...series.library };
+  const sceneIndex = newLibrary.scenes.findIndex(s => s.id === sceneId);
+  
+  if (sceneIndex >= 0) {
+    newLibrary.scenes[sceneIndex] = {
+      ...newLibrary.scenes[sceneIndex],
+      ...updates
+    };
+  }
+  
+  return {
+    ...series,
+    library: newLibrary,
+    updatedAt: Date.now()
+  };
+};
+
+// ==================== Episode Management ====================
+
+/**
+ * Add an episode to a series
+ */
+export const addEpisodeToSeries = (
+  series: SeriesRecord,
+  project: ProjectState
+): SeriesRecord => {
+  if (!series.episodeOrder.includes(project.id)) {
+    return {
+      ...series,
+      episodeOrder: [...series.episodeOrder, project.id],
+      updatedAt: Date.now()
+    };
+  }
+  return series;
+};
+
+/**
+ * Remove an episode from a series
+ */
+export const removeEpisodeFromSeries = (
+  series: SeriesRecord,
+  projectId: string
+): SeriesRecord => {
+  return {
+    ...series,
+    episodeOrder: series.episodeOrder.filter(id => id !== projectId),
+    updatedAt: Date.now()
+  };
+};
+
+/**
+ * Reorder episodes in a series
+ */
+export const reorderEpisodes = (
+  series: SeriesRecord,
+  newOrder: string[]
+): SeriesRecord => {
+  return {
+    ...series,
+    episodeOrder: newOrder,
+    updatedAt: Date.now()
+  };
+};
+
+// ==================== Data Assembly ====================
+
+/**
+ * Get effective characters for a project
+ * In series mode: merge library data with episode lightweight refs
+ * In standalone mode: return project characters directly
+ */
+export const getEffectiveCharacters = (
+  project: ProjectState,
+  series: SeriesRecord | null
+): Character[] => {
+  if (!series || !project.seriesRefId) {
+    // Standalone mode
+    return project.scriptData?.characters || [];
+  }
+  
+  // Series mode: merge library data with episode refs
+  const episodeChars = project.scriptData?.characters || [];
+  return episodeChars.map(epChar => {
+    if (!epChar.refId) return epChar;
+    
+    const libraryChar = series.library.characters.find(c => c.id === epChar.refId);
+    if (!libraryChar) return epChar;
+    
+    // Merge: library data + episode-specific overrides (name, gender)
+    return {
+      ...libraryChar,
+      id: epChar.id, // Keep episode-local ID for reference consistency
+      name: epChar.name,
+      gender: epChar.gender
+    };
+  });
+};
+
+/**
+ * Get effective scenes for a project
+ * In series mode: merge library data with episode lightweight refs
+ * In standalone mode: return project scenes directly
+ */
+export const getEffectiveScenes = (
+  project: ProjectState,
+  series: SeriesRecord | null
+): Scene[] => {
+  if (!series || !project.seriesRefId) {
+    // Standalone mode
+    return project.scriptData?.scenes || [];
+  }
+  
+  // Series mode: merge library data with episode refs
+  const episodeScenes = project.scriptData?.scenes || [];
+  return episodeScenes.map(epScene => {
+    if (!epScene.refId) return epScene;
+    
+    const libraryScene = series.library.scenes.find(s => s.id === epScene.refId);
+    if (!libraryScene) return epScene;
+    
+    // Merge: library data + episode-specific overrides (location, time, atmosphere)
+    return {
+      ...libraryScene,
+      id: epScene.id, // Keep episode-local ID for reference consistency
+      location: epScene.location,
+      time: epScene.time,
+      atmosphere: epScene.atmosphere
+    };
+  });
+};
+
+/**
+ * Get effective scriptData with merged characters/scenes
+ */
+export const getEffectiveScriptData = (
+  project: ProjectState,
+  series: SeriesRecord | null
+): ScriptData | null => {
+  if (!project.scriptData) return null;
+  
+  return {
+    ...project.scriptData,
+    characters: getEffectiveCharacters(project, series),
+    scenes: getEffectiveScenes(project, series)
+  };
+};
+
+// ==================== Utility Functions ====================
+
+/**
+ * Check if a project is part of a series
+ */
+export const isSeriesEpisode = (project: ProjectState): boolean => {
+  return !!project.seriesRefId;
+};
+
+/**
+ * Find a series by ID that contains a given episode
+ */
+export const findSeriesByEpisodeId = (
+  seriesList: SeriesRecord[],
+  episodeId: string
+): SeriesRecord | undefined => {
+  return seriesList.find(s => s.episodeOrder.includes(episodeId));
+};
+
+/**
+ * Get all episodes of a series
+ */
+export const getSeriesEpisodes = (
+  series: SeriesRecord,
+  allProjects: ProjectState[]
+): ProjectState[] => {
+  const projectMap = new Map(allProjects.map(p => [p.id, p]));
+  return series.episodeOrder
+    .map(id => projectMap.get(id))
+    .filter((p): p is ProjectState => p !== undefined);
+};

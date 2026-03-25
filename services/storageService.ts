@@ -1,8 +1,9 @@
-import { AIModelConfig, ProjectState } from '../types';
+import { AIModelConfig, ExportBundle, ProjectState, SeriesRecord } from '../types';
 
 const DB_NAME = 'CineGenDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4; // Upgraded for Series support
 const STORE_NAME = 'projects';
+const SERIES_STORE_NAME = 'series';
 const MODEL_STORE_NAME = 'aiModels';
 const MEDIA_HISTORY_STORE_NAME = 'mediaHistory';
 
@@ -15,6 +16,9 @@ const openDB = (): Promise<IDBDatabase> => {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(SERIES_STORE_NAME)) {
+        db.createObjectStore(SERIES_STORE_NAME, { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains(MODEL_STORE_NAME)) {
         db.createObjectStore(MODEL_STORE_NAME, { keyPath: 'id' });
@@ -76,6 +80,88 @@ export const deleteProjectFromDB = async (id: string): Promise<void> => {
     const request = store.delete(id);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
+  });
+};
+
+// ==================== Series CRUD Functions ====================
+
+export const saveSeriesToDB = async (series: SeriesRecord): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SERIES_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(SERIES_STORE_NAME);
+    const updatedSeries = { ...series, updatedAt: Date.now() };
+    const request = store.put(updatedSeries);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const loadSeriesFromDB = async (id: string): Promise<SeriesRecord> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SERIES_STORE_NAME, 'readonly');
+    const store = tx.objectStore(SERIES_STORE_NAME);
+    const request = store.get(id);
+    request.onsuccess = () => {
+      if (request.result) resolve(request.result);
+      else reject(new Error("Series not found"));
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const getAllSeriesFromDB = async (): Promise<SeriesRecord[]> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SERIES_STORE_NAME, 'readonly');
+    const store = tx.objectStore(SERIES_STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const series = request.result as SeriesRecord[];
+      // Sort by updatedAt descending
+      series.sort((a, b) => b.updatedAt - a.updatedAt);
+      resolve(series);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const deleteSeriesFromDB = async (id: string, deleteEpisodes: boolean = false): Promise<void> => {
+  const db = await openDB();
+  
+  // First load the series to get episode IDs
+  const series = await loadSeriesFromDB(id);
+  
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([SERIES_STORE_NAME, STORE_NAME], 'readwrite');
+    const seriesStore = tx.objectStore(SERIES_STORE_NAME);
+    const projectStore = tx.objectStore(STORE_NAME);
+    
+    // Delete the series
+    const deleteSeriesRequest = seriesStore.delete(id);
+    deleteSeriesRequest.onsuccess = () => {
+      // Optionally delete all episodes
+      if (deleteEpisodes) {
+        series.episodeOrder.forEach(episodeId => {
+          projectStore.delete(episodeId);
+        });
+      } else {
+        // Remove seriesRefId from episodes
+        series.episodeOrder.forEach(episodeId => {
+          const getRequest = projectStore.get(episodeId);
+          getRequest.onsuccess = () => {
+            const project = getRequest.result as ProjectState | undefined;
+            if (project) {
+              const { seriesRefId, ...rest } = project;
+              projectStore.put(rest);
+            }
+          };
+        });
+      }
+      resolve();
+    };
+    deleteSeriesRequest.onerror = () => reject(deleteSeriesRequest.error);
   });
 };
 
@@ -466,9 +552,17 @@ export const createNewProjectState = (): ProjectState => {
   };
 };
 
-// Export project to JSON file
+// ==================== Export/Import Functions (v2 with Series support) ====================
+
+// Export standalone project to JSON file
 export const exportProjectToFile = (project: ProjectState): void => {
-  const dataStr = JSON.stringify(project, null, 2);
+  const bundle: ExportBundle = {
+    version: 2,
+    exportedAt: Date.now(),
+    type: 'standalone',
+    project
+  };
+  const dataStr = JSON.stringify(bundle, null, 2);
   const dataBlob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(dataBlob);
   const link = document.createElement('a');
@@ -481,8 +575,38 @@ export const exportProjectToFile = (project: ProjectState): void => {
   URL.revokeObjectURL(url);
 };
 
-// Import project from JSON file
-export const importProjectFromFile = (): Promise<ProjectState> => {
+// Export series with all episodes to JSON file
+export const exportSeriesToFile = (series: SeriesRecord, episodes: ProjectState[]): void => {
+  const bundle: ExportBundle = {
+    version: 2,
+    exportedAt: Date.now(),
+    type: 'series',
+    series,
+    projects: episodes
+  };
+  const dataStr = JSON.stringify(bundle, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(dataBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = "_blank";
+  link.download = `${series.title}_${series.id}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+// Import result type
+export interface ImportResult {
+  type: 'standalone' | 'series';
+  project?: ProjectState;
+  series?: SeriesRecord;
+  projects?: ProjectState[];
+}
+
+// Import project or series from JSON file
+export const importFromFile = (): Promise<ImportResult> => {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -500,14 +624,24 @@ export const importProjectFromFile = (): Promise<ProjectState> => {
 
       try {
         const text = await file.text();
-        const projectData = JSON.parse(text) as ProjectState;
+        const data = JSON.parse(text);
 
-        // Validate project data
-        if (!projectData.id || !projectData.title || !projectData.createdAt) {
-          reject(new Error('Invalid project file format'));
-          return;
+        // Check if it's a v2 bundle
+        if (data.version === 2) {
+          const bundle = data as ExportBundle;
+          if (bundle.type === 'standalone' && bundle.project) {
+            resolve({ type: 'standalone', project: bundle.project });
+          } else if (bundle.type === 'series' && bundle.series) {
+            resolve({ type: 'series', series: bundle.series, projects: bundle.projects || [] });
+          } else {
+            reject(new Error('Invalid bundle format'));
+          }
+        } else if (data.id && data.title && data.createdAt) {
+          // Legacy v1 format (just ProjectState)
+          resolve({ type: 'standalone', project: data as ProjectState });
+        } else {
+          reject(new Error('Invalid file format'));
         }
-        resolve(projectData);
       } catch (error) {
         reject(error);
       }
@@ -519,5 +653,20 @@ export const importProjectFromFile = (): Promise<ProjectState> => {
     };
     input.oncancel = input.onabort;
     input.click();
+  });
+};
+
+// Legacy import function (for backward compatibility)
+export const importProjectFromFile = (): Promise<ProjectState> => {
+  return new Promise((resolve, reject) => {
+    importFromFile()
+      .then(result => {
+        if (result.type === 'standalone' && result.project) {
+          resolve(result.project);
+        } else {
+          reject(new Error('File is a series bundle, not a standalone project'));
+        }
+      })
+      .catch(reject);
   });
 };

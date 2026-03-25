@@ -1,5 +1,5 @@
 import { CheckCircle, Save } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ApiKeyModal from './components/ApiKeyModal'; // 新增
 import Dashboard from './components/Dashboard';
 import { DialogProvider } from './components/dialog';
@@ -12,11 +12,13 @@ import StageImage from './components/StageImage';
 import StageScript from './components/StageScript';
 import { initializeCozeConfig } from './services/modelproviders/cozeService';
 import { ModelService } from './services/modelService';
-import { saveProjectToDB } from './services/storageService';
-import { ProjectState } from './types';
+import { loadSeriesFromDB, saveProjectToDB, saveSeriesToDB } from './services/storageService';
+import { getEffectiveCharacters, getEffectiveScenes } from './services/seriesService';
+import { Character, ProjectState, Scene, SeriesRecord } from './types';
 
 function App() {
   const [project, setProject] = useState<ProjectState | null>(null);
+  const [series, setSeries] = useState<SeriesRecord | null>(null); // Series state for episode mode
   const [apiKey, setApiKey] = useState<string>('');
   const [showSettings, setShowSettings] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
@@ -26,6 +28,23 @@ function App() {
 
   // Ref to hold debounce timer
   const saveTimeoutRef = useRef<any>(null);
+
+  // Check if currently in series episode mode
+  const isSeriesMode = useMemo(() => {
+    return !!series && !!project?.seriesRefId;
+  }, [series, project]);
+
+  // Get effective characters (merged from library in series mode)
+  const effectiveCharacters = useMemo<Character[]>(() => {
+    if (!project) return [];
+    return getEffectiveCharacters(project, series);
+  }, [project, series]);
+
+  // Get effective scenes (merged from library in series mode)
+  const effectiveScenes = useMemo<Scene[]>(() => {
+    if (!project) return [];
+    return getEffectiveScenes(project, series);
+  }, [project, series]);
 
   // Load API Key from localStorage on mount
   useEffect(() => {
@@ -99,18 +118,40 @@ function App() {
   const updateProject = (updates: Partial<ProjectState>) => {
     if (!project) return;
     setProject(prev => prev ? ({ ...prev, ...updates }) : null);
-    if(project.stage=='script'){
-      ModelService.setCurrentProjectProviders(project.modelProviders);
+    if(project?.stage=='script'){
+      ModelService.setCurrentProjectProviders(project?.modelProviders);
     }
+  };
+
+  const updateSeries = (updatedSeries: SeriesRecord) => {
+    setSeries(updatedSeries);
+    // Auto-save series
+    saveSeriesToDB(updatedSeries).catch(err => {
+      console.error('Failed to auto-save series:', err);
+    });
   };
 
   const setStage = (stage: 'script' | 'assets' | 'director' | 'export') => {
     updateProject({ stage });
   };
 
-  const handleOpenProject = (proj: ProjectState) => {
+  const handleOpenProject = async (proj: ProjectState) => {
     // 设置项目的模型供应商配置
     ModelService.setCurrentProjectProviders(proj.modelProviders);
+    
+    // If project belongs to a series, load the series
+    if (proj.seriesRefId) {
+      try {
+        const loadedSeries = await loadSeriesFromDB(proj.seriesRefId);
+        setSeries(loadedSeries);
+      } catch (err) {
+        console.error('Failed to load series:', err);
+        setSeries(null);
+      }
+    } else {
+      setSeries(null);
+    }
+    
     setProject(proj);
   };
 
@@ -126,20 +167,53 @@ function App() {
     if (project && project.shots.length>0) {
         await saveProjectToDB(project);
     }
+    // Save series if in series mode
+    if (series) {
+        await saveSeriesToDB(series);
+    }
     // 清除项目供应商配置
     ModelService.setCurrentProjectProviders(null);
     setProject(null);
+    setSeries(null);
   };
 
   const renderStage = () => {
     if (!project) return null;
     switch (project.stage) {
       case 'script':
-        return <StageScript project={project} updateProject={updateProject} isMobile={isMobile} />;
+        return (
+          <StageScript 
+            project={project} 
+            updateProject={updateProject} 
+            isMobile={isMobile}
+            series={series}
+            updateSeries={updateSeries}
+            effectiveCharacters={effectiveCharacters}
+            effectiveScenes={effectiveScenes}
+          />
+        );
       case 'assets':
-        return <StageAssets project={project} updateProject={updateProject} />;
+        return (
+          <StageAssets 
+            project={project} 
+            updateProject={updateProject}
+            series={series}
+            updateSeries={updateSeries}
+            isSeriesMode={isSeriesMode}
+            effectiveCharacters={effectiveCharacters}
+            effectiveScenes={effectiveScenes}
+          />
+        );
       case 'director':
-        return <StageDirector project={project} updateProject={updateProject} isMobile={isMobile} />;
+        return (
+          <StageDirector 
+            project={project} 
+            updateProject={updateProject} 
+            isMobile={isMobile}
+            effectiveCharacters={effectiveCharacters}
+            effectiveScenes={effectiveScenes}
+          />
+        );
       case 'export':
         return <StageExport project={project} updateProject={updateProject} />;
       case 'images':

@@ -1,7 +1,19 @@
-import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Film, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { createNewProjectState, deleteProjectFromDB, exportProjectToFile, getAllProjectsMetadata, importProjectFromFile, saveProjectToDB } from '../services/storageService';
-import { ProjectState } from '../types';
+import { 
+  createNewProjectState, 
+  deleteProjectFromDB, 
+  deleteSeriesFromDB,
+  exportProjectToFile, 
+  exportSeriesToFile,
+  getAllProjectsMetadata, 
+  getAllSeriesFromDB,
+  importFromFile,
+  saveProjectToDB,
+  saveSeriesToDB
+} from '../services/storageService';
+import { createNewSeries } from '../services/seriesService';
+import { ProjectState, SeriesRecord } from '../types';
 import ApiKeyModal from './ApiKeyModal';
 import { useDialog } from './dialog';
 import ModalSettings from './ModalSettings';
@@ -18,8 +30,10 @@ interface Props {
 const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey }) => {
   const dialog = useDialog();
   const [projects, setProjects] = useState<ProjectState[]>([]);
+  const [seriesList, setSeriesList] = useState<SeriesRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteConfirmSeriesId, setDeleteConfirmSeriesId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -28,28 +42,59 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [currentProject, setCurrentProject] = useState<ProjectState | null>(null);
-  const [project, setProject] = useState<ProjectState | null>(null);
-  const [apiKey, setApiKey] = useState<string>('');
-  const loadProjects = async () => {
+  const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
+  
+  const loadData = async () => {
     setIsLoading(true);
     try {
-      const list = await getAllProjectsMetadata();
-      setProjects(list);
+      const [projList, serList] = await Promise.all([
+        getAllProjectsMetadata(),
+        getAllSeriesFromDB()
+      ]);
+      setProjects(projList);
+      setSeriesList(serList);
     } catch (e) {
-      console.error("Failed to load projects", e);
+      console.error("Failed to load data", e);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadProjects();
+    loadData();
   }, []);
 
 
 
   const handleCreate = () => {
     const newProject = createNewProjectState();
+    onOpenProject(newProject);
+  };
+
+  const handleCreateSeries = async () => {
+    const title = window.prompt('请输入剧集名称：', '未命名剧集');
+    if (title) {
+      const newSeries = createNewSeries(title);
+      await saveSeriesToDB(newSeries);
+      await loadData();
+    }
+  };
+
+  const handleCreateSeriesEpisode = async (series: SeriesRecord) => {
+    const newProject = createNewProjectState();
+    newProject.seriesRefId = series.id;
+    newProject.title = `${series.title} - 第${series.episodeOrder.length + 1}集`;
+    await saveProjectToDB(newProject);
+    
+    // Add episode to series
+    const updatedSeries = {
+      ...series,
+      episodeOrder: [...series.episodeOrder, newProject.id],
+      updatedAt: Date.now()
+    };
+    await saveSeriesToDB(updatedSeries);
+    await loadData();
+    
     onOpenProject(newProject);
   };
 
@@ -67,12 +112,36 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     e.stopPropagation();
     try {
         await deleteProjectFromDB(id);
-        await loadProjects();
+        await loadData();
     } catch (error) {
         console.error("Delete failed", error);
         dialog.toast({ message: '删除项目失败', type: 'error' });
     } finally {
         setDeleteConfirmId(null);
+    }
+  };
+
+  const requestDeleteSeries = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setDeleteConfirmSeriesId(id);
+  };
+
+  const cancelDeleteSeries = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteConfirmSeriesId(null);
+  };
+
+  const confirmDeleteSeries = async (e: React.MouseEvent, id: string, deleteEpisodes: boolean) => {
+    e.stopPropagation();
+    try {
+        await deleteSeriesFromDB(id, deleteEpisodes);
+        await loadData();
+        dialog.toast({ message: deleteEpisodes ? '剧集及所有分集已删除' : '剧集已删除，分集转为独立项目', type: 'success' });
+    } catch (error) {
+        console.error("Delete series failed", error);
+        dialog.toast({ message: '删除剧集失败', type: 'error' });
+    } finally {
+        setDeleteConfirmSeriesId(null);
     }
   };
 
@@ -85,26 +154,58 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     exportProjectToFile(proj);
   };
 
+  const handleExportSeries = (e: React.MouseEvent, series: SeriesRecord) => {
+    e.stopPropagation();
+    // Get all episodes of this series
+    const episodes = projects.filter(p => p.seriesRefId === series.id);
+    exportSeriesToFile(series, episodes);
+  };
+
   const handleImport = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       setImporting(true);
-      const importedProject = await importProjectFromFile();
-      // Generate new ID to avoid conflicts
-      importedProject.id = 'proj_' + Date.now().toString(36);
-      importedProject.createdAt = Date.now();
-      importedProject.lastModified = Date.now();
-      // Save to database
-      await saveProjectToDB(importedProject);
-      // Reload projects list
-      await loadProjects();
-      // Open the imported project
-      onOpenProject(importedProject);
+      const result = await importFromFile();
+      
+      if (result.type === 'standalone' && result.project) {
+        // Import standalone project
+        const importedProject = result.project;
+        importedProject.id = 'proj_' + Date.now().toString(36);
+        importedProject.createdAt = Date.now();
+        importedProject.lastModified = Date.now();
+        importedProject.seriesRefId = undefined; // Clear series ref
+        await saveProjectToDB(importedProject);
+        await loadData();
+        onOpenProject(importedProject);
+      } else if (result.type === 'series' && result.series) {
+        // Import series with episodes
+        const importedSeries = result.series;
+        importedSeries.id = 'series_' + Date.now().toString(36);
+        importedSeries.createdAt = Date.now();
+        importedSeries.updatedAt = Date.now();
+        
+        // Generate new IDs for episodes and update series ref
+        const newEpisodeIds: string[] = [];
+        if (result.projects) {
+          for (const ep of result.projects) {
+            const oldId = ep.id;
+            ep.id = 'proj_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
+            ep.seriesRefId = importedSeries.id;
+            ep.createdAt = Date.now();
+            ep.lastModified = Date.now();
+            await saveProjectToDB(ep);
+            newEpisodeIds.push(ep.id);
+          }
+        }
+        importedSeries.episodeOrder = newEpisodeIds;
+        await saveSeriesToDB(importedSeries);
+        await loadData();
+        dialog.toast({ message: '剧集导入成功', type: 'success' });
+      }
     } catch (error: any) {
       console.error('Import failed:', error);
-      // 如果是用户取消，不显示错误提示
       if (error.message !== 'Import cancelled' && error.message !== 'No file selected') {
-        dialog.toast({ message: error.message || '导入项目失败', type: 'error' });
+        dialog.toast({ message: error.message || '导入失败', type: 'error' });
       }
     } finally {
       setImporting(false);
@@ -125,13 +226,15 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       // 修改标题，添加"副本"后缀
       const suffix = ':副本';
       duplicatedProject.title = proj.title.endsWith(suffix) ? proj.title : proj.title + suffix;
+      // 清除剧集关联
+      duplicatedProject.seriesRefId = undefined;
       // 更新时间戳
       duplicatedProject.createdAt = Date.now();
       duplicatedProject.lastModified = Date.now();
       // 保存到数据库
       await saveProjectToDB(duplicatedProject);
       // 重新加载项目列表
-      await loadProjects();
+      await loadData();
     } catch (error) {
       console.error('Duplicate project failed:', error);
       dialog.toast({ message: '复制项目失败', type: 'error' });
@@ -159,7 +262,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     try {
       const updatedProject = { ...proj, title: editingTitle.trim() };
       await saveProjectToDB(updatedProject);
-      await loadProjects();
+      await loadData();
     } catch (error) {
       console.error('Failed to update title:', error);
       dialog.toast({ message: '更新项目名失败', type: 'error' });
@@ -193,12 +296,22 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     try {
       const updatedProject = { ...currentProject, ...updates, lastModified: Date.now() };
       await saveProjectToDB(updatedProject);
-      await loadProjects();
+      await loadData();
       setCurrentProject(updatedProject);
     } catch (error) {
       console.error('Failed to update project:', error);
       dialog.toast({ message: '更新项目失败', type: 'error' });
     }
+  };
+
+  // Get standalone projects (not part of any series)
+  const standaloneProjects = useMemo(() => {
+    return projects.filter(p => !p.seriesRefId);
+  }, [projects]);
+
+  // Get episodes for a series
+  const getSeriesEpisodes = (seriesId: string) => {
+    return projects.filter(p => p.seriesRefId === seriesId);
   };
 
   // 从项目中收集所有可用的图片
@@ -287,7 +400,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             </button>
 </div>
           </div>
-          <div className="flex gap-2 md:gap-3 flex-end justify-end">
+          <div className="flex gap-2 md:gap-3 flex-end justify-end flex-wrap">
             <button
               onClick={handleCreate}
               className="group flex items-center gap-3 px-6 py-3 bg-slate-600/50 text-slate-50 hover:bg-slate-600 transition-colors cursor-pointer"
@@ -296,12 +409,19 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
               {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">新建项目</span>}
             </button>
             <button
+              onClick={handleCreateSeries}
+              className="group flex items-center gap-3 px-6 py-3 bg-indigo-600/50 text-slate-50 hover:bg-indigo-600 transition-colors cursor-pointer"
+            >
+              <Film className="w-4 h-4" />
+              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">新建剧集</span>}
+            </button>
+            <button
               onClick={handleImport}
               disabled={importing}
               className="group flex items-center gap-3 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <Upload className="w-4 h-4" />
-              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">{importing ? '导入中...' : '导入项目'}</span>}
+              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">{importing ? '导入中...' : '导入'}</span>}
             </button>
             <button
               onClick={() => setShowSyncModal(true)}
@@ -338,19 +458,151 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             
             {/* Create New Card */}
-            {(!isMobile || projects.length == 0) && 
-            <div 
-              onClick={handleCreate}
-              className="group cursor-pointer border border-slate-600 hover:border-slate-300 bg-slate-800 flex flex-col items-center justify-center min-h-[280px] transition-all"
-            >
-              <div className="w-12 h-12 border border-slate-600 flex items-center justify-center mb-6 group-hover:bg-slate-800 transition-colors">
-                <Plus className="w-5 h-5 text-slate-500 group-hover:text-slate-50" />
+            {(!isMobile || (standaloneProjects.length + seriesList.length) === 0) && (
+            <>
+              <div 
+                onClick={handleCreate}
+                className="group cursor-pointer border border-slate-600 hover:border-slate-300 bg-slate-800 flex flex-col items-center justify-center min-h-[280px] transition-all"
+              >
+                <div className="w-12 h-12 border border-slate-600 flex items-center justify-center mb-6 group-hover:bg-slate-800 transition-colors">
+                  <Plus className="w-5 h-5 text-slate-500 group-hover:text-slate-50" />
+                </div>
+                <span className="text-slate-400 font-mono text-[12px] uppercase tracking-widest group-hover:text-slate-300">新建项目</span>
               </div>
-              <span className="text-slate-400 font-mono text-[12px] uppercase tracking-widest group-hover:text-slate-300">新建项目</span>
-            </div>
-          }
-            {/* Project List */}
-            {projects.map((proj) => (
+              <div 
+                onClick={handleCreateSeries}
+                className="group cursor-pointer border border-indigo-600/50 hover:border-indigo-400 bg-slate-800 flex flex-col items-center justify-center min-h-[280px] transition-all"
+              >
+                <div className="w-12 h-12 border border-indigo-600/50 flex items-center justify-center mb-6 group-hover:bg-indigo-900/20 transition-colors">
+                  <Film className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300" />
+                </div>
+                <span className="text-indigo-400 font-mono text-[12px] uppercase tracking-widest group-hover:text-indigo-300">新建剧集</span>
+              </div>
+            </>
+          )}
+
+            {/* Series List */}
+            {seriesList.map((series) => (
+              <div 
+                key={series.id}
+                className="group bg-indigo-950/30 border border-indigo-600/50 hover:border-indigo-400 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
+              >
+                {/* Delete Confirmation Overlay */}
+                {deleteConfirmSeriesId === series.id && (
+                  <div 
+                      className="absolute inset-0 z-20 bg-slate-800 flex flex-col items-center justify-center p-6 space-y-4 animate-in fade-in duration-200"
+                      onClick={(e) => e.stopPropagation()} 
+                  >
+                      <div className="w-10 h-10 bg-red-900/20 flex items-center justify-center rounded-full">
+                         <AlertTriangle className="w-5 h-5 text-red-500" />
+                      </div>
+                      <div className="text-center">
+                          <p className="text-slate-50 font-bold text-xs uppercase tracking-widest">删除剧集？</p>
+                          <p className="text-slate-500 text-[12px] mt-1 font-mono">是否同时删除所有分集？</p>
+                      </div>
+                      <div className="flex gap-2 w-full pt-2">
+                          <button 
+                              onClick={cancelDeleteSeries}
+                              className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-50 text-[12px] font-bold uppercase tracking-wider transition-colors border border-slate-600 cursor-pointer"
+                          >
+                              取消
+                          </button>
+                          <button 
+                              onClick={(e) => confirmDeleteSeries(e, series.id, false)}
+                              className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-slate-50 text-[12px] font-bold uppercase tracking-wider transition-colors border border-slate-500 cursor-pointer"
+                          >
+                              保留分集
+                          </button>
+                          <button 
+                              onClick={(e) => confirmDeleteSeries(e, series.id, true)}
+                              className="flex-1 py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 hover:text-red-200 text-[12px] font-bold uppercase tracking-wider transition-colors border border-red-900/30 cursor-pointer"
+                          >
+                              全部删除
+                          </button>
+                      </div>
+                  </div>
+                )}
+
+                {/* Series Content */}
+                <div className="flex-1 px-6 pt-2 relative flex flex-col">
+                   <div className='flex flex-row items-center justify-end gap-1'>
+                     {/* Export Button */}
+                     <button
+                        onClick={(e) => handleExportSeries(e, series)}
+                        className="group-hover:opacity-100 p-2 hover:bg-indigo-900/30 text-indigo-400 hover:text-indigo-300 transition-all rounded-sm z-10 cursor-pointer"
+                        title="导出剧集"
+                     >
+                        <Download className="w-4 h-4" />
+                     </button>
+                     {/* Delete Button */}
+                     <button
+                        onClick={(e) => requestDeleteSeries(e, series.id)}
+                        className="group-hover:opacity-100 p-2 hover:bg-indigo-900/30 text-indigo-400 hover:text-red-400 transition-all rounded-sm z-10 cursor-pointer"
+                        title="删除剧集"
+                     >
+                        <Trash2 className="w-4 h-4" />
+                     </button>
+                   </div> 
+                   <div className="flex-1">
+                      <h3 className="text-sm font-bold text-indigo-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2">
+                        <Film className="w-4 h-4" />
+                        {series.title}
+                      </h3>
+                      <p className="text-[11px] text-indigo-400/70 font-mono mb-2">
+                        {series.episodeOrder.length} 集
+                      </p>
+                      <div className="text-[12px] text-slate-500 line-clamp-2 leading-relaxed font-mono border-l border-indigo-600/50 pl-2">
+                        角色库: {series.library.characters.length} | 场景库: {series.library.scenes.length}
+                      </div>
+                      {/* Episode Preview */}
+                      <div className="mt-3 flex flex-wrap gap-1">
+                        {getSeriesEpisodes(series.id).slice(0, 4).map((ep, idx) => (
+                          <button
+                            key={ep.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenProject(ep);
+                            }}
+                            className="text-[10px] px-2 py-1 bg-indigo-900/30 border border-indigo-600/30 text-indigo-300 hover:bg-indigo-900/50 transition-colors"
+                          >
+                            EP{idx + 1}
+                          </button>
+                        ))}
+                        {series.episodeOrder.length === 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCreateSeriesEpisode(series);
+                            }}
+                            className="text-[10px] px-2 py-1 bg-indigo-900/30 border border-indigo-600/30 text-indigo-300 hover:bg-indigo-900/50 transition-colors flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" /> 添加第一集
+                          </button>
+                        )}
+                      </div>
+                   </div>
+                </div>
+
+                <div className="px-6 py-3 border-t border-indigo-900/30 flex items-center justify-between bg-indigo-950/50">
+                  <div className="flex items-center gap-2 text-[11px] text-indigo-400/50 font-mono uppercase tracking-widest">
+                      <Calendar className="w-3 h-3" />
+                      {formatDate(series.updatedAt)}
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCreateSeriesEpisode(series);
+                    }}
+                    className="text-[10px] px-2 py-1 bg-indigo-600/50 text-indigo-200 hover:bg-indigo-600 transition-colors flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> 新分集
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Standalone Project List */}
+            {standaloneProjects.map((proj) => (
               <div 
                 key={proj.id}
                 onClick={() => onOpenProject(proj)}
@@ -529,7 +781,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       <SyncModal
         isOpen={showSyncModal}
         onClose={() => setShowSyncModal(false)}
-        onSyncComplete={loadProjects}
+        onSyncComplete={loadData}
       />
 
       {/* Project Settings Modal */}

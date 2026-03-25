@@ -3,21 +3,38 @@ import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
 import { addMediaHistory } from '../services/storageService';
-import { ProjectState } from '../types';
+import { updateLibraryCharacter, updateLibraryScene } from '../services/seriesService';
+import { Character, ProjectState, Scene, SeriesRecord } from '../types';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
 import VoiceSynthesisModal from './VoiceSynthesisModal';
 import WardrobeModal from './WardrobeModal';
 import { useDialog } from './dialog';
 import SceneEditModal from './modals/SceneEditModal';
 
-
 interface Props {
   project: ProjectState;
   updateProject: (updates: Partial<ProjectState>) => void;
+  series?: SeriesRecord | null;
+  updateSeries?: (series: SeriesRecord) => void;
+  isSeriesMode?: boolean;
+  effectiveCharacters?: Character[];
+  effectiveScenes?: Scene[];
 }
 
-const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
+const StageAssets: React.FC<Props> = ({ 
+  project, 
+  updateProject, 
+  series, 
+  updateSeries, 
+  isSeriesMode,
+  effectiveCharacters: propCharacters,
+  effectiveScenes: propScenes
+}) => {
   const dialog = useDialog();
+  
+  // Use effective characters/scenes (from props in series mode, or from project in standalone mode)
+  const displayCharacters = propCharacters || project.scriptData?.characters || [];
+  const displayScenes = propScenes || project.scriptData?.scenes || [];
   const [processingState, setProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number} | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
@@ -102,6 +119,14 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
       }
       // Update state
       if (project.scriptData) {
+        // Find the item in project scriptData
+        const scriptDataItem = type === 'character'
+          ? project.scriptData.characters.find(c => String(c.id) === String(id))
+          : project.scriptData.scenes.find(s => String(s.id) === String(id));
+        
+        if (!scriptDataItem) return;
+        
+        // Update project scriptData (lightweight ref)
         const newData = { ...project.scriptData };
         if (type === 'character') {
           const c = newData.characters.find(c => String(c.id) === String(id));
@@ -117,6 +142,26 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
           }
         }
         updateProject({ scriptData: newData });
+        
+        // In series mode, also update the library
+        if (isSeriesMode && series && updateSeries) {
+          const refId = (scriptDataItem as Character | Scene).refId;
+          if (refId) {
+            if (type === 'character') {
+              const updatedSeries = updateLibraryCharacter(series, refId, {
+                referenceImage: imageUrl,
+                visualPrompt: prompt
+              });
+              updateSeries(updatedSeries);
+            } else {
+              const updatedSeries = updateLibraryScene(series, refId, {
+                referenceImage: imageUrl,
+                visualPrompt: prompt
+              });
+              updateSeries(updatedSeries);
+            }
+          }
+        }
       }
     } catch (e) {
       console.error(e);
@@ -132,10 +177,10 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
 
   const handleBatchGenerate = async (type: 'character' | 'scene') => {
     const items = type === 'character' 
-      ? project.scriptData?.characters 
-      : project.scriptData?.scenes;
+      ? displayCharacters
+      : displayScenes;
     
-    if (!items) return;
+    if (!items || items.length === 0) return;
 
     // Filter items that need generation
     const itemsToGen = items.filter(i => !i.referenceImage);
@@ -174,20 +219,39 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     if (!project.scriptData || !uploadingItem) return;
 
     const newData = { ...project.scriptData };
+    let refId: string | undefined;
 
     if (uploadingItem.type === 'character') {
       const char = newData.characters.find(c => c.id === uploadingItem.id);
       if (char) {
         char.referenceImage = fileUrl;
+        refId = char.refId;
       }
     } else {
       const scene = newData.scenes.find(s => s.id === uploadingItem.id);
       if (scene) {
         scene.referenceImage = fileUrl;
+        refId = scene.refId;
       }
     }
 
     updateProject({ scriptData: newData });
+    
+    // In series mode, also update the library
+    if (isSeriesMode && series && updateSeries && refId) {
+      if (uploadingItem.type === 'character') {
+        const updatedSeries = updateLibraryCharacter(series, refId, {
+          referenceImage: fileUrl
+        });
+        updateSeries(updatedSeries);
+      } else {
+        const updatedSeries = updateLibraryScene(series, refId, {
+          referenceImage: fileUrl
+        });
+        updateSeries(updatedSeries);
+      }
+    }
+    
     setUploadingItem(null);
   };
 
@@ -201,16 +265,16 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
     }
   };
 
-  if (!project.scriptData) return (
+  if (!project.scriptData || (displayCharacters.length === 0 && displayScenes.length === 0)) return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">
           <AlertCircle className="w-12 h-12 mb-4 opacity-50"/>
           <p>暂无角色场景，请先在剧本阶段完成解析。</p>
       </div>
   );
   
-  const allCharactersReady = project.scriptData.characters.every(c => c.referenceImage);
-  const allScenesReady = project.scriptData.scenes.every(s => s.referenceImage);
-  const selectedChar = project.scriptData.characters.find(c => c.id === selectedCharId);
+  const allCharactersReady = displayCharacters.every(c => c.referenceImage);
+  const allScenesReady = displayScenes.every(s => s.referenceImage);
+  const selectedChar = displayCharacters.find(c => c.id === selectedCharId);
 
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-hidden">
@@ -278,10 +342,10 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
           <div className="flex items-center gap-3">
              <div className="flex gap-2">
                  <span className="px-2 py-1 bg-slate-900 border border-slate-600 rounded text-[12px] text-slate-400 font-mono uppercase">
-                    {project.scriptData.characters.length} 角色
+                    {displayCharacters.length} 角色
                  </span>
                  <span className="px-2 py-1 bg-slate-900 border border-slate-600 rounded text-[12px] text-slate-400 font-mono uppercase">
-                    {project.scriptData.scenes.length} 场景
+                    {displayScenes.length} 场景
                  </span>
              </div>
           </div>
@@ -313,7 +377,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-6">
-            {project.scriptData.characters.map((char) => (
+            {displayCharacters.map((char) => (
               <div key={char.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[3/4] bg-slate-900 relative overflow-hidden">
                   {char.referenceImage ? (
@@ -327,7 +391,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                         <div className={`absolute inset-0 bg-slate-700/60 opacity-0 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm ${batchProgress || processingState ? 'pointer-events-none opacity-50' : 'group-hover:opacity-80'}`}>
                           <button
                             onClick={() => {
-                              const charImages = project.scriptData.characters
+                              const charImages = displayCharacters
                                 .filter(c => c.referenceImage)
                                 .map(c => c.referenceImage);
                               const idx = charImages.indexOf(char.referenceImage);
@@ -452,7 +516,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
-            {project.scriptData.scenes.map((scene) => (
+            {displayScenes.map((scene) => (
               <div key={scene.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[16/9] bg-slate-800/50 relative overflow-hidden">
                   {scene.referenceImage ? (
@@ -466,7 +530,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
                         <div className={`absolute inset-0 bg-slate-700/60 opacity-0 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm ${batchProgress || processingState ? 'pointer-events-none opacity-50' : 'group-hover:opacity-80'}`}>
                           <button
                             onClick={(e) => {
-                              const sceneImages = project.scriptData.scenes
+                              const sceneImages = displayScenes
                                 .filter(s => s.referenceImage)
                                 .map(s => s.referenceImage);
                               const idx = sceneImages.indexOf(scene.referenceImage);
@@ -648,7 +712,7 @@ const StageAssets: React.FC<Props> = ({ project, updateProject }) => {
         <VoiceSynthesisModal
           isOpen={voiceSynthesisModalOpen}
           onClose={() => { setVoiceSynthesisModalOpen(false); setSelectedVoiceCharId(null); }}
-          character={project.scriptData.characters.find(c => c.id === selectedVoiceCharId)!}
+          character={displayCharacters.find(c => c.id === selectedVoiceCharId)!}
           project={project}
           updateProject={updateProject}
         />
