@@ -1,5 +1,5 @@
 import { ArrowRightLeft, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
 import { ProjectState, SeriesRecord } from '../types';
 import CustomSelect from './CustomSelect';
@@ -100,7 +100,7 @@ const ImageSelectorModal: React.FC<Props> = ({
 
     loadProjectsAndSeries();
   }, [isOpen, project]);
-  const handleDownloadImage = async (imageUrl: string, charName: string) => {
+  const handleDownloadImage = useCallback(async (imageUrl: string, charName: string) => {
     if(downloadStatus)return;
     setDownloadStatus('downloading');
     try{
@@ -108,9 +108,9 @@ const ImageSelectorModal: React.FC<Props> = ({
     }finally{
       setDownloadStatus(null);
     }
-  };
+  }, [downloadStatus]);
 
-  const handleDownloadVideo = async (imageUrl: string, charName: string) => {
+  const handleDownloadVideo = useCallback(async (imageUrl: string, charName: string) => {
     if(downloadStatus)return;
     setDownloadStatus('downloading');
     try{
@@ -118,10 +118,10 @@ const ImageSelectorModal: React.FC<Props> = ({
     }finally{
       setDownloadStatus(null);
     }
-  };
+  }, [downloadStatus]);
 
 
-  const handleDeleteHistory = async (image: ImageItem, e: React.MouseEvent) => {
+  const handleDeleteHistory = useCallback(async (image: ImageItem, e: React.MouseEvent) => {
     e.stopPropagation(); // 防止触发图片选择
 
     if (!image.ishistory) return; // 只有历史记录可以删除
@@ -143,28 +143,29 @@ const ImageSelectorModal: React.FC<Props> = ({
     } catch (error) {
       console.error('Failed to delete media history:', error);
     }
-  };
+  }, [dialog]);
 
-  const handleShowPrompt = (image: ImageItem, e: React.MouseEvent) => {
+  const handleShowPrompt = useCallback((image: ImageItem, e: React.MouseEvent) => {
     e.stopPropagation();
     if (image.prompt) {
       setSelectedPrompt({ title: image.title, prompt: image.prompt, timestamp: image.timestamp });
       setShowPromptModal(true);
     }
-  };
+  }, []);
 
   // 收集所有图片数据
   const [allImages, setAllImages] = useState<ImageItem[]>([]);
-  const findPormtFromHistory = (historyFiles: MediaFile[],fileid: string) => {
-      const file = historyFiles.find(f => f.id === fileid);
-      if (file) {
-        return file;
-      }
-      return {prompt: '',timestamp: 0};
-  }
+  
+  const findPormtFromHistory = useCallback((historyFiles: MediaFile[], fileid: string) => {
+    const file = historyFiles.find(f => f.id === fileid);
+    if (file) {
+      return file;
+    }
+    return { prompt: '', timestamp: 0 };
+  }, []);
 
   // Helper function to get character with full library data (in series mode)
-  const getCharacterWithAssets = (char: import('../types').Character, projectSeriesRefId?: string): import('../types').Character => {
+  const getCharacterWithAssets = useCallback((char: import('../types').Character, projectSeriesRefId?: string): import('../types').Character => {
     // In standalone mode, return character directly
     if (!projectSeriesRefId || !char.refId) return char;
 
@@ -175,10 +176,10 @@ const ImageSelectorModal: React.FC<Props> = ({
       if (libraryChar) return libraryChar;
     }
     return char;
-  };
+  }, [seriesList]);
 
   // Helper function to get scene with full library data (in series mode)
-  const getSceneWithAssets = (scene: import('../types').Scene, projectSeriesRefId?: string): import('../types').Scene => {
+  const getSceneWithAssets = useCallback((scene: import('../types').Scene, projectSeriesRefId?: string): import('../types').Scene => {
     // In standalone mode, return scene directly
     if (!projectSeriesRefId || !scene.refId) return scene;
 
@@ -189,111 +190,89 @@ const ImageSelectorModal: React.FC<Props> = ({
       if (libraryScene) return libraryScene;
     }
     return scene;
-  };
+  }, [seriesList]);
 
   useEffect(() => {
     const loadAllImages = async () => {
       const images: ImageItem[] = [];
-      const urlHashSet = new Set<string>(); // 用于去重（存储hash值）
+      const urlHashSet = new Set<string>(); // 用于去重（存储 hash 值）
       const selectedProject = allProjects.find(p => p.id === selectedProjectId);
-
+  
       if (!selectedProject) {
         setAllImages([]);
         return;
       }
-
+  
       const historyFiles = await getProjectMediaHistory(selectedProject.id);
       const isSeriesMode = !!selectedProject.seriesRefId;
-
+  
+      // ✅ 收集所有需要计算 MD5 的图片 URL 任务
+      interface ImageTask {
+        url: string;
+        id: string;
+        type: ImageItem['type'];
+        title: string;
+        subtitle: string;
+        downname: string;
+        mediaType: 'image' | 'video';
+      }
+        
+      const imageTasks: ImageTask[] = [];
+  
       // 角色图片（包含所有造型）
       if (selectedProject.scriptData?.characters) {
         for (const episodeChar of selectedProject.scriptData.characters) {
-          // Get full character data from library if in series mode
           const char = getCharacterWithAssets(episodeChar, selectedProject.seriesRefId);
           if (char.referenceImage) {
-            const hash = await md5Hash(char.referenceImage);
-            if (!urlHashSet.has(hash)) {
-              const file = findPormtFromHistory(historyFiles,hash);
-              urlHashSet.add(hash);
-              images.push({
-                id: `char-${selectedProject.id}-${char.id}`,
-                hash: hash,
-                imageUrl: char.referenceImage,
-                title: char.name,
-                subtitle: `角色 - ${char.name}`,
-                type: 'character',
-                projectId: selectedProject.id,
-                projectName: selectedProject.title || '未命名项目',
-                downname: `${project?.scriptData?.title || ''}-角色-${char.name}`,
-                mediaType: 'image',
-                ishistory: false,
-                prompt: file.prompt,
-                timestamp: file.timestamp
-              });
-            }
+            imageTasks.push({
+              url: char.referenceImage,
+              id: `char-${selectedProject.id}-${char.id}`,
+              type: 'character',
+              title: char.name,
+              subtitle: `角色 - ${char.name}`,
+              downname: `${project?.scriptData?.title || ''}-角色-${char.name}`,
+              mediaType: 'image'
+            });
           }
-
+  
           // 添加角色的所有造型图片
           if (char.variations) {
             for (let idx = 0; idx < char.variations.length; idx++) {
               const outfit = char.variations[idx];
               if (outfit.referenceImage) {
-                const hash = await md5Hash(outfit.referenceImage);
-                if (!urlHashSet.has(hash)) {
-                  const file = findPormtFromHistory(historyFiles,hash);
-                  urlHashSet.add(hash);
-                  images.push({
-                    id: `char-${selectedProject.id}-${char.id}-outfit-${idx}`,
-                    hash: hash,
-                    imageUrl: outfit.referenceImage,
-                    title: `${char.name} - ${outfit.name || `造型 ${idx + 1}`}`,
-                    subtitle: `角色造型 - ${char.name}`,
-                    type: 'character',
-                    projectId: selectedProject.id,
-                    projectName: selectedProject.title || '未命名项目',
-                    downname: `${project?.scriptData?.title || ''}-角色-${char.name}-造型 ${idx + 1}`,
-                    mediaType: 'image',
-                    ishistory: false,
-                    prompt: file.prompt,
-                    timestamp: file.timestamp
-                  });
-                }
+                imageTasks.push({
+                  url: outfit.referenceImage,
+                  id: `char-${selectedProject.id}-${char.id}-outfit-${idx}`,
+                  type: 'character',
+                  title: `${char.name} - ${outfit.name || `造型 ${idx + 1}`}`,
+                  subtitle: `角色造型 - ${char.name}`,
+                  downname: `${project?.scriptData?.title || ''}-角色-${char.name}-造型 ${idx + 1}`,
+                  mediaType: 'image'
+                });
               }
             }
           }
         }
       }
-
+  
       // 场景图片
       if (selectedProject.scriptData?.scenes) {
         for (const episodeScene of selectedProject.scriptData.scenes) {
-          // Get full scene data from library if in series mode
           const scene = getSceneWithAssets(episodeScene, selectedProject.seriesRefId);
           if (scene.referenceImage) {
-            const hash = await md5Hash(scene.referenceImage);
-            if (!urlHashSet.has(hash)) {
-              const file = findPormtFromHistory(historyFiles,hash);
-              urlHashSet.add(hash);
-              images.push({
-                id: `scene-${selectedProject.id}-${scene.id}`,
-                hash: hash,
-                imageUrl: scene.referenceImage,
-                title: scene.location,
-                subtitle: `场景 - ${scene.id}`,
-                type: 'scene',
-                projectId: selectedProject.id,
-                projectName: selectedProject.title || '未命名项目',
-                downname: `${project?.scriptData?.title || ''}-场景-${scene.id}`,
-                mediaType: 'image',
-                ishistory: false,
-                prompt: file.prompt,
-                timestamp: file.timestamp
-              });
-            }
+            imageTasks.push({
+              url: scene.referenceImage,
+              id: `scene-${selectedProject.id}-${scene.id}`,
+              type: 'scene',
+              title: scene.location,
+              subtitle: `场景 - ${scene.id}`,
+              downname: `${project?.scriptData?.title || ''}-场景-${scene.id}`,
+              mediaType: 'image'
+            });
           }
         }
       }
-
+  
       // 关键帧图片
       if (selectedProject.shots) {
         for (let shotIdx = 0; shotIdx < selectedProject.shots.length; shotIdx++) {
@@ -302,105 +281,119 @@ const ImageSelectorModal: React.FC<Props> = ({
           if (shot.keyframes) {
             for (const kf of shot.keyframes) {
               if (kf.imageUrl) {
-                const hash = await md5Hash(kf.imageUrl);
-                if (!urlHashSet.has(hash)) {
-                  const file = findPormtFromHistory(historyFiles,hash);
-                  urlHashSet.add(hash);
-                  let type: 'keyframe-start' | 'keyframe-end' | 'keyframe-full';
-                  if (kf.type === 'start') type = 'keyframe-start';
-                  else if (kf.type === 'end') type = 'keyframe-end';
-                  else type = 'keyframe-full';
-
-                  images.push({
-                    id: `kf-${selectedProject.id}-${shot.id}-${kf.type}`,
-                    hash: hash,
-                    imageUrl: kf.imageUrl,
-                    title: shotLabel,
-                    subtitle: `${kf.type === 'full' ? '宫格图' : kf.type === 'start' ? '起始帧' : '结束帧'} - ${shot.actionSummary.substring(0, 30)}...`,
-                    type,
-                    projectId: selectedProject.id,
-                    projectName: selectedProject.title || '未命名项目',
-                    downname: `${project?.scriptData?.title || ''}-镜头-${shot.id}-${kf.type}`,
-                    mediaType: 'image',
-                    ishistory: false,
-                    prompt: file.prompt,
-                    timestamp: file.timestamp
-                  });
+                let type: 'keyframe-start' | 'keyframe-end' | 'keyframe-full';
+                let subtitle: string;
+                if (kf.type === 'start') {
+                  type = 'keyframe-start';
+                  subtitle = `起始帧 - ${shot.actionSummary.substring(0, 30)}...`;
+                } else if (kf.type === 'end') {
+                  type = 'keyframe-end';
+                  subtitle = `结束帧 - ${shot.actionSummary.substring(0, 30)}...`;
+                } else {
+                  type = 'keyframe-full';
+                  subtitle = `宫格图 - ${shot.actionSummary.substring(0, 30)}...`;
                 }
+  
+                imageTasks.push({
+                  url: kf.imageUrl,
+                  id: `kf-${selectedProject.id}-${shot.id}-${kf.type}`,
+                  type,
+                  title: shotLabel,
+                  subtitle,
+                  downname: `${project?.scriptData?.title || ''}-镜头-${shot.id}-${kf.type}`,
+                  mediaType: 'image'
+                });
               }
             }
           }
         }
       }
-
+  
       // 添加视频
       if (selectedProject.shots && showVideo) {
         for (let shotIdx = 0; shotIdx < selectedProject.shots.length; shotIdx++) {
           const shot = selectedProject.shots[shotIdx];
           const shotLabel = `镜头 ${shotIdx + 1}`;
-
+  
           // 添加主视频
           if (shot.interval?.videoUrl) {
-            const hash = await md5Hash(shot.interval.videoUrl);
-            if (!urlHashSet.has(hash)){
-              const file = findPormtFromHistory(historyFiles,hash);
-              urlHashSet.add(hash);
-              images.push({
-                id: `shot-video-${selectedProject.id}-${shot.id}`,
-                hash: hash,
-                imageUrl: shot.interval.videoUrl,
-                title: shotLabel,
-                subtitle: `镜头视频 - ${shot.actionSummary.substring(0, 30)}...`,
-                type: 'video',
-                projectId: selectedProject.id,
-                projectName: selectedProject.title || '未命名项目',
-                downname: `${selectedProject.scriptData?.title || ''}-镜头-${shot.id}`,
-                mediaType: 'video',
-                ishistory: false,
-                prompt: file.prompt,
-                timestamp: file.timestamp
-              });
-            }
+            imageTasks.push({
+              url: shot.interval.videoUrl,
+              id: `shot-video-${selectedProject.id}-${shot.id}`,
+              type: 'video',
+              title: shotLabel,
+              subtitle: `镜头视频 - ${shot.actionSummary.substring(0, 30)}...`,
+              downname: `${selectedProject.scriptData?.title || ''}-镜头-${shot.id}`,
+              mediaType: 'video'
+            });
           }
-
+  
           // 添加转场视频
           if (shot.transitionUrl) {
-            const hash = await md5Hash(shot.transitionUrl);
-            if (!urlHashSet.has(hash)) {
-              const file = findPormtFromHistory(historyFiles,hash);
-              urlHashSet.add(hash);
-              images.push({
-                id: `shot-transition-${selectedProject.id}-${shot.id}`,
-                hash: hash,
-                imageUrl: shot.transitionUrl,
-                title: shotLabel,
-                subtitle: `转场视频 - ${shot.actionSummary.substring(0, 30)}...`,
-                type: 'video-transition',
-                projectId: selectedProject.id,
-                projectName: selectedProject.title || '未命名项目',
-                downname: `${selectedProject.scriptData?.title || ''}-镜头-${shot.id}-转场`,
-                mediaType: 'video',
-                ishistory: false,
-                prompt: file.prompt,
-                timestamp: file.timestamp
-              });
-            }
+            imageTasks.push({
+              url: shot.transitionUrl,
+              id: `shot-transition-${selectedProject.id}-${shot.id}`,
+              type: 'video-transition',
+              title: shotLabel,
+              subtitle: `转场视频 - ${shot.actionSummary.substring(0, 30)}...`,
+              downname: `${selectedProject.scriptData?.title || ''}-镜头-${shot.id}-转场`,
+              mediaType: 'video'
+            });
           }
         }
       }
-
+  
+      // ✅ 批量并行计算 MD5（限制并发数为 10）
+      const BATCH_SIZE = 10;
+      const md5Results: Array<{ task: ImageTask; hash: string }> = [];
+        
+      for (let i = 0; i < imageTasks.length; i += BATCH_SIZE) {
+        const batch = imageTasks.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(
+          batch.map(async (task) => ({
+            task,
+            hash: await md5Hash(task.url)
+          }))
+        );
+        md5Results.push(...batchResults);
+      }
+  
+      // 处理 MD5 结果并添加到 images 数组
+      for (const { task, hash } of md5Results) {
+        if (!urlHashSet.has(hash)) {
+          const file = findPormtFromHistory(historyFiles, hash);
+          urlHashSet.add(hash);
+          images.push({
+            id: task.id,
+            hash,
+            imageUrl: task.url,
+            title: task.title,
+            subtitle: task.subtitle,
+            type: task.type,
+            projectId: selectedProject.id,
+            projectName: selectedProject.title || '未命名项目',
+            downname: task.downname,
+            mediaType: task.mediaType,
+            ishistory: false,
+            prompt: file.prompt,
+            timestamp: file.timestamp
+          });
+        }
+      }
+  
+      // 处理历史记录文件
       for (const file of historyFiles) {
         // 如果不显示视频且当前文件是视频，则跳过
         if (!showVideo && file.fileType === 'video') {
           continue;
         }
-
+  
         if (!urlHashSet.has(file.id)) {
           urlHashSet.add(file.id);
-
+  
           let type: 'character' | 'scene' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
           let subtitle = '';
-
+  
           if (file.mediaType === 'character') {
             type = 'character';
             subtitle = `角色历史 - ${file.fileName}`;
@@ -419,7 +412,7 @@ const ImageSelectorModal: React.FC<Props> = ({
             else type = 'keyframe-full';
             subtitle = `关键帧历史 - ${file.fileName}`;
           }
-
+  
           images.push({
             id: `history-${selectedProject.id}-${file.id}`,
             hash: file.id,
@@ -437,12 +430,12 @@ const ImageSelectorModal: React.FC<Props> = ({
           });
         }
       }
-
+  
       setAllImages(images);
     };
-
+  
     loadAllImages();
-  }, [allProjects, selectedProjectId, project, showVideo]);
+  }, [allProjects, selectedProjectId, project, showVideo, getCharacterWithAssets, getSceneWithAssets]);
 
   // 根据搜索词过滤图片
   const filteredImages = useMemo(() => {
@@ -461,14 +454,27 @@ const ImageSelectorModal: React.FC<Props> = ({
     return filteredImages.filter(img => img.type.startsWith(activeTab));
   }, [filteredImages, activeTab]);
 
-  // 计算标签数量
-  const tabCounts = useMemo(() => ({
-    all: filteredImages.length,
-    character: filteredImages.filter(i => i.type === 'character').length,
-    scene: filteredImages.filter(i => i.type === 'scene').length,
-    video: filteredImages.filter(i => i.type.startsWith('video')).length,
-    keyframe: filteredImages.filter(i => i.type.startsWith('keyframe')).length
-  }), [filteredImages]);
+  // 计算标签数量 - 优化为单次遍历
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: 0,
+      character: 0,
+      scene: 0,
+      video: 0,
+      keyframe: 0
+    };
+    
+    // 单次遍历完成所有计数
+    for (const img of filteredImages) {
+      counts.all++;
+      if (img.type === 'character') counts.character++;
+      else if (img.type === 'scene') counts.scene++;
+      else if (img.type.startsWith('video')) counts.video++;
+      else if (img.type.startsWith('keyframe')) counts.keyframe++;
+    }
+    
+    return counts as typeof tabCounts;
+  }, [filteredImages]);
 
   if (!isOpen) return null;
 

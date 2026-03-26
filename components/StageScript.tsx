@@ -1,9 +1,9 @@
 import { AlertCircle, Aperture, BookOpen, BrainCircuit, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
-import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs, mergeCharactersToLibrary, mergeScenesToLibrary, createCharacterRef, createSceneRef, updateLibraryCharacter } from '../services/seriesService';
+import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs, mergeCharactersToLibrary, mergeScenesToLibrary, createCharacterRef, createSceneRef, updateLibraryCharacter, generateId } from '../services/seriesService';
 import { Character, ProjectState, Scene, SeriesRecord } from '../types';
 import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
@@ -131,7 +131,7 @@ const StageScript: React.FC<Props> = ({
     if (!localScript || localScript === project.rawScript) {
       return;
     }
-    project.lastModified = 0;
+    // ✅ Removed: project.lastModified = 0; (direct mutation)
 
     // 设置新的定时器，延迟 2 秒后保存
     autoSaveTimerRef.current = setTimeout(() => {
@@ -198,13 +198,12 @@ const StageScript: React.FC<Props> = ({
     setEditingGenre(false);
   };
 
-  // Character editing
-  const startEditCharacter = (char: Character) => {
+  const startEditCharacter = useCallback((char: Character) => {
     setTempCharacter({ ...char });
     setEditingCharacterId(char.id);
-  };
+  }, []);
 
-  const saveCharacter = () => {
+  const saveCharacter = useCallback(() => {
     if (!project.scriptData || !editingCharacterId || !tempCharacter.name) return;
     tempCharacter.visualPrompt = "";
     const updatedCharacters = project.scriptData.characters.map(c =>
@@ -231,15 +230,15 @@ const StageScript: React.FC<Props> = ({
     }
     setEditingCharacterId(null);
     setTempCharacter({});
-  };
+  }, [project.scriptData, editingCharacterId, tempCharacter.name, tempCharacter, updateProject, series, updateSeries]);
 
-  const addCharacter = () => {
+  const addCharacter = useCallback(() => {
     if (!project.scriptData || !tempCharacter.name) return;
 
     if (series && updateSeries) {
       // 连续剧模式：先合并到 library（自动去重），再创建引用
       const newChar: Character = {
-        id: `char-${Date.now()}`,
+        id: generateId('char'), // ✅ Use unified ID generator
         name: tempCharacter.name,
         gender: tempCharacter.gender || '未知',
         age: tempCharacter.age || '未知',
@@ -265,7 +264,7 @@ const StageScript: React.FC<Props> = ({
     } else {
       // 独立模式：直接添加到项目
       const newCharacter: Character = {
-        id: `char-${Date.now()}`,
+        id: generateId('char'), // ✅ Use unified ID generator
         name: tempCharacter.name,
         gender: tempCharacter.gender || '未知',
         age: tempCharacter.age || '未知',
@@ -282,9 +281,9 @@ const StageScript: React.FC<Props> = ({
 
     setShowAddCharacter(false);
     setTempCharacter({});
-  };
+  }, [project.scriptData, tempCharacter.name, tempCharacter, series, updateSeries, updateProject]);
 
-  const deleteCharacter = async (charId: string) => {
+  const deleteCharacter = useCallback(async (charId: string) => {
     if (!project.scriptData) return;
     const confirmed = await dialog.confirm({
       title: '确认删除',
@@ -299,15 +298,15 @@ const StageScript: React.FC<Props> = ({
         characters: updatedCharacters
       }
     });
-  };
+  }, [project.scriptData, updateProject, dialog]);
 
   // Scene editing
-  const startEditScene = (scene: Scene) => {
+  const startEditScene = useCallback((scene: Scene) => {
     setTempScene({ ...scene });
     setEditingSceneId(scene.id);
-  };
+  }, []);
 
-  const saveScene = () => {
+  const saveScene = useCallback(() => {
     if (!project.scriptData || !editingSceneId || !tempScene.location) return;
     tempScene.visualPrompt = "";
     const updatedScenes = project.scriptData.scenes.map(s =>
@@ -321,9 +320,9 @@ const StageScript: React.FC<Props> = ({
     });
     setEditingSceneId(null);
     setTempScene({});
-  };
+  }, [project.scriptData, editingSceneId, tempScene.location, tempScene, updateProject]);
 
-  const saveSceneFromModal = (updatedScene: Partial<Scene>, updatedStoryParagraphs: any[]) => {
+  const saveSceneFromModal = useCallback((updatedScene: Partial<Scene>, updatedStoryParagraphs: any[]) => {
     if (!project.scriptData || !editingSceneInMain) return;
     const updatedScenes = project.scriptData.scenes.map(s =>
       s.id === editingSceneInMain.id ? { ...s, ...updatedScene } as Scene : s
@@ -336,15 +335,15 @@ const StageScript: React.FC<Props> = ({
       }
     });
     setEditingSceneInMain(null);
-  };
+  }, [project.scriptData, editingSceneInMain, updateProject]);
 
-  const addScene = () => {
+  const addScene = useCallback(() => {
     if (!project.scriptData || !tempScene.location) return;
 
     if (series && updateSeries) {
       // 连续剧模式：先合并到 library（自动去重），再创建引用
       const newScene: Scene = {
-        id: `scene-${Date.now()}`,
+        id: generateId('scene'), // ✅ Use unified ID generator
         location: tempScene.location,
         time: tempScene.time || '日间',
         atmosphere: tempScene.atmosphere || ''
@@ -368,7 +367,7 @@ const StageScript: React.FC<Props> = ({
     } else {
       // 独立模式：直接添加到项目
       const newScene: Scene = {
-        id: `scene-${Date.now()}`,
+        id: generateId('scene'), // ✅ Use unified ID generator
         location: tempScene.location,
         time: tempScene.time || '日间',
         atmosphere: tempScene.atmosphere || ''
@@ -383,9 +382,9 @@ const StageScript: React.FC<Props> = ({
 
     setShowAddScene(false);
     setTempScene({});
-  };
+  }, [project.scriptData, tempScene.location, tempScene, series, updateSeries, updateProject]);
 
-  const deleteScene = async (sceneId: string) => {
+  const deleteScene = useCallback(async (sceneId: string) => {
     if (!project.scriptData) return;
     const confirmed = await dialog.confirm({
       title: '确认删除',
@@ -400,18 +399,18 @@ const StageScript: React.FC<Props> = ({
         scenes: updatedScenes
       }
     });
-  };
+  }, [project.scriptData, updateProject, dialog]);
 
   // Shot editing
-  const startEditShot = (shot: any) => {
+  const startEditShot = useCallback((shot: any) => {
     setEditingShotId(shot.id);
-  };
+  }, []);
 
-  const startAddShot = (sceneId: string) => {
+  const startAddShot = useCallback((sceneId: string) => {
     setAddingShotForSceneId(sceneId);
-  };
+  }, []);
 
-  const saveShot = (updatedShot: Partial<any>) => {
+  const saveShot = useCallback((updatedShot: Partial<any>) => {
     if (editingShotId) {
       // 编辑现有 shot
       const updatedShots = project.shots.map(s =>
@@ -435,9 +434,9 @@ const StageScript: React.FC<Props> = ({
       updateProject({ shots: [...project.shots, newShot] });
       setAddingShotForSceneId(null);
     }
-  };
+  }, [editingShotId, addingShotForSceneId, project.shots, updateProject]);
 
-  const deleteShot = async (shotId: string) => {
+  const deleteShot = useCallback(async (shotId: string) => {
     const confirmed = await dialog.confirm({
       title: '确认删除',
       message: '确定要删除这个分镜吗？',
@@ -446,7 +445,7 @@ const StageScript: React.FC<Props> = ({
     if (!confirmed) return;
     const updatedShots = project.shots.filter(s => s.id !== shotId);
     updateProject({ shots: updatedShots });
-  };
+  }, [project.shots, updateProject, dialog]);
 
   const handleRegenerateSceneShots = async (sceneId: string, sceneIndex: number) => {
     if (!project.scriptData) return;

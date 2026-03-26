@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Film, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload, Video } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createSeriesEpisode, importProjectAsEpisode } from '../services/seriesService';
 import {
   createNewProjectState,
@@ -22,6 +22,7 @@ import ProjectSettingsModal from './ProjectSettingsModal';
 import SeriesSettingsModal from './SeriesSettingsModal';
 import SyncModal from './SyncModal';
 import { ThemeToggle } from './ThemeToggle';
+import { generateId } from '../services/seriesService';
 
 interface Props {
   onOpenProject: (project: ProjectState) => void;
@@ -48,8 +49,8 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   const [currentProject, setCurrentProject] = useState<ProjectState | null>(null);
   const [currentSeries, setCurrentSeries] = useState<SeriesRecord | null>(null);
   const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
-  
-  const loadData = async () => {
+  // ✅ Use useCallback to prevent re-creation
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [projList, serList] = await Promise.all([
@@ -63,7 +64,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -71,33 +72,33 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
 
 
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     setShowCreateDialog(true);
-  };
+  }, []);
 
-  const handleCreateStandalone = () => {
+  const handleCreateStandalone = useCallback(() => {
     setShowCreateDialog(false);
     const newProject = createNewProjectState();
     onOpenProject(newProject);
-  };
+  }, [onOpenProject]);
 
-  const handleCreateSeries = () => {
+  const handleCreateSeries = useCallback(() => {
     setShowCreateDialog(false);
     setCurrentSeries(null); // 新建模式
     setShowSeriesSettings(true);
-  };
+  }, []);
 
-  const handleEditSeries = (series: SeriesRecord) => {
+  const handleEditSeries = useCallback((series: SeriesRecord) => {
     setCurrentSeries(series); // 编辑模式
     setShowSeriesSettings(true);
-  };
+  }, []);
 
-  const handleSaveSeries = async (series: SeriesRecord) => {
+  const handleSaveSeries = useCallback(async (series: SeriesRecord) => {
     await saveSeriesToDB(series);
     await loadData();
-  };
+  }, [loadData]);
 
-  const handleCreateSeriesEpisode = async (series: SeriesRecord) => {
+  const handleCreateSeriesEpisode = useCallback(async (series: SeriesRecord) => {
     const newProject = createSeriesEpisode(series);
     await saveProjectToDB(newProject);
     
@@ -111,19 +112,19 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     await loadData();
     
     onOpenProject(newProject);
-  };
+  }, [loadData, onOpenProject]);
 
-  const requestDelete = (e: React.MouseEvent, id: string) => {
+  const requestDelete = useCallback((e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setDeleteConfirmId(id);
-  };
+  }, []);
 
-  const cancelDelete = (e: React.MouseEvent) => {
+  const cancelDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setDeleteConfirmId(null);
-  };
+  }, []);
 
-  const confirmDelete = async (e: React.MouseEvent, id: string) => {
+  const confirmDelete = useCallback(async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
         await deleteProjectFromDB(id);
@@ -134,19 +135,19 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     } finally {
         setDeleteConfirmId(null);
     }
-  };
+  }, [loadData, dialog]);
 
-  const requestDeleteSeries = (e: React.MouseEvent, id: string) => {
+  const requestDeleteSeries = useCallback((e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setDeleteConfirmSeriesId(id);
-  };
+  }, []);
 
-  const cancelDeleteSeries = (e: React.MouseEvent) => {
+  const cancelDeleteSeries = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setDeleteConfirmSeriesId(null);
-  };
+  }, []);
 
-  const confirmDeleteSeries = async (e: React.MouseEvent, id: string, deleteEpisodes: boolean) => {
+  const confirmDeleteSeries = useCallback(async (e: React.MouseEvent, id: string, deleteEpisodes: boolean) => {
     e.stopPropagation();
     try {
         await deleteSeriesFromDB(id, deleteEpisodes);
@@ -158,47 +159,51 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     } finally {
         setDeleteConfirmSeriesId(null);
     }
-  };
+  }, [loadData, dialog]);
 
-  const formatDate = (ts: number) => {
+  const formatDate = useCallback((ts: number) => {
     return new Date(ts).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  };
+  }, []);
 
-  const handleExport = (e: React.MouseEvent, proj: ProjectState) => {
+  const handleExport = useCallback((e: React.MouseEvent, proj: ProjectState) => {
     e.stopPropagation();
     exportProjectToFile(proj);
-  };
+  }, []);
 
-  const handleExportSeries = (e: React.MouseEvent, series: SeriesRecord) => {
+  const handleExportSeries = useCallback((e: React.MouseEvent, series: SeriesRecord) => {
     e.stopPropagation();
     // Get all episodes of this series
     const episodes = projects.filter(p => p.seriesRefId === series.id);
     exportSeriesToFile(series, episodes);
-  };
+  }, [projects]);
 
-  const handleImport = async (e: React.MouseEvent) => {
+  const handleImport = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       setImporting(true);
       const result = await importFromFile();
       
       if (result.type === 'standalone' && result.project) {
-        // Import standalone project
-        const importedProject = result.project;
-        importedProject.id = 'proj_' + Date.now().toString(36);
-        importedProject.createdAt = Date.now();
-        importedProject.lastModified = Date.now();
-        importedProject.seriesRefId = undefined; // Clear series ref
+        // Import standalone project - ✅ Create new object to avoid mutation
+        const importedProject = {
+          ...result.project,
+          id: generateId('proj'),
+          createdAt: Date.now(),
+          lastModified: Date.now(),
+          seriesRefId: undefined
+        };
         await saveProjectToDB(importedProject);
         await loadData();
         onOpenProject(importedProject);
       } else if (result.type === 'series' && result.series) {
         // Import series with episodes
-        let importedSeries = result.series;
-        importedSeries.id = 'series_' + Date.now().toString(36);
-        importedSeries.createdAt = Date.now();
-        importedSeries.updatedAt = Date.now();
-        importedSeries.episodeOrder = [];
+        let importedSeries = {
+          ...result.series,
+          id: generateId('series'),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          episodeOrder: []
+        };
         
         // Process each episode with proper library merge
         if (result.projects) {
@@ -221,14 +226,14 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     } finally {
       setImporting(false);
     }
-  };
+  }, [loadData, onOpenProject, dialog]);
   
-  const handleClearKey = () => {
+  const handleClearKey = useCallback(() => {
       onClearKey();
-  };
+  }, [onClearKey]);
 
   // Handle import episode to existing series
-  const handleImportEpisodeToSeries = async (e: React.MouseEvent, series: SeriesRecord) => {
+  const handleImportEpisodeToSeries = useCallback(async (e: React.MouseEvent, series: SeriesRecord) => {
     e.stopPropagation();
     try {
       setImporting(true);
@@ -255,23 +260,20 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     } finally {
       setImporting(false);
     }
-  };
+  }, [loadData, dialog]);
 
-  const handleDuplicate = async (e: React.MouseEvent, proj: ProjectState) => {
+  const handleDuplicate = useCallback(async (e: React.MouseEvent, proj: ProjectState) => {
     e.stopPropagation();
     try {
-      // 创建项目副本
-      const duplicatedProject = JSON.parse(JSON.stringify(proj));
-      // 生成新的ID
-      duplicatedProject.id = 'proj_' + Date.now().toString(36);
-      // 修改标题，添加"副本"后缀
-      const suffix = ':副本';
-      duplicatedProject.title = proj.title.endsWith(suffix) ? proj.title : proj.title + suffix;
-      // 清除剧集关联
-      duplicatedProject.seriesRefId = undefined;
-      // 更新时间戳
-      duplicatedProject.createdAt = Date.now();
-      duplicatedProject.lastModified = Date.now();
+      // 创建项目副本 - ✅ Use generateId for consistency
+      const duplicatedProject = {
+        ...JSON.parse(JSON.stringify(proj)),
+        id: generateId('proj'),
+        title: proj.title.endsWith(':副本') ? proj.title : proj.title + ':副本',
+        seriesRefId: undefined,
+        createdAt: Date.now(),
+        lastModified: Date.now()
+      };
       // 保存到数据库
       await saveProjectToDB(duplicatedProject);
       // 重新加载项目列表
@@ -280,21 +282,21 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       console.error('Duplicate project failed:', error);
       dialog.toast({ message: '复制项目失败', type: 'error' });
     }
-  };
+  }, [loadData, dialog]);
 
-  const startEditing = (e: React.MouseEvent, proj: ProjectState) => {
+  const startEditing = useCallback((e: React.MouseEvent, proj: ProjectState) => {
     e.stopPropagation();
     setEditingProjectId(proj.id);
     setEditingTitle(proj.title);
-  };
+  }, []);
 
-  const cancelEditing = (e: React.MouseEvent) => {
+  const cancelEditing = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingProjectId(null);
     setEditingTitle('');
-  };
+  }, []);
 
-  const saveTitle = async (e: React.MouseEvent | React.KeyboardEvent, proj: ProjectState) => {
+  const saveTitle = useCallback(async (e: React.MouseEvent | React.KeyboardEvent, proj: ProjectState) => {
     e.stopPropagation();
     if (!editingTitle.trim()) {
       cancelEditing(e as React.MouseEvent);
@@ -311,28 +313,28 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       setEditingProjectId(null);
       setEditingTitle('');
     }
-  };
+  }, [editingTitle, loadData, dialog]);
 
-  const handleKeyDown = (e: React.KeyboardEvent, proj: ProjectState) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent, proj: ProjectState) => {
     if (e.key === 'Enter') {
       saveTitle(e, proj);
     } else if (e.key === 'Escape') {
       cancelEditing(e as any);
     }
-  };
+  }, [saveTitle, cancelEditing]);
 
-  const openProjectSettings = (e: React.MouseEvent, proj: ProjectState) => {
+  const openProjectSettings = useCallback((e: React.MouseEvent, proj: ProjectState) => {
     e.stopPropagation();
     setCurrentProject(proj);
     setShowProjectSettings(true);
-  };
+  }, []);
 
-  const closeProjectSettings = () => {
+  const closeProjectSettings = useCallback(() => {
     setShowProjectSettings(false);
     setCurrentProject(null);
-  };
+  }, []);
 
-  const handleUpdateProject = async (updates: any) => {
+  const handleUpdateProject = useCallback(async (updates: Partial<ProjectState>) => {
     if (!currentProject) return;
     try {
       const updatedProject = { ...currentProject, ...updates, lastModified: Date.now() };
@@ -343,7 +345,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       console.error('Failed to update project:', error);
       dialog.toast({ message: '更新项目失败', type: 'error' });
     }
-  };
+  }, [currentProject, loadData, dialog]);
 
   // Get standalone projects (not part of any series)
   const standaloneProjects = useMemo(() => {

@@ -1,8 +1,8 @@
 import { AlertCircle, Camera, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, Plus, RefreshCw, Shirt, Sparkles, Trash2, Upload, User, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
-import { addLibraryCharacter, addLibraryScene, deleteLibraryCharacter, deleteLibraryScene } from '../services/seriesService';
+import { addLibraryCharacter, addLibraryScene, deleteLibraryCharacter, deleteLibraryScene, generateId } from '../services/seriesService';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Scene, SeriesRecord } from '../types';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
@@ -57,7 +57,7 @@ const StageAssets: React.FC<Props> = ({
     setImageSize(project.imageSize || '2560x1440');
   }, [project.visualStyle, project.imageSize]);
 
-  const handleGenerateAsset = async (type: 'character' | 'scene', id: string, skipConfirm?: boolean) => {
+  const handleGenerateAsset = useCallback(async (type: 'character' | 'scene', id: string, skipConfirm?: boolean) => {
     // Check if item already has a reference image (regenerate)
     const existingImage = type === 'character'
       ? project.scriptData?.characters.find(c => String(c.id) === String(id))?.referenceImage
@@ -182,9 +182,9 @@ const StageAssets: React.FC<Props> = ({
     } finally {
       setProcessingState(null);
     }
-  };
+  }, [project.scriptData, localStyle, isSeriesMode, series, updateSeries, updateProject, dialog]);
 
-  const handleBatchGenerate = async (type: 'character' | 'scene') => {
+  const handleBatchGenerate = useCallback(async (type: 'character' | 'scene') => {
     const items = type === 'character' 
       ? displayCharacters
       : displayScenes;
@@ -217,14 +217,14 @@ const StageAssets: React.FC<Props> = ({
     }
 
     setBatchProgress(null);
-  };
+  }, [displayCharacters, displayScenes, handleGenerateAsset, dialog]);
 
-  const handleFileUploadClick = (itemId: string, itemType: 'character' | 'scene') => {
+  const handleFileUploadClick = useCallback((itemId: string, itemType: 'character' | 'scene') => {
     setUploadingItem({ id: itemId, type: itemType });
     setFileUploadModalOpen(true);
-  };
+  }, []);
 
-  const handleFileUploadSuccess = (fileUrl: string) => {
+  const handleFileUploadSuccess = useCallback((fileUrl: string) => {
     if (!project.scriptData || !uploadingItem) return;
 
     const newData = { ...project.scriptData };
@@ -270,9 +270,9 @@ const StageAssets: React.FC<Props> = ({
     }
     
     setUploadingItem(null);
-  };
+  }, [project.scriptData, uploadingItem, isSeriesMode, series, updateSeries, updateProject]);
 
-  const handleDownloadImage = async (imageUrl: string, charName: string) => {
+  const handleDownloadImage = useCallback(async (imageUrl: string, charName: string) => {
     if(downloadStatus)return;
     setDownloadStatus('downloading');
     try{
@@ -280,9 +280,9 @@ const StageAssets: React.FC<Props> = ({
     }finally{
       setDownloadStatus(null);
     }
-  };
+  }, [downloadStatus, project.scriptData?.title, dialog]);
 
-  const handleDeleteCharacter = async (charId: string) => {
+  const handleDeleteCharacter = useCallback(async (charId: string) => {
     if (!series || !updateSeries) return;
 
     const char = series.library.characters.find(c => c.id === charId);
@@ -299,9 +299,9 @@ const StageAssets: React.FC<Props> = ({
     const updatedSeries = deleteLibraryCharacter(series, charId);
     updateSeries(updatedSeries);
     await dialog.toast({ message: '角色已删除', type: 'success' });
-  };
+  }, [series, updateSeries, dialog]);
 
-  const handleDeleteScene = async (sceneId: string) => {
+  const handleDeleteScene = useCallback(async (sceneId: string) => {
     if (!series || !updateSeries) return;
 
     const scene = series.library.scenes.find(s => s.id === sceneId);
@@ -318,35 +318,35 @@ const StageAssets: React.FC<Props> = ({
     const updatedSeries = deleteLibraryScene(series, sceneId);
     updateSeries(updatedSeries);
     await dialog.toast({ message: '场景已删除', type: 'success' });
-  };
+  }, [series, updateSeries, dialog]);
 
-  const handleAddCharacter = () => {
+  const handleAddCharacter = useCallback(() => {
     if (!series || !updateSeries) return;
     setAddCharacterModalOpen(true);
-  };
+  }, [series, updateSeries]);
 
-  const handleAddScene = () => {
+  const handleAddScene = useCallback(() => {
     if (!series || !updateSeries) return;
     setAddSceneModalOpen(true);
-  };
+  }, [series, updateSeries]);
 
-  const handleSaveCharacter = (character: Character) => {
+  const handleSaveCharacter = useCallback((character: Character) => {
     if (!series || !updateSeries) return;
 
     const updatedSeries = addLibraryCharacter(series, character);
     updateSeries(updatedSeries);
     setAddCharacterModalOpen(false);
     dialog.toast({ message: '角色已添加', type: 'success' });
-  };
+  }, [series, updateSeries, dialog]);
 
-  const handleSaveScene = (scene: Scene) => {
+  const handleSaveScene = useCallback((scene: Scene) => {
     if (!series || !updateSeries) return;
 
     const updatedSeries = addLibraryScene(series, scene);
     updateSeries(updatedSeries);
     setAddSceneModalOpen(false);
     dialog.toast({ message: '场景已添加', type: 'success' });
-  };
+  }, [series, updateSeries, dialog]);
 
   if (!project.scriptData&&!isSeriesMode || (displayCharacters.length === 0 && displayScenes.length === 0)) return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">
@@ -482,7 +482,7 @@ const StageAssets: React.FC<Props> = ({
                   {/* Delete Button - Top Left */}
                   {isSeriesMode && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteCharacter(char.id); }}
+                      onClick={() => handleDeleteCharacter(char.id)}
                       disabled={!!batchProgress || !!processingState}
                       className="absolute top-2 left-2 p-2 bg-red-600/50 text-slate-50 rounded-full hover:bg-red-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
                       title="删除角色"
@@ -524,7 +524,7 @@ const StageAssets: React.FC<Props> = ({
                   ) : (
                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 p-4 text-center">
                        <User className="w-10 h-10 mb-3 opacity-10" />
-                       <button
+                        <button
                           onClick={() => handleGenerateAsset('character', char.id)}
                           disabled={processingState?.type === 'character' && processingState?.id === char.id || !!batchProgress || !!processingState}
                           className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-bold transition-all border border-slate-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -540,7 +540,7 @@ const StageAssets: React.FC<Props> = ({
                     <>
                       {/* Preview Button */}
                       <button
-                        onClick={(e) => handleGenerateAsset('character', char.id) }
+                        onClick={() => handleGenerateAsset('character', char.id) }
                         className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="重新生成"
                       >
@@ -548,7 +548,7 @@ const StageAssets: React.FC<Props> = ({
                       </button>
                       {/* Download Button */}
                       <button
-                        onClick={(e) => { handleDownloadImage(char.referenceImage!, '角色-'+char.name); }}
+                        onClick={() => { handleDownloadImage(char.referenceImage!, '角色-'+char.name); }}
                         disabled={!!downloadStatus}
                         className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="下载图片"
@@ -558,21 +558,21 @@ const StageAssets: React.FC<Props> = ({
                     </>
                   )}
                   <button
-                            onClick={(e) => { handleFileUploadClick(char.id, 'character'); }}
+                            onClick={() => { handleFileUploadClick(char.id, 'character'); }}
                             disabled={!!batchProgress || !!processingState}
                             className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                           >
                             <Upload className="w-3 h-3" />
                   </button>
                   <button
-                     onClick={(e) => { setSelectedCharId(char.id); }}
+                     onClick={() => { setSelectedCharId(char.id); }}
                      className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                      title="管理造型"
                   >
                       <Shirt className="w-3 h-3" />
                   </button>
                   <button
-                     onClick={(e) => { setSelectedVoiceCharId(char.id); setVoiceSynthesisModalOpen(true); }}
+                     onClick={() => { setSelectedVoiceCharId(char.id); setVoiceSynthesisModalOpen(true); }}
                      disabled={!!batchProgress || !!processingState}
                      className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                      title="合成语音"
@@ -640,7 +640,7 @@ const StageAssets: React.FC<Props> = ({
                   {/* Delete Button - Top Left */}
                   {isSeriesMode && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteScene(scene.id); }}
+                      onClick={() => handleDeleteScene(scene.id)}
                       disabled={!!batchProgress || !!processingState}
                       className="absolute top-2 left-2 p-2 bg-red-600/50 text-slate-50 rounded-full hover:bg-red-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
                       title="删除场景"
@@ -683,7 +683,7 @@ const StageAssets: React.FC<Props> = ({
                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 p-4 text-center">
                        <MapPin className="w-10 h-10 mb-3 opacity-10" />
                        <button
-                          onClick={(e) => { handleGenerateAsset('scene', scene.id); }}
+                          onClick={() => { handleGenerateAsset('scene', scene.id); }}
                           disabled={processingState?.type === 'scene' && processingState?.id === scene.id || !!batchProgress || !!processingState}
                           className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-bold transition-all border border-slate-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                        >
@@ -697,7 +697,7 @@ const StageAssets: React.FC<Props> = ({
                       {scene.referenceImage && (
                           <>
                       <button
-                        onClick={(e) => {handleGenerateAsset('scene', scene.id); }}
+                        onClick={() => {handleGenerateAsset('scene', scene.id); }}
                         className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="重新生成"
                       >
@@ -705,7 +705,7 @@ const StageAssets: React.FC<Props> = ({
                       </button>
                       {/* Download Button */}
                       <button
-                        onClick={(e) => { handleDownloadImage(scene.referenceImage!, '场景-'+scene.location); }}
+                        onClick={() => { handleDownloadImage(scene.referenceImage!, '场景-'+scene.location); }}
                         className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                         title="下载图片"
                       >
@@ -715,7 +715,7 @@ const StageAssets: React.FC<Props> = ({
                       )}
                     {/* Upload Button */}
                     <button
-                      onClick={(e) => { handleFileUploadClick(scene.id, 'scene'); }}
+                      onClick={() => { handleFileUploadClick(scene.id, 'scene'); }}
                       disabled={!!batchProgress || !!processingState}
                       className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
                       title="上传图片"
@@ -912,7 +912,7 @@ const StageAssets: React.FC<Props> = ({
                 取消
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const name = (document.getElementById('new-char-name') as HTMLInputElement)?.value;
                   const gender = (document.getElementById('new-char-gender') as HTMLSelectElement)?.value;
                   const age = (document.getElementById('new-char-age') as HTMLInputElement)?.value;
@@ -920,12 +920,12 @@ const StageAssets: React.FC<Props> = ({
                   const visualPrompt = (document.getElementById('new-char-visual') as HTMLTextAreaElement)?.value;
 
                   if (!name) {
-                    dialog.toast({ message: '请输入角色名称', type: 'error' });
+                    await dialog.toast({ message: '请输入角色名称', type: 'error' });
                     return;
                   }
 
                   const newChar: Character = {
-                    id: `char_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                    id: generateId('char'),
                     name,
                     gender,
                     age: age || '未指定',
@@ -1000,19 +1000,19 @@ const StageAssets: React.FC<Props> = ({
                 取消
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const location = (document.getElementById('new-scene-location') as HTMLInputElement)?.value;
                   const time = (document.getElementById('new-scene-time') as HTMLInputElement)?.value;
                   const atmosphere = (document.getElementById('new-scene-atmosphere') as HTMLTextAreaElement)?.value;
                   const visualPrompt = (document.getElementById('new-scene-visual') as HTMLTextAreaElement)?.value;
 
                   if (!location) {
-                    dialog.toast({ message: '请输入场景地点', type: 'error' });
+                    await dialog.toast({ message: '请输入场景地点', type: 'error' });
                     return;
                   }
 
                   const newScene: Scene = {
-                    id: `scene_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                    id: generateId('scene'),
                     location,
                     time: time || '未指定',
                     atmosphere: atmosphere || '',

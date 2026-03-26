@@ -1,5 +1,5 @@
 import { AlertCircle, ArrowRightLeft, BarChart3, Check, CheckCircle, Download, Film, Loader2, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { initializeCozeConfig, submitWorkflow } from '../services/modelproviders/cozeService';
 import { ProjectState } from '../types';
 import { uploadFileToService } from "../utils/fileUploadUtils";
@@ -65,21 +65,21 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
   const totalCurrentTime = calculateTotalCurrentTime();
 
   // Handle video time update
-  const handleTimeUpdate = () => {
+  const handleTimeUpdate = useCallback(() => {
     if (videoRef.current) {
       setCurrentTime(videoRef.current.currentTime);
     }
-  };
+  }, []);
 
   // Handle video loaded
-  const handleLoadedMetadata = () => {
+  const handleLoadedMetadata = useCallback(() => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
     }
-  };
+  }, []);
 
   // Toggle play/pause
-  const handleTogglePlayPause = () => {
+  const handleTogglePlayPause = useCallback(() => {
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
       videoRef.current.play();
@@ -88,24 +88,24 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       videoRef.current.pause();
       setIsPaused(true);
     }
-  };
+  }, []);
 
   // Jump to previous video
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (currentPlayingShotIndex > 0) {
       setCurrentPlayingShotIndex(currentPlayingShotIndex - 1);
     }
-  };
+  }, [currentPlayingShotIndex]);
 
   // Jump to next video
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentPlayingShotIndex < playSequence.length - 1) {
       setCurrentPlayingShotIndex(currentPlayingShotIndex + 1);
     }
-  };
+  }, [currentPlayingShotIndex, playSequence.length]);
 
   // Handle progress bar click
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!videoRef.current) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
@@ -126,10 +126,10 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       }
       accumulatedTime += itemDuration;
     }
-  };
+  }, [playSequence, totalDuration]);
 
   // Handle video ended event - auto play next video
-  const handleVideoEnded = () => {
+  const handleVideoEnded = useCallback(() => {
     if (!isPlayingSelected) return;
     if (currentPlayingShotIndex < playSequence.length - 1) {
       setCurrentPlayingShotIndex(prev => prev + 1);
@@ -139,19 +139,19 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       setCurrentPlayingShotIndex(0);
       setIsPlayingSelected(false);
     }
-  };
+  }, [isPlayingSelected, currentPlayingShotIndex, playSequence.length]);
 
   // Start playing selected shots sequentially
-  const handlePlaySelected = () => {
+  const handlePlaySelected = useCallback(() => {
     if (playSequence.length === 0) return;
     setIsPlayingSelected(true);
     setCurrentPlayingShotIndex(0);
     setCurrentTime(0);
     setIsPaused(false);
-  };
+  }, [playSequence.length]);
 
   // Stop playing
-  const handleStopPlayback = () => {
+  const handleStopPlayback = useCallback(() => {
     //setIsPlayingSelected(false);
     setCurrentPlayingShotIndex(0);
     setCurrentTime(0);
@@ -160,7 +160,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
-  };
+  }, []);
 
   // Auto play when currentPlayingShotIndex changes
   React.useEffect(() => {
@@ -172,7 +172,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
 
 
   // Toggle shot selection
-  const toggleShotSelection = (shotId: string) => {
+  const toggleShotSelection = useCallback((shotId: string) => {
     // Stop playback when modifying selection
     if (isPlayingSelected) {
       handleStopPlayback();
@@ -186,20 +186,20 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       }
       return newSet;
     });
-  };
+  }, [isPlayingSelected, handleStopPlayback]);
 
   // Select all completed shots
-  const selectAllCompleted = () => {
+  const selectAllCompleted = useCallback(() => {
     const allCompletedIds = completedShots.map(s => s.id);
     setSelectedShotIds(new Set(allCompletedIds));
-  };
+  }, [completedShots]);
 
   // Deselect all
-  const deselectAll = () => {
+  const deselectAll = useCallback(() => {
     setSelectedShotIds(new Set());
-  };
+  }, []);
 
-  const handleMerge = async () => {
+  const handleMerge = useCallback(async () => {
     if (selectedShotIds.size === 0) {
       setMergeError("请至少选择一个镜头进行合并");
       return;
@@ -256,9 +256,9 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
     } finally {
       setIsMerging(false);
     }
-  };
+  }, [selectedShotIds, project.shots, updateProject]);
 
-  const handleDownload = () => {
+  const handleDownload = useCallback(() => {
     if (!project.mergedVideoUrl) return;
 
     // 创建下载链接
@@ -269,9 +269,9 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [project.mergedVideoUrl, project.scriptData?.title]);
 
-  const handleDownloadSelected = async () => {
+  const handleDownloadSelected = useCallback(async () => {
     if(downloadStatus)return;
     if (selectedShotIds.size === 0) return;
     setDownloadStatus('downloading');
@@ -333,7 +333,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
       }
     }
     setDownloadStatus(null);
-  };
+  }, [downloadStatus, selectedShotIds, project.shots, project.scriptData?.title]);
 
     if (!project.shots.length) return (
         <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">

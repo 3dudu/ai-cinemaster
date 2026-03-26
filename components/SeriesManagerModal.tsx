@@ -1,5 +1,5 @@
 import { ArrowRight, Calendar, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { createSeriesEpisode, importProjectAsEpisode } from '../services/seriesService';
 import { getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../services/storageService';
 import { ProjectState, SeriesRecord } from '../types';
@@ -32,8 +32,8 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
-  // Refresh all projects list
-  const refreshProjects = async () => {
+  // ✅ Use useCallback to prevent re-creation
+  const refreshProjects = useCallback(async () => {
     if (onProjectsUpdate) {
       try {
         const projects = await getAllProjectsMetadata();
@@ -42,7 +42,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
         console.error('Failed to refresh projects:', err);
       }
     }
-  };
+  }, [onProjectsUpdate]);
 
   // Get episodes for this series
   const episodes = useMemo(() => {
@@ -52,58 +52,42 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       .filter((p): p is ProjectState => p !== undefined);
   }, [series.episodeOrder, allProjects]);
 
-  // Format date
-  const formatDate = (ts: number) => {
+  // Format date - ✅ Use useCallback
+  const formatDate = useCallback((ts: number) => {
     return new Date(ts).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-  };
+  }, []);
 
-  // Get project images for preview
-  const getProjectImages = (proj: ProjectState): string[] => {
-    const images: string[] = [];
-
+  // Get project images for preview - ✅ Use useCallback with flatMap
+  const getProjectImages = useCallback((proj: ProjectState): string[] => {
     // Collect character images
-    if (proj.scriptData?.characters) {
-      proj.scriptData.characters.forEach(char => {
-        if (char.referenceImage) images.push(char.referenceImage);
-        if (char.variations) {
-          char.variations.forEach(v => {
-            if (v.referenceImage) images.push(v.referenceImage);
-          });
-        }
-      });
-    }
-
+    const charImages = proj.scriptData?.characters?.flatMap(char => [
+      char.referenceImage,
+      ...(char.variations?.map(v => v.referenceImage) || [])
+    ].filter(Boolean)) || [];
+    
     // Collect scene images
-    if (proj.scriptData?.scenes) {
-      proj.scriptData.scenes.forEach(scene => {
-        if (scene.referenceImage) images.push(scene.referenceImage);
-      });
-    }
-
+    const sceneImages = proj.scriptData?.scenes
+      ?.map(s => s.referenceImage)
+      .filter(Boolean) || [];
+    
     // Collect keyframe images
-    if (proj.shots) {
-      proj.shots.forEach(shot => {
-        if (shot.keyframes) {
-          shot.keyframes.forEach(kf => {
-            if (kf.imageUrl) images.push(kf.imageUrl);
-          });
-        }
-      });
-    }
+    const keyframeImages = proj.shots?.flatMap(shot =>
+      shot.keyframes?.map(kf => kf.imageUrl).filter(Boolean) || []
+    ) || [];
+    
+    return [...charImages, ...sceneImages, ...keyframeImages].filter(Boolean);
+  }, []);
 
-    return images;
-  };
-
-  // Get episode stats
-  const getEpisodeStats = (proj: ProjectState) => {
+  // Get episode stats - ✅ Use useCallback
+  const getEpisodeStats = useCallback((proj: ProjectState) => {
     const charCount = proj.scriptData?.characters?.length || 0;
     const sceneCount = proj.scriptData?.scenes?.length || 0;
     const shotCount = proj.shots?.length || 0;
     return { charCount, sceneCount, shotCount };
-  };
+  }, []);
 
-  // Handle import episode from file
-  const handleImportEpisode = async () => {
+  // Handle import episode from file - ✅ Use useCallback
+  const handleImportEpisode = useCallback(async () => {
     try {
       setImporting(true);
       const result = await importFromFile();
@@ -126,18 +110,19 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       } else if (result.type === 'series') {
         dialog.toast({ message: '请选择单个项目文件导入，不支持导入整套剧集', type: 'error' });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Import failed:', error);
-      if (error.message !== 'Import cancelled' && error.message !== 'No file selected') {
-        dialog.toast({ message: error.message || '导入失败', type: 'error' });
+      const errorMessage = error instanceof Error ? error.message : '导入失败';
+      if (errorMessage !== 'Import cancelled' && errorMessage !== 'No file selected') {
+        dialog.toast({ message: errorMessage || '导入失败', type: 'error' });
       }
     } finally {
       setImporting(false);
     }
-  };
+  }, [series, onSeriesUpdate, refreshProjects, dialog]);
 
-  // Handle create new episode
-  const handleCreateEpisode = async () => {
+  // Handle create new episode - ✅ Use useCallback
+  const handleCreateEpisode = useCallback(async () => {
     const newProject = createSeriesEpisode(series);
 
     const updatedSeries: SeriesRecord = {
@@ -153,10 +138,10 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     // Refresh projects list to update the grid
     await refreshProjects();
     // Don't close the modal, just update the grid
-  };
+  }, [series, onSeriesUpdate, refreshProjects]);
 
-  // Handle delete episode
-  const handleDeleteEpisode = async (projectId: string, deleteData: boolean) => {
+  // Handle delete episode - ✅ Use useCallback
+  const handleDeleteEpisode = useCallback(async (projectId: string, deleteData: boolean) => {
     try {
       if (deleteData) {
         // Delete project from DB
@@ -193,10 +178,10 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       console.error('Delete episode failed:', error);
       dialog.toast({ message: '删除分集失败', type: 'error' });
     }
-  };
+  }, [series, allProjects, onSeriesUpdate, refreshProjects, dialog]);
 
-  // Handle open episode
-  const handleOpenEpisode = (proj: ProjectState) => {
+  // Handle open episode - ✅ Use useCallback
+  const handleOpenEpisode = useCallback((proj: ProjectState) => {
     if(series.currentEpisodeId !== proj.id){
       const updatedSeries: SeriesRecord = {
         ...series,
@@ -208,13 +193,13 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     }
     onSwitchEpisode(proj);
     onClose();
-  };
+  }, [series, onSeriesUpdate, onSwitchEpisode, onClose]);
 
-  // Handle save series settings
-  const handleSaveSeriesSettings = (updatedSeries: SeriesRecord) => {
+  // Handle save series settings - ✅ Use useCallback
+  const handleSaveSeriesSettings = useCallback((updatedSeries: SeriesRecord) => {
     saveSeriesToDB(updatedSeries);
     onSeriesUpdate(updatedSeries);
-  };
+  }, [onSeriesUpdate]);
 
   if (!isOpen) return null;
 

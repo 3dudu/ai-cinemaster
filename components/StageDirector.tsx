@@ -1,5 +1,5 @@
 import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
@@ -30,7 +30,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const activeScenes = project.scriptData?.scenes || [];
 
   // Helper function to get character with full library data (in series mode)
-  const getCharacterWithAssets = (charId: string): Character | null => {
+  const getCharacterWithAssets = useCallback((charId: string): Character | null => {
     const char = activeCharacters.find(c => String(c.id) === String(charId));
     if (!char) return null;
     // In standalone mode, return character directly
@@ -42,10 +42,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       if (libraryChar) return libraryChar;
     }
     return char;
-  };
+  }, [activeCharacters, isSeriesMode, series?.library?.characters]);
 
   // Helper function to get scene with full library data (in series mode)
-  const getSceneWithAssets = (sceneId: string): Scene | null => {
+  const getSceneWithAssets = useCallback((sceneId: string): Scene | null => {
     const scene = activeScenes.find(s => String(s.id) === String(sceneId));
     if (!scene) return null;
     // In standalone mode, return scene directly
@@ -56,7 +56,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       if (libraryScene) return libraryScene;
     }
     return scene;
-  };
+  }, [activeScenes, isSeriesMode, series?.library?.scenes]);
   const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
@@ -124,24 +124,27 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   }, []);
   
 
-  const activeShotIndex = project.shots.findIndex(s => s.id === activeShotId);
-  const activeShot = project.shots[activeShotIndex];
+  const activeShotIndex = useMemo(() => project.shots.findIndex(s => s.id === activeShotId), [project.shots, activeShotId]);
+  const activeShot = useMemo(() => project.shots[activeShotIndex], [project.shots, activeShotIndex]);
   
   // Safe access to keyframes (may be undefined if data is incomplete)
-  const startKf = activeShot?.keyframes?.find(k => k.type === 'start');
-  const endKf = activeShot?.keyframes?.find(k => k.type === 'end');
-  const fullKf = activeShot?.keyframes?.find(k => k.type === 'full');
+  const startKf = useMemo(() => activeShot?.keyframes?.find(k => k.type === 'start'), [activeShot]);
+  const endKf = useMemo(() => activeShot?.keyframes?.find(k => k.type === 'end'), [activeShot]);
+  const fullKf = useMemo(() => activeShot?.keyframes?.find(k => k.type === 'full'), [activeShot]);
 
   // Check if all start frames are generated
-  const allStartFramesGenerated = project.shots.length > 0 && project.shots.every(s => s.keyframes?.find(k => k.type === 'start')?.imageUrl);
+  const allStartFramesGenerated = useMemo(() => 
+    project.shots.length > 0 && project.shots.every(s => s.keyframes?.find(k => k.type === 'start')?.imageUrl),
+    [project.shots]
+  );
 
-  const updateShot = (shotId: string, transform: (s: Shot) => Shot) => {
+  const updateShot = useCallback((shotId: string, transform: (s: Shot) => Shot) => {
     const newShots = project.shots.map(s => s.id === shotId ? transform(s) : s);
     updateProject({ shots: newShots });
     project.shots = newShots;
-  };
+  }, [project.shots, updateProject]);
 
-  const updateKeyframePrompt = (shotId: string, type: 'start' | 'end' | 'full', prompt: string) => {
+  const updateKeyframePrompt = useCallback((shotId: string, type: 'start' | 'end' | 'full', prompt: string) => {
     updateShot(shotId, (s) => {
       const newKeyframes = [...(s.keyframes || [])];
       const idx = newKeyframes.findIndex(k => k.type === type);
@@ -150,9 +153,9 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       }
       return { ...s, keyframes: newKeyframes };
     });
-  };
+  }, [updateShot]);
 
-  const deleteKeyframeImage = async (shotId: string, type: 'start' | 'end' | 'full') => {
+  const deleteKeyframeImage = useCallback(async (shotId: string, type: 'start' | 'end' | 'full') => {
     const confirmed = await dialog.confirm({
       title: '确认删除',
       message: '确定要删除此关键帧图片吗？',
@@ -169,14 +172,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       }
       return { ...s, keyframes: newKeyframes };
     });
-  };
+  }, [dialog, updateShot]);
 
-  const copyStartToPreviousShotEndImage = async () => {
+  const copyStartToPreviousShotEndImage = useCallback(async () => {
     if (activeShotIndex <= 0) return;
     const previousShot = project.shots[activeShotIndex - 1];
     const previousEndKf = previousShot?.keyframes?.find(k => k.type === 'end');
-    const activeShot = project.shots[activeShotIndex];
-    const activeShotKf = activeShot?.keyframes?.find(k => k.type === 'start');
+    const activeShotKf = startKf;
 
     if (activeShotKf?.imageUrl && previousEndKf) {
       const confirmed = await dialog.confirm({
@@ -195,14 +197,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         return { ...s, keyframes: newKeyframes };
       });
     }
-  };
+  }, [activeShotIndex, project.shots, startKf, dialog, updateShot]);
 
-  const copyEndToNextShotStartImage = async () => {
+  const copyEndToNextShotStartImage = useCallback(async () => {
     if (activeShotIndex >= project.shots.length) return;
     const previousShot = project.shots[activeShotIndex + 1];
     const previousEndKf = previousShot?.keyframes?.find(k => k.type === 'start');
-    const activeShot = project.shots[activeShotIndex];
-    const activeShotKf = activeShot?.keyframes?.find(k => k.type === 'end');
+    const activeShotKf = endKf;
 
     if (activeShotKf?.imageUrl && previousEndKf) {
       const confirmed = await dialog.confirm({
@@ -221,7 +222,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         return { ...s, keyframes: newKeyframes };
       });
     }
-  };
+  }, [activeShotIndex, project.shots, endKf, dialog, updateShot]);
 
   const startEditShot = (shot: Shot) => {
     setEditingShotId(shot.id);
