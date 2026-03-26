@@ -4,7 +4,7 @@ import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
 import { addMediaHistory, getAllModelConfigs } from '../services/storageService';
-import { AIModelConfig, Character, Keyframe, ProjectState, Scene, Shot } from '../types';
+import { AIModelConfig, Character, Keyframe, ProjectState, Scene, SeriesRecord, Shot } from '../types';
 import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
 import FileUploadModal, { downloadImage, downloadVideo } from './FileUploadModal';
@@ -17,9 +17,11 @@ interface Props {
   project: ProjectState;
   updateProject: (updates: Partial<ProjectState>) => void;
   isMobile: boolean;
+  series?: SeriesRecord | null;
+  updateSeries?: (series: SeriesRecord) => void;
 }
 
-const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false }) => {
+const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false, series, updateSeries }) => {
   const dialog = useDialog();
   
   // Internal merge logic for series mode
@@ -33,9 +35,12 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     if (!char) return null;
     // In standalone mode, return character directly
     if (!isSeriesMode || !char.refId) return char;
-    
-    // In series mode, we need library data but don't have series reference here
-    // For now, return the lightweight character with what we have
+
+    // In series mode, get full character data from series library
+    if (series?.library?.characters) {
+      const libraryChar = series.library.characters.find(c => c.id === char.refId);
+      if (libraryChar) return libraryChar;
+    }
     return char;
   };
 
@@ -45,9 +50,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     if (!scene) return null;
     // In standalone mode, return scene directly
     if (!isSeriesMode || !scene.refId) return scene;
-    
-    // In series mode, we need library data but don't have series reference here
-    // For now, return the lightweight scene with what we have
+    // In series mode, get full scene data from series library
+    if (series?.library?.scenes) {
+      const libraryScene = series.library.scenes.find(s => s.id === scene.refId);
+      if (libraryScene) return libraryScene;
+    }
     return scene;
   };
   const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
@@ -248,7 +255,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       const referenceImages: string[] = [];
       if (project.scriptData) {
         // 1. Scene Reference (Environment / Atmosphere) - PRIORITY
-        const scene = project.scriptData.scenes.find(s => String(s.id) === String(shot.sceneId));
+        const scene = getSceneWithAssets(String(shot.sceneId));
         if (scene?.referenceImage) {
           referenceImages.push(scene.referenceImage);
         }
@@ -256,7 +263,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
-            const char = activeCharacters.find(c => String(c.name) === String(charId));
+            // Find episode character by name first
+            const episodeChar = activeCharacters.find(c => String(c.name) === String(charId));
+            if (!episodeChar) return;
+            // Get full character data from library if in series mode
+            const char = getCharacterWithAssets(String(episodeChar.id));
             if (!char) return;
 
             // Check if a specific variation is selected for this shot
@@ -282,7 +293,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       const referenceImages: string[] = [];
       if (project.scriptData) {
         // 1. Scene Reference (Environment / Atmosphere) - PRIORITY
-        const scene = project.scriptData.scenes.find(s => String(s.id) === String(shot.sceneId));
+        const scene = getSceneWithAssets(String(shot.sceneId));
         referenceImages.push("\n参考图说明：");
         if (scene?.referenceImage) {
           referenceImages.push(" - 第1张图是镜头布景、环境。");
@@ -291,7 +302,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
-            const char = activeCharacters.find(c => String(c.name) === String(charId));
+            // Find episode character by name first
+            const episodeChar = activeCharacters.find(c => String(c.name) === String(charId));
+            if (!episodeChar) return;
+            // Get full character data from library if in series mode
+            const char = getCharacterWithAssets(String(episodeChar.id));
             if (!char) return;
 
             // Check if a specific variation is selected for this shot
@@ -1075,8 +1090,12 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const renderSceneContext = () => {
       if (!activeShot || !project.scriptData) return null;
       // String comparison for safety
-      const scene = project.scriptData.scenes.find(s => String(s.id) === String(activeShot.sceneId));
-      const activeCharacters = project.scriptData.characters.filter(c => activeShot.characters.includes(c.name));
+      const scene = getSceneWithAssets(String(activeShot.sceneId));
+      // Get full character data from library if in series mode
+      const contextCharacters = activeShot.characters.map(charName => {
+        const episodeChar = project.scriptData!.characters.find(c => c.name === charName);
+        return episodeChar ? getCharacterWithAssets(String(episodeChar.id)) : null;
+      }).filter((c): c is Character => c !== null);
 
       return (
           <div className="bg-slate-800 p-5 rounded-xl border border-slate-600 mb-4 space-y-4">
@@ -1117,7 +1136,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   <div className="w-full space-y-2">
                     {/* Character List with Variation Selector */}
                     <div className="flex flex-col gap-2 pt-2">
-                         {activeCharacters.map(char => {
+                         {contextCharacters.map(char => {
                              const hasVars = char.variations && char.variations.length > 0;
                              const selectedVarId = activeShot.characterVariations?.[char.id];
                              const selectedVar = char.variations.find(v => v.id === selectedVarId);
@@ -2070,9 +2089,11 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           )}
 
           {/* Wardrobe Modal */}
-          {selectedCharId && project.scriptData && (
+          {selectedCharId && (
             <WardrobeModal
-              character={project.scriptData.characters.find(c => String(c.id) === String(selectedCharId)) || null}
+              character={getCharacterWithAssets(selectedCharId)}
+              series={series}
+              updateSeries={updateSeries}
               project={project}
               localStyle={localStyle}
               imageSize={imageSize}

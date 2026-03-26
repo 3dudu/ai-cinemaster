@@ -3,11 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { renderTemplate } from '../../services/promptTemplates';
 import { addMediaHistory } from '../../services/storageService';
-import { ProjectState, Scene } from '../../types';
+import { ProjectState, Scene, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';
 
 interface Props {
   scene: Scene | null;
+  series?: SeriesRecord | null;
+  updateSeries?: (series: SeriesRecord) => void;
   project: ProjectState;
   localStyle: string;
   imageSize: string;
@@ -20,6 +22,8 @@ interface Props {
 
 const SceneEditModal: React.FC<Props> = ({
   scene,
+  series,
+  updateSeries,
   project,
   localStyle,
   imageSize,

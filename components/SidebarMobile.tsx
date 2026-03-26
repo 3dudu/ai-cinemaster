@@ -16,9 +16,10 @@ interface SidebarMobileProps {
   updateProject?: (updates: Partial<ProjectState>) => void;
   isSeriesMode?: boolean;
   onOpenSeriesManager?: () => void;
+  serieName?: string
 }
 
-const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, onExit, onOpenSettings, projectName, project, updateProject, isSeriesMode = false, onOpenSeriesManager }) => {
+const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, onExit, onOpenSettings, projectName, project, updateProject, isSeriesMode = false, onOpenSeriesManager,serieName }) => {
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showPromptTemplates, setShowPromptTemplates] = useState(false);
@@ -49,6 +50,8 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
               <Aperture className="w-5 h-5" />
             </div>
             <div className="overflow-hidden pr-2">
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+                <h1 className="text-[12px] font-bold text-slate-400 line-clamp-1 tracking-wide uppercase">{serieName}</h1></p>
               <div className="flex items-center gap-2">
               <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide uppercase">{projectName || '未命名项目'}</h1>
           <button
@@ -59,7 +62,6 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
             <Edit className="w-3.5 h-3.5" />
           </button>
               </div>
-              <p className="text-[10px] text-slate-500 uppercase tracking-widest">AI漫剧工场</p>
             </div>
           </div>
         </div>

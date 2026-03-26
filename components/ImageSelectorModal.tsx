@@ -163,6 +163,34 @@ const ImageSelectorModal: React.FC<Props> = ({
       return {prompt: '',timestamp: 0};
   }
 
+  // Helper function to get character with full library data (in series mode)
+  const getCharacterWithAssets = (char: import('../types').Character, projectSeriesRefId?: string): import('../types').Character => {
+    // In standalone mode, return character directly
+    if (!projectSeriesRefId || !char.refId) return char;
+
+    // In series mode, get full character data from series library
+    const series = seriesList.find(s => s.id === projectSeriesRefId);
+    if (series?.library?.characters) {
+      const libraryChar = series.library.characters.find(c => c.id === char.refId);
+      if (libraryChar) return libraryChar;
+    }
+    return char;
+  };
+
+  // Helper function to get scene with full library data (in series mode)
+  const getSceneWithAssets = (scene: import('../types').Scene, projectSeriesRefId?: string): import('../types').Scene => {
+    // In standalone mode, return scene directly
+    if (!projectSeriesRefId || !scene.refId) return scene;
+
+    // In series mode, get full scene data from series library
+    const series = seriesList.find(s => s.id === projectSeriesRefId);
+    if (series?.library?.scenes) {
+      const libraryScene = series.library.scenes.find(s => s.id === scene.refId);
+      if (libraryScene) return libraryScene;
+    }
+    return scene;
+  };
+
   useEffect(() => {
     const loadAllImages = async () => {
       const images: ImageItem[] = [];
@@ -175,10 +203,13 @@ const ImageSelectorModal: React.FC<Props> = ({
       }
 
       const historyFiles = await getProjectMediaHistory(selectedProject.id);
+      const isSeriesMode = !!selectedProject.seriesRefId;
 
       // 角色图片（包含所有造型）
       if (selectedProject.scriptData?.characters) {
-        for (const char of selectedProject.scriptData.characters) {
+        for (const episodeChar of selectedProject.scriptData.characters) {
+          // Get full character data from library if in series mode
+          const char = getCharacterWithAssets(episodeChar, selectedProject.seriesRefId);
           if (char.referenceImage) {
             const hash = await md5Hash(char.referenceImage);
             if (!urlHashSet.has(hash)) {
@@ -235,7 +266,9 @@ const ImageSelectorModal: React.FC<Props> = ({
 
       // 场景图片
       if (selectedProject.scriptData?.scenes) {
-        for (const scene of selectedProject.scriptData.scenes) {
+        for (const episodeScene of selectedProject.scriptData.scenes) {
+          // Get full scene data from library if in series mode
+          const scene = getSceneWithAssets(episodeScene, selectedProject.seriesRefId);
           if (scene.referenceImage) {
             const hash = await md5Hash(scene.referenceImage);
             if (!urlHashSet.has(hash)) {
@@ -476,7 +509,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                 // 连续剧
                 ...seriesList.map(s => ({
                   value: `series-${s.id}`,
-                  label: `${s.seriesName || '未命名连续剧'}`
+                  label: `${s.title || '未命名连续剧'}`
                 }))
               ]}
               value={(() => {
@@ -517,9 +550,9 @@ const ImageSelectorModal: React.FC<Props> = ({
                   return series.episodeOrder
                     .map(epId => allProjects.find(p => p.id === epId))
                     .filter((p): p is ProjectState => p !== undefined)
-                    .map(proj => ({
+                    .map((proj,idx)=> ({
                       value: proj.id,
-                      label: `第${proj.episodeNumber || '?'}集 - ${proj.title || '未命名'}`
+                      label: `第${idx+1}集 - ${proj.title || '未命名'}`
                     }));
                 })()}
                 value={selectedProjectId}

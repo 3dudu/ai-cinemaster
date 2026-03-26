@@ -1,7 +1,8 @@
-import { AlertCircle, Camera, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, RefreshCw, Shirt, Sparkles, Trash2, Upload, User, X, Plus } from 'lucide-react';
+import { AlertCircle, Camera, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, Plus, RefreshCw, Shirt, Sparkles, Trash2, Upload, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
+import { addLibraryCharacter, addLibraryScene, deleteLibraryCharacter, deleteLibraryScene } from '../services/seriesService';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Scene, SeriesRecord } from '../types';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
@@ -9,7 +10,6 @@ import VoiceSynthesisModal from './VoiceSynthesisModal';
 import WardrobeModal from './WardrobeModal';
 import { useDialog } from './dialog';
 import SceneEditModal from './modals/SceneEditModal';
-import { addLibraryCharacter, addLibraryScene, deleteLibraryCharacter, deleteLibraryScene } from '../services/seriesService';
 
 interface Props {
   project: ProjectState;
@@ -385,9 +385,11 @@ const StageAssets: React.FC<Props> = ({
       )}
 
       {/* Wardrobe Modal */}
-      {selectedChar && project.scriptData && (
+      {selectedChar && (
         <WardrobeModal
-          character={project.scriptData.characters.find(c => c.id === selectedCharId) || null}
+          character={selectedChar}
+          series={series}
+          updateSeries={updateSeries}
           project={project}
           localStyle={localStyle}
           imageSize={imageSize}
@@ -400,9 +402,11 @@ const StageAssets: React.FC<Props> = ({
       )}
 
       {/* Scene Edit Modal */}
-      {selectedSceneId && project.scriptData && (
+      {selectedSceneId && (
         <SceneEditModal
-          scene={project.scriptData.scenes.find(s => s.id === selectedSceneId) || null}
+          scene={displayScenes.find(s => s.id === selectedSceneId) || null}
+          series={series}
+          updateSeries={updateSeries}
           project={project}
           localStyle={localStyle}
           imageSize={imageSize}
@@ -434,10 +438,10 @@ const StageAssets: React.FC<Props> = ({
           </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto md:p-6 p-2 space-y-6">
+      <div className="flex-1 overflow-y-auto md:px-6 px-2 space-y-6">
         {/* Characters Section */}
         <section>
-          <div className="flex items-end justify-between mb-6 border-b border-slate-600 pb-4">
+          <div className="flex items-end justify-between py-2 border-b border-slate-600 pb-4 sticky top-0 bg-slate-900 z-40">
             <div>
                <h3 className="text-sm font-bold text-slate-50 uppercase tracking-widest flex items-center gap-2">
                  <div className="w-1.5 h-1.5 bg-slate-500 rounded-full"></div>
@@ -453,7 +457,7 @@ const StageAssets: React.FC<Props> = ({
                   className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
                 >
                   <Plus className="w-3 h-3" />
-                  新增角色
+                  新增
                 </button>
               )}
               <button
@@ -471,7 +475,7 @@ const StageAssets: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 py-4 md:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-6">
             {displayCharacters.map((char) => (
               <div key={char.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[3/4] bg-slate-900 relative overflow-hidden">
@@ -595,11 +599,7 @@ const StageAssets: React.FC<Props> = ({
               </div>
             ))}
           </div>
-        </section>
-
-        {/* Scenes Section */}
-        <section>
-          <div className="flex items-end justify-between mb-6 border-b border-slate-600 pb-4">
+          <div className="flex items-end justify-between py-2 border-b border-slate-600 pb-4 sticky top-0 bg-slate-900 z-40">
             <div>
                <h3 className="text-sm font-bold text-slate-50 uppercase tracking-widest flex items-center gap-2">
                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
@@ -615,7 +615,7 @@ const StageAssets: React.FC<Props> = ({
                   className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
                 >
                   <Plus className="w-3 h-3" />
-                  新增场景
+                  新增
                 </button>
               )}
               <button
@@ -633,7 +633,7 @@ const StageAssets: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 py-4 md:grid-cols-3 xl:grid-cols-4 gap-6">
             {displayScenes.map((scene) => (
               <div key={scene.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[16/9] bg-slate-800/50 relative overflow-hidden">

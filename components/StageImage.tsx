@@ -1,7 +1,7 @@
 import { ArrowRightLeft, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { deleteSingleMediaFile, getAllProjectsMetadata, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
-import { ProjectState } from '../types';
+import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
+import { ProjectState, SeriesRecord } from '../types';
 import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
 import { downloadImage, downloadVideo } from './FileUploadModal';
@@ -32,7 +32,9 @@ const StageImage: React.FC<Props> = ({ project }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video'>('all');
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
+  const [seriesList, setSeriesList] = useState<SeriesRecord[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
@@ -42,29 +44,43 @@ const StageImage: React.FC<Props> = ({ project }) => {
   const [selectedPrompt, setSelectedPrompt] = useState<{title: string, prompt: string, timestamp?: number} | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
-  // 加载所有项目
+  // 加载所有项目和连续剧
   useEffect(() => {
-    const loadProjects = async () => {
+    const loadProjectsAndSeries = async () => {
       setLoadingProjects(true);
       try {
-        const projects = await getAllProjectsMetadata();
+        const [projects, series] = await Promise.all([
+          getAllProjectsMetadata(),
+          getAllSeriesFromDB()
+        ]);
         setAllProjects(projects);
+        setSeriesList(series);
 
         // 设置默认选中项目
         if (project) {
-          setSelectedProjectId(project.id);
-        } else if (projects.length > 0) {
-          setSelectedProjectId(projects[0].id);
+          if (project.seriesRefId) {
+            setSelectedSeriesId(project.seriesRefId);
+            setSelectedProjectId(project.id);
+          } else {
+            setSelectedProjectId(project.id);
+          }
+        } else {
+          // 优先选择单剧
+          const standaloneProjects = projects.filter(p => !p.seriesRefId);
+          if (standaloneProjects.length > 0) {
+            setSelectedProjectId(standaloneProjects[0].id);
+          } else if (projects.length > 0) {
+            setSelectedProjectId(projects[0].id);
+          }
         }
-
       } catch (error) {
-        console.error('Failed to load projects:', error);
+        console.error('Failed to load projects and series:', error);
       } finally {
         setLoadingProjects(false);
       }
     };
 
-    loadProjects();
+    loadProjectsAndSeries();
   }, [project]);
 
   const handleDownloadImage = async (imageUrl: string, charName: string) => {
@@ -129,6 +145,34 @@ const StageImage: React.FC<Props> = ({ project }) => {
       return {prompt: '',timestamp: 0};
   }
 
+  // Helper function to get character with full library data (in series mode)
+  const getCharacterWithAssets = (char: import('../types').Character, projectSeriesRefId?: string): import('../types').Character => {
+    // In standalone mode, return character directly
+    if (!projectSeriesRefId || !char.refId) return char;
+
+    // In series mode, get full character data from series library
+    const series = seriesList.find(s => s.id === projectSeriesRefId);
+    if (series?.library?.characters) {
+      const libraryChar = series.library.characters.find(c => c.id === char.refId);
+      if (libraryChar) return libraryChar;
+    }
+    return char;
+  };
+
+  // Helper function to get scene with full library data (in series mode)
+  const getSceneWithAssets = (scene: import('../types').Scene, projectSeriesRefId?: string): import('../types').Scene => {
+    // In standalone mode, return scene directly
+    if (!projectSeriesRefId || !scene.refId) return scene;
+
+    // In series mode, get full scene data from series library
+    const series = seriesList.find(s => s.id === projectSeriesRefId);
+    if (series?.library?.scenes) {
+      const libraryScene = series.library.scenes.find(s => s.id === scene.refId);
+      if (libraryScene) return libraryScene;
+    }
+    return scene;
+  };
+
   useEffect(() => {
     const loadAllImages = async () => {
       // 等待项目和媒体历史加载完成
@@ -150,7 +194,9 @@ const StageImage: React.FC<Props> = ({ project }) => {
 
       // 角色图片（包含所有造型）
       if (selectedProject.scriptData?.characters) {
-        for (const char of selectedProject.scriptData.characters) {
+        for (const episodeChar of selectedProject.scriptData.characters) {
+          // Get full character data from library if in series mode
+          const char = getCharacterWithAssets(episodeChar, selectedProject.seriesRefId);
           if (char.referenceImage) {
             const hash = await md5Hash(char.referenceImage);
             if (!urlHashSet.has(hash)) {
@@ -207,7 +253,9 @@ const StageImage: React.FC<Props> = ({ project }) => {
 
       // 场景图片
       if (selectedProject.scriptData?.scenes) {
-        for (const scene of selectedProject.scriptData.scenes) {
+        for (const episodeScene of selectedProject.scriptData.scenes) {
+          // Get full scene data from library if in series mode
+          const scene = getSceneWithAssets(episodeScene, selectedProject.seriesRefId);
           if (scene.referenceImage) {
             const hash = await md5Hash(scene.referenceImage);
             if (!urlHashSet.has(hash)) {
@@ -380,7 +428,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
     };
 
     loadAllImages();
-  }, [allProjects, selectedProjectId, showVideo]);
+  }, [allProjects, seriesList, selectedProjectId, showVideo]);
 
   // 根据搜索词过滤图片
   const filteredImages = useMemo(() => {
@@ -449,16 +497,71 @@ const StageImage: React.FC<Props> = ({ project }) => {
         {/* 控制区域（包含项目选择器和搜索框） */}
         <div className="border-b border-slate-600 bg-slate-700 space-y-1 p-2">
           <div className="flex gap-2 md:flex-row flex-col">
-            {/* 项目选择器 */}
+            {/* 项目选择器（单剧和连续剧并集） */}
             <div className="min-w-64">
               <CustomSelect
-                options={allProjects.map(proj => ({ value: proj.id, label: proj.title || '未命名项目' }))}
-                value={selectedProjectId}
-                onChange={setSelectedProjectId}
+                options={[
+                  // 单剧项目
+                  ...allProjects
+                    .filter(p => !p.seriesRefId)
+                    .map(proj => ({
+                      value: `project-${proj.id}`,
+                      label: proj.title || '未命名项目'
+                    })),
+                  // 连续剧
+                  ...seriesList.map(s => ({
+                    value: `series-${s.id}`,
+                    label: `${s.title || '未命名连续剧'}`
+                  }))
+                ]}
+                value={(() => {
+                  const selectedProject = allProjects.find(p => p.id === selectedProjectId);
+                  if (selectedProject?.seriesRefId) {
+                    return `series-${selectedProject.seriesRefId}`;
+                  }
+                  return `project-${selectedProjectId}`;
+                })()}
+                onChange={(value) => {
+                  if (value.startsWith('series-')) {
+                    const seriesId = value.replace('series-', '');
+                    setSelectedSeriesId(seriesId);
+                    const series = seriesList.find(s => s.id === seriesId);
+                    if (series && series.episodeOrder.length > 0) {
+                      setSelectedProjectId(series.episodeOrder[0]);
+                    }
+                  } else {
+                    const projectId = value.replace('project-', '');
+                    setSelectedSeriesId('');
+                    setSelectedProjectId(projectId);
+                  }
+                }}
                 placeholder={loadingProjects ? '加载项目...' : '选择项目'}
-                disabled={loadingProjects || allProjects.length === 0}
+                disabled={loadingProjects}
               />
             </div>
+
+            {/* 集数选择器（仅在选择连续剧时显示） */}
+            {selectedSeriesId && (
+              <div className="min-w-48">
+                <CustomSelect
+                  options={(() => {
+                    const series = seriesList.find(s => s.id === selectedSeriesId);
+                    if (!series) return [];
+                    return series.episodeOrder
+                      .map(epId => allProjects.find(p => p.id === epId))
+                      .filter((p): p is ProjectState => p !== undefined)
+                      .map((proj, idx) => ({
+                        value: proj.id,
+                        label: `第${idx + 1}集 - ${proj.title || '未命名'}`
+                      }));
+                  })()}
+                  value={selectedProjectId}
+                  onChange={setSelectedProjectId}
+                  placeholder="选择集数"
+                  disabled={loadingProjects}
+                />
+              </div>
+            )}
 
             {/* 搜索框 */}
             <div className="relative flex-1">

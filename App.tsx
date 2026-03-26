@@ -209,6 +209,8 @@ function App() {
             project={project} 
             updateProject={updateProject} 
             isMobile={isMobile}
+            series={series}
+            updateSeries={updateSeries}
           />
         );
       case 'export':
@@ -264,6 +266,7 @@ function App() {
               updateProject={updateProject}
               isSeriesMode={isSeriesMode}
               onOpenSeriesManager={() => setShowSeriesManager(true)}
+              serieName={series?.title}
             />
           </>
         ) : (
@@ -280,6 +283,7 @@ function App() {
               updateProject={updateProject}
               isSeriesMode={isSeriesMode}
               onOpenSeriesManager={() => setShowSeriesManager(true)}
+              serieName={series?.title}
             />
           </>
         )}

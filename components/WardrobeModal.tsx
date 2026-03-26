@@ -3,12 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from '../services/promptTemplates';
 import { addMediaHistory } from '../services/storageService';
-import { Character, CharacterVariation, ProjectState } from '../types';
+import { Character, CharacterVariation, ProjectState, SeriesRecord } from '../types';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
 import { useDialog } from './dialog';
 
 interface Props {
   character: Character | null;
+  series?: SeriesRecord | null;
+  updateSeries?: (series: SeriesRecord) => void;
   project: ProjectState;
   localStyle: string;
   imageSize: string;
@@ -21,6 +23,8 @@ interface Props {
 
 const WardrobeModal: React.FC<Props> = ({
   character,
+  series,
+  updateSeries,
   project,
   localStyle,
   imageSize,

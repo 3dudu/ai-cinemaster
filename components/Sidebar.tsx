@@ -24,9 +24,10 @@ interface SidebarProps {
   updateProject?: (updates: Partial<ProjectState>) => void;
   isSeriesMode?: boolean;
   onOpenSeriesManager?: () => void;
+  serieName?: string
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpenSettings, onToggleSidebar, collapsed = false, projectName, project, updateProject, isSeriesMode = false, onOpenSeriesManager }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpenSettings, onToggleSidebar, collapsed = false, projectName, project, updateProject, isSeriesMode = false, onOpenSeriesManager,serieName }) => {
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showImageBrowser, setShowImageBrowser] = useState(false);
@@ -75,7 +76,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       {/* Project Status */}
       {!collapsed ? (
         <div className="px-6 py-2 border-b border-slate-900">
-           <div className="text-[12px] text-slate-500 uppercase tracking-widest mb-1">当前项目</div>
+           <div className="text-[12px] text-slate-500 uppercase tracking-widest mb-1">
+            <h1 className="text-[12px] font-bold text-slate-400 line-clamp-1 tracking-wide uppercase">{serieName}</h1>
+            </div>
            <div className=" overflow-hidden pr-2 flex items-center">
              <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide uppercase">{projectName || '未命名项目'}</h1>
            <button
