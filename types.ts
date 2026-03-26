@@ -156,6 +156,18 @@ export interface SeriesRecord {
   title: string;
   createdAt: number;
   updatedAt: number;
+  rawScript: string;
+  targetDuration: string;
+  language: string;
+  visualStyle: string;
+  genre: string;
+  imageSize: string;
+  imageCount: number;
+  modelProviders?: {
+    llm?: string; // LLM model config ID
+    text2image?: string; // Text-to-image model config ID
+    image2video?: string; // Image-to-video model config ID
+  };
   library: SeriesLibrary;
   episodeOrder: string[]; // Array of ProjectState.id in order
   version: 1;

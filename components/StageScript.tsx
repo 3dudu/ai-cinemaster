@@ -17,8 +17,6 @@ interface Props {
   isMobile: boolean;
   series?: SeriesRecord | null;
   updateSeries?: (series: SeriesRecord) => void;
-  effectiveCharacters?: Character[];
-  effectiveScenes?: Scene[];
 }
 
 type TabMode = 'story' | 'script';
@@ -28,9 +26,7 @@ const StageScript: React.FC<Props> = ({
   updateProject, 
   isMobile=false,
   series,
-  updateSeries,
-  effectiveCharacters,
-  effectiveScenes
+  updateSeries
 }) => {
   const dialog = useDialog();
   const [activeTab, setActiveTab] = useState<TabMode>(project.scriptData ? 'script' : 'story');
@@ -1099,9 +1095,13 @@ const StageScript: React.FC<Props> = ({
   );
 
   const renderScriptBreakdown = () => {
+    // Always use local characters/scenes from project.scriptData
+    const localCharacters = project.scriptData?.characters || [];
+    const localScenes = project.scriptData?.scenes || [];
+    
     // Deduplication Logic
     const seenLocations = new Set();
-    const uniqueScenesList = (effectiveScenes || []).filter(scene => {
+    const uniqueScenesList = localScenes.filter(scene => {
       const normalizedLoc = scene.location.trim().toLowerCase();
       seenLocations.add(normalizedLoc);
       return true;
@@ -1134,7 +1134,7 @@ const StageScript: React.FC<Props> = ({
                       {/* Main: Script & Shots */}
            <div className="h-full flex-1 overflow-y-auto bg-slate-900 p-0 ">
               <div className="max-w-5xl mx-auto pb-2">
-                 {(effectiveScenes || []).map((scene, index) => {
+                 {localScenes.map((scene, index) => {
                    const sceneShots = project.shots.filter(s => s.sceneId === scene.id);
                    //if (sceneShots.length === 0) return null;
 
@@ -1265,7 +1265,7 @@ const StageScript: React.FC<Props> = ({
                                    {/* Tags/Characters */}
                                    <div className="flex flex-wrap gap-2 pt-2 opacity-50 group-hover:opacity-100 transition-opacity">
                                       {shot.characters.map(cid => {
-                                        const char = (effectiveCharacters || []).find(c => c.id === cid);
+                                        const char = localCharacters.find(c => c.id === cid);
                                         return char ? (
                                           <span key={cid} className="text-[12px] uppercase font-bold tracking-wider text-slate-500 border border-slate-600 px-2 py-0.5 rounded-full bg-slate-900">
                                               {char.name}
@@ -1416,7 +1416,7 @@ const StageScript: React.FC<Props> = ({
                            </div>
                          </div>
                        )}
-                       {(effectiveCharacters || []).map(c => (
+                       {localCharacters.map(c => (
                          <div key={c.id} className="flex justify-between gap-2 items-center group cursor-default p-2 rounded hover:bg-slate-900/100 transition-colors">
                             {editingCharacterId === c.id ? (
                               <div className="flex-1 space-y-2">
@@ -1576,6 +1576,9 @@ const StageScript: React.FC<Props> = ({
   };
 
   const renderEditShotModal = () => {
+    // Always use local characters from project.scriptData
+    const localCharacters = project.scriptData?.characters || [];
+
     // 编辑现有 shot
     if (editingShotId) {
       const shot = project.shots.find(s => s.id === editingShotId);
@@ -1584,7 +1587,7 @@ const StageScript: React.FC<Props> = ({
       return (
         <ShotEditModal
           shot={shot}
-          characters={effectiveCharacters || []}
+          characters={localCharacters}
           onSave={saveShot}
           onClose={() => {
             setEditingShotId(null);
@@ -1611,7 +1614,7 @@ const StageScript: React.FC<Props> = ({
       return (
         <ShotEditModal
           shot={newShot}
-          characters={effectiveCharacters || []}
+          characters={localCharacters}
           onSave={saveShot}
           onClose={() => {
             setAddingShotForSceneId(null);

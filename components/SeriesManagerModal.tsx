@@ -1,9 +1,10 @@
-import { ArrowRight, Calendar, Film, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
+import { ArrowRight, Calendar, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { importProjectAsEpisode } from '../services/seriesService';
-import { importFromFile, saveProjectToDB, saveSeriesToDB } from '../services/storageService';
+import { getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../services/storageService';
 import { ProjectState, SeriesRecord } from '../types';
 import { useDialog } from './dialog';
+import SeriesSettingsModal from './SeriesSettingsModal';
 
 interface SeriesManagerModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface SeriesManagerModalProps {
   onSeriesUpdate: (updatedSeries: SeriesRecord) => void;
   onSwitchEpisode: (project: ProjectState) => void;
   allProjects: ProjectState[];
+  onProjectsUpdate?: (projects: ProjectState[]) => void; // Callback to refresh all projects
   isMobile?: boolean;
 }
 
@@ -22,11 +24,25 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   onSeriesUpdate,
   onSwitchEpisode,
   allProjects,
+  onProjectsUpdate,
   isMobile = false
 }) => {
   const dialog = useDialog();
   const [importing, setImporting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  // Refresh all projects list
+  const refreshProjects = async () => {
+    if (onProjectsUpdate) {
+      try {
+        const projects = await getAllProjectsMetadata();
+        onProjectsUpdate(projects);
+      } catch (err) {
+        console.error('Failed to refresh projects:', err);
+      }
+    }
+  };
 
   // Get episodes for this series
   const episodes = useMemo(() => {
@@ -103,6 +119,9 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
         // Update parent
         onSeriesUpdate(updatedSeries);
 
+        // Refresh projects list to update the grid
+        await refreshProjects();
+
         dialog.toast({ message: '分集导入成功', type: 'success' });
       } else if (result.type === 'series') {
         dialog.toast({ message: '请选择单个项目文件导入，不支持导入整套剧集', type: 'error' });
@@ -127,15 +146,16 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       createdAt: Date.now(),
       lastModified: Date.now(),
       seriesRefId: series.id,
-      targetDuration: '60s',
-      language: '中文', // Default language
-      genre: '剧情片',
-      visualStyle: '真人写实',
-      imageSize: '2560x1440',
-      imageCount: 1,
+      // Inherit properties from series
+      targetDuration: series.targetDuration || '60s',
+      language: series.language || '中文',
+      genre: series.genre || '剧情片',
+      visualStyle: series.visualStyle || '真人写实',
+      imageSize: series.imageSize || '2560x1440',
+      imageCount: series.imageCount ?? 1,
       scriptData: null,
       isParsingScript: false,
-      rawScript: `标题：示例剧本`
+      rawScript: series.rawScript || `标题：示例剧本`
     };
 
     const updatedSeries: SeriesRecord = {
@@ -148,8 +168,9 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     await saveSeriesToDB(updatedSeries);
 
     onSeriesUpdate(updatedSeries);
-    onSwitchEpisode(newProject);
-    onClose();
+    // Refresh projects list to update the grid
+    await refreshProjects();
+    // Don't close the modal, just update the grid
   };
 
   // Handle delete episode
@@ -179,6 +200,9 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       onSeriesUpdate(updatedSeries);
       setDeleteConfirmId(null);
 
+      // Refresh projects list to update the grid
+      await refreshProjects();
+
       dialog.toast({
         message: deleteData ? '分集已删除' : '分集已转为独立项目',
         type: 'success'
@@ -193,6 +217,12 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   const handleOpenEpisode = (proj: ProjectState) => {
     onSwitchEpisode(proj);
     onClose();
+  };
+
+  // Handle save series settings
+  const handleSaveSeriesSettings = (updatedSeries: SeriesRecord) => {
+    saveSeriesToDB(updatedSeries);
+    onSeriesUpdate(updatedSeries);
   };
 
   if (!isOpen) return null;
@@ -347,16 +377,26 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
 
       {/* Footer */}
       <div className="p-4 border-t border-slate-700 flex justify-between items-center text-sm text-slate-400 bg-slate-600/80">
-        <span className="text-slate-400">
-          角色库: <span className="text-slate-200 font-mono">{series.library.characters.length}</span>
-        </span>
-        <span className="text-slate-400">
-          场景库: <span className="text-slate-200 font-mono">{series.library.scenes.length}</span>
-        </span>
-        <span className="text-slate-400">
-          共 <span className="text-slate-200 font-mono">{episodes.length}</span> 集
-        </span>
-        <button
+        <div className="flex items-center gap-4">
+          <span className="text-slate-400">
+            角色库: <span className="text-slate-200 font-mono">{series.library.characters.length}</span>
+          </span>
+          <span className="text-slate-400">
+            场景库: <span className="text-slate-200 font-mono">{series.library.scenes.length}</span>
+          </span>
+          <span className="text-slate-400">
+            共 <span className="text-slate-200 font-mono">{episodes.length}</span> 集
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            设置
+          </button>
+          <button
             onClick={handleImportEpisode}
             disabled={importing}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600/50 hover:bg-indigo-600 text-indigo-100 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
@@ -364,16 +404,25 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
             {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             导入单集
           </button>
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg transition-colors"
-        >
-          关闭
-        </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm rounded-lg transition-colors"
+          >
+            关闭
+          </button>
+        </div>
       </div>
     </div>
     </div>
-  );
+);
+
+      {/* Series Settings Modal */}
+      <SeriesSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        series={series}
+        onSave={handleSaveSeriesSettings}
+      />
 };
 
 export default SeriesManagerModal;

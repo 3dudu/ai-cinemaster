@@ -1,7 +1,7 @@
 import { ArrowRightLeft, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { deleteSingleMediaFile, getAllProjectsMetadata, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
-import { ProjectState } from '../types';
+import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
+import { ProjectState, SeriesRecord } from '../types';
 import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
 import { downloadImage, downloadVideo } from './FileUploadModal';
@@ -46,36 +46,59 @@ const ImageSelectorModal: React.FC<Props> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video'>(filterType);
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
+  const [seriesList, setSeriesList] = useState<SeriesRecord[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<{title: string, prompt: string, timestamp?: number} | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
 
-  // 加载所有项目
+  // 加载所有项目和连续剧
   useEffect(() => {
-    const loadProjects = async () => {
+    const loadProjectsAndSeries = async () => {
       if (isOpen) {
         setLoadingProjects(true);
         try {
-          const projects = await getAllProjectsMetadata();
+          const [projects, seriesList] = await Promise.all([
+            getAllProjectsMetadata(),
+            getAllSeriesFromDB()
+          ]);
+
+          // 设置连续剧列表
+          setSeriesList(seriesList);
+
+          // 设置所有项目（用于实际加载图片数据）
           setAllProjects(projects);
 
           // 设置默认选中项目
           if (project) {
-            setSelectedProjectId(project.id);
-          } else if (projects.length > 0) {
-            setSelectedProjectId(projects[0].id);
+            // 如果当前项目是连续剧的单集，选中其所属的连续剧
+            if (project.seriesRefId) {
+              setSelectedSeriesId(project.seriesRefId);
+              setSelectedProjectId(project.id);
+            } else {
+              // 如果是单剧，直接选中
+              setSelectedProjectId(project.id);
+            }
+          } else {
+            // 优先选择单剧
+            const standaloneProjects = projects.filter(p => !p.seriesRefId);
+            if (standaloneProjects.length > 0) {
+              setSelectedProjectId(standaloneProjects[0].id);
+            } else if (projects.length > 0) {
+              setSelectedProjectId(projects[0].id);
+            }
           }
         } catch (error) {
-          console.error('Failed to load projects:', error);
+          console.error('Failed to load projects and series:', error);
         } finally {
           setLoadingProjects(false);
         }
       }
     };
 
-    loadProjects();
+    loadProjectsAndSeries();
   }, [isOpen, project]);
   const handleDownloadImage = async (imageUrl: string, charName: string) => {
     if(downloadStatus)return;
@@ -439,18 +462,72 @@ const ImageSelectorModal: React.FC<Props> = ({
         {/* 项目选择器和搜索框 */}
         <div className="px-2 md:px-6 py-2 md:py-4 border-b border-slate-600 bg-slate-700">
           <div className="flex md:gap-4 gap-2 md:flex-row flex-col">
-            {/* 项目选择器 */}
+            {/* 项目选择器（单剧和连续剧并集） */}
             <CustomSelect
               className="md:w-72 w-full"
-              options={allProjects.map(proj => ({
-                value: proj.id,
-                label: proj.title || '未命名项目'
-              }))}
-              value={selectedProjectId}
-              onChange={setSelectedProjectId}
+              options={[
+                // 单剧项目
+                ...allProjects
+                  .filter(p => !p.seriesRefId)
+                  .map(proj => ({
+                    value: `project-${proj.id}`,
+                    label: proj.title || '未命名项目'
+                  })),
+                // 连续剧
+                ...seriesList.map(s => ({
+                  value: `series-${s.id}`,
+                  label: `${s.seriesName || '未命名连续剧'}`
+                }))
+              ]}
+              value={(() => {
+                const selectedProject = allProjects.find(p => p.id === selectedProjectId);
+                if (selectedProject?.seriesRefId) {
+                  // 如果选中的是连续剧的单集，返回连续剧的ID
+                  return `series-${selectedProject.seriesRefId}`;
+                }
+                return `project-${selectedProjectId}`;
+              })()}
+              onChange={(value) => {
+                if (value.startsWith('series-')) {
+                  // 选择的是连续剧
+                  const seriesId = value.replace('series-', '');
+                  setSelectedSeriesId(seriesId);
+                  const series = seriesList.find(s => s.id === seriesId);
+                  if (series && series.episodeOrder.length > 0) {
+                    setSelectedProjectId(series.episodeOrder[0]);
+                  }
+                } else {
+                  // 选择的是单剧
+                  const projectId = value.replace('project-', '');
+                  setSelectedSeriesId('');
+                  setSelectedProjectId(projectId);
+                }
+              }}
               placeholder={loadingProjects ? '加载项目...' : '选择项目'}
-              disabled={loadingProjects || allProjects.length === 0}
+              disabled={loadingProjects}
             />
+
+            {/* 集数选择器（仅在选择连续剧时显示） */}
+            {selectedSeriesId && (
+              <CustomSelect
+                className="md:w-72 w-full"
+                options={(() => {
+                  const series = seriesList.find(s => s.id === selectedSeriesId);
+                  if (!series) return [];
+                  return series.episodeOrder
+                    .map(epId => allProjects.find(p => p.id === epId))
+                    .filter((p): p is ProjectState => p !== undefined)
+                    .map(proj => ({
+                      value: proj.id,
+                      label: `第${proj.episodeNumber || '?'}集 - ${proj.title || '未命名'}`
+                    }));
+                })()}
+                value={selectedProjectId}
+                onChange={setSelectedProjectId}
+                placeholder="选择集数"
+                disabled={loadingProjects}
+              />
+            )}
 
             {/* 搜索框 */}
             <div className="relative flex-1">

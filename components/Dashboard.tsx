@@ -1,6 +1,6 @@
 import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Film, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { createNewSeries, importProjectAsEpisode } from '../services/seriesService';
+import { importProjectAsEpisode } from '../services/seriesService';
 import {
   createNewProjectState,
   deleteProjectFromDB,
@@ -16,8 +16,10 @@ import {
 import { ProjectState, SeriesRecord } from '../types';
 import ApiKeyModal from './ApiKeyModal';
 import { useDialog } from './dialog';
+import CreateTypeDialog from './dialog/CreateTypeDialog';
 import ModalSettings from './ModalSettings';
 import ProjectSettingsModal from './ProjectSettingsModal';
+import SeriesSettingsModal from './SeriesSettingsModal';
 import SyncModal from './SyncModal';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -40,8 +42,11 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showSeriesSettings, setShowSeriesSettings] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [currentProject, setCurrentProject] = useState<ProjectState | null>(null);
+  const [currentSeries, setCurrentSeries] = useState<SeriesRecord | null>(null);
   const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
   
   const loadData = async () => {
@@ -67,21 +72,29 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
 
 
   const handleCreate = () => {
+    setShowCreateDialog(true);
+  };
+
+  const handleCreateStandalone = () => {
+    setShowCreateDialog(false);
     const newProject = createNewProjectState();
     onOpenProject(newProject);
   };
 
-  const handleCreateSeries = async () => {
-    const title = await dialog.prompt({
-      title: '新建剧集',
-      message: '请输入剧集名称：',
-      defaultValue: '未命名剧集'
-    });
-    if (title) {
-      const newSeries = createNewSeries(title);
-      await saveSeriesToDB(newSeries);
-      await loadData();
-    }
+  const handleCreateSeries = () => {
+    setShowCreateDialog(false);
+    setCurrentSeries(null); // 新建模式
+    setShowSeriesSettings(true);
+  };
+
+  const handleEditSeries = (series: SeriesRecord) => {
+    setCurrentSeries(series); // 编辑模式
+    setShowSeriesSettings(true);
+  };
+
+  const handleSaveSeries = async (series: SeriesRecord) => {
+    await saveSeriesToDB(series);
+    await loadData();
   };
 
   const handleCreateSeriesEpisode = async (series: SeriesRecord) => {
@@ -433,17 +446,10 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
           <div className="flex gap-2 md:gap-3 flex-end justify-end flex-wrap">
             <button
               onClick={handleCreate}
-              className="group flex items-center gap-3 px-6 py-3 bg-slate-600/50 text-slate-50 hover:bg-slate-600 transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">新建项目</span>}
-            </button>
-            <button
-              onClick={handleCreateSeries}
               className="group flex items-center gap-3 px-6 py-3 bg-indigo-600/50 text-slate-50 hover:bg-indigo-600 transition-colors cursor-pointer"
             >
-              <Film className="w-4 h-4" />
-              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">新建剧集</span>}
+              <Plus className="w-4 h-4" />
+              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">新建</span>}
             </button>
             <button
               onClick={handleImport}
@@ -486,30 +492,19 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            
+
             {/* Create New Card */}
             {(!isMobile || (standaloneProjects.length + seriesList.length) === 0) && (
-            <>
-              <div 
+              <div
                 onClick={handleCreate}
-                className="group cursor-pointer border border-slate-600 hover:border-slate-300 bg-slate-800 flex flex-col items-center justify-center min-h-[280px] transition-all"
-              >
-                <div className="w-12 h-12 border border-slate-600 flex items-center justify-center mb-6 group-hover:bg-slate-800 transition-colors">
-                  <Plus className="w-5 h-5 text-slate-500 group-hover:text-slate-50" />
-                </div>
-                <span className="text-slate-400 font-mono text-[12px] uppercase tracking-widest group-hover:text-slate-300">新建项目</span>
-              </div>
-              <div 
-                onClick={handleCreateSeries}
                 className="group cursor-pointer border border-indigo-600/50 hover:border-indigo-400 bg-slate-800 flex flex-col items-center justify-center min-h-[280px] transition-all"
               >
                 <div className="w-12 h-12 border border-indigo-600/50 flex items-center justify-center mb-6 group-hover:bg-indigo-900/20 transition-colors">
-                  <Film className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300" />
+                  <Plus className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300" />
                 </div>
-                <span className="text-indigo-400 font-mono text-[12px] uppercase tracking-widest group-hover:text-indigo-300">新建剧集</span>
+                <span className="text-indigo-400 font-mono text-[12px] uppercase tracking-widest group-hover:text-indigo-300">新建</span>
               </div>
-            </>
-          )}
+            )}
 
             {/* Series List */}
             {seriesList.map((series) => (
@@ -556,6 +551,14 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                 {/* Series Content */}
                 <div className="flex-1 px-6 pt-2 relative flex flex-col">
                    <div className='flex flex-row items-center justify-end gap-1'>
+                     {/* Edit Button */}
+                     <button
+                        onClick={(e) => handleEditSeries(series)}
+                        className="group-hover:opacity-100 p-2 hover:bg-indigo-900/30 text-indigo-400 hover:text-indigo-300 transition-all rounded-sm z-10 cursor-pointer"
+                        title="编辑剧集"
+                     >
+                        <Edit className="w-4 h-4" />
+                     </button>
                      {/* Import Episode Button */}
                      <button
                         onClick={(e) => handleImportEpisodeToSeries(e, series)}
@@ -771,7 +774,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                         )}
 
                          {/* 图片预览 */}
-                  <div className="px-2 py-4 border-t border-slate-900 flex gap-1 items-center justify-center">
+                  <div className="px-2 pt-4 border-t border-slate-900 flex gap-1 items-center justify-center">
                     <div className="flex gap-1">
                       {projectPreviewImages.get(proj.id)?.map((imgUrl, idx) => (
                         <div
@@ -791,7 +794,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                   </div>
 
                   <div className="px-6 py-3 border-t border-slate-900 flex items-center justify-between bg-slate-700">
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500/50 font-mono uppercase tracking-widest group-hover:text-slate-50 ">
+                    <div className="flex items-center gap-2 py-1 text-[11px] text-slate-500/50 font-mono uppercase tracking-widest group-hover:text-slate-50 ">
                         <Calendar className="w-3 h-3" />
                         {formatDate(proj.lastModified)}
                     </div>
@@ -828,6 +831,25 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
         onClose={closeProjectSettings}
         project={currentProject}
         updateProject={handleUpdateProject}
+      />
+
+      {/* Series Settings Modal */}
+      <SeriesSettingsModal
+        isOpen={showSeriesSettings}
+        onClose={() => {
+          setShowSeriesSettings(false);
+          setCurrentSeries(null);
+        }}
+        series={currentSeries}
+        onSave={handleSaveSeries}
+      />
+
+      {/* Create Type Dialog */}
+      <CreateTypeDialog
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        onSelectStandalone={handleCreateStandalone}
+        onSelectSeries={handleCreateSeries}
       />
     </div>
   );

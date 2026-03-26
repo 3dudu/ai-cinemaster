@@ -17,12 +17,39 @@ interface Props {
   project: ProjectState;
   updateProject: (updates: Partial<ProjectState>) => void;
   isMobile: boolean;
-  effectiveCharacters?: Character[];
-  effectiveScenes?: Scene[];
 }
 
-const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false, effectiveCharacters, effectiveScenes  }) => {
+const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false }) => {
   const dialog = useDialog();
+  
+  // Internal merge logic for series mode
+  const isSeriesMode = !!project.seriesRefId;
+  const activeCharacters = project.scriptData?.characters || [];
+  const activeScenes = project.scriptData?.scenes || [];
+
+  // Helper function to get character with full library data (in series mode)
+  const getCharacterWithAssets = (charId: string): Character | null => {
+    const char = activeCharacters.find(c => String(c.id) === String(charId));
+    if (!char) return null;
+    // In standalone mode, return character directly
+    if (!isSeriesMode || !char.refId) return char;
+    
+    // In series mode, we need library data but don't have series reference here
+    // For now, return the lightweight character with what we have
+    return char;
+  };
+
+  // Helper function to get scene with full library data (in series mode)
+  const getSceneWithAssets = (sceneId: string): Scene | null => {
+    const scene = activeScenes.find(s => String(s.id) === String(sceneId));
+    if (!scene) return null;
+    // In standalone mode, return scene directly
+    if (!isSeriesMode || !scene.refId) return scene;
+    
+    // In series mode, we need library data but don't have series reference here
+    // For now, return the lightweight scene with what we have
+    return scene;
+  };
   const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
@@ -229,7 +256,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
-            const char = (effectiveCharacters || project.scriptData?.characters || []).find(c => String(c.name) === String(charId));
+            const char = activeCharacters.find(c => String(c.name) === String(charId));
             if (!char) return;
 
             // Check if a specific variation is selected for this shot
@@ -264,7 +291,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
-            const char = (effectiveCharacters || project.scriptData?.characters || []).find(c => String(c.name) === String(charId));
+            const char = activeCharacters.find(c => String(c.name) === String(charId));
             if (!char) return;
 
             // Check if a specific variation is selected for this shot
@@ -1247,7 +1274,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       <div className="flex-1 overflow-hidden flex">
           {/* Grid View - Responsive Logic */}
           <div className={`flex-1 overflow-y-auto transition-all duration-500 ease-in-out ${activeShotId && isMobile?'hidden':''}`}>
-                  {(effectiveScenes || project.scriptData?.scenes || []).map((scene, index) => {
+                  {activeScenes.map((scene, index) => {
                     const sceneShots = project.shots.filter(s => s.sceneId === scene.id);
                 return (
                   <div key={scene.id}>
@@ -2023,7 +2050,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           {editingShotId && (
             <ShotEditModal
               shot={project.shots.find(s => s.id === editingShotId)!}
-              characters={effectiveCharacters || project.scriptData?.characters || []}
+              characters={activeCharacters}
               onSave={saveShot}
               onClose={() => setEditingShotId(null)}
               imageCount={project.imageCount}

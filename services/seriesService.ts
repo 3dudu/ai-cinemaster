@@ -2,13 +2,33 @@ import { Character, ProjectState, Scene, ScriptData, SeriesRecord, Shot } from '
 
 // ==================== Series Creation ====================
 
-export const createNewSeries = (title: string): SeriesRecord => {
+export const createNewSeries = (title: string, options?: {
+  rawScript?: string;
+  targetDuration?: string;
+  language?: string;
+  visualStyle?: string;
+  genre?: string;
+  imageSize?: string;
+  imageCount?: number;
+}): SeriesRecord => {
   const id = 'series_' + Date.now().toString(36);
   return {
     id,
     title: title || '未命名剧集',
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    rawScript: options?.rawScript || `标题：示例剧本`,
+    targetDuration: options?.targetDuration || '60s',
+    language: options?.language || '中文',
+    visualStyle: options?.visualStyle || '真人写实',
+    genre: options?.genre || '剧情片',
+    imageSize: options?.imageSize || '2560x1440',
+    imageCount: options?.imageCount ?? 1,
+    modelProviders: {
+      llm: undefined,
+      text2image: undefined,
+      image2video: undefined,
+    },
     library: {
       characters: [],
       scenes: []
@@ -239,6 +259,36 @@ export const createLightweightScenes = (
   });
 };
 
+/**
+ * Create a character reference from library character for episode
+ * Used when adding a character to an episode from the library
+ */
+export const createCharacterRef = (libraryChar: Character): Character => ({
+  id: `char-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+  refId: libraryChar.id,
+  name: libraryChar.name,
+  gender: libraryChar.gender,
+  age: '',
+  personality: '',
+  visualPrompt: '',
+  referenceImage: '',
+  variations: []
+});
+
+/**
+ * Create a scene reference from library scene for episode
+ * Used when adding a scene to an episode from the library
+ */
+export const createSceneRef = (libraryScene: Scene): Scene => ({
+  id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+  refId: libraryScene.id,
+  location: libraryScene.location,
+  time: libraryScene.time,
+  atmosphere: libraryScene.atmosphere,
+  visualPrompt: '',
+  referenceImage: ''
+});
+
 // ==================== Library Update Functions ====================
 
 /**
@@ -276,14 +326,102 @@ export const updateLibraryScene = (
 ): SeriesRecord => {
   const newLibrary = { ...series.library };
   const sceneIndex = newLibrary.scenes.findIndex(s => s.id === sceneId);
-  
+
   if (sceneIndex >= 0) {
     newLibrary.scenes[sceneIndex] = {
       ...newLibrary.scenes[sceneIndex],
       ...updates
     };
   }
-  
+
+  return {
+    ...series,
+    library: newLibrary,
+    updatedAt: Date.now()
+  };
+};
+
+// ==================== Library Add/Delete Functions ====================
+
+/**
+ * Add a character to the series library
+ */
+export const addLibraryCharacter = (
+  series: SeriesRecord,
+  character: Character
+): SeriesRecord => {
+  // Generate library ID if not exists
+  const libraryChar = {
+    ...character,
+    id: character.id.startsWith('char_lib_') ? character.id : `char_lib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  };
+
+  return {
+    ...series,
+    library: {
+      ...series.library,
+      characters: [...series.library.characters, libraryChar]
+    },
+    updatedAt: Date.now()
+  };
+};
+
+/**
+ * Add a scene to the series library
+ */
+export const addLibraryScene = (
+  series: SeriesRecord,
+  scene: Scene
+): SeriesRecord => {
+  // Generate library ID if not exists
+  const libraryScene = {
+    ...scene,
+    id: scene.id.startsWith('scene_lib_') ? scene.id : `scene_lib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  };
+
+  return {
+    ...series,
+    library: {
+      ...series.library,
+      scenes: [...series.library.scenes, libraryScene]
+    },
+    updatedAt: Date.now()
+  };
+};
+
+/**
+ * Delete a character from the series library
+ * Also removes references from all episodes
+ */
+export const deleteLibraryCharacter = (
+  series: SeriesRecord,
+  charId: string
+): SeriesRecord => {
+  const newLibrary = {
+    characters: series.library.characters.filter(c => c.id !== charId),
+    scenes: series.library.scenes
+  };
+
+  return {
+    ...series,
+    library: newLibrary,
+    updatedAt: Date.now()
+  };
+};
+
+/**
+ * Delete a scene from the series library
+ * Also removes references from all episodes
+ */
+export const deleteLibraryScene = (
+  series: SeriesRecord,
+  sceneId: string
+): SeriesRecord => {
+  const newLibrary = {
+    characters: series.library.characters,
+    scenes: series.library.scenes.filter(s => s.id !== sceneId)
+  };
+
   return {
     ...series,
     library: newLibrary,

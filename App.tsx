@@ -37,18 +37,6 @@ function App() {
     return !!series && !!project?.seriesRefId;
   }, [series, project]);
 
-  // Get effective characters (merged from library in series mode)
-  const effectiveCharacters = useMemo<Character[]>(() => {
-    if (!project) return [];
-    return getEffectiveCharacters(project, series);
-  }, [project, series]);
-
-  // Get effective scenes (merged from library in series mode)
-  const effectiveScenes = useMemo<Scene[]>(() => {
-    if (!project) return [];
-    return getEffectiveScenes(project, series);
-  }, [project, series]);
-
   // Load API Key from localStorage on mount
   useEffect(() => {
     const storedKey = localStorage.getItem('cinegen_api_key');
@@ -199,8 +187,6 @@ function App() {
             isMobile={isMobile}
             series={series}
             updateSeries={updateSeries}
-            effectiveCharacters={effectiveCharacters}
-            effectiveScenes={effectiveScenes}
           />
         );
       case 'assets':
@@ -210,9 +196,6 @@ function App() {
             updateProject={updateProject}
             series={series}
             updateSeries={updateSeries}
-            isSeriesMode={isSeriesMode}
-            effectiveCharacters={effectiveCharacters}
-            effectiveScenes={effectiveScenes}
           />
         );
       case 'director':
@@ -221,8 +204,6 @@ function App() {
             project={project} 
             updateProject={updateProject} 
             isMobile={isMobile}
-            effectiveCharacters={effectiveCharacters}
-            effectiveScenes={effectiveScenes}
           />
         );
       case 'export':
@@ -307,6 +288,7 @@ function App() {
             onSeriesUpdate={setSeries}
             onSwitchEpisode={handleOpenProject}
             allProjects={allProjects}
+            onProjectsUpdate={setAllProjects}
             isMobile={isMobile}
           />
         )}

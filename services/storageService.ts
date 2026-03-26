@@ -516,7 +516,15 @@ export const deleteProjectMediaHistory = async (projectId: string): Promise<void
 };
 
 // Initial template for new projects
-export const createNewProjectState = (): ProjectState => {
+export const createNewProjectState = (seriesDefaults?: {
+  targetDuration?: string;
+  language?: string;
+  genre?: string;
+  visualStyle?: string;
+  imageSize?: string;
+  imageCount?: number;
+  rawScript?: string;
+}): ProjectState => {
   const id = 'proj_' + Date.now().toString(36);
   return {
     id,
@@ -525,13 +533,13 @@ export const createNewProjectState = (): ProjectState => {
     createdAt: Date.now(),
     lastModified: Date.now(),
     stage: 'script',
-    targetDuration: '60s', // Default duration now 60s
-    language: '中文', // Default language
-    genre: '剧情片',
-    visualStyle: '真人写实',
-    imageSize: '2560x1440', // Default image size (vertical)
-    imageCount: 1, // Default image count (1 image per generation)
-    rawScript: `标题：示例剧本
+    targetDuration: seriesDefaults?.targetDuration || '60s', // Default duration now 60s
+    language: seriesDefaults?.language || '中文', // Default language
+    genre: seriesDefaults?.genre || '剧情片',
+    visualStyle: seriesDefaults?.visualStyle || '真人写实',
+    imageSize: seriesDefaults?.imageSize || '2560x1440', // Default image size (vertical)
+    imageCount: seriesDefaults?.imageCount ?? 1, // Default image count (1 image per generation)
+    rawScript: seriesDefaults?.rawScript || `标题：示例剧本
 
 场景 1
 外景。夜晚街道 - 雨夜
