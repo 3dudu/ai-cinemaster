@@ -1,6 +1,6 @@
 import { ArrowRight, Calendar, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { importProjectAsEpisode } from '../services/seriesService';
+import { createSeriesEpisode, importProjectAsEpisode } from '../services/seriesService';
 import { getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../services/storageService';
 import { ProjectState, SeriesRecord } from '../types';
 import { useDialog } from './dialog';
@@ -138,25 +138,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
 
   // Handle create new episode
   const handleCreateEpisode = async () => {
-    const newProject: ProjectState = {
-      id: 'proj_' + Date.now().toString(36),
-      title: `${series.title} - 第${episodes.length + 1}集`,
-      stage: 'script',
-      shots: [],
-      createdAt: Date.now(),
-      lastModified: Date.now(),
-      seriesRefId: series.id,
-      // Inherit properties from series
-      targetDuration: series.targetDuration || '60s',
-      language: series.language || '中文',
-      genre: series.genre || '剧情片',
-      visualStyle: series.visualStyle || '真人写实',
-      imageSize: series.imageSize || '2560x1440',
-      imageCount: series.imageCount ?? 1,
-      scriptData: null,
-      isParsingScript: false,
-      rawScript: series.rawScript || `标题：示例剧本`
-    };
+    const newProject = createSeriesEpisode(series);
 
     const updatedSeries: SeriesRecord = {
       ...series,
@@ -215,6 +197,15 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
 
   // Handle open episode
   const handleOpenEpisode = (proj: ProjectState) => {
+    if(series.currentEpisodeId !== proj.id){
+      const updatedSeries: SeriesRecord = {
+        ...series,
+        currentEpisodeId: proj.id
+      };
+  
+      saveSeriesToDB(updatedSeries);
+      onSeriesUpdate(updatedSeries);
+    }
     onSwitchEpisode(proj);
     onClose();
   };
@@ -251,7 +242,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
           {/* New Episode Card */}
           <button
             onClick={handleCreateEpisode}
-            className="group flex flex-col items-center justify-center min-h-[200px] border-2 border-dashed border-slate-600 hover:border-indigo-500 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl transition-all"
+            className="group flex flex-col items-center justify-center md:min-h-[200px] p-4 border-2 border-dashed border-slate-600 hover:border-indigo-500 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl transition-all"
           >
             <div className="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center mb-3 group-hover:bg-indigo-600/20 group-hover:scale-110 transition-all">
               <Plus className="w-6 h-6 text-slate-400 group-hover:text-indigo-400" />
@@ -269,7 +260,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
               <div
                 key={ep.id}
                 onClick={() => handleOpenEpisode(ep)}
-                className={`group relative bg-slate-800 border rounded-xl overflow-hidden transition-all hover:border-indigo-500/50 cursor-pointer ${
+                className={`group relative bg-slate-800 border rounded-xl overflow-hidden transition-all hover:border-indigo-500/50 cursor-pointer flex flex-col h-full ${
                   isDeleting ? 'border-red-500/50' : 'border-slate-600'
                 }`}
               >
@@ -279,19 +270,19 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                     <p className="text-slate-50 text-sm font-medium">删除此分集?</p>
                     <div className="flex gap-2 w-full">
                       <button
-                        onClick={() => setDeleteConfirmId(null)}
+                        onClick={(e) => {setDeleteConfirmId(null);e.stopPropagation()}}
                         className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded-lg"
                       >
                         取消
                       </button>
                       <button
-                        onClick={() => handleDeleteEpisode(ep.id, false)}
+                        onClick={(e) => {handleDeleteEpisode(ep.id, false);e.stopPropagation()}}
                         className="flex-1 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 text-xs rounded-lg"
                       >
                         保留
                       </button>
                       <button
-                        onClick={() => handleDeleteEpisode(ep.id, true)}
+                        onClick={(e) => {handleDeleteEpisode(ep.id, true);e.stopPropagation()}}
                         className="flex-1 py-2 bg-red-600/50 hover:bg-red-600/70 text-red-100 text-xs rounded-lg"
                       >
                         删除
@@ -301,7 +292,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                 )}
 
                 {/* Card Header */}
-                <div className="p-4 pb-2">
+                <div className="p-4 pb-2 flex-1 flex flex-col">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-mono text-indigo-400 bg-indigo-900/30 px-2 py-0.5 rounded">
@@ -357,10 +348,11 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
 
                 {/* Card Footer */}
                 <div className="px-4 py-2 bg-slate-700/30 border-t border-slate-700/50 flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <div className="flex items-center gap-1 text-xs text-slate-500 py-1.5">
                     <Calendar className="w-3 h-3" />
                     {formatDate(ep.lastModified)}
                   </div>
+                  {series.currentEpisodeId != ep.id && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(ep.id); }}
                     className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-600/20 text-slate-500 hover:text-red-400 rounded-lg transition-all relative z-20"
@@ -368,6 +360,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
+                  )}
                 </div>
               </div>
             );
@@ -376,8 +369,8 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-slate-700 flex justify-between items-center text-sm text-slate-400 bg-slate-600/80">
-        <div className="flex items-center gap-4">
+      <div className="p-2 md:p-4 border-t border-slate-700 flex flex-col md:flex-row justify-between items-center text-sm text-slate-400 bg-slate-600/80">
+        <div className="flex items-center gap-4 pb-2">
           <span className="text-slate-400">
             角色库: <span className="text-slate-200 font-mono">{series.library.characters.length}</span>
           </span>
@@ -413,16 +406,16 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
         </div>
       </div>
     </div>
+{/* Series Settings Modal */}
+<SeriesSettingsModal
+  isOpen={showSettingsModal}
+  onClose={() => setShowSettingsModal(false)}
+  series={series}
+  onSave={handleSaveSeriesSettings}
+/>
     </div>
 );
 
-      {/* Series Settings Modal */}
-      <SeriesSettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        series={series}
-        onSave={handleSaveSeriesSettings}
-      />
 };
 
 export default SeriesManagerModal;

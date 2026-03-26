@@ -170,6 +170,7 @@ export interface SeriesRecord {
   };
   library: SeriesLibrary;
   episodeOrder: string[]; // Array of ProjectState.id in order
+  currentEpisodeId: string;
   version: 1;
 }
 

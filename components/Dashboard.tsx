@@ -1,6 +1,6 @@
 import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Film, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { importProjectAsEpisode } from '../services/seriesService';
+import { createSeriesEpisode, importProjectAsEpisode } from '../services/seriesService';
 import {
   createNewProjectState,
   deleteProjectFromDB,
@@ -98,9 +98,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   };
 
   const handleCreateSeriesEpisode = async (series: SeriesRecord) => {
-    const newProject = createNewProjectState();
-    newProject.seriesRefId = series.id;
-    newProject.title = `${series.title} - 第${series.episodeOrder.length + 1}集`;
+    const newProject = createSeriesEpisode(series);
     await saveProjectToDB(newProject);
     
     // Add episode to series
@@ -508,10 +506,22 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
 
             {/* Series List */}
             {seriesList.map((series) => (
-              <div 
-                key={series.id}
-                className="group bg-indigo-950/30 border border-indigo-600/50 hover:border-indigo-400 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
-              >
+                <div 
+                  key={series.id}
+                  className="group bg-indigo-950/30 border border-indigo-600/50 hover:border-indigo-400 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
+                  onClick={() => {
+                    if (series.currentEpisodeId) {
+                      const episode = projects.find(p => p.id === series.currentEpisodeId);
+                      if (episode) {
+                        onOpenProject(episode);
+                      }else{
+                        const firstEpisode = series.episodeOrder[0];
+                        const episode = projects.find(p => p.id === firstEpisode);
+                        onOpenProject(episode);
+                      }
+                    }
+                  }}
+                >
                 {/* Delete Confirmation Overlay */}
                 {deleteConfirmSeriesId === series.id && (
                   <div 
@@ -597,18 +607,6 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                       </div>
                       {/* Episode Preview */}
                       <div className="mt-3 flex flex-wrap gap-1">
-                        {getSeriesEpisodes(series.id).slice(0, 4).map((ep, idx) => (
-                          <button
-                            key={ep.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenProject(ep);
-                            }}
-                            className="text-[10px] px-2 py-1 bg-indigo-900/30 border border-indigo-600/30 text-indigo-300 hover:bg-indigo-900/50 transition-colors"
-                          >
-                            EP{idx + 1}
-                          </button>
-                        ))}
                         {series.episodeOrder.length === 0 && (
                           <button
                             onClick={(e) => {

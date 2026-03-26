@@ -1280,7 +1280,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   <div key={scene.id}>
  <div className={`md:px-6 px-2 sticky top-0 z-10 flex bg-slate-900 items-center gap-2 border-b border-slate-600 py-2`}>
                     <MapPin className="w-4 h-4 text-slate-500" />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">场景{scene.id}：{scene?.location || '未知场景'}
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">场景：{scene?.location || '未知场景'}
                     </span>
                     <button
                     onClick={() => setEditingSceneInMain(scene!)}

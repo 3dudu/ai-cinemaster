@@ -2,16 +2,17 @@ import { Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
+import { createNewSeries } from '../services/seriesService';
 import { getAllModelConfigs } from '../services/storageService';
 import { SeriesRecord } from '../types';
 import CustomSelect from './CustomSelect';
 import {
   DURATION_OPTIONS,
-  LANGUAGE_OPTIONS,
-  STYLE_OPTIONS,
-  IMAGE_SIZE_OPTIONS,
+  GENRE_OPTIONS,
   IMAGE_COUNT_OPTIONS,
-  GENRE_OPTIONS
+  IMAGE_SIZE_OPTIONS,
+  LANGUAGE_OPTIONS,
+  STYLE_OPTIONS
 } from './ProjectSettingsModal';
 
 interface SeriesSettingsModalProps {
@@ -143,7 +144,6 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
       });
     } else {
       // 新建模式 - 创建新 Series
-      const { createNewSeries } = require('../services/seriesService');
       const newSeries = createNewSeries(localTitle, {
         targetDuration: finalDuration,
         language: localLanguage,
@@ -266,7 +266,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
 
           {/* Duration Selection */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">目标时长</label>
+            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">每集时长</label>
             <div className="grid grid-cols-2 gap-2">
               {DURATION_OPTIONS.map((opt) => (
                 <button

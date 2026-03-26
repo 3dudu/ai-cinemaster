@@ -24,6 +24,7 @@ export const createNewSeries = (title: string, options?: {
     genre: options?.genre || '剧情片',
     imageSize: options?.imageSize || '2560x1440',
     imageCount: options?.imageCount ?? 1,
+    currentEpisodeId: '',
     modelProviders: {
       llm: undefined,
       text2image: undefined,
@@ -35,6 +36,30 @@ export const createNewSeries = (title: string, options?: {
     },
     episodeOrder: [],
     version: 1
+  };
+};
+/**
+ * Create a new episode for a series
+ */
+export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
+  return {
+    id: 'proj_' + Date.now().toString(36),
+    title: `${series.title} - 第${series.episodeOrder.length + 1}集`,
+    stage: 'script',
+    shots: [],
+    createdAt: Date.now(),
+    lastModified: Date.now(),
+    seriesRefId: series.id,
+    // Inherit properties from series
+    targetDuration: series.targetDuration || '60s',
+    language: series.language || '中文',
+    genre: series.genre || '剧情片',
+    visualStyle: series.visualStyle || '真人写实',
+    imageSize: series.imageSize || '2560x1440',
+    imageCount: series.imageCount ?? 1,
+    scriptData: null,
+    isParsingScript: false,
+    rawScript: series.rawScript || `标题：示例剧本`
   };
 };
 

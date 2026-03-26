@@ -13,9 +13,8 @@ import StageImage from './components/StageImage';
 import StageScript from './components/StageScript';
 import { initializeCozeConfig } from './services/modelproviders/cozeService';
 import { ModelService } from './services/modelService';
-import { getEffectiveCharacters, getEffectiveScenes } from './services/seriesService';
 import { getAllProjectsMetadata, loadSeriesFromDB, saveProjectToDB, saveSeriesToDB } from './services/storageService';
-import { Character, ProjectState, Scene, SeriesRecord } from './types';
+import { ProjectState, SeriesRecord } from './types';
 
 function App() {
   const [project, setProject] = useState<ProjectState | null>(null);
@@ -168,7 +167,13 @@ function App() {
     }
     // Save series if in series mode
     if (series) {
-        await saveSeriesToDB(series);
+        // Update currentEpisodeId before saving
+        if (project?.seriesRefId === series.id) {
+            const updatedSeries = { ...series, currentEpisodeId: project.id };
+            await saveSeriesToDB(updatedSeries);
+        } else {
+            await saveSeriesToDB(series);
+        }
     }
     // 清除项目供应商配置
     ModelService.setCurrentProjectProviders(null);
