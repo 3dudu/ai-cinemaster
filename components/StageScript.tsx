@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
 import { getAllModelConfigs } from '../services/storageService';
-import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '../services/seriesService';
+import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs, mergeCharactersToLibrary, mergeScenesToLibrary, createCharacterRef, createSceneRef, updateLibraryCharacter } from '../services/seriesService';
 import { Character, ProjectState, Scene, SeriesRecord } from '../types';
 import CustomSelect from './CustomSelect';
 import { useDialog } from './dialog';
@@ -216,26 +216,70 @@ const StageScript: React.FC<Props> = ({
         characters: updatedCharacters
       }
     });
+    // 连续剧模式：同步更新到 library
+    if (series && updateSeries) {
+      const updatedChar = updatedCharacters.find(c => c.id === editingCharacterId);
+      if (updatedChar?.refId) {
+        const updatedSeries = updateLibraryCharacter(series, updatedChar.refId, {
+          name: updatedChar.name,
+          gender: updatedChar.gender,
+          age: updatedChar.age,
+          personality: updatedChar.personality
+        });
+        updateSeries(updatedSeries);
+      }
+    }
     setEditingCharacterId(null);
     setTempCharacter({});
   };
 
   const addCharacter = () => {
     if (!project.scriptData || !tempCharacter.name) return;
-    const newCharacter: Character = {
-      id: `char-${Date.now()}`,
-      name: tempCharacter.name,
-      gender: tempCharacter.gender || '未知',
-      age: tempCharacter.age || '未知',
-      personality: tempCharacter.personality || '',
-      variations: []
-    };
-    updateProject({
-      scriptData: {
-        ...project.scriptData,
-        characters: [...project.scriptData.characters, newCharacter]
+
+    if (series && updateSeries) {
+      // 连续剧模式：先合并到 library（自动去重），再创建引用
+      const newChar: Character = {
+        id: `char-${Date.now()}`,
+        name: tempCharacter.name,
+        gender: tempCharacter.gender || '未知',
+        age: tempCharacter.age || '未知',
+        personality: tempCharacter.personality || '',
+        variations: []
+      };
+
+      const { updatedSeries, charIdMapping } = mergeCharactersToLibrary(series, [newChar]);
+      const libraryCharId = charIdMapping.get(newChar.id);
+
+      if (libraryCharId) {
+        const libraryChar = updatedSeries.library.characters.find(c => c.id === libraryCharId)!;
+        const episodeRef = createCharacterRef(libraryChar);
+
+        updateSeries(updatedSeries);
+        updateProject({
+          scriptData: {
+            ...project.scriptData,
+            characters: [...project.scriptData.characters, episodeRef]
+          }
+        });
       }
-    });
+    } else {
+      // 独立模式：直接添加到项目
+      const newCharacter: Character = {
+        id: `char-${Date.now()}`,
+        name: tempCharacter.name,
+        gender: tempCharacter.gender || '未知',
+        age: tempCharacter.age || '未知',
+        personality: tempCharacter.personality || '',
+        variations: []
+      };
+      updateProject({
+        scriptData: {
+          ...project.scriptData,
+          characters: [...project.scriptData.characters, newCharacter]
+        }
+      });
+    }
+
     setShowAddCharacter(false);
     setTempCharacter({});
   };
@@ -296,18 +340,47 @@ const StageScript: React.FC<Props> = ({
 
   const addScene = () => {
     if (!project.scriptData || !tempScene.location) return;
-    const newScene: Scene = {
-      id: `scene-${Date.now()}`,
-      location: tempScene.location,
-      time: tempScene.time || '日间',
-      atmosphere: tempScene.atmosphere || ''
-    };
-    updateProject({
-      scriptData: {
-        ...project.scriptData,
-        scenes: [...project.scriptData.scenes, newScene]
+
+    if (series && updateSeries) {
+      // 连续剧模式：先合并到 library（自动去重），再创建引用
+      const newScene: Scene = {
+        id: `scene-${Date.now()}`,
+        location: tempScene.location,
+        time: tempScene.time || '日间',
+        atmosphere: tempScene.atmosphere || ''
+      };
+
+      const { updatedSeries, sceneIdMapping } = mergeScenesToLibrary(series, [newScene]);
+      const librarySceneId = sceneIdMapping.get(newScene.id);
+
+      if (librarySceneId) {
+        const libraryScene = updatedSeries.library.scenes.find(s => s.id === librarySceneId)!;
+        const episodeRef = createSceneRef(libraryScene);
+
+        updateSeries(updatedSeries);
+        updateProject({
+          scriptData: {
+            ...project.scriptData,
+            scenes: [...project.scriptData.scenes, episodeRef]
+          }
+        });
       }
-    });
+    } else {
+      // 独立模式：直接添加到项目
+      const newScene: Scene = {
+        id: `scene-${Date.now()}`,
+        location: tempScene.location,
+        time: tempScene.time || '日间',
+        atmosphere: tempScene.atmosphere || ''
+      };
+      updateProject({
+        scriptData: {
+          ...project.scriptData,
+          scenes: [...project.scriptData.scenes, newScene]
+        }
+      });
+    }
+
     setShowAddScene(false);
     setTempScene({});
   };
