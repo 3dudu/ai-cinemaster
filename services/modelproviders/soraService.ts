@@ -138,8 +138,7 @@ export async function generateVideo(
     const generateResponse = await fetchWithRetry(runtimeApiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${runtimeApiKey}`,
-        'Content-Type': 'multipart/form-data'
+        'Authorization': `Bearer ${runtimeApiKey}`
       },
       body: formData
     }, 1, false);
