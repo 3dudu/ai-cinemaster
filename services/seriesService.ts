@@ -43,7 +43,7 @@ export const createNewSeries = (title: string, options?: {
  */
 export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
   return {
-    id: 'proj_' + Date.now().toString(36),
+    id: 'serie_proj_' + Date.now().toString(36),
     title: `${series.title} - 第${series.episodeOrder.length + 1}集`,
     stage: 'script',
     shots: [],

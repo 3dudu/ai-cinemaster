@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Film, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Film, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload, Video } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createSeriesEpisode, importProjectAsEpisode } from '../services/seriesService';
 import {
@@ -426,6 +426,30 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     return map;
   }, [projects]);
 
+  // 连续剧预览图：从 library.characters + library.scenes 收集图片
+  const seriesPreviewImages = useMemo(() => {
+    const map = new Map<string, string[]>();
+    seriesList.forEach(series => {
+      const images: string[] = [];
+
+      // 收集角色图片
+      series.library.characters.forEach(char => {
+        if (char.referenceImage) images.push(char.referenceImage);
+        char.variations?.forEach(v => {
+          if (v.referenceImage) images.push(v.referenceImage);
+        });
+      });
+
+      // 收集场景图片
+      series.library.scenes.forEach(scene => {
+        if (scene.referenceImage) images.push(scene.referenceImage);
+      });
+
+      map.set(series.id, getRandomImages(images, 4));
+    });
+    return map;
+  }, [seriesList]);
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-300 p-4 pt-2 md:p-12 font-sans">
       <div className="max-w-7xl mx-auto">
@@ -444,7 +468,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
           <div className="flex gap-2 md:gap-3 flex-end justify-end flex-wrap">
             <button
               onClick={handleCreate}
-              className="group flex items-center gap-3 px-6 py-3 bg-indigo-600/50 text-slate-50 hover:bg-indigo-600 transition-colors cursor-pointer"
+              className="group flex items-center gap-3 px-6 py-3 bg-slate-600/50 text-slate-50 hover:bg-slate-600 transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">新建</span>}
@@ -495,12 +519,12 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             {(!isMobile || (standaloneProjects.length + seriesList.length) === 0) && (
               <div
                 onClick={handleCreate}
-                className="group cursor-pointer border border-indigo-600/50 hover:border-indigo-400 bg-slate-800 flex flex-col items-center justify-center min-h-[280px] transition-all"
+                className="group cursor-pointer border border-slate-600/50 hover:border-slate-400 bg-slate-800 flex flex-col items-center justify-center min-h-[280px] transition-all"
               >
-                <div className="w-12 h-12 border border-indigo-600/50 flex items-center justify-center mb-6 group-hover:bg-indigo-900/20 transition-colors">
-                  <Plus className="w-5 h-5 text-indigo-400 group-hover:text-indigo-300" />
+                <div className="w-12 h-12 border border-slate-600/50 flex items-center justify-center mb-6 group-hover:bg-slate-900/20 transition-colors">
+                  <Plus className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
                 </div>
-                <span className="text-indigo-400 font-mono text-[12px] uppercase tracking-widest group-hover:text-indigo-300">新建</span>
+                <span className="text-slate-400 font-mono text-[12px] uppercase tracking-widest group-hover:text-slate-300">新建</span>
               </div>
             )}
 
@@ -508,7 +532,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             {seriesList.map((series) => (
                 <div 
                   key={series.id}
-                  className="group bg-indigo-950/30 border border-indigo-600/50 hover:border-indigo-400 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
+                  className="group bg-slate-800 border border-slate-600 hover:border-slate-300 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
                   onClick={() => {
                     if (series.currentEpisodeId) {
                       const episode = projects.find(p => p.id === series.currentEpisodeId);
@@ -564,7 +588,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      {/* Edit Button */}
                      <button
                         onClick={(e) => handleEditSeries(series)}
-                        className="group-hover:opacity-100 p-2 hover:bg-indigo-900/30 text-indigo-400 hover:text-indigo-300 transition-all rounded-sm z-10 cursor-pointer"
+                        className="group-hover:opacity-100 p-2 hover:bg-slate-900/30 text-slate-400 hover:text-slate-300 transition-all rounded-sm z-10 cursor-pointer"
                         title="编辑剧集"
                      >
                         <Edit className="w-4 h-4" />
@@ -572,7 +596,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      {/* Import Episode Button */}
                      <button
                         onClick={(e) => handleImportEpisodeToSeries(e, series)}
-                        className="group-hover:opacity-100 p-2 hover:bg-indigo-900/30 text-indigo-400 hover:text-indigo-300 transition-all rounded-sm z-10 cursor-pointer"
+                        className="group-hover:opacity-100 p-2 hover:bg-slate-900/30 text-slate-400 hover:text-slate-300 transition-all rounded-sm z-10 cursor-pointer"
                         title="导入单集"
                      >
                         <Upload className="w-4 h-4" />
@@ -580,7 +604,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      {/* Export Button */}
                      <button
                         onClick={(e) => handleExportSeries(e, series)}
-                        className="group-hover:opacity-100 p-2 hover:bg-indigo-900/30 text-indigo-400 hover:text-indigo-300 transition-all rounded-sm z-10 cursor-pointer"
+                        className="group-hover:opacity-100 p-2 hover:bg-slate-900/30 text-slate-400 hover:text-slate-300 transition-all rounded-sm z-10 cursor-pointer"
                         title="导出剧集"
                      >
                         <Download className="w-4 h-4" />
@@ -588,42 +612,43 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      {/* Delete Button */}
                      <button
                         onClick={(e) => requestDeleteSeries(e, series.id)}
-                        className="group-hover:opacity-100 p-2 hover:bg-indigo-900/30 text-indigo-400 hover:text-red-400 transition-all rounded-sm z-10 cursor-pointer"
+                        className="group-hover:opacity-100 p-2 hover:bg-slate-900/30 text-slate-400 hover:text-red-400 transition-all rounded-sm z-10 cursor-pointer"
                         title="删除剧集"
                      >
                         <Trash2 className="w-4 h-4" />
                      </button>
                    </div> 
                    <div className="flex-1">
-                      <h3 className="text-sm font-bold text-indigo-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2">
                         <Film className="w-4 h-4" />
                         {series.title}
                       </h3>
-                      <p className="text-[11px] text-indigo-400/70 font-mono mb-2">
+                      <p className="text-[11px] text-slate-400/70 font-mono mb-2">
                         {series.episodeOrder.length} 集
                       </p>
-                      <div className="text-[12px] text-slate-500 line-clamp-2 leading-relaxed font-mono border-l border-indigo-600/50 pl-2">
+                      <div className="text-[12px] text-slate-500 line-clamp-2 leading-relaxed font-mono border-l border-slate-600/50 pl-2">
                         角色库: {series.library.characters.length} | 场景库: {series.library.scenes.length}
                       </div>
-                      {/* Episode Preview */}
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        {series.episodeOrder.length === 0 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCreateSeriesEpisode(series);
-                            }}
-                            className="text-[10px] px-2 py-1 bg-indigo-900/30 border border-indigo-600/30 text-indigo-300 hover:bg-indigo-900/50 transition-colors flex items-center gap-1"
-                          >
-                            <Plus className="w-3 h-3" /> 添加第一集
-                          </button>
-                        )}
-                      </div>
+                         <div className="px-2 pt-4 border-t border-slate-900 flex gap-1 items-center justify-center">
+                    <div className="flex gap-1">
+                      {seriesPreviewImages.get(series.id)?.map((imgUrl, idx) => (
+                        <div
+                          key={idx}
+                          className="w-14 h-14 bg-slate-900 rounded overflow-hidden flex-shrink-0 border border-slate-600 hover:border-slate-300 transition-colors cursor-pointer group/img"
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Preview ${idx + 1}`}
+                            className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-200"
+                          />
+                        </div>
+                      ))}
+                      </div></div>
                    </div>
                 </div>
 
-                <div className="px-6 py-3 border-t border-indigo-900/30 flex items-center justify-between bg-indigo-950/50">
-                  <div className="flex items-center gap-2 text-[11px] text-indigo-400/50 font-mono uppercase tracking-widest">
+                <div className="px-6 py-3 border-t border-slate-900 flex items-center justify-between bg-slate-700">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400/50 font-mono uppercase tracking-widest">
                       <Calendar className="w-3 h-3" />
                       {formatDate(series.updatedAt)}
                   </div>
@@ -632,7 +657,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                       e.stopPropagation();
                       handleCreateSeriesEpisode(series);
                     }}
-                    className="text-[10px] px-2 py-1 bg-indigo-600/50 text-indigo-200 hover:bg-indigo-600 transition-colors flex items-center gap-1"
+                    className="text-[10px] px-2 py-1 bg-slate-600/50 text-slate-200 hover:bg-slate-600 transition-colors flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" /> 新分集
                   </button>
@@ -745,7 +770,8 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                             </button>
                           </div>
                         ) : (
-                          <h3 className="text-sm font-bold text-slate-50 mb-2 line-clamp-1 tracking-wide">{proj.title}</h3>
+                      <h3 className="text-sm font-bold text-slate-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2">
+                            <Video className="w-4 h-4" />{proj.title}</h3>
                         )}
 
                         <div className="flex flex-wrap gap-2 mb-3">
