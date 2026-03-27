@@ -39,9 +39,9 @@
 
 项目摒弃了传统的"抽卡式"生成，采用 **"Script-to-Asset-to-Keyframe"** 的工业化工作流。通过深度集成多个大模型，实现了对角色一致性、场景连续性以及镜头运动的精准控制。
 
-![界面](./ui.png)
+![界面](./docs/ui.png)
 
-![手机1](./doc/mobile.png)
+![手机1](./docs/mobile.png)
 
 
 [体验站点](https://comic-master.vercel.app/)
