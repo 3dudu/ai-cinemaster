@@ -1,4 +1,4 @@
-import { ProjectState } from '../types';
+import { ProjectState, SeriesRecord } from '../types';
 
 // 获取服务器根地址
 function getServerBaseUrl(): string | null {
@@ -218,5 +218,82 @@ export async function deleteProject(syncKey: string, fileName: string): Promise<
       success: false,
       error: error instanceof Error ? error.message : '删除失败'
     };
+  }
+}
+
+/**
+ * 上传剧集到服务器
+ */
+export async function uploadSeries(series: SeriesRecord, syncKey: string): Promise<SyncResult> {
+  const uploadServiceUrl = getServerBaseUrl();
+  if (!uploadServiceUrl) {
+    return { success: false, error: '未配置服务器地址' };
+  }
+
+  const fileName = `series_${series.id}`;
+  const token = getToken();
+  const serverUrl = new URL(uploadServiceUrl);
+  const baseurl = `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ':' + serverUrl.port : ''}`;
+  const url = `${baseurl}/api/sync/upload/json`;
+
+  try {
+    const response = await fetch(`${url}?token=${encodeURIComponent(token)}&syncKey=${encodeURIComponent(syncKey)}&fileName=${encodeURIComponent(fileName)}`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(series),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { success: true, message: data.message || '上传成功' };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '上传失败'
+    };
+  }
+}
+
+/**
+ * 从服务器下载剧集
+ */
+export async function downloadSeries(syncKey: string, fileName: string): Promise<SeriesRecord> {
+  const serverUrl = getServerBaseUrl();
+  if (!serverUrl) {
+    throw new Error('未配置服务器地址');
+  }
+
+  const token = getToken();
+  const serverUrl2 = new URL(serverUrl);
+  const baseurl = `${serverUrl2.protocol}//${serverUrl2.hostname}${serverUrl2.port ? ':' + serverUrl2.port : ''}`;
+  const url = `${baseurl}/api/sync/download`;
+
+  try {
+    const response = await fetch(`${url}?token=${encodeURIComponent(token)}&syncKey=${encodeURIComponent(syncKey)}&fileName=${encodeURIComponent(fileName)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const result = data.data || data;
+    // 如果 result 是字符串，尝试解析为 JSON 对象
+    if (typeof result === 'string') {
+      return JSON.parse(result);
+    }
+    return result;
+  } catch (error) {
+    throw new Error(error instanceof Error ? error.message : '下载失败');
   }
 }

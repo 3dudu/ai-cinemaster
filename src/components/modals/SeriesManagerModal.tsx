@@ -1,9 +1,10 @@
-import { ArrowRight, Calendar, ChevronLeft, ChevronRight, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Edit3, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { createSeriesEpisode, importProjectAsEpisode } from '../../services/seriesService';
 import { getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
 import { ProjectState, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';
+import ProjectSettingsModal from './ProjectSettingsModal';
 import SeriesSettingsModal from './SeriesSettingsModal';
 
 interface SeriesManagerModalProps {
@@ -31,6 +32,8 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   const [importing, setImporting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showProjectSettingsModal, setShowProjectSettingsModal] = useState(false);
+  const [editingEpisode, setEditingEpisode] = useState<ProjectState | null>(null);
 
   // ✅ Use useCallback to prevent re-creation
   const refreshProjects = useCallback(async () => {
@@ -225,6 +228,26 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     onSeriesUpdate(updatedSeries);
   }, [onSeriesUpdate]);
 
+  // Handle save episode settings - ✅ Use useCallback
+  const handleSaveEpisodeSettings = useCallback((updates: Partial<ProjectState>) => {
+    if (!editingEpisode) return;
+
+    const updatedProject: ProjectState = {
+      ...editingEpisode,
+      ...updates,
+      lastModified: Date.now()
+    };
+
+    saveProjectToDB(updatedProject).then(() => {
+      // Refresh projects list
+      refreshProjects();
+      dialog.toast({ message: '分集设置已保存', type: 'success' });
+    }).catch((error) => {
+      console.error('Failed to save episode settings:', error);
+      dialog.toast({ message: '保存分集设置失败', type: 'error' });
+    });
+  }, [editingEpisode, refreshProjects, dialog]);
+
   if (!isOpen) return null;
 
   return (
@@ -304,19 +327,16 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                 <div className="p-4 pb-2 flex-1 flex flex-col">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2 flex-1">
-                      <span className="text-xs font-mono text-slate-400 bg-slate-900/30 px-2 py-0.5 rounded">
-                        EP{index + 1}
-                      </span>
                       <h3 className="text-sm font-medium text-slate-200 line-clamp-1 flex-1">
                         {ep.title}
                       </h3>
                     </div>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleOpenEpisode(ep); }}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-600/20 text-slate-400 hover:text-slate-400 rounded-lg transition-all relative z-20"
-                    title="打开分集"
+                    onClick={(e) => { e.stopPropagation(); setEditingEpisode(ep); setShowProjectSettingsModal(true); }}
+                    className="p-1.5 hover:bg-slate-600/20 text-slate-400 hover:text-slate-300 rounded-lg transition-all relative z-20"
+                    title="编辑分集信息"
                   >
-                    <ArrowRight className="w-4 h-4" />
+                    <Edit3 className="w-4 h-4" />
                   </button>
                   </div>
 
@@ -434,6 +454,16 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
         </div>
       </div>
     </div>
+{/* Episode (Project) Settings Modal */}
+{editingEpisode && (
+  <ProjectSettingsModal
+    isOpen={showProjectSettingsModal}
+    onClose={() => { setShowProjectSettingsModal(false); setEditingEpisode(null); }}
+    project={editingEpisode}
+    updateProject={handleSaveEpisodeSettings}
+  />
+)}
+
 {/* Series Settings Modal */}
 <SeriesSettingsModal
   isOpen={showSettingsModal}

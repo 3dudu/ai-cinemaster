@@ -1,4 +1,4 @@
-import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderKanban, Github as GithubIcon, Images, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
+import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderOpen, Github as GithubIcon, Images, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import { ThemeToggle } from './common/ThemeToggle';
@@ -84,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
               className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
               title="剧集管理"
               >
-              <FolderKanban className="w-4 h-4" />
+              <FolderOpen className="w-4 h-4" />
             </button>
               </>
             )}
@@ -106,7 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
               className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
               title="剧集管理"
               >
-              <FolderKanban className="w-4 h-4" />
+              <FolderOpen className="w-4 h-4" />
             </button>
           <button
                 onClick={() => setShowProjectSettings(true)}

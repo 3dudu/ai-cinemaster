@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Film, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload, Video } from 'lucide-react';
+import { AlertTriangle, ArrowUpDown, Calendar, ChevronRight, Copy, Download, Edit, Film, FolderOpen, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload, Video } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createSeriesEpisode, generateId, importProjectAsEpisode } from '../services/seriesService';
 import {
@@ -19,6 +19,7 @@ import { useDialog } from './dialog';
 import CreateTypeDialog from './dialog/CreateTypeDialog';
 import ApiKeyModal from './modals/ApiKeyModal';
 import ProjectSettingsModal from './modals/ProjectSettingsModal';
+import SeriesManagerModal from './modals/SeriesManagerModal';
 import SeriesSettingsModal from './modals/SeriesSettingsModal';
 import SyncModal from './modals/SyncModal';
 import ModalSettings from './modals/SystemSettingsModal';
@@ -48,6 +49,8 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   const [currentProject, setCurrentProject] = useState<ProjectState | null>(null);
   const [currentSeries, setCurrentSeries] = useState<SeriesRecord | null>(null);
   const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
+  const [showSeriesManager, setShowSeriesManager] = useState(false);
+  const [managingSeries, setManagingSeries] = useState<SeriesRecord | null>(null);
   // ✅ Use useCallback to prevent re-creation
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -237,16 +240,16 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
     try {
       setImporting(true);
       const result = await importFromFile();
-      
+
       if (result.type === 'standalone' && result.project) {
         // Import single project as episode
         const { updatedProject, updatedSeries } = importProjectAsEpisode(series, result.project);
-        
+
         // Save to DB
         await saveProjectToDB(updatedProject);
         await saveSeriesToDB(updatedSeries);
         await loadData();
-        
+
         dialog.toast({ message: '分集导入成功', type: 'success' });
       } else if (result.type === 'series') {
         dialog.toast({ message: '请选择单个项目文件导入，不支持导入整套剧集', type: 'error' });
@@ -260,6 +263,26 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       setImporting(false);
     }
   }, [loadData, dialog]);
+
+  // Handle open series manager
+  const handleOpenSeriesManager = useCallback((e: React.MouseEvent, series: SeriesRecord) => {
+    e.stopPropagation();
+    setManagingSeries(series);
+    setShowSeriesManager(true);
+  }, []);
+
+  // Handle switch episode from series manager
+  const handleSwitchEpisode = useCallback((project: ProjectState) => {
+    onOpenProject(project);
+  }, [onOpenProject]);
+
+  // Handle series update from series manager
+  const handleSeriesUpdateFromManager = useCallback((updatedSeries: SeriesRecord) => {
+    setSeriesList(prev => prev.map(s => s.id === updatedSeries.id ? updatedSeries : s));
+    if (managingSeries?.id === updatedSeries.id) {
+      setManagingSeries(updatedSeries);
+    }
+  }, [managingSeries]);
 
   const handleDuplicate = useCallback(async (e: React.MouseEvent, proj: ProjectState) => {
     e.stopPropagation();
@@ -594,13 +617,13 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      >
                         <Edit className="w-4 h-4" />
                      </button>
-                     {/* Import Episode Button */}
+                     {/* Series Manager Button */}
                      <button
-                        onClick={(e) => handleImportEpisodeToSeries(e, series)}
+                        onClick={(e) => handleOpenSeriesManager(e, series)}
                         className="group-hover:opacity-100 p-2 hover:bg-slate-900/30 text-slate-400 hover:text-slate-300 transition-all rounded-sm z-10 cursor-pointer"
-                        title="导入单集"
+                        title="剧集管理"
                      >
-                        <Upload className="w-4 h-4" />
+                        <FolderOpen className="w-4 h-4" />
                      </button>
                      {/* Export Button */}
                      <button
@@ -620,10 +643,22 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      </button>
                    </div> 
                    <div className="flex-1">
-                      <h3 className="text-sm font-bold text-slate-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2 group-hover:text-slate-50 ">
                         <Film className="w-4 h-4" />
                         {series.title}
                       </h3>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                            {series.visualStyle && (
+                              <span className="text-[11px] text-green-600 bg-slate-900/50 border border-green-800/50 px-1.5 py-0.5 rounded-full">
+                                {series.visualStyle}
+                              </span>
+                            )}
+                            {series.imageSize && (
+                              <span className="text-[11px] text-pink-600 bg-slate-900/50 border border-pink-800/50 px-1.5 py-0.5 rounded-full font-mono">
+                                {series.imageSize}
+                              </span>
+                            )}
+                        </div>
                       <p className="text-[11px] text-slate-400/70 font-mono mb-2">
                         {series.episodeOrder.length} 集
                       </p>
@@ -649,7 +684,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                 </div>
 
                 <div className="px-6 py-3 border-t border-slate-900 flex items-center justify-between bg-slate-700">
-                  <div className="flex items-center gap-2 text-[11px] text-slate-400/50 font-mono uppercase tracking-widest">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400/50 font-mono uppercase tracking-widest group-hover:text-slate-50">
                       <Calendar className="w-3 h-3" />
                       {formatDate(series.updatedAt)}
                   </div>
@@ -751,30 +786,8 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                       ) : null}
                      </div> 
                      <div className="flex-1">
-                        {editingProjectId === proj.id ? (
-                          <div className="mb-2 flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
-                              onKeyDown={(e) => handleKeyDown(e, proj)}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex-1 bg-slate-900 border border-slate-600 text-slate-50 text-sm px-2 py-1 focus:outline-none focus:border-slate-500"
-                              autoFocus
-                            />
-                            <button
-                              onClick={(e) => saveTitle(e, proj)}
-                              className="p-1.5 hover:bg-slate-800 text-slate-500 hover:text-green-400 transition-all rounded-sm cursor-pointer"
-                              title="保存"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                      <h3 className="text-sm font-bold text-slate-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2 group-hover:text-slate-50">
                             <Video className="w-4 h-4" />{proj.title}</h3>
-                        )}
-
                         <div className="flex flex-wrap gap-2 mb-3">
                             {proj.visualStyle && (
                               <span className="text-[11px] text-green-600 bg-slate-900/50 border border-green-800/50 px-1.5 py-0.5 rounded-full">
@@ -857,6 +870,23 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
         project={currentProject}
         updateProject={handleUpdateProject}
       />
+
+      {/* Series Manager Modal */}
+      {managingSeries && (
+        <SeriesManagerModal
+          isOpen={showSeriesManager}
+          onClose={() => {
+            setShowSeriesManager(false);
+            setManagingSeries(null);
+          }}
+          series={managingSeries}
+          onSeriesUpdate={handleSeriesUpdateFromManager}
+          onSwitchEpisode={handleSwitchEpisode}
+          allProjects={projects}
+          onProjectsUpdate={setProjects}
+          isMobile={isMobile}
+        />
+      )}
 
       {/* Series Settings Modal */}
       <SeriesSettingsModal

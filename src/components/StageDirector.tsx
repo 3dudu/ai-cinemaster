@@ -1119,7 +1119,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   {/* 整行：角色列表 */}
                   <div className="w-full space-y-2">
                     {/* Character List with Variation Selector */}
-                    <div className="flex flex-col gap-2 pt-2">
+                    <div className="flex flex-col grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
                          {contextCharacters.map(char => {
                              const hasVars = char.variations && char.variations.length > 0;
                              const selectedVarId = activeShot.characterVariations?.[char.id];
@@ -1129,7 +1129,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                  <div key={char.id} className="flex items-center justify-between bg-slate-800/50 rounded p-1.5 border border-slate-600">
                                      <div className="flex items-center gap-2">
                                          <div
-                                           className="w-6 h-6 rounded-full bg-slate-700 overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all"
+                                           className="w-16 h-16 rounded-full bg-slate-700 overflow-hidden cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all"
                                            onClick={() => displayImage && setPreviewImageUrl(displayImage)}
                                          >
                                              {displayImage && <img src={displayImage} className="w-full h-full object-cover" />}
@@ -1543,91 +1543,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                            </div>
                        </div>
 
-                       {/* Section 3: Shot Model Providers */}
-                       <div className="space-y-4">
-                           <div className="flex items-center justify-between border-b border-slate-600 pb-2">
-                               <div className="flex items-center gap-2">
-                                   <Sparkles className="w-4 h-4 text-slate-500" />
-                                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">模型供应商</h4>
-                               </div>
-                               <button
-                                   onClick={async () => {
-                                       try {
-                                           const configs = await getAllModelConfigs();
-                                           setModelConfigs(configs);
-                                           //console.log('模型配置已刷新');
-                                       } catch (error) {
-                                           console.error('刷新模型配置失败:', error);
-                                       }
-                                   }}
-                                   className="text-[11px] text-slate-400 hover:text-slate-50 transition-colors flex items-center gap-1 cursor-pointer"
-                                   title="刷新模型配置"
-                               >
-                                   <RefreshCw className="w-3 h-3" />
-                                   <span>刷新</span>
-                               </button>
-                           </div>
-                           <div className="grid grid-cols-2 gap-4">
-                               {/* Text2Image Provider */}
-                               <div className="space-y-2">
-                                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">图像模型</label>
-                                   <CustomSelect
-                                       options={[
-                                           { value: '', label: '使用项目默认' },
-                                           ...modelConfigs
-                                               .filter(c => c.modelType === 'text2image' && c.apiKey)
-                                               .map(config => ({
-                                                   value: config.id,
-                                                   label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
-                                               }))
-                                       ]}
-                                       value={activeShot.modelProviders?.text2image || project.modelProviders?.text2image}
-                                       onChange={(value) => {
-                                           const text2image = value || undefined;
-                                           updateShot(activeShot.id, (s) => ({
-                                               ...s,
-                                               modelProviders: {
-                                                   ...s.modelProviders,
-                                                   text2image
-                                               }
-                                           }));
-                                       }}
-                                       className="w-full"
-                                       size="sm"
-                                   />
-                               </div>
-
-                               {/* Image2Video Provider */}
-                               <div className="space-y-2">
-                                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">视频模型</label>
-                                   <CustomSelect
-                                       options={[
-                                           { value: '', label: '使用项目默认' },
-                                           ...modelConfigs
-                                               .filter(c => c.modelType === 'image2video' && c.apiKey)
-                                               .map(config => ({
-                                                   value: config.id,
-                                                   label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
-                                               }))
-                                       ]}
-                                       value={activeShot.modelProviders?.image2video || project.modelProviders?.image2video}
-                                       onChange={(value) => {
-                                           const image2video = value || undefined;
-                                           updateShot(activeShot.id, (s) => ({
-                                               ...s,
-                                               modelProviders: {
-                                                   ...s.modelProviders,
-                                                   image2video
-                                               }
-                                           }));
-                                       }}
-                                       className="w-full"
-                                       size="sm"
-                                   />
-                               </div>
-                           </div>
-                       </div>
-
                        {/* Section 4: Visual Production */}
                        <div className="space-y-4">
                            <div className="flex items-center justify-between border-b border-slate-600 pb-2">
@@ -1907,7 +1822,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                            )}
                            </div>
 
-                           {/* Section 4: Video Generation */}
+                      {/* Section 4: Video Generation */}
                        <div className="bg-slate-800 rounded-xl p-2 md:p-4 border border-slate-600 space-y-2">
                            <div className="flex items-center justify-between">
                                <h4 className="text-xs font-bold text-slate-50 uppercase tracking-widest flex items-center gap-2">
@@ -1996,6 +1911,92 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                   * 将使用连续图生成模式
                                </div>
                            )}
+                       </div>
+
+
+                       {/* Section 3: Shot Model Providers */}
+                       <div className="space-y-4">
+                           <div className="flex items-center justify-between border-b border-slate-600 pb-2">
+                               <div className="flex items-center gap-2">
+                                   <Sparkles className="w-4 h-4 text-slate-500" />
+                                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">模型供应商</h4>
+                               </div>
+                               <button
+                                   onClick={async () => {
+                                       try {
+                                           const configs = await getAllModelConfigs();
+                                           setModelConfigs(configs);
+                                           //console.log('模型配置已刷新');
+                                       } catch (error) {
+                                           console.error('刷新模型配置失败:', error);
+                                       }
+                                   }}
+                                   className="text-[11px] text-slate-400 hover:text-slate-50 transition-colors flex items-center gap-1 cursor-pointer"
+                                   title="刷新模型配置"
+                               >
+                                   <RefreshCw className="w-3 h-3" />
+                                   <span>刷新</span>
+                               </button>
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                               {/* Text2Image Provider */}
+                               <div className="space-y-2">
+                                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">图像模型</label>
+                                   <CustomSelect
+                                       options={[
+                                           { value: '', label: '使用项目默认' },
+                                           ...modelConfigs
+                                               .filter(c => c.modelType === 'text2image' && c.apiKey)
+                                               .map(config => ({
+                                                   value: config.id,
+                                                   label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                                               }))
+                                       ]}
+                                       value={activeShot.modelProviders?.text2image || project.modelProviders?.text2image}
+                                       onChange={(value) => {
+                                           const text2image = value || undefined;
+                                           updateShot(activeShot.id, (s) => ({
+                                               ...s,
+                                               modelProviders: {
+                                                   ...s.modelProviders,
+                                                   text2image
+                                               }
+                                           }));
+                                       }}
+                                       className="w-full"
+                                       size="sm"
+                                   />
+                               </div>
+
+                               {/* Image2Video Provider */}
+                               <div className="space-y-2">
+                                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">视频模型</label>
+                                   <CustomSelect
+                                       options={[
+                                           { value: '', label: '使用项目默认' },
+                                           ...modelConfigs
+                                               .filter(c => c.modelType === 'image2video' && c.apiKey)
+                                               .map(config => ({
+                                                   value: config.id,
+                                                   label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                                               }))
+                                       ]}
+                                       value={activeShot.modelProviders?.image2video || project.modelProviders?.image2video}
+                                       onChange={(value) => {
+                                           const image2video = value || undefined;
+                                           updateShot(activeShot.id, (s) => ({
+                                               ...s,
+                                               modelProviders: {
+                                                   ...s.modelProviders,
+                                                   image2video
+                                               }
+                                           }));
+                                       }}
+                                       className="w-full"
+                                       size="sm"
+                                   />
+                               </div>
+                           </div>
                        </div>
                   </div>
                            <button
