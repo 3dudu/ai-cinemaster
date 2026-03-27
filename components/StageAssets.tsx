@@ -534,7 +534,7 @@ const StageAssets: React.FC<Props> = ({
               className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
                   allCharactersReady
                     ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
-                    : 'bg-slate-800 text-slate-50 hover:bg-slate-400 shadow-lg shadow-white/5'
+                    : 'bg-slate-800 text-slate-50 hover:bg-slate-400 shadow-lg shadow-white/5 border border-slate-600'
               }`}
             >
               {allCharactersReady ? <RefreshCw className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
@@ -696,7 +696,7 @@ const StageAssets: React.FC<Props> = ({
               className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
                   allScenesReady
                     ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
-                    : 'bg-slate-800 text-slate-50 hover:bg-slate-600 shadow-lg shadow-white/5'
+                    : 'bg-slate-800 text-slate-50 hover:bg-slate-600 shadow-lg shadow-white/5 border border-slate-600'
               }`}
             >
               {allScenesReady ? <RefreshCw className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}

@@ -1,4 +1,4 @@
-import { ArrowRight, Calendar, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
+import { ArrowRight, Calendar, ChevronLeft, ChevronRight, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { createSeriesEpisode, importProjectAsEpisode } from '../../services/seriesService';
 import { getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
@@ -180,6 +180,30 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     }
   }, [series, allProjects, onSeriesUpdate, refreshProjects, dialog]);
 
+  // Handle move episode - ✅ Use useCallback
+  const handleMoveEpisode = useCallback((episodeId: string, direction: 'forward' | 'backward') => {
+    const currentIndex = series.episodeOrder.indexOf(episodeId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'forward' ? currentIndex + 1 : currentIndex - 1;
+    
+    // Check bounds
+    if (newIndex < 0 || newIndex >= series.episodeOrder.length) return;
+
+    // Create new order by swapping episodes
+    const newOrder = [...series.episodeOrder];
+    [newOrder[currentIndex], newOrder[newIndex]] = [newOrder[newIndex], newOrder[currentIndex]];
+
+    const updatedSeries: SeriesRecord = {
+      ...series,
+      episodeOrder: newOrder,
+      updatedAt: Date.now()
+    };
+
+    saveSeriesToDB(updatedSeries);
+    onSeriesUpdate(updatedSeries);
+  }, [series, onSeriesUpdate]);
+
   // Handle open episode - ✅ Use useCallback
   const handleOpenEpisode = useCallback((proj: ProjectState) => {
     if(series.currentEpisodeId !== proj.id){
@@ -227,10 +251,10 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
           {/* New Episode Card */}
           <button
             onClick={handleCreateEpisode}
-            className="group flex flex-col items-center justify-center md:min-h-[200px] p-4 border-2 border-dashed border-slate-600 hover:border-indigo-500 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl transition-all"
+            className="group flex flex-col items-center justify-center md:min-h-[200px] p-4 border-2 border-dashed border-slate-600 hover:border-slate-500 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl transition-all"
           >
-            <div className="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center mb-3 group-hover:bg-indigo-600/20 group-hover:scale-110 transition-all">
-              <Plus className="w-6 h-6 text-slate-400 group-hover:text-indigo-400" />
+            <div className="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center mb-3 group-hover:bg-slate-600/20 group-hover:scale-110 transition-all">
+              <Plus className="w-6 h-6 text-slate-400 group-hover:text-slate-400" />
             </div>
             <span className="text-slate-400 group-hover:text-slate-200 text-sm font-medium">新增分集</span>
           </button>
@@ -245,7 +269,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
               <div
                 key={ep.id}
                 onClick={() => handleOpenEpisode(ep)}
-                className={`group relative bg-slate-800 border rounded-xl overflow-hidden transition-all hover:border-indigo-500/50 cursor-pointer flex flex-col h-full ${
+                className={`group relative bg-slate-800 border rounded-xl overflow-hidden transition-all hover:border-slate-500/50 cursor-pointer flex flex-col h-full ${
                   isDeleting ? 'border-red-500/50' : 'border-slate-600'
                 }`}
               >
@@ -279,8 +303,8 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                 {/* Card Header */}
                 <div className="p-4 pb-2 flex-1 flex flex-col">
                   <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-indigo-400 bg-indigo-900/30 px-2 py-0.5 rounded">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-xs font-mono text-slate-400 bg-slate-900/30 px-2 py-0.5 rounded">
                         EP{index + 1}
                       </span>
                       <h3 className="text-sm font-medium text-slate-200 line-clamp-1 flex-1">
@@ -289,7 +313,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                     </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleOpenEpisode(ep); }}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-400 rounded-lg transition-all relative z-20"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-600/20 text-slate-400 hover:text-slate-400 rounded-lg transition-all relative z-20"
                     title="打开分集"
                   >
                     <ArrowRight className="w-4 h-4" />
@@ -340,12 +364,31 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                   {series.currentEpisodeId != ep.id && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(ep.id); }}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-600/20 text-slate-500 hover:text-red-400 rounded-lg transition-all relative z-20"
+                    className="p-1.5 hover:bg-red-600/20 text-slate-500 hover:text-red-400 rounded-lg transition-all relative z-20"
                     title="删除分集"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                   )}
+                      {/* Move Backward Button */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleMoveEpisode(ep.id, 'backward'); }}
+                        disabled={index === 0}
+                        className="p-1 hover:bg-slate-600/20 text-slate-400 hover:text-slate-300 rounded-lg transition-all disabled:opacity-0 disabled:cursor-not-allowed"
+                        title="向前移动"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      {/* Move Forward Button */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleMoveEpisode(ep.id, 'forward'); }}
+                        disabled={index === episodes.length - 1}
+                        className="p-1 hover:bg-slate-600/20 text-slate-400 hover:text-slate-300 rounded-lg transition-all disabled:opacity-0 disabled:cursor-not-allowed"
+                        title="向后移动"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                 </div>
               </div>
             );
@@ -377,7 +420,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
           <button
             onClick={handleImportEpisode}
             disabled={importing}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600/50 hover:bg-indigo-600 text-indigo-100 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
             导入单集

@@ -71,7 +71,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
           {isSeriesMode && onOpenSeriesManager && (
             <button
               onClick={onOpenSeriesManager}
-              className="text-indigo-400 hover:text-indigo-300 transition-colors p-1"
+              className="text-slate-400 hover:text-slate-300 transition-colors p-1"
               title="剧集管理"
             >
               <FolderKanban className="w-4 h-4" />

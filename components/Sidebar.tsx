@@ -47,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
     <aside className={`${collapsed ? 'w-20' : 'lg:w-72 w-20'} bg-slate-800 border-r border-slate-600 h-full fixed left-0 top-0 flex flex-col z-50 select-none
     shadow-2xl animate-in slide-in-from-right-10 duration-300 transition-all ease-in-out`}>
       {/* Header */}
-      <div className="p-6 border-b border-slate-900">
+      <div className="p-6 border-b border-slate-700">
         {!collapsed ? (
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-slate-700 text-slate-50 flex items-center justify-center flex-shrink-0">
@@ -75,33 +75,50 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
 
       {/* Project Status */}
       {!collapsed ? (
-        <div className="px-6 py-2 border-b border-slate-900">
-           <div className="text-[12px] text-slate-500 uppercase tracking-widest mb-1">
+        <div className="px-6 py-2 border-b border-slate-700">
+           <div className="overflow-hidden pr-2 flex items-center">
+            {isSeriesMode && (<>
             <h1 className="text-[12px] font-bold text-slate-400 line-clamp-1 tracking-wide uppercase">{serieName}</h1>
+            <button
+              onClick={onOpenSeriesManager}
+              className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
+              title="剧集管理"
+              >
+              <FolderKanban className="w-4 h-4" />
+            </button>
+              </>
+            )}
             </div>
-           <div className=" overflow-hidden pr-2 flex items-center">
+           <div className="overflow-hidden pr-2 flex items-center">
              <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide uppercase">{projectName || '未命名项目'}</h1>
            <button
                 onClick={() => setShowProjectSettings(true)}
-                className="text-xs font-bold text-slate-400 hover:text-slate-50 items-center gap-2 px-2 py-2 cursor-pointer"
+              className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
                 >
                 <Edit className="w-4 h-4" />
            </button>
           </div>
         </div>
       ):(
-        <div className="px-6 py-2 border-b border-slate-900 flex items-center flex-col">
+        <div className="px-6 py-2 border-b border-slate-700 flex items-center flex-col">
+          <button
+              onClick={onOpenSeriesManager}
+              className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
+              title="剧集管理"
+              >
+              <FolderKanban className="w-4 h-4" />
+            </button>
           <button
                 onClick={() => setShowProjectSettings(true)}
-                className="text-xs font-bold text-slate-500 hover:text-slate-50 cursor-pointer"
+              className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
                 >
-                <Edit className="w-4 h-4 group-hover:-translate-1 transition-transform" />
+                <Edit className="w-4 h-4" />
            </button>
         </div>
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 py-6 space-y-1">
+      <nav className="flex-1 pb-6 space-y-1">
         {navItems.map((item) => {
           const isActive = currentStage === item.id;
           return (
@@ -129,39 +146,30 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       <div className="p-4 border-t border-slate-900 space-y-2">
         {!collapsed ? (
           <>
-          {isSeriesMode && onOpenSeriesManager && (
-            <button
-              onClick={onOpenSeriesManager}
-              className="flex items-center justify-between text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900/20 cursor-pointer transition-colors w-full px-3 py-2 rounded-lg"
-            >
-              <span className="font-mono text-[12px] uppercase tracking-widest">剧集管理</span>
-              <FolderKanban className="w-4 h-4" />
-            </button>
-          )}
           <button
             onClick={() => setShowImageBrowser(true)}
-            className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
+            className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
           >
               <span className="font-mono text-[12px] uppercase tracking-widest">图片视频库</span>
               <Images className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowPromptTemplates(true)}
-              className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
+              className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
             >
               <span className="font-mono text-[12px] uppercase tracking-widest">提示词模板</span>
               <NotebookPen className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowModelSettings(true)}
-              className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
+              className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
             >
               <span className="font-mono text-[12px] uppercase tracking-widest">模型管理</span>
               <Sparkles className="w-4 h-4" />
             </button>
             <button
               onClick={onOpenSettings}
-              className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-900/30 rounded-lg"
+              className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
             >
               <span className="font-mono text-[12px] uppercase tracking-widest">系统设置</span>
               <Settings className="w-4 h-4" />
@@ -175,7 +183,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
                   href="https://github.com/3dudu/ai-cinemaster/issues"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-slate-500 hover:text-slate-50 transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
+                  className="text-slate-500 hover:text-slate-50 transition-colors p-2 hover:bg-slate-700 rounded-lg"
                   title="GitHub"
                 >
                   <GithubIcon className="w-4 h-4" />
@@ -187,39 +195,30 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
           </>
         ) : (
             <div className="flex flex-col items-center gap-2">
-          {isSeriesMode && onOpenSeriesManager && (
-            <button
-              onClick={onOpenSeriesManager}
-              className="flex justify-center text-indigo-400 hover:text-indigo-300 hover:bg-indigo-900/20 cursor-pointer transition-colors p-2 rounded-lg"
-              title="剧集管理"
-            >
-              <FolderKanban className="w-4 h-4" />
-            </button>
-          )}
           <button
             onClick={() => setShowImageBrowser(true)}
-            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
+            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
             title="图片视频库"
           >
             <Images className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowPromptTemplates(true)}
-            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
+            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
             title="提示词模板"
           >
             <NotebookPen className="w-4 h-4" />
           </button>
           <button
             onClick={() => setShowModelSettings(true)}
-            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
+            className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
             title="模型管理"
           >
             <Sparkles className="w-4 h-4" />
           </button>
           <button
               onClick={onOpenSettings} title="系统设置"
-              className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
+              className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
             >
             <Settings className="w-4 h-4" />
           </button>
@@ -232,7 +231,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
                 href="https://github.com/3dudu/ai-cinemaster/issues"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slate-500 hover:text-slate-50 transition-colors p-2 hover:bg-slate-900/30 rounded-lg"
+                className="text-slate-500 hover:text-slate-50 transition-colors p-2 hover:bg-slate-700 rounded-lg"
                 title="GitHub"
               >
                 <GithubIcon className="w-4 h-4" />

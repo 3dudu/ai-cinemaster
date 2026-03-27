@@ -588,7 +588,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                    <div className='flex flex-row items-center justify-end gap-1'>
                      {/* Edit Button */}
                      <button
-                        onClick={(e) => handleEditSeries(series)}
+                        onClick={(e) => {e.stopPropagation();handleEditSeries(series)}}
                         className="group-hover:opacity-100 p-2 hover:bg-slate-900/30 text-slate-400 hover:text-slate-300 transition-all rounded-sm z-10 cursor-pointer"
                         title="编辑剧集"
                      >

@@ -384,7 +384,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
           </button>
           <button
             onClick={saveSettings}
-            className="flex-1 py-3 bg-indigo-600 text-slate-50 hover:bg-indigo-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-600 text-slate-50 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
           >
             {series ? '保存设置' : '创建剧集'}
           </button>
