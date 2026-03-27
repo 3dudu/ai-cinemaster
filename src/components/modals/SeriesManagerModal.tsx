@@ -1,9 +1,10 @@
-import { Calendar, ChevronLeft, ChevronRight, Download, Edit3, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Download, Edit3, Film, Loader2, Play, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { createSeriesEpisode, getEffectiveScriptData, importProjectAsEpisode } from '../../services/seriesService';
 import { exportProjectToFile, getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
 import { ProjectState, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';
+import EpisodePreviewModal from './EpisodePreviewModal';
 import ProjectSettingsModal from './ProjectSettingsModal';
 import SeriesSettingsModal from './SeriesSettingsModal';
 
@@ -34,6 +35,9 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProjectSettingsModal, setShowProjectSettingsModal] = useState(false);
   const [editingEpisode, setEditingEpisode] = useState<ProjectState | null>(null);
+
+  // Video preview state
+  const [previewingEpisode, setPreviewingEpisode] = useState<ProjectState | null>(null);
 
   // ✅ Use useCallback to prevent re-creation
   const refreshProjects = useCallback(async () => {
@@ -228,6 +232,24 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     dialog.toast({ message: '单集导出成功', type: 'success' });
   }, [series, dialog]);
 
+  // Get video URLs for preview (shots with videoUrl)
+  const getEpisodeVideoUrls = useCallback((ep: ProjectState): string[] => {
+    return ep.shots
+      .filter(shot => shot.interval?.videoUrl)
+      .map(shot => shot.interval!.videoUrl!);
+  }, []);
+
+  // Handle preview episode videos
+  const handlePreviewEpisode = useCallback((ep: ProjectState, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const videoUrls = getEpisodeVideoUrls(ep);
+    if (videoUrls.length === 0) {
+      dialog.toast({ message: '该分集暂无视频', type: 'warning' });
+      return;
+    }
+    setPreviewingEpisode(ep);
+  }, [getEpisodeVideoUrls, dialog]);
+
   // Handle open episode - ✅ Use useCallback
   const handleOpenEpisode = useCallback((proj: ProjectState) => {
     if(series.currentEpisodeId !== proj.id){
@@ -411,6 +433,16 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                   )}
+                      {/* Preview Episode Button */}
+                      <button
+                        onClick={(e) => handlePreviewEpisode(ep, e)}
+                        disabled={getEpisodeVideoUrls(ep).length === 0}
+                        className="p-1 hover:bg-slate-600/20 text-slate-400 hover:text-slate-300 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="预览视频"
+                      >
+                        <Play className="w-4 h-4" />
+                      </button>
+
                       {/* Export Episode Button */}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleExportEpisode(ep); }}
@@ -500,6 +532,13 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   onClose={() => setShowSettingsModal(false)}
   series={series}
   onSave={handleSaveSeriesSettings}
+/>
+
+{/* Video Preview Modal */}
+<EpisodePreviewModal
+  episode={previewingEpisode}
+  isOpen={!!previewingEpisode}
+  onClose={() => setPreviewingEpisode(null)}
 />
     </div>
 );

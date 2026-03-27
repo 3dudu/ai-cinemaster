@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowUpDown, Calendar, ChevronRight, Copy, Download, Edit, Film, FolderOpen, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload, Video } from 'lucide-react';
+import { AlertTriangle, ArrowUpDown, Calendar, ChevronRight, Copy, Download, Edit, Film, FolderOpen, Loader2, Play, Plus, Power, Settings, Sparkles, Trash2, Upload, Video } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createSeriesEpisode, generateId, importProjectAsEpisode } from '../services/seriesService';
 import {
@@ -18,6 +18,7 @@ import { ThemeToggle } from './common/ThemeToggle';
 import { useDialog } from './dialog';
 import CreateTypeDialog from './dialog/CreateTypeDialog';
 import ApiKeyModal from './modals/ApiKeyModal';
+import EpisodePreviewModal from './modals/EpisodePreviewModal';
 import ProjectSettingsModal from './modals/ProjectSettingsModal';
 import SeriesManagerModal from './modals/SeriesManagerModal';
 import SeriesSettingsModal from './modals/SeriesSettingsModal';
@@ -51,6 +52,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
   const [showSeriesManager, setShowSeriesManager] = useState(false);
   const [managingSeries, setManagingSeries] = useState<SeriesRecord | null>(null);
+  const [previewingProject, setPreviewingProject] = useState<ProjectState | null>(null);
   // ✅ Use useCallback to prevent re-creation
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -742,6 +744,16 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                   <div className="flex-1 px-6 pt-2 relative flex flex-col">
                      {/* Edit Button */}
                      <div className='flex flex-row items-center justify-end gap-1'>
+                     {/* Preview Button - only show if project has videos */}
+                     {editingProjectId === null && proj.shots?.some(s => s.interval?.videoUrl) ? (
+                     <button
+                        onClick={(e) => { e.stopPropagation(); setPreviewingProject(proj); }}
+                        className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-slate-400 transition-all rounded-sm z-10 cursor-pointer"
+                        title="预览视频"
+                     >
+                        <Play className="w-4 h-4" />
+                     </button>
+                     ) : null}
                      {editingProjectId !== proj.id ? (
                      <button
                         onClick={(e) => openProjectSettings(e, proj)}
@@ -897,6 +909,13 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
         }}
         series={currentSeries}
         onSave={handleSaveSeries}
+      />
+
+      {/* Video Preview Modal */}
+      <EpisodePreviewModal
+        episode={previewingProject}
+        isOpen={!!previewingProject}
+        onClose={() => setPreviewingProject(null)}
       />
 
       {/* Create Type Dialog */}
