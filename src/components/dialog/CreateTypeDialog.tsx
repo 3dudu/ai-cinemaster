@@ -57,7 +57,7 @@ const CreateTypeDialog: React.FC<CreateTypeDialogProps> = ({
             className="group p-6 bg-indigo-950/50 hover:bg-indigo-900/70 border border-indigo-600/50 hover:border-indigo-500 rounded-xl transition-all cursor-pointer relative"
           >
             <div className="absolute -top-2 -right-2">
-              <span className="px-2 py-0.5 bg-indigo-600 text-[10px] font-bold text-slate-50 rounded-fulltracking-wider">
+              <span className="px-2 py-0.5 bg-indigo-600 text-[10px] font-bold text-slate-50 rounded-full tracking-wider">
                 推荐
               </span>
             </div>

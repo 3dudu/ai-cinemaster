@@ -102,7 +102,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         <div className="space-y-6">
           <div className="max-h-[50vh] overflow-y-auto rounded-lg px-4"> 
            <div>
-             <label className="block text-[12px] font-bold text-slate-500tracking-widest mb-2">
+             <label className="block text-[12px] font-bold text-slate-500 tracking-widest mb-2">
                火山引擎 / 豆包 API Key
              </label>
              <div className="relative">
@@ -145,7 +145,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
              </div>
              {/**
            <div>
-             <label className="block text-[12px] font-bold text-slate-500tracking-widest mb-2 mt-2">
+             <label className="block text-[12px] font-bold text-slate-500 tracking-widest mb-2 mt-2">
                Coze 工作流 ID
              </label>
              <input
@@ -160,7 +160,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
              </p>
            </div>
            <div>
-             <label className="block text-[12px] font-bold text-slate-500tracking-widest mb-2 mt-2">
+             <label className="block text-[12px] font-bold text-slate-500 tracking-widest mb-2 mt-2">
                Coze API Key
              </label>
              <div className="relative">
@@ -197,7 +197,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
 
 
            <div>
-             <label className="block text-[12px] font-bold text-slate-500tracking-widest mb-2 mt-2">
+             <label className="block text-[12px] font-bold text-slate-500 tracking-widest mb-2 mt-2">
                文件上传服务地址
              </label>
              <input
@@ -214,7 +214,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
            </div>
 
            <div>
-             <label className="block text-[12px] font-bold text-slate-500tracking-widest mb-2 mt-2">
+             <label className="block text-[12px] font-bold text-slate-500 tracking-widest mb-2 mt-2">
                文件访问域名
              </label>
              <input
@@ -235,7 +235,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
            <button
              onClick={handleSave}
              disabled={!inputKey.trim()}
-             className="w-full py-3 bg-slate-800 text-slate-300 font-boldtracking-widest text-xs rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+             className="w-full py-3 bg-slate-800 text-slate-300 font-bold tracking-widest text-xs rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
            >
              保存配置 <ArrowRight className="w-3 h-3" />
            </button>

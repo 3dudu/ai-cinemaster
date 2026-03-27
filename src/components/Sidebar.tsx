@@ -54,7 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
               <Aperture className="w-5 h-5" />
             </div>
             <div className="overflow-hidden">
-              <h1 className="text-[16px] font-bold text-slate-50 tracking-wider uppercase">AI漫剧工场</h1>
+              <h1 className="text-[16px] font-bold text-slate-50 tracking-wider">AI漫剧工场</h1>
             </div>
           </div>
         ) : (
@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         )}
         <button
           onClick={onExit}
-          className={`flex ${collapsed ? 'flex-col' : 'flex-row'} cursor-pointer items-center gap-2 hover:scale-110 transition-transform text-slate-500 hover:text-slate-50 transition-colors text-xs font-monotracking-wide group w-full`}
+          className={`flex ${collapsed ? 'flex-col' : 'flex-row'} cursor-pointer items-center gap-2 hover:scale-110 transition-transform text-slate-500 hover:text-slate-50 transition-colors text-xs font-mono tracking-wide group w-full`}
         >
           <ChevronLeft className="w-5 h-5" />
           {!collapsed && <span>返回项目列表</span>}
@@ -78,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         <div className="px-6 py-2 border-b border-slate-700">
            <div className="overflow-hidden pr-2 flex items-center">
             {isSeriesMode && (<>
-            <h1 className="text-[12px] font-bold text-slate-400 line-clamp-1 tracking-wide uppercase">{serieName}</h1>
+            <h1 className="text-[12px] font-bold text-slate-400 line-clamp-1 tracking-wide">{serieName}</h1>
             <button
               onClick={onOpenSeriesManager}
               className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
@@ -90,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             )}
             </div>
            <div className="overflow-hidden pr-2 flex items-center">
-             <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide uppercase">{projectName || '未命名项目'}</h1>
+             <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide">{projectName || '未命名项目'}</h1>
            <button
                 onClick={() => setShowProjectSettings(true)}
               className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
@@ -134,7 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             >
               <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
                 <item.icon className={`w-4 h-4 ${isActive ? 'text-slate-50' : 'text-slate-400 group-hover:text-slate-300'}`} />
-                {!collapsed && <span className={`${isActive ? 'font-bold' : 'font-medium'} text-xs tracking-wider uppercase`}>{item.label}</span>}
+                {!collapsed && <span className={`${isActive ? 'font-bold' : 'font-medium'} text-xs tracking-wider`}>{item.label}</span>}
               </div>
               {!collapsed && <span className={`text-[12px] font-mono ${isActive ? 'text-slate-400' : 'text-slate-500'}`}>{item.sub}</span>}
             </button>
@@ -150,28 +150,28 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             onClick={() => setShowImageBrowser(true)}
             className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
           >
-              <span className="font-mono text-[12px]tracking-widest">图片视频库</span>
+              <span className="font-mono text-[12px] tracking-widest">图片视频库</span>
               <Images className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowPromptTemplates(true)}
               className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
             >
-              <span className="font-mono text-[12px]tracking-widest">提示词模板</span>
+              <span className="font-mono text-[12px] tracking-widest">提示词模板</span>
               <NotebookPen className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowModelSettings(true)}
               className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
             >
-              <span className="font-mono text-[12px]tracking-widest">模型管理</span>
+              <span className="font-mono text-[12px] tracking-widest">模型管理</span>
               <Sparkles className="w-4 h-4" />
             </button>
             <button
               onClick={onOpenSettings}
               className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
             >
-              <span className="font-mono text-[12px]tracking-widest">系统设置</span>
+              <span className="font-mono text-[12px] tracking-widest">系统设置</span>
               <Settings className="w-4 h-4" />
             </button>
 

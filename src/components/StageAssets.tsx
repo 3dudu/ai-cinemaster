@@ -498,10 +498,10 @@ const StageAssets: React.FC<Props> = ({
           </div>
           <div className="flex items-center gap-3">
              <div className="flex gap-2">
-                 <span className="px-2 py-1 bg-slate-900 border border-slate-600 rounded text-[12px] text-slate-400 font-mono uppercase">
+                 <span className="px-2 py-1 bg-slate-900 border border-slate-600 rounded text-[12px] text-slate-400 font-mono">
                     {displayCharacters.length} 角色
                  </span>
-                 <span className="px-2 py-1 bg-slate-900 border border-slate-600 rounded text-[12px] text-slate-400 font-mono uppercase">
+                 <span className="px-2 py-1 bg-slate-900 border border-slate-600 rounded text-[12px] text-slate-400 font-mono">
                     {displayScenes.length} 场景
                  </span>
              </div>
@@ -513,7 +513,7 @@ const StageAssets: React.FC<Props> = ({
         <section>
           <div className="flex items-end justify-between py-2 border-b border-slate-600 pb-4 sticky top-0 bg-slate-900 z-40">
             <div>
-               <h3 className="text-sm font-bold text-slate-50tracking-widest flex items-center gap-2">
+               <h3 className="text-sm font-bold text-slate-50 tracking-widest flex items-center gap-2">
                  <div className="w-1.5 h-1.5 bg-slate-500 rounded-full"></div>
                  角色定妆
                </h3>
@@ -523,7 +523,7 @@ const StageAssets: React.FC<Props> = ({
               <button
                 onClick={handleAddCharacter}
                 disabled={!!batchProgress}
-                className="px-3 py-2 rounded-lg text-xs font-boldtracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
+                className="px-3 py-2 rounded-lg text-xs font-bold tracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
               >
                 <Plus className="w-3 h-3" />
                 新增
@@ -531,7 +531,7 @@ const StageAssets: React.FC<Props> = ({
               <button
               onClick={() => handleBatchGenerate('character')}
               disabled={!!batchProgress}
-              className={`px-4 py-2 rounded-lg text-xs font-boldtracking-wide transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
                   allCharactersReady
                     ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
                     : 'bg-slate-800 text-slate-50 hover:bg-slate-400 shadow-lg shadow-white/5 border border-slate-600'
@@ -584,7 +584,7 @@ const StageAssets: React.FC<Props> = ({
                               setPreviewImage(char.referenceImage);
                             }}
                             disabled={!!batchProgress || !!processingState}
-                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-boldflex items-center gap-2 tracking-wider rounded border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold flex items-center gap-2 tracking-wider rounded border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <Expand className="w-3 h-3" />
                             全屏预览
@@ -659,10 +659,10 @@ const StageAssets: React.FC<Props> = ({
                   <div className="flex items-center justify-between mb-1">
                   <div  className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-bold text-slate-200 truncate text-sm">{char.name}</h3>
-                  {(char.gender!='未指定'&&char.gender!='未知') && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600font-mono">{char.gender}</span>}
-                  {(char.age!='未指定'&&char.age!='未知') && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600font-mono">{char.age}</span>}
+                  {(char.gender!='未指定'&&char.gender!='未知') && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 font-mono">{char.gender}</span>}
+                  {(char.age!='未指定'&&char.age!='未知') && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 font-mono">{char.age}</span>}
                      {char.variations && char.variations.length > 0 && (
-                         <span className="px-1.5 py-0.5 text-[11px] rounded border border-slate-600text-slate-400 font-mono flex items-center gap-1">
+                         <span className="px-1.5 py-0.5 text-[11px] rounded border border-slate-600 text-slate-400 font-mono flex items-center gap-1">
                              <Shirt className="w-2.5 h-2.5" /> +{char.variations.length}
                          </span>
                      )}
@@ -675,7 +675,7 @@ const StageAssets: React.FC<Props> = ({
           </div>
           <div className="flex items-end justify-between py-2 border-b border-slate-600 pb-4 sticky top-0 bg-slate-900 z-40">
             <div>
-               <h3 className="text-sm font-bold text-slate-50tracking-widest flex items-center gap-2">
+               <h3 className="text-sm font-bold text-slate-50 tracking-widest flex items-center gap-2">
                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                  场景概念
                </h3>
@@ -685,7 +685,7 @@ const StageAssets: React.FC<Props> = ({
               <button
                 onClick={handleAddScene}
                 disabled={!!batchProgress}
-                className="px-3 py-2 rounded-lg text-xs font-boldtracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
+                className="px-3 py-2 rounded-lg text-xs font-bold tracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
               >
                 <Plus className="w-3 h-3" />
                 新增
@@ -693,7 +693,7 @@ const StageAssets: React.FC<Props> = ({
               <button
               onClick={() => handleBatchGenerate('scene')}
               disabled={!!batchProgress}
-              className={`px-4 py-2 rounded-lg text-xs font-boldtracking-wide transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
                   allScenesReady
                     ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
                     : 'bg-slate-800 text-slate-50 hover:bg-slate-600 shadow-lg shadow-white/5 border border-slate-600'
@@ -746,7 +746,7 @@ const StageAssets: React.FC<Props> = ({
                               setPreviewImage(scene.referenceImage);
                             }}
                             disabled={!!batchProgress || !!processingState}
-                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-boldtracking-wider rounded flex items-center gap-2 border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold tracking-wider rounded flex items-center gap-2 border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <Expand className="w-3 h-3" />
                             全屏预览
@@ -805,7 +805,7 @@ const StageAssets: React.FC<Props> = ({
                 <div className="p-3 border-t border-slate-600 bg-slate-900">
                   <div className="flex justify-between items-center mb-1">
                      <h3 className="font-bold text-slate-200 text-sm truncate">{scene.location}</h3>
-                     <span className="max-w-32 line-clamp-1 truncate px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600font-mono whitespace-nowrap">{scene.time}</span>
+                     <span className="max-w-32 line-clamp-1 truncate px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 font-mono whitespace-nowrap">{scene.time}</span>
                   </div>
                   <p className="text-[12px] text-slate-500 line-clamp-1 pt-2">{scene.atmosphere}</p>
                 </div>

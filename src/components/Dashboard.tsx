@@ -485,8 +485,8 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
               剧集库
             </h1>
 <div className='flex items-center justify-between gap-3'>
-            <ThemeToggle size="sm" className={`text-[12px] text-slate-600 hover:text-red-500 transition-colorsfont-mono tracking-widest`}/>
-            <button onClick={handleClearKey} className={`z-50 text-[12px] flex items-center justify-center text-text-secondary w-8 h-8 p-1.5 transition-all duration-200 ease-in-out bg-bg-button rounded-lg text-slate-600 hover:text-red-500 transition-colorsfont-mono tracking-widest cursor-pointer`}>
+            <ThemeToggle size="sm" className={`text-[12px] text-slate-600 hover:text-red-500 transition-colors font-mono tracking-widest`}/>
+            <button onClick={handleClearKey} className={`z-50 text-[12px] flex items-center justify-center text-text-secondary w-8 h-8 p-1.5 transition-all duration-200 ease-in-out bg-bg-button rounded-lg text-slate-600 hover:text-red-500 transition-colors font-mono tracking-widest cursor-pointer`}>
             <Power className="w-4 h-4" />
             </button>
 </div>
@@ -497,7 +497,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
               className="group flex items-center gap-3 px-6 py-3 bg-slate-600/50 text-slate-50 hover:bg-slate-600 transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">新建</span>}
+              {!isMobile && <span className="font-bold text-xs tracking-widest">新建</span>}
             </button>
             <button
               onClick={handleImport}
@@ -505,7 +505,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
               className="group flex items-center gap-3 px-6 py-3 bg-slate-700/50 hover:bg-slate-700 text-slate-300 hover:text-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <Upload className="w-4 h-4" />
-              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">{importing ? '导入中...' : '导入'}</span>}
+              {!isMobile && <span className="font-bold text-xs tracking-widest">{importing ? '导入中...' : '导入'}</span>}
             </button>
             <button
               onClick={() => setShowSyncModal(true)}
@@ -513,7 +513,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
               title="同步数据"
             >
               <ArrowUpDown className="w-4 h-4" />
-              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">同步数据</span>}
+              {!isMobile && <span className="font-bold text-xs tracking-widest">同步数据</span>}
             </button>
             <button
               onClick={() => setShowModelSettings(true)}
@@ -521,7 +521,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
               title="模型管理"
             >
               <Sparkles className="w-4 h-4" />
-              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">模型</span>}
+              {!isMobile && <span className="font-bold text-xs tracking-widest">模型</span>}
             </button>
             <button
               onClick={() => setApiKeyModalOpen(true)}
@@ -529,7 +529,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
               title="系统设置"
             >
               <Settings className="w-4 h-4" />
-              {!isMobile && <span className="font-bold text-xs tracking-widest uppercase">设置</span>}
+              {!isMobile && <span className="font-bold text-xs tracking-widest">设置</span>}
             </button>
           </div>
         </header>
@@ -550,7 +550,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                 <div className="w-12 h-12 border border-slate-600/50 flex items-center justify-center mb-6 group-hover:bg-slate-900/20 transition-colors">
                   <Plus className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
                 </div>
-                <span className="text-slate-400 font-mono text-[12px]tracking-widest group-hover:text-slate-300">新建</span>
+                <span className="text-slate-400 font-mono text-[12px] tracking-widest group-hover:text-slate-300">新建</span>
               </div>
             )}
 
@@ -582,25 +582,25 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                          <AlertTriangle className="w-5 h-5 text-red-500" />
                       </div>
                       <div className="text-center">
-                          <p className="text-slate-50 font-bold text-xstracking-widest">删除剧集？</p>
+                          <p className="text-slate-50 font-bold text-xs tracking-widest">删除剧集？</p>
                           <p className="text-slate-500 text-[12px] mt-1 font-mono">是否同时删除所有分集？</p>
                       </div>
                       <div className="flex gap-2 w-full pt-2">
                           <button 
                               onClick={cancelDeleteSeries}
-                              className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-50 text-[12px] font-boldtracking-wider transition-colors border border-slate-600 cursor-pointer"
+                              className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-50 text-[12px] font-bold tracking-wider transition-colors border border-slate-600 cursor-pointer"
                           >
                               取消
                           </button>
                           <button 
                               onClick={(e) => confirmDeleteSeries(e, series.id, false)}
-                              className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-slate-50 text-[12px] font-boldtracking-wider transition-colors border border-slate-500 cursor-pointer"
+                              className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-slate-50 text-[12px] font-bold tracking-wider transition-colors border border-slate-500 cursor-pointer"
                           >
                               保留分集
                           </button>
                           <button 
                               onClick={(e) => confirmDeleteSeries(e, series.id, true)}
-                              className="flex-1 py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 hover:text-red-200 text-[12px] font-boldtracking-wider transition-colors border border-red-900/30 cursor-pointer"
+                              className="flex-1 py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 hover:text-red-200 text-[12px] font-bold tracking-wider transition-colors border border-red-900/30 cursor-pointer"
                           >
                               全部删除
                           </button>
@@ -686,7 +686,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                 </div>
 
                 <div className="px-6 py-3 border-t border-slate-900 flex items-center justify-between bg-slate-700">
-                  <div className="flex items-center gap-2 text-[11px] text-slate-400/50 font-monotracking-widest group-hover:text-slate-50">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400/50 font-mono tracking-widest group-hover:text-slate-50">
                       <Calendar className="w-3 h-3" />
                       {formatDate(series.updatedAt)}
                   </div>
@@ -720,19 +720,19 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                            <AlertTriangle className="w-5 h-5 text-red-500" />
                         </div>
                         <div className="text-center">
-                            <p className="text-slate-50 font-bold text-xstracking-widest">确认删除？</p>
+                            <p className="text-slate-50 font-bold text-xs tracking-widest">确认删除？</p>
                             <p className="text-slate-500 text-[12px] mt-1 font-mono">此操作无法撤销。</p>
                         </div>
                         <div className="flex gap-2 w-full pt-2">
                             <button 
                                 onClick={cancelDelete}
-                                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-50 text-[12px] font-boldtracking-wider transition-colors border border-slate-600 cursor-pointer"
+                                className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-50 text-[12px] font-bold tracking-wider transition-colors border border-slate-600 cursor-pointer"
                             >
                                 取消
                             </button>
                             <button 
                                 onClick={(e) => confirmDelete(e, proj.id)}
-                                className="flex-1 py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 hover:text-red-200 text-[12px] font-boldtracking-wider transition-colors border border-red-900/30 cursor-pointer"
+                                className="flex-1 py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 hover:text-red-200 text-[12px] font-bold tracking-wider transition-colors border border-red-900/30 cursor-pointer"
                             >
                                 删除
                             </button>
@@ -844,7 +844,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                   </div>
 
                   <div className="px-6 py-3 border-t border-slate-900 flex items-center justify-between bg-slate-700">
-                    <div className="flex items-center gap-2 py-1 text-[11px] text-slate-500/50 font-monotracking-widest group-hover:text-slate-50 ">
+                    <div className="flex items-center gap-2 py-1 text-[11px] text-slate-500/50 font-mono tracking-widest group-hover:text-slate-50 ">
                         <Calendar className="w-3 h-3" />
                         {formatDate(proj.lastModified)}
                     </div>

@@ -158,7 +158,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
           {/* 角色名称 */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500tracking-widest">
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">
               角色名称 <span className="text-red-400">*</span>
             </label>
             <input
@@ -173,7 +173,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
           {/* 性别 */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500tracking-widest">性别</label>
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">性别</label>
             <CustomSelect
               options={[
                 { value: '男', label: '男' },
@@ -187,7 +187,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
           {/* 年龄 */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500tracking-widest">年龄</label>
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">年龄</label>
             <input
               type="text"
               value={formData.age}
@@ -199,7 +199,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
           {/* 性格特点 */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500tracking-widest">性格特点</label>
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">性格特点</label>
             <textarea
               value={formData.personality}
               onChange={(e) => setFormData({ ...formData, personality: e.target.value })}
@@ -211,7 +211,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
           {/* 视觉提示 */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500tracking-widest">视觉提示</label>
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">视觉提示</label>
             <div className="relative">
               <textarea
                 value={formData.visualPrompt}
@@ -230,7 +230,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
                 <button
                   onClick={handleGenerateVisualPrompt}
                   disabled={isGeneratingPrompt}
-                  className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-boldtracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                   title="AI生成视觉提示"
                 >
                   {isGeneratingPrompt ? (
@@ -249,13 +249,13 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
         <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
           <button
             onClick={handleClose}
-            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-boldtracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold tracking-wider rounded-lg transition-colors cursor-pointer"
           >
             取消
           </button>
           <button
             onClick={handleSubmit}
-            className={`flex-1 py-3 text-[11px] font-boldtracking-wider rounded-lg transition-colors cursor-pointer ${
+            className={`flex-1 py-3 text-[11px] font-bold tracking-wider rounded-lg transition-colors cursor-pointer ${
               isEditMode
                 ? 'bg-blue-600 text-slate-50 hover:bg-blue-500'
                 : 'bg-green-600 text-slate-50 hover:bg-green-500'

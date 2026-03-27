@@ -383,7 +383,7 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
 
               {/* Model Type Selection */}
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-500tracking-widest">模型类型</label>
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest">模型类型</label>
                 <CustomSelect
                   options={MODEL_TYPE_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
                   value={formData.modelType}
@@ -403,7 +403,7 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
 
               {/* Provider Selection */}
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-500tracking-widest">服务提供商</label>
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest">服务提供商</label>
                 <CustomSelect
                   options={getProvidersForModelType(formData.modelType).map(opt => ({ value: opt.value, label: opt.label }))}
                   value={formData.provider}
@@ -436,7 +436,7 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
 
               {/* API Key */}
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
                   <Key className="w-3 h-3" />
                   API Key
                 </label>
@@ -461,7 +461,7 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
 
               {/* Model Name - Optional */}
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
                   <Sparkles className="w-3 h-3" />
                   模型名称 <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
@@ -476,7 +476,7 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
 
               {/* API URL */}
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
                   <Globe className="w-3 h-3" />
                   API URL <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
@@ -491,7 +491,7 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
 
               {/* description */}
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
                   <Tags className="w-3 h-3" />
                   备注 <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
@@ -506,11 +506,11 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
 
               {/* Enable Toggle */}
               <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-500tracking-widest">系统默认</label>
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest">系统默认</label>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, enabled: !formData.enabled })}
-                  className={`w-full py-3 rounded-lg text-sm font-boldtracking-wider transition-all flex items-center justify-center gap-3 cursor-pointer ${
+                  className={`w-full py-3 rounded-lg text-sm font-bold tracking-wider transition-all flex items-center justify-center gap-3 cursor-pointer ${
                     formData.enabled
                       ? 'bg-yellow-300 text-slate-500'
                       : 'bg-slate-600 text-slate-400'
@@ -532,13 +532,13 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
         <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
                 <button
                   onClick={handleCancelAdd}
-                  className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-boldtracking-wider rounded-lg transition-colors cursor-pointer"
+                  className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold tracking-wider rounded-lg transition-colors cursor-pointer"
                 >
                   取消
                 </button>
                 <button
                   onClick={editingConfig ? handleUpdate : handleAdd}
-                  className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-boldtracking-wider rounded-lg transition-colors shadow-lg shadow-slate-600/20 cursor-pointer"
+                  className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold tracking-wider rounded-lg transition-colors shadow-lg shadow-slate-600/20 cursor-pointer"
                 >
                   {editingConfig ? '更新配置' : '添加配置'}
                 </button>
@@ -582,7 +582,7 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
                                 </span>
                               )}
                               {config.enabled && (
-                                <span className="text-[12px] text-yellow-500 bg-yellow-900/70 border border-yellow-500/30 px-1.5 py-0.5 rounded-full font-monotracking-wider flex items-center gap-1">
+                                <span className="text-[12px] text-yellow-500 bg-yellow-900/70 border border-yellow-500/30 px-1.5 py-0.5 rounded-full font-mono tracking-wider flex items-center gap-1">
                                   <Check className="w-2.5 h-2.5" />
                                   系统默认
                                 </span>
@@ -651,14 +651,14 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
         <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
               <button
                 onClick={handleExport}
-                className="flex-1 py-3 bg-slate-700 text-slate-400 hover:bg-slate-800 hover:text-text-primary text-[11px] font-boldtracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-3 bg-slate-700 text-slate-400 hover:bg-slate-800 hover:text-text-primary text-[11px] font-bold tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 导出配置
               </button>
               <div className="relative flex-1 group">
                 <button
-                  className="w-full py-3 bg-slate-700 text-slate-400 group-hover:bg-slate-800 group-hover:text-text-primary text-[11px] font-boldtracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 relative cursor-pointer"
+                  className="w-full py-3 bg-slate-700 text-slate-400 group-hover:bg-slate-800 group-hover:text-text-primary text-[11px] font-bold tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 relative cursor-pointer"
                 >
                   <Upload className="w-4 h-4" />
                   导入配置
@@ -672,7 +672,7 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-boldtracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 添加新配置
