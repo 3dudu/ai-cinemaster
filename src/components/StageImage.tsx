@@ -486,7 +486,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowVideo(!showVideo)}
-            className={`px-3 py-1 rounded text-[12px] font-mono uppercase transition-colors cursor-pointer ${
+            className={`px-3 py-1 rounded text-[12px] font-monotransition-colors cursor-pointer ${
               showVideo
                 ? 'bg-blue-600 text-white'
                 : 'bg-slate-900 text-slate-400 hover:bg-slate-800'

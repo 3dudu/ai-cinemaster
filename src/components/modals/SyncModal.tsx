@@ -463,7 +463,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
         {/* Input Section */}
           <div className="flex-1 overflow-y-auto md:p-6 p-2 bg-slate-700 space-y-5">
             <div className="space-y-4">
-              <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+              <label className="block text-[12px] font-bold text-slate-500tracking-widest mb-2">
                 同步密钥（可选，同步密钥用于标识您的账户。留空则服务器会自动生成并保存到本地。）
               </label>
               <div className="flex gap-3">
@@ -477,7 +477,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
                 <button
                   onClick={handleStartSync}
                   disabled={isLoading}
-                className="py-2 px-6 bg-slate-800 text-slate-300 font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-slate-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="py-2 px-6 bg-slate-800 text-slate-300 font-boldtracking-widest text-xs rounded-lg hover:bg-slate-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
@@ -588,7 +588,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
                               <button
                                 onClick={() => handleDeleteProject(index)}
                                 disabled={isLoading}
-                                className="py-1.5 px-3 rounded text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1 border border-slate-400 bg-slate-600 text-slate-500 hover:bg-slate-700"
+                                className="py-1.5 px-3 rounded text-[10px] font-boldtracking-wider transition-colors cursor-pointer flex items-center gap-1 border border-slate-400 bg-slate-600 text-slate-500 hover:bg-slate-700"
                               >
                                 <Trash2 className="w-3 h-3" />
                                 <span className="hidden sm:inline">删除</span>
@@ -596,7 +596,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
                             ) : (
                               <button
                                 onClick={() => handleSetAction(index, item.action === 'upload' || item.action === 'conflict' ? null : 'upload')}
-                                className={`py-1.5 px-3 rounded text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1 ${
+                                className={`py-1.5 px-3 rounded text-[10px] font-boldtracking-wider transition-colors cursor-pointer flex items-center gap-1 ${
                                   item.action === 'upload' || item.action === 'conflict'
                                     ? 'bg-red-900/40 text-red-800 border border-red-900/50'
                                     : 'bg-slate-600 text-slate-500 border border-slate-400 hover:bg-slate-700'
@@ -609,7 +609,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
                             <button
                               onClick={() => handleSetAction(index, item.action === 'download' ? null : 'download')}
                               disabled={isLocalOnly}
-                              className={`py-1.5 px-3 rounded text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1 ${
+                              className={`py-1.5 px-3 rounded text-[10px] font-boldtracking-wider transition-colors cursor-pointer flex items-center gap-1 ${
                                 item.action === 'download'
                                   ? 'bg-green-900/40 text-green-800 border border-green-900/50'
                                   : 'bg-slate-600 text-slate-500 border border-slate-400 hover:bg-slate-700'
@@ -636,7 +636,7 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
           <button
             onClick={handleConfirmSync}
             disabled={!isInitialized || conflicts.filter(i => i.action !== null).length === 0 || isLoading}
-            className="py-3 px-6 bg-slate-800 text-slate-300 font-bold uppercase tracking-widest text-xs rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="py-3 px-6 bg-slate-800 text-slate-300 font-boldtracking-widest text-xs rounded-lg hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
             <span>确认同步</span>

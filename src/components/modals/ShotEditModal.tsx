@@ -147,7 +147,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
         <div className="flex-1 overflow-y-auto p-2 md:p-6 space-y-5 bg-slate-700">
           {/* Action Summary */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">动作描述</label>
+            <label className="text-[12px] font-bold text-slate-500tracking-widest">动作描述</label>
             <textarea
               value={tempShot.actionSummary || ''}
               onChange={(e) => setTempShot({ ...tempShot, actionSummary: e.target.value })}
@@ -159,7 +159,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
 
           {/* Dialogue */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">对白 (可选)</label>
+            <label className="text-[12px] font-bold text-slate-500tracking-widest">对白 (可选)</label>
             <div className="space-y-2">
               {tempShot.dialogue && tempShot.dialogue instanceof Array && (tempShot.dialogue || []).map((dlg, index) => (
                 <div key={index} className="flex gap-1 items-start">
@@ -215,7 +215,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           {/* Shot Size & Camera Movement & Duration */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">景别</label>
+              <label className="text-[12px] font-bold text-slate-500tracking-widest">景别</label>
               <CustomSelect
                 options={[
                   { value: '特写', label: '特写' },
@@ -233,7 +233,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
             </div>
 
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">镜头运动</label>
+              <label className="text-[12px] font-bold text-slate-500tracking-widest">镜头运动</label>
               <CustomSelect
                 options={[
                   { value: '固定', label: '固定' },
@@ -253,7 +253,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
             </div>
 
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">时长 (秒)</label>
+              <label className="text-[12px] font-bold text-slate-500tracking-widest">时长 (秒)</label>
               <CustomSelect
                 options={Array.from({ length: 30 }, (_, i) => i + 1).map(sec => ({
                   value: sec.toString(),
@@ -269,7 +269,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           {/* Video Prompt */}
           {shot.interval && (
             <div className="space-y-2">
-              <div className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-between">
+              <div className="text-[12px] font-bold text-slate-500tracking-widest flex items-center justify-between">
                 <span className='flex-1'>视频拍摄提示词</span>
                 <button
                   onClick={() => setIsVideoPromptModalOpen(true)}
@@ -292,7 +292,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
 
           {/* Characters */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">角色</label>
+            <label className="text-[12px] font-bold text-slate-500tracking-widest">角色</label>
             <div className="flex flex-wrap gap-2">
               {characters.map(char => {
                 const isSelected = (tempShot.characters || []).includes(char.name);
@@ -339,7 +339,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           {/* Keyframes */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">关键帧</label>
+              <label className="text-[12px] font-bold text-slate-500tracking-widest">关键帧</label>
               <button
                 onClick={addKeyframe}
                 disabled={!canAddKeyframe()}
@@ -376,7 +376,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">画面提示词</label>
+                    <label className="text-[10px] font-bold text-slate-500tracking-widest mb-1 block">画面提示词</label>
                     <textarea
                       value={kf.visualPrompt || ''}
                       onChange={(e) => updateKeyframe(kfIdx, 'visualPrompt', e.target.value)}
@@ -400,7 +400,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           {/* Model Providers */}
           <div className="space-y-4 border-t border-slate-600 pt-4">
             <div className="flex items-center justify-between">
-              <div className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">模型供应商</div>
+              <div className="text-[12px] font-bold text-slate-500tracking-widest">模型供应商</div>
               <button
                 onClick={async () => {
                   try {
@@ -421,7 +421,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
             <div className="grid grid-cols-2 gap-4">
               {/* Text2Image Provider */}
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">图像模型</label>
+                <label className="text-[11px] font-bold text-slate-500tracking-widest">图像模型</label>
                 <CustomSelect
                   options={[
                     { value: '', label: '使用项目默认' },
@@ -439,7 +439,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
 
               {/* Image2Video Provider */}
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">视频模型</label>
+                <label className="text-[11px] font-bold text-slate-500tracking-widest">视频模型</label>
                 <CustomSelect
                   options={[
                     { value: '', label: '使用项目默认' },
@@ -461,13 +461,13 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
         <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-boldtracking-wider rounded-lg transition-colors cursor-pointer"
           >
             取消
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-boldtracking-wider rounded-lg transition-colors cursor-pointer"
           >
             保存
           </button>

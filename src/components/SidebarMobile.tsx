@@ -50,7 +50,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
               <Aperture className="w-5 h-5" />
             </div>
             <div className="overflow-hidden pr-2">
-              <p className="text-[10px] text-slate-500 uppercase tracking-widest">
+              <p className="text-[10px] text-slate-500tracking-widest">
                 <h1 className="text-[12px] font-bold text-slate-400 line-clamp-1 tracking-wide uppercase">{serieName}</h1></p>
               <div className="flex items-center gap-2">
               <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide uppercase">{projectName || '未命名项目'}</h1>
@@ -119,7 +119,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
               `}
             >
               <item.icon className={`w-5 h-5 ${isActive ? 'text-slate-50' : ''}`} />
-              <span className={`text-[10px] tracking-wider uppercase mt-1 ${isActive ? 'font-bold' : 'font-medium'}`}>
+              <span className={`text-[10px] tracking-widermt-1 ${isActive ? 'font-bold' : 'font-medium'}`}>
                 {item.label}
               </span>
             </button>

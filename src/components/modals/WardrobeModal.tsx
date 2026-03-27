@@ -175,8 +175,8 @@ const WardrobeModal: React.FC<Props> = ({
                 <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-6">
                     {/* Base Look */}
                     <div>
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <User className="w-4 h-4 text-slate-400" /> <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider">基础形象</h4>
+                        <h4 className="text-xs font-bold text-slate-400tracking-widest mb-4 flex items-center gap-2">
+                            <User className="w-4 h-4 text-slate-400" /> <h4 className="text-sm font-bold text-slate-300tracking-wider">基础形象</h4>
                         </h4>
                         <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
                             <div className="aspect-[3/4] bg-slate-900 rounded-lg overflow-hidden mb-4 relative cursor-pointer" onClick={() =>  setPreviewImage(character.referenceImage)}>
@@ -185,10 +185,10 @@ const WardrobeModal: React.FC<Props> = ({
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-slate-600">无图像</div>
                                 )}
-                                <div className="absolute top-2 left-2 px-2 py-1 bg-slate-700/60 backdrop-blur rounded text-[12px] text-slate-50 font-bold uppercase border border-white/10">{character.name}</div>
+                                <div className="absolute top-2 left-2 px-2 py-1 bg-slate-700/60 backdrop-blur rounded text-[12px] text-slate-50 font-boldborder border-white/10">{character.name}</div>
                                 {character.referenceImage && (
                                     <div className="absolute inset-0 bg-slate-700/0 hover:bg-slate-700/20 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
-                                        <span className="text-slate-50/80 text-xs font-bold uppercase tracking-wider">点击预览</span>
+                                        <span className="text-slate-50/80 text-xs font-boldtracking-wider">点击预览</span>
                                     </div>
                                 )}
                             </div>
@@ -198,8 +198,8 @@ const WardrobeModal: React.FC<Props> = ({
                     {/* Variations */}
                     <div>
                         <div className="flex items-center justify-between mb-4">
-                            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <Shirt className="w-4 h-4 text-slate-400" /> <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider">服装造型</h4>
+                            <h4 className="text-xs font-bold text-slate-400tracking-widest flex items-center gap-2">
+                                <Shirt className="w-4 h-4 text-slate-400" /> <h4 className="text-sm font-bold text-slate-300tracking-wider">服装造型</h4>
                             </h4>
                         </div>
 
@@ -218,7 +218,7 @@ const WardrobeModal: React.FC<Props> = ({
                                         )}
                                         {variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) && (
                                             <div className="absolute inset-0 bg-slate-700/0 hover:bg-slate-700/20 transition-colors flex items-center justify-center opacity-0 hover:opacity-100 pointer-events-none">
-                                                <span className="text-slate-50/80 text-[10px] font-bold uppercase tracking-wider">预览</span>
+                                                <span className="text-slate-50/80 text-[10px] font-boldtracking-wider">预览</span>
                                             </div>
                                         )}
                                         {processingState?.type === 'character' && processingState?.id === variation.id && (
@@ -256,7 +256,7 @@ const WardrobeModal: React.FC<Props> = ({
                                         <button
                                             onClick={() => handleGenerateVariation(variation.id)}
                                             disabled={!!processingState}
-                                            className="text-[12px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-50 flex items-center gap-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="text-[12px] font-boldtracking-wider text-slate-400 hover:text-slate-50 flex items-center gap-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <RefreshCw className={`w-3 h-3 ${processingState?.type === 'character' && processingState?.id === variation.id ? 'animate-spin' : ''}`} />
                                             {processingState?.type === 'character' && processingState?.id === variation.id ? '生成中...' : variation.referenceImage ? '重新生成' : '生成造型'}
@@ -285,7 +285,7 @@ const WardrobeModal: React.FC<Props> = ({
                                     <button
                                         onClick={handleAddVariation}
                                         disabled={!newVarName || !newVarPrompt}
-                                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-boldtracking-wider flex items-center justify-center gap-2"
                                     >
                                         <Plus className="w-3 h-3" /> 添加造型
                                     </button>

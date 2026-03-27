@@ -72,7 +72,7 @@ const PromptDetailModal: React.FC<PromptDetailModalProps> = ({
         <div className="p-6 space-y-4">
           {/* 图片标题 */}
           <div>
-            <h4 className="text-sm font-bold text-slate-50 uppercase tracking-widest mb-2">图片标题</h4>
+            <h4 className="text-sm font-bold text-slate-50tracking-widest mb-2">图片标题</h4>
             <p className="text-sm text-slate-300 bg-slate-900/50 rounded-lg p-3 border border-slate-700">
               {title}
             </p>
@@ -81,7 +81,7 @@ const PromptDetailModal: React.FC<PromptDetailModalProps> = ({
           {/* 时间戳 */}
           {timestamp && (
             <div>
-              <h4 className="text-sm font-bold text-slate-50 uppercase tracking-widest mb-2">生成时间</h4>
+              <h4 className="text-sm font-bold text-slate-50tracking-widest mb-2">生成时间</h4>
               <p className="text-sm text-slate-300 bg-slate-900/50 rounded-lg p-3 border border-slate-700">
                 {formatTimestamp(timestamp)}
               </p>
@@ -90,7 +90,7 @@ const PromptDetailModal: React.FC<PromptDetailModalProps> = ({
 
           {/* 提示词内容 */}
           <div>
-            <h4 className="text-sm font-bold text-slate-50 uppercase tracking-widest mb-2">提示词内容</h4>
+            <h4 className="text-sm font-bold text-slate-50tracking-widest mb-2">提示词内容</h4>
             <textarea
               readOnly
               value={prompt}

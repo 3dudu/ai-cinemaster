@@ -199,7 +199,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
         <div className="p-2 md:p-6 space-y-5 flex-1 overflow-y-auto bg-slate-700">
           {/* Title Input */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">项目标题</label>
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">项目标题</label>
             <input
               type="text"
               value={localTitle}
@@ -208,9 +208,9 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               placeholder="输入项目名称..."
             />
             <div className="flex items-center justify-between">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">id: {project.id}</label>
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">id: {project.id}</label>
               <div className="flex items-center gap-2">
-                <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">seed: {project.seed}</label>
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest">seed: {project.seed}</label>
                 <button
                   onClick={regenerateSeed}
                   className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
@@ -226,7 +226,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
           <div className="grid grid-cols-2 gap-3">
             {/* Language Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">输出语言</label>
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">输出语言</label>
               <CustomSelect
                 options={LANGUAGE_OPTIONS}
                 value={localLanguage}
@@ -237,7 +237,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
             {/* Image Size Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">图片尺寸</label>
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">图片尺寸</label>
               <CustomSelect
                 options={IMAGE_SIZE_OPTIONS}
                 value={localImageSize}
@@ -250,7 +250,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
           <div className="grid grid-cols-2 gap-3">
             {/* Genre Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">题材类型</label>
+              <label className="text-[12px] font-bold text-slate-500tracking-widest">题材类型</label>
               <CustomSelect
                 options={GENRE_OPTIONS}
                 value={localGenre}
@@ -269,7 +269,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
             </div>
             {/* Visual Style Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">画面风格</label>
+              <label className="text-[12px] font-bold text-slate-500tracking-widest">画面风格</label>
               <CustomSelect
                 options={STYLE_OPTIONS}
                 value={localStyle}
@@ -290,7 +290,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
           {/* Duration Selection */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">目标时长</label>
+            <label className="text-[12px] font-bold text-slate-500tracking-widest">目标时长</label>
             <div className="grid grid-cols-2 gap-2">
               {DURATION_OPTIONS.map((opt) => (
                 <button
@@ -322,7 +322,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
           <div className="grid gap-3">
             {/* Image Count Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">参考图数</label>
+              <label className="text-[12px] font-bold text-slate-500tracking-widest">参考图数</label>
               <CustomSelect
                 options={IMAGE_COUNT_OPTIONS}
                 value={localImageCount.toString()}
@@ -333,12 +333,12 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
           </div>
           {/* Divider */}
           <div className="border-t border-slate-600 pt-4">
-            <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-4">模型供应商</p>
+            <p className="text-[12px] font-bold text-slate-500tracking-widest mb-4">模型供应商</p>
           </div>
 
           {/* LLM Provider Selection */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+            <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
               <Sparkles className="w-3 h-3" />
               大语言模型 (LLM)
             </label>
@@ -359,7 +359,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
           {/* Text2Image Provider Selection */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+            <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
               <ImageIcon className="w-3 h-3" />
               文生图模型
             </label>
@@ -380,7 +380,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
           {/* Image2Video Provider Selection */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+            <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
               <Film className="w-3 h-3" />
               图生视频模型
             </label>
@@ -403,13 +403,13 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
         <div className="p-6 border-t border-slate-600 flex gap-3 shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-boldtracking-wider rounded-lg transition-colors cursor-pointer"
           >
             取消
           </button>
           <button
             onClick={saveSettings}
-            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-boldtracking-wider rounded-lg transition-colors cursor-pointer"
           >
             保存设置
           </button>

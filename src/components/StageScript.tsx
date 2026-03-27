@@ -780,7 +780,7 @@ const StageScript: React.FC<Props> = ({
            {isMobile && project.scriptData && (
            <button
                onClick={() => setActiveTab('script')}
-               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-boldtracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
              >
                <List className="w-3 h-3" />
                分镜列表
@@ -808,7 +808,7 @@ const StageScript: React.FC<Props> = ({
                  <button
                     onClick={handleGenerateScript}
                     disabled={isGeneratingScript || !scriptPrompt.trim()}
-                    className={`px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 ${
+                    className={`px-5 py-2.5 rounded-lg text-xs font-boldtracking-wider transition-all flex items-center gap-2 shrink-0 ${
                       isGeneratingScript
                         ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                         : 'bg-slate-600 text-slate-50 hover:bg-slate-500 shadow-lg shadow-slate-600/20'
@@ -853,7 +853,7 @@ const StageScript: React.FC<Props> = ({
             {project.scriptData && (
             <button
                onClick={() => setActiveTab('script')}
-               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-boldtracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
              >
                <List className="w-3 h-3" />
                分镜列表
@@ -864,7 +864,7 @@ const StageScript: React.FC<Props> = ({
         <div className="flex-1 overflow-y-auto md:p-6 md:pt-2 p-2 space-y-6">
             {/* Title Input */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">项目标题</label>
+              <label className="text-[12px] font-bold text-slate-500tracking-widest">项目标题</label>
               <input 
                 type="text"
                 value={localTitle}
@@ -886,7 +886,7 @@ const StageScript: React.FC<Props> = ({
 
             {/* Visual Style Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
                 画面风格
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -912,7 +912,7 @@ const StageScript: React.FC<Props> = ({
 
             {/* Genre Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">题材类型</label>
+              <label className="text-[12px] font-bold text-slate-500tracking-widest">题材类型</label>
               <div className="grid grid-cols-2 gap-3">
               <CustomSelect
                 options={GENRE_OPTIONS}
@@ -936,7 +936,7 @@ const StageScript: React.FC<Props> = ({
 
             {/* Image Size Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
                 图片尺寸
               </label>
               <CustomSelect
@@ -949,7 +949,7 @@ const StageScript: React.FC<Props> = ({
 
             {/* Image Count Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
                 出图数量
               </label>
               <CustomSelect
@@ -962,7 +962,7 @@ const StageScript: React.FC<Props> = ({
 
             {/* Duration Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
                 目标时长
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -995,7 +995,7 @@ const StageScript: React.FC<Props> = ({
 
             {/* Import or Create Switch Selection */}
             <div className="space-y-3">
-              <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-3">分镜来源</p>
+              <p className="text-[12px] font-bold text-slate-500tracking-widest mb-3">分镜来源</p>
               <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-600">
                 <button
                   onClick={() => setScriptSourceMode('generate')}
@@ -1029,12 +1029,12 @@ const StageScript: React.FC<Props> = ({
 
             {/* Divider */}
             <div className="border-t border-slate-600 pt-4">
-              <p className="text-[12px] font-bold text-slate-500 uppercase tracking-widest mb-4">模型供应商</p>
+              <p className="text-[12px] font-bold text-slate-500tracking-widest mb-4">模型供应商</p>
             </div>
 
             {/* LLM Provider Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
                 <Sparkles className="w-3 h-3" />
                 大语言模型 (LLM)
               </label>
@@ -1059,7 +1059,7 @@ const StageScript: React.FC<Props> = ({
 
             {/* Text2Image Provider Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
                 <Image className="w-3 h-3" />
                 文生图模型
               </label>
@@ -1084,7 +1084,7 @@ const StageScript: React.FC<Props> = ({
 
             {/* Image2Video Provider Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <label className="text-[12px] font-bold text-slate-500tracking-widest flex items-center gap-2">
                 <Film className="w-3 h-3" />
                 图生视频模型
               </label>
@@ -1114,7 +1114,7 @@ const StageScript: React.FC<Props> = ({
            <button
               onClick={scriptSourceMode === 'generate' ? handleAnalyze : handleImport}
               disabled={isProcessing}
-              className={`w-full py-2 rounded-lg font-bold border border-slate-600 text-md uppercase tracking-widest flex items-center justify-center gap-2 transition-all  ${
+              className={`w-full py-2 rounded-lg font-bold border border-slate-600 text-mdtracking-widest flex items-center justify-center gap-2 transition-all  ${
                 isProcessing
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : 'bg-slate-800 text-slate-50 hover:bg-slate-700 shadow-white/5'
@@ -1179,7 +1179,7 @@ const StageScript: React.FC<Props> = ({
            <div className="flex gap-2">
              <button
                onClick={() => setActiveTab('story')}
-               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-boldtracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
              >
                <BookOpen className="w-3 h-3" />
                剧本编辑
@@ -1204,12 +1204,12 @@ const StageScript: React.FC<Props> = ({
                               <div className="flex items-center justify-between gap-6">
                                  <div className="flex items-center justify-between md:items-baseline gap-4">
                                     <span className="text-3xl font-bold text-slate-50/10 font-mono">{(index + 1).toString().padStart(2, '0')}</span>
-                                    <h3 className="text-lg font-bold text-slate-50 uppercase tracking-wider line-clamp-1">
+                                    <h3 className="text-lg font-bold text-slate-50tracking-wider line-clamp-1">
                                        {scene.location}
                                     </h3>
                                  </div>
                               </div>
-                              <div className="flex items-center justify-between md:gap-4 gap-1 text-[11px] font-mono uppercase tracking-widest text-slate-500">
+                              <div className="flex items-center justify-between md:gap-4 gap-1 text-[11px] font-monotracking-widest text-slate-500">
                                  <span className="flex items-center gap-1.5 whitespace-wrap"><Clock className="w-3 h-3"/> {scene.time}</span>
                                  <span className="text-slate-600">|</span>
                                  <span className="">{scene.atmosphere}</span>
@@ -1291,10 +1291,10 @@ const StageScript: React.FC<Props> = ({
                                      </div>
                                    </div>
                                    <div className="flex flex-col gap-2">
-                                     <div className="px-2 py-1 bg-slate-900 border border-slate-600 text-[12px] font-mono text-slate-400 uppercase text-center rounded">
+                                     <div className="px-2 py-1 bg-slate-900 border border-slate-600 text-[12px] font-mono text-slate-400text-center rounded">
                                        {shot.shotSize || 'MED'}
                                      </div>
-                                     <div className="px-2 py-1 bg-slate-900 border border-slate-600 text-[12px] font-mono text-slate-400 uppercase text-center rounded">
+                                     <div className="px-2 py-1 bg-slate-900 border border-slate-600 text-[12px] font-mono text-slate-400text-center rounded">
                                        {shot.cameraMovement}
                                      </div>
                                    </div>
@@ -1319,7 +1319,7 @@ const StageScript: React.FC<Props> = ({
                                       {shot.characters.map(cid => {
                                         const char = localCharacters.find(c => c.id === cid);
                                         return char ? (
-                                          <span key={cid} className="text-[12px] uppercase font-bold tracking-wider text-slate-500 border border-slate-600 px-2 py-0.5 rounded-full bg-slate-900">
+                                          <span key={cid} className="text-[12px]font-bold tracking-wider text-slate-500 border border-slate-600 px-2 py-0.5 rounded-full bg-slate-900">
                                               {char.name}
                                            </span>
                                          ) : null;
@@ -1330,7 +1330,7 @@ const StageScript: React.FC<Props> = ({
 
                                 {/* Prompt Preview */}
                                 <div className="w-full md:block pl-6 border-l border-slate-600 group-hover:border-slate-300">
-                                   <div className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                   <div className="text-[12px] font-bold text-slate-400tracking-widest mb-2 flex items-center gap-2">
                                       <Aperture className="w-3 h-3" /> 画面提示词
                                    </div>
                                    <p className="text-[12px] text-slate-500 font-mono leading-relaxed hover:text-slate-400 transition-all cursor-text bg-slate-900/30 p-2 rounded">
@@ -1355,7 +1355,7 @@ const StageScript: React.FC<Props> = ({
                  {/* Logline */}
                  <div>
                    <div className="flex items-center justify-between mb-2">
-                     <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                     <h3 className="text-[12px] font-bold text-slate-400tracking-widest flex items-center gap-2">
                        <TextQuote className="w-3 h-3" /> 故事梗概
                      </h3>
                      {!editingLogline && (
@@ -1387,7 +1387,7 @@ const StageScript: React.FC<Props> = ({
                   {/* Characters */}
                   <section>
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <h3 className="text-[12px] font-bold text-slate-400tracking-widest flex items-center gap-2">
                          <Users className="w-3 h-3" /> 演员表
                       </h3>
                       <button onClick={() => setShowAddCharacter(true)} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
@@ -1482,7 +1482,7 @@ const StageScript: React.FC<Props> = ({
                                 <div className="flex items-center justify-between text-sm text-slate-300 font-medium group-hover:text-slate-50">{c.name} 
                                   <span className="text-[11px] text-slate-500 font-mono">{c.gender} {c!.age}</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                                <div className="flex items-center gap-2 text-[10px] font-monotracking-widest text-slate-500">
                                   <span className="">{c!.personality}</span>
                                 </div>
                               </div>
@@ -1500,7 +1500,7 @@ const StageScript: React.FC<Props> = ({
                   {/* Scenes */}
                   <section>
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <h3 className="text-[12px] font-bold text-slate-400tracking-widest flex items-center gap-2">
                          <MapPin className="w-3 h-3" /> 场景列表
                       </h3>
                       <button onClick={() => setShowAddScene(true)} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
@@ -1571,7 +1571,7 @@ const StageScript: React.FC<Props> = ({
                              <>
                                <div className="flex flex-col gap-0.5">
                                  <span className="text-sm text-slate-300 font-medium group-hover:text-slate-50">{s!.location}</span>
-                                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                                 <div className="flex items-center gap-2 text-[10px] font-monotracking-widest text-slate-500">
                                    <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5"/> {s!.time}</span>
                                    <span className="text-slate-600">|</span>
                                    <span className="">{s!.atmosphere}</span>

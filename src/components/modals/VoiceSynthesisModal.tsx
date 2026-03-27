@@ -268,7 +268,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <Settings className="w-4 h-4 text-slate-400" />
-                <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider">语音参数设置</h4>
+                <h4 className="text-sm font-bold text-slate-300tracking-wider">语音参数设置</h4>
               </div>
 
               {/* Voice Library Selection */}

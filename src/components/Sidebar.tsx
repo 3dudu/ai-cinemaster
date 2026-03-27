@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         )}
         <button
           onClick={onExit}
-          className={`flex ${collapsed ? 'flex-col' : 'flex-row'} cursor-pointer items-center gap-2 hover:scale-110 transition-transform text-slate-500 hover:text-slate-50 transition-colors text-xs font-mono uppercase tracking-wide group w-full`}
+          className={`flex ${collapsed ? 'flex-col' : 'flex-row'} cursor-pointer items-center gap-2 hover:scale-110 transition-transform text-slate-500 hover:text-slate-50 transition-colors text-xs font-monotracking-wide group w-full`}
         >
           <ChevronLeft className="w-5 h-5" />
           {!collapsed && <span>返回项目列表</span>}
@@ -150,28 +150,28 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
             onClick={() => setShowImageBrowser(true)}
             className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
           >
-              <span className="font-mono text-[12px] uppercase tracking-widest">图片视频库</span>
+              <span className="font-mono text-[12px]tracking-widest">图片视频库</span>
               <Images className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowPromptTemplates(true)}
               className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
             >
-              <span className="font-mono text-[12px] uppercase tracking-widest">提示词模板</span>
+              <span className="font-mono text-[12px]tracking-widest">提示词模板</span>
               <NotebookPen className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowModelSettings(true)}
               className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
             >
-              <span className="font-mono text-[12px] uppercase tracking-widest">模型管理</span>
+              <span className="font-mono text-[12px]tracking-widest">模型管理</span>
               <Sparkles className="w-4 h-4" />
             </button>
             <button
               onClick={onOpenSettings}
               className="flex items-center justify-between text-slate-500 hover:text-slate-50 cursor-pointer transition-colors w-full px-3 py-2 hover:bg-slate-700 rounded-lg"
             >
-              <span className="font-mono text-[12px] uppercase tracking-widest">系统设置</span>
+              <span className="font-mono text-[12px]tracking-widest">系统设置</span>
               <Settings className="w-4 h-4" />
             </button>
 

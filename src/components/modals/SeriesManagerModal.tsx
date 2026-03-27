@@ -1,7 +1,7 @@
-import { Calendar, ChevronLeft, ChevronRight, Edit3, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Download, Edit3, Film, Loader2, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
-import { createSeriesEpisode, importProjectAsEpisode } from '../../services/seriesService';
-import { getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
+import { createSeriesEpisode, getEffectiveScriptData, importProjectAsEpisode } from '../../services/seriesService';
+import { exportProjectToFile, getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
 import { ProjectState, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';
 import ProjectSettingsModal from './ProjectSettingsModal';
@@ -207,6 +207,27 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     onSeriesUpdate(updatedSeries);
   }, [series, onSeriesUpdate]);
 
+  // Handle export episode with resolved references
+  const handleExportEpisode = useCallback((ep: ProjectState) => {
+    // Resolve references: merge library data into episode
+    const effectiveScriptData = getEffectiveScriptData(ep, series);
+    
+    // Create a standalone project with resolved data
+    const resolvedProject: ProjectState = {
+      ...ep,
+      seriesRefId: undefined, // Detach from series
+      scriptData: effectiveScriptData ? {
+        ...effectiveScriptData,
+        // Clear refIds since they're now standalone
+        characters: effectiveScriptData.characters?.map(c => ({ ...c, refId: undefined })),
+        scenes: effectiveScriptData.scenes?.map(s => ({ ...s, refId: undefined })),
+      } : ep.scriptData
+    };
+    
+    exportProjectToFile(resolvedProject);
+    dialog.toast({ message: '单集导出成功', type: 'success' });
+  }, [series, dialog]);
+
   // Handle open episode - ✅ Use useCallback
   const handleOpenEpisode = useCallback((proj: ProjectState) => {
     if(series.currentEpisodeId !== proj.id){
@@ -390,6 +411,15 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                   )}
+                      {/* Export Episode Button */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleExportEpisode(ep); }}
+                        className="p-1 hover:bg-slate-600/20 text-slate-400 hover:text-slate-300 rounded-lg transition-all"
+                        title="导出单集"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+
                       {/* Move Backward Button */}
                       <button
                         onClick={(e) => { e.stopPropagation(); handleMoveEpisode(ep.id, 'backward'); }}

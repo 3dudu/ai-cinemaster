@@ -99,7 +99,7 @@ const StoryParagraphsModal: React.FC<Props> = ({
                 className="bg-slate-800 border border-slate-600 rounded-lg p-4 space-y-3"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                  <span className="text-[11px] font-bold text-slate-500tracking-widest">
                     段落 #{index + 1}
                   </span>
                   <button
@@ -143,13 +143,13 @@ const StoryParagraphsModal: React.FC<Props> = ({
         <div className="p-6 bg-slate-600/80 border-t border-slate-600 flex gap-3 shrink-0">
           <button
             onClick={handleClose}
-            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-600 text-slate-300 hover:bg-slate-800 text-[11px] font-boldtracking-wider rounded-lg transition-colors cursor-pointer"
           >
             取消
           </button>
           <button
             onClick={handleSave}
-            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+            className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-boldtracking-wider rounded-lg transition-colors cursor-pointer"
           >
             保存
           </button>
