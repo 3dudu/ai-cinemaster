@@ -330,3 +330,233 @@ export const generateVideo = async (prompt: string, startImageBase64?: string, e
   // Note: The URI requires the API key appended to fetch the binary
   return `${videoUri}&key=${apiKey}`;
 };
+
+
+/**
+ * DeepSeek: Script Structuring & Breakdown
+ * 分析剧本并结构化数据
+ */
+export const importScriptToData = async (
+  prompt: string,
+  language: string = "中文"
+): Promise<ScriptData> => {
+  const ai = getAiClient();
+  const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      maxOutputTokens: 8192, 
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING },
+          genre: { type: Type.STRING },
+          logline: { type: Type.STRING },
+          characters: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                name: { type: Type.STRING },
+                gender: { type: Type.STRING },
+                age: { type: Type.STRING },
+                personality: { type: Type.STRING }
+              },
+              required: ["id", "name", "gender", "age", "personality"]
+            }
+          },
+          scenes: {
+             type: Type.ARRAY,
+             items: {
+               type: Type.OBJECT,
+               properties: {
+                 id: { type: Type.STRING },
+                 location: { type: Type.STRING },
+                 time: { type: Type.STRING },
+                 atmosphere: { type: Type.STRING }
+               },
+               required: ["id", "location", "time", "atmosphere"]
+             }
+          },
+          storyParagraphs: {
+             type: Type.ARRAY,
+             items: {
+               type: Type.OBJECT,
+               properties: {
+                 id: { type: Type.NUMBER },
+                 text: { type: Type.STRING },
+                 sceneRefId: { type: Type.STRING }
+               },
+               required: ["id", "text", "sceneRefId"]
+             }
+          }
+        },
+        required: ["title", "genre", "logline", "characters", "scenes", "storyParagraphs"]
+      }
+    }
+  }));
+
+  let parsed: any = {};
+  try {
+    const text = cleanJsonString(response.text || "{}");
+    parsed = JSON.parse(text);
+  } catch (e) {
+    console.error("Failed to parse script data JSON:", e);
+    parsed = {};
+  }
+  
+  // Enforce String IDs for consistency and init variations
+  const characters = Array.isArray(parsed.characters) ? parsed.characters.map((c: any) => ({
+    ...c, 
+    id: String(c.id),
+    variations: [] // Initialize empty variations
+  })) : [];
+  const scenes = Array.isArray(parsed.scenes) ? parsed.scenes.map((s: any) => ({...s, id: String(s.id)})) : [];
+  const storyParagraphs = Array.isArray(parsed.storyParagraphs) ? parsed.storyParagraphs.map((p: any) => ({...p, sceneRefId: String(p.sceneRefId)})) : [];
+
+  return {
+    title: parsed.title || "未命名剧本",
+    genre: parsed.genre || "",
+    logline: parsed.logline || "",
+    language: language,
+    characters,
+    scenes,
+    storyParagraphs
+  };
+};
+
+export const importShotList = async (
+  prompt: string
+): Promise<Shot[]> => {
+const ai = getAiClient();
+  try {
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 8192,
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              sceneId: { type: Type.STRING },
+              actionSummary: { type: Type.STRING },
+              dialogue: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    character: { type: Type.STRING, description: "角色名。" },
+                    value: Type.STRING, description: "本镜头中该角色的台词。若无台词则不需要。"
+                  },
+                  required: ["character", "value"]
+                }
+              },
+              cameraMovement: { type: Type.STRING },
+              shotSize: { type: Type.STRING, description: "例如：广角镜头、特写镜头" },
+              characters: { type: Type.ARRAY, items: { type: Type.STRING } },
+              keyframes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    type: { type: Type.STRING, enum: ["start", "end"] },
+                    visualPrompt: { type: Type.STRING, description: "详细的中文视觉描述" }
+                  },
+                  required: ["id", "type", "visualPrompt"]
+                }
+              }
+            },
+            required: ["sceneId", "actionSummary", "cameraMovement", "shotSize", "characters", "keyframes"]
+          }
+        }
+      }
+    }));
+
+    const text = cleanJsonString(response.text || "[]");
+    const shots = JSON.parse(text);
+
+    // FIX: Explicitly override the sceneId to match the source scene
+    // This prevents the AI from hallucinating incorrect scene IDs
+    const validShots = Array.isArray(shots) ? shots : [];
+    return validShots;
+  } catch (e) {
+    return [];
+  }
+};
+
+export const importShotListForScene = async (
+  scene:Scene,
+  prompt: string
+): Promise<Shot[]> => {
+const ai = getAiClient();
+  try {
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 8192,
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              sceneId: { type: Type.STRING },
+              actionSummary: { type: Type.STRING },
+              dialogue: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    character: { type: Type.STRING, description: "角色名。" },
+                    value: Type.STRING, description: "本镜头中该角色的台词。若无台词则不需要。"
+                  },
+                  required: ["character", "value"]
+                }
+              },
+              cameraMovement: { type: Type.STRING },
+              shotSize: { type: Type.STRING, description: "例如：广角镜头、特写镜头" },
+              characters: { type: Type.ARRAY, items: { type: Type.STRING } },
+              keyframes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    type: { type: Type.STRING, enum: ["start", "end"] },
+                    visualPrompt: { type: Type.STRING, description: "详细的中文视觉描述" }
+                  },
+                  required: ["id", "type", "visualPrompt"]
+                }
+              }
+            },
+            required: ["sceneId", "actionSummary", "cameraMovement", "shotSize", "characters", "keyframes"]
+          }
+        }
+      }
+    }));
+
+    const text = cleanJsonString(response.text || "[]");
+    const shots = JSON.parse(text);
+
+    // FIX: Explicitly override the sceneId to match the source scene
+    // This prevents the AI from hallucinating incorrect scene IDs
+    const validShots = Array.isArray(shots) ? shots : [];
+    return validShots.map(s => ({
+      ...s,
+      sceneId: String(scene.id) // Force String
+    }));
+
+  } catch (e) {
+    console.error(`Failed to generate shots for scene ${scene.id}`, e);
+    return [];
+  }
+};

@@ -185,78 +185,6 @@ export const generateShotListForScene = async (
     return [];
   }
 };
-export const importShotList = async (
-  prompt: string
-): Promise<Shot[]> => {
-
-  try {
-    const endpoint = `${runtimeApiUrl}/chat/completions`;
-    const response = await fetchWithRetry(endpoint, {
-      method: "POST",
-      body: JSON.stringify({
-        model: runtimeTextModel,
-        messages: [
-          {
-            role: "system",
-            content: renderTemplate('SYSTEM_SCRIPT_IMPORTER'),
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
-      }),
-    });
-
-    const content = response.choices?.[0]?.message?.content || "[]";
-    const shots = JSON.parse(cleanJsonString(content));
-    const validShots = Array.isArray(shots) ? shots : [];
-    return shots;
-  } catch (e) {
-    console.error(`Failed to import shots`, e);
-    return [];
-  }
-};
-
-export const importShotListForScene = async (
-  scene:Scene,
-  prompt: string
-): Promise<Shot[]> => {
-
-  try {
-    const endpoint = `${runtimeApiUrl}/chat/completions`;
-    const response = await fetchWithRetry(endpoint, {
-      method: "POST",
-      body: JSON.stringify({
-        model: runtimeTextModel,
-        messages: [
-          {
-            role: "system",
-            content: renderTemplate('SYSTEM_SCRIPT_IMPORTER'),
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
-      }),
-    });
-
-    const content = response.choices?.[0]?.message?.content || "[]";
-    const shots = JSON.parse(cleanJsonString(content));
-    const validShots = Array.isArray(shots) ? shots : [];
-    return validShots.map((s: any) => ({
-      ...s,
-      sceneId: String(scene.id),
-    }));
-  } catch (e) {
-    console.error(`Failed to import shots`, e);
-    return [];
-  }
-};
-
 
 /**
  * DeepSeek: Script Generation from simple prompt
@@ -420,3 +348,74 @@ export const importScriptToData = async (
   };
 };
 
+export const importShotList = async (
+  prompt: string
+): Promise<Shot[]> => {
+
+  try {
+    const endpoint = `${runtimeApiUrl}/chat/completions`;
+    const response = await fetchWithRetry(endpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        model: runtimeTextModel,
+        messages: [
+          {
+            role: "system",
+            content: renderTemplate('SYSTEM_SCRIPT_IMPORTER'),
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
+      }),
+    });
+
+    const content = response.choices?.[0]?.message?.content || "[]";
+    const shots = JSON.parse(cleanJsonString(content));
+    const validShots = Array.isArray(shots) ? shots : [];
+    return shots;
+  } catch (e) {
+    console.error(`Failed to import shots`, e);
+    return [];
+  }
+};
+
+export const importShotListForScene = async (
+  scene:Scene,
+  prompt: string
+): Promise<Shot[]> => {
+
+  try {
+    const endpoint = `${runtimeApiUrl}/chat/completions`;
+    const response = await fetchWithRetry(endpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        model: runtimeTextModel,
+        messages: [
+          {
+            role: "system",
+            content: renderTemplate('SYSTEM_SCRIPT_IMPORTER'),
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
+      }),
+    });
+
+    const content = response.choices?.[0]?.message?.content || "[]";
+    const shots = JSON.parse(cleanJsonString(content));
+    const validShots = Array.isArray(shots) ? shots : [];
+    return validShots.map((s: any) => ({
+      ...s,
+      sceneId: String(scene.id),
+    }));
+  } catch (e) {
+    console.error(`Failed to import shots`, e);
+    return [];
+  }
+};

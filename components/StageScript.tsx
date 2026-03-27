@@ -9,6 +9,7 @@ import CustomSelect from './common/CustomSelect';
 import { useDialog } from './dialog';
 import { DURATION_OPTIONS, GENRE_OPTIONS, IMAGE_COUNT_OPTIONS, IMAGE_SIZE_OPTIONS, LANGUAGE_OPTIONS, STYLE_OPTIONS } from './modals/ProjectSettingsModal';
 import ShotEditModal from './modals/ShotEditModal';
+import StoryParagraphsModal from './modals/StoryParagraphsModal';
 
 interface Props {
   project: ProjectState;
@@ -64,6 +65,8 @@ const StageScript: React.FC<Props> = ({
   const [showAddScene, setShowAddScene] = useState(false);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
   const [addingShotForSceneId, setAddingShotForSceneId] = useState<string | null>(null);
+  const [storyParagraphsModalOpen, setStoryParagraphsModalOpen] = useState(false);
+  const [editingStoryParagraphsSceneId, setEditingStoryParagraphsSceneId] = useState<string | null>(null);
 
   const [localLlmProvider, setLocalLlmProvider] = useState(project.modelProviders?.llm || '');
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project.modelProviders?.text2image || '');
@@ -1217,6 +1220,18 @@ const StageScript: React.FC<Props> = ({
                            <div className="px-4 md:px-8 pb-4 border-b border-slate-600">
                               <div className="flex gap-2">
                                  <button
+                                    onClick={() => {
+                                       setEditingStoryParagraphsSceneId(scene.id);
+                                       setStoryParagraphsModalOpen(true);
+                                    }}
+                                    disabled={regeneratingSceneId === scene.id}
+                                    className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-400 bg-slate-700/80 border hover:bg-slate-600/80 border-slate-600 hover:border-slate-300 rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                    title="编辑故事段落"
+                                 >
+                                    <ScrollText className="w-3 h-3" />
+                                    <span>故事段落</span>
+                                 </button>
+                                 <button
                                     onClick={() => startAddShot(scene.id)}
                                     disabled={regeneratingSceneId === scene.id}
                                     className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-400 bg-slate-700/80 border hover:bg-slate-600/80 border-slate-600 hover:border-slate-300 rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
@@ -1579,6 +1594,42 @@ const StageScript: React.FC<Props> = ({
     );
   };
 
+  const handleSaveStoryParagraphs = (paragraphs: { id: number; text: string; sceneRefId: string }[]) => {
+    if (!project.scriptData || !editingStoryParagraphsSceneId) return;
+
+    const newData = { ...project.scriptData };
+    const sceneId = editingStoryParagraphsSceneId;
+
+    // Remove existing paragraphs for this scene
+    newData.storyParagraphs = newData.storyParagraphs.filter(
+      p => String(p.sceneRefId) !== String(sceneId)
+    );
+
+    // Add new paragraphs
+    newData.storyParagraphs = [...newData.storyParagraphs, ...paragraphs];
+
+    updateProject({ scriptData: newData });
+    setStoryParagraphsModalOpen(false);
+    setEditingStoryParagraphsSceneId(null);
+  };
+
+  const renderStoryParagraphsModal = () => {
+    if (!storyParagraphsModalOpen || !editingStoryParagraphsSceneId) return null;
+
+    return (
+      <StoryParagraphsModal
+        isOpen={storyParagraphsModalOpen}
+        onClose={() => {
+          setStoryParagraphsModalOpen(false);
+          setEditingStoryParagraphsSceneId(null);
+        }}
+        onSave={handleSaveStoryParagraphs}
+        paragraphs={project.scriptData?.storyParagraphs || []}
+        sceneId={editingStoryParagraphsSceneId}
+      />
+    );
+  };
+
   const renderEditShotModal = () => {
     // Always use local characters from project.scriptData
     const localCharacters = project.scriptData?.characters || [];
@@ -1635,6 +1686,7 @@ const StageScript: React.FC<Props> = ({
     <div className="h-full bg-slate-900">
       {activeTab === 'story' ? renderStoryInput() : renderScriptBreakdown()}
       {renderEditShotModal()}
+      {renderStoryParagraphsModal()}
     </div>
   );
 };

@@ -286,110 +286,154 @@ const StageAssets: React.FC<Props> = ({
   }, [downloadStatus, project.scriptData?.title, dialog]);
 
   const handleDeleteCharacter = useCallback(async (charId: string) => {
-    if (!series || !updateSeries) return;
-
-    const char = series.library.characters.find(c => c.id === charId);
+    const char = isSeriesMode
+      ? series?.library?.characters.find(c => c.id === charId)
+      : project.scriptData?.characters.find(c => c.id === charId);
     if (!char) return;
 
     const confirmed = await dialog.confirm({
       title: '确认删除角色',
-      message: `确定要删除角色"${char.name}"吗？此操作将从全局资源库中移除该角色，但不会影响已生成的图片。`,
+      message: `确定要删除角色"${char.name}"吗？此操作${isSeriesMode ? '将从全局资源库中移除该角色' : '将删除该角色'}，但不会影响已生成的图片。`,
       type: 'warning',
     });
 
     if (!confirmed) return;
 
-    const updatedSeries = deleteLibraryCharacter(series, charId);
-    updateSeries(updatedSeries);
+    if (isSeriesMode && series && updateSeries) {
+      const updatedSeries = deleteLibraryCharacter(series, charId);
+      updateSeries(updatedSeries);
+    } else if (project.scriptData) {
+      const newData = { ...project.scriptData };
+      newData.characters = newData.characters.filter(c => c.id !== charId);
+      updateProject({ scriptData: newData });
+    }
     await dialog.toast({ message: '角色已删除', type: 'success' });
-  }, [series, updateSeries, dialog]);
+  }, [isSeriesMode, series, updateSeries, project, updateProject, dialog]);
 
   const handleDeleteScene = useCallback(async (sceneId: string) => {
-    if (!series || !updateSeries) return;
-
-    const scene = series.library.scenes.find(s => s.id === sceneId);
+    const scene = isSeriesMode
+      ? series?.library?.scenes.find(s => s.id === sceneId)
+      : project.scriptData?.scenes.find(s => s.id === sceneId);
     if (!scene) return;
 
     const confirmed = await dialog.confirm({
       title: '确认删除场景',
-      message: `确定要删除场景"${scene.location}"吗？此操作将从全局资源库中移除该场景，但不会影响已生成的图片。`,
+      message: `确定要删除场景"${scene.location}"吗？此操作${isSeriesMode ? '将从全局资源库中移除该场景' : '将删除该场景'}，但不会影响已生成的图片。`,
       type: 'warning',
     });
 
     if (!confirmed) return;
 
-    const updatedSeries = deleteLibraryScene(series, sceneId);
-    updateSeries(updatedSeries);
+    if (isSeriesMode && series && updateSeries) {
+      const updatedSeries = deleteLibraryScene(series, sceneId);
+      updateSeries(updatedSeries);
+    } else if (project.scriptData) {
+      const newData = { ...project.scriptData };
+      newData.scenes = newData.scenes.filter(s => s.id !== sceneId);
+      updateProject({ scriptData: newData });
+    }
     await dialog.toast({ message: '场景已删除', type: 'success' });
-  }, [series, updateSeries, dialog]);
+  }, [isSeriesMode, series, updateSeries, project, updateProject, dialog]);
 
   const handleAddCharacter = useCallback(() => {
-    if (!series || !updateSeries) return;
     setEditingCharacter(null);
     setAddCharacterModalOpen(true);
-  }, [series, updateSeries]);
+  }, []);
 
   const handleEditCharacter = useCallback((char: Character) => {
-    if (!series || !updateSeries) return;
     setEditingCharacter(char);
     setAddCharacterModalOpen(true);
-  }, [series, updateSeries]);
+  }, []);
 
   const handleAddScene = useCallback(() => {
-    if (!series || !updateSeries) return;
     setEditingScene(null);
     setAddSceneModalOpen(true);
-  }, [series, updateSeries]);
+  }, []);
 
   const handleEditScene = useCallback((scene: Scene) => {
-    if (!series || !updateSeries) return;
     setEditingScene(scene);
     setAddSceneModalOpen(true);
-  }, [series, updateSeries]);
+  }, []);
 
   const handleSaveCharacter = useCallback((character: Character) => {
-    if (!series || !updateSeries) return;
-
-    if (editingCharacter) {
-      // Update existing character
-      const updatedSeries = { ...series };
-      const charIndex = updatedSeries.library.characters.findIndex(c => c.id === character.id);
-      if (charIndex >= 0) {
-        updatedSeries.library.characters[charIndex] = character;
+    if (isSeriesMode && series && updateSeries) {
+      // Series mode: operate on series.library
+      if (editingCharacter) {
+        // Update existing character
+        const updatedSeries = { ...series };
+        const charIndex = updatedSeries.library.characters.findIndex(c => c.id === character.id);
+        if (charIndex >= 0) {
+          updatedSeries.library.characters[charIndex] = character;
+          updateSeries(updatedSeries);
+          dialog.toast({ message: '角色已更新', type: 'success' });
+        }
+      } else {
+        // Add new character
+        const updatedSeries = addLibraryCharacter(series, character);
         updateSeries(updatedSeries);
-        dialog.toast({ message: '角色已更新', type: 'success' });
+        dialog.toast({ message: '角色已添加', type: 'success' });
       }
-    } else {
-      // Add new character
-      const updatedSeries = addLibraryCharacter(series, character);
-      updateSeries(updatedSeries);
-      dialog.toast({ message: '角色已添加', type: 'success' });
+    } else if (!isSeriesMode && project.scriptData) {
+      // Standalone mode: operate on project.scriptData
+      const newData = { ...project.scriptData };
+      if (editingCharacter) {
+        // Update existing character
+        const charIndex = newData.characters.findIndex(c => c.id === character.id);
+        if (charIndex >= 0) {
+          newData.characters[charIndex] = character;
+          updateProject({ scriptData: newData });
+          dialog.toast({ message: '角色已更新', type: 'success' });
+        }
+      } else {
+        // Add new character
+        newData.characters = [...newData.characters, character];
+        updateProject({ scriptData: newData });
+        dialog.toast({ message: '角色已添加', type: 'success' });
+      }
     }
     setAddCharacterModalOpen(false);
     setEditingCharacter(null);
-  }, [series, updateSeries, dialog, editingCharacter]);
+  }, [isSeriesMode, series, updateSeries, project, updateProject, dialog, editingCharacter]);
 
   const handleSaveScene = useCallback((scene: Scene) => {
-    if (!series || !updateSeries) return;
-
-    if (editingScene) {
-      // Update existing scene
-      const updatedSeries = { ...series };
-      const sceneIndex = updatedSeries.library.scenes.findIndex(s => s.id === scene.id);
-      if (sceneIndex >= 0) {
-        updatedSeries.library.scenes[sceneIndex] = scene;
+    if (isSeriesMode && series && updateSeries) {
+      // Series mode: operate on series.library
+      if (editingScene) {
+        // Update existing scene
+        const updatedSeries = { ...series };
+        const sceneIndex = updatedSeries.library.scenes.findIndex(s => s.id === scene.id);
+        if (sceneIndex >= 0) {
+          updatedSeries.library.scenes[sceneIndex] = scene;
+          updateSeries(updatedSeries);
+          dialog.toast({ message: '场景已更新', type: 'success' });
+        }
+      } else {
+        // Add new scene
+        const updatedSeries = addLibraryScene(series, scene);
         updateSeries(updatedSeries);
-        dialog.toast({ message: '场景已更新', type: 'success' });
+        dialog.toast({ message: '场景已添加', type: 'success' });
       }
-    } else {
-      // Add new scene
-      const updatedSeries = addLibraryScene(series, scene);
-      updateSeries(updatedSeries);
-      dialog.toast({ message: '场景已添加', type: 'success' });
+    } else if (!isSeriesMode && project.scriptData) {
+      // Standalone mode: operate on project.scriptData
+      const newData = { ...project.scriptData };
+      if (editingScene) {
+        // Update existing scene
+        const sceneIndex = newData.scenes.findIndex(s => s.id === scene.id);
+        if (sceneIndex >= 0) {
+          newData.scenes[sceneIndex] = scene;
+          updateProject({ scriptData: newData });
+          dialog.toast({ message: '场景已更新', type: 'success' });
+        }
+      } else {
+        // Add new scene
+        newData.scenes = [...newData.scenes, scene];
+        updateProject({ scriptData: newData });
+        dialog.toast({ message: '场景已添加', type: 'success' });
+      }
     }
     setAddSceneModalOpen(false);
     setEditingScene(null);
-  }, [series, updateSeries, dialog, editingScene]);
+  }, [isSeriesMode, series, updateSeries, project, updateProject, dialog, editingScene]);
 
   if (!project.scriptData&&!isSeriesMode || (displayCharacters.length === 0 && displayScenes.length === 0)) return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">
