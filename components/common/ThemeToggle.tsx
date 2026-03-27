@@ -1,5 +1,5 @@
 import { Monitor, Moon, Sun } from 'lucide-react';
-import { useTheme, type Theme } from '../hooks/useTheme';
+import { useTheme, type Theme } from '../../hooks/useTheme';
 
 interface ThemeToggleProps {
   className?: string;

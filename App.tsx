@@ -1,9 +1,9 @@
 import { CheckCircle, Save } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import ApiKeyModal from './components/ApiKeyModal'; // 新增
 import Dashboard from './components/Dashboard';
 import { DialogProvider } from './components/dialog';
-import SeriesManagerModal from './components/SeriesManagerModal';
+import ApiKeyModal from './components/modals/ApiKeyModal'; // 新增
+import SeriesManagerModal from './components/modals/SeriesManagerModal';
 import Sidebar from './components/Sidebar';
 import SidebarMobile from './components/SidebarMobile';
 import StageAssets from './components/StageAssets';

@@ -1,9 +1,9 @@
 import { ArrowRightLeft, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
-import { ProjectState, SeriesRecord } from '../types';
-import CustomSelect from './CustomSelect';
-import { useDialog } from './dialog';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, md5Hash, MediaFile } from '../../services/storageService';
+import { ProjectState, SeriesRecord } from '../../types';
+import CustomSelect from '../common/CustomSelect';
+import { useDialog } from '../dialog';
 import { downloadImage, downloadVideo } from './FileUploadModal';
 import PromptDetailModal from './PromptDetailModal';
 
@@ -165,7 +165,7 @@ const ImageSelectorModal: React.FC<Props> = ({
   }, []);
 
   // Helper function to get character with full library data (in series mode)
-  const getCharacterWithAssets = useCallback((char: import('../types').Character, projectSeriesRefId?: string): import('../types').Character => {
+  const getCharacterWithAssets = useCallback((char: import('../../types').Character, projectSeriesRefId?: string): import('../../types').Character => {
     // In standalone mode, return character directly
     if (!projectSeriesRefId || !char.refId) return char;
 
@@ -179,7 +179,7 @@ const ImageSelectorModal: React.FC<Props> = ({
   }, [seriesList]);
 
   // Helper function to get scene with full library data (in series mode)
-  const getSceneWithAssets = useCallback((scene: import('../types').Scene, projectSeriesRefId?: string): import('../types').Scene => {
+  const getSceneWithAssets = useCallback((scene: import('../../types').Scene, projectSeriesRefId?: string): import('../../types').Scene => {
     // In standalone mode, return scene directly
     if (!projectSeriesRefId || !scene.refId) return scene;
 

@@ -1,11 +1,11 @@
 import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, Speech, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { VOICE_LIBRARY, VOICE_LIBRARY_TYPE_NAMES } from '../config/voiceLibrary';
-import { ModelService } from '../services/modelService';
-import { addMediaHistory } from '../services/storageService';
-import { Character, ProjectState, Shot, TtsParams } from '../types';
-import CustomSelect from './CustomSelect';
-import { useDialog } from './dialog';
+import { VOICE_LIBRARY, VOICE_LIBRARY_TYPE_NAMES } from '../../config/voiceLibrary';
+import { ModelService } from '../../services/modelService';
+import { addMediaHistory } from '../../services/storageService';
+import { Character, ProjectState, Shot, TtsParams } from '../../types';
+import CustomSelect from '../common/CustomSelect';
+import { useDialog } from '../dialog';
 
 interface VoiceSynthesisModalProps {
   isOpen: boolean;

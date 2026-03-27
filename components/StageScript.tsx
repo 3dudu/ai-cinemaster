@@ -2,14 +2,13 @@ import { AlertCircle, Aperture, BookOpen, BrainCircuit, Clock, Edit, Film, Image
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
+import { createCharacterRef, createLightweightCharacters, createLightweightScenes, createSceneRef, generateId, mergeCharactersToLibrary, mergeScenesToLibrary, mergeToLibrary, remapScriptDataRefs, updateLibraryCharacter } from '../services/seriesService';
 import { getAllModelConfigs } from '../services/storageService';
-import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs, mergeCharactersToLibrary, mergeScenesToLibrary, createCharacterRef, createSceneRef, updateLibraryCharacter, generateId } from '../services/seriesService';
 import { Character, ProjectState, Scene, SeriesRecord } from '../types';
-import CustomSelect from './CustomSelect';
+import CustomSelect from './common/CustomSelect';
 import { useDialog } from './dialog';
-import { DURATION_OPTIONS, GENRE_OPTIONS, IMAGE_COUNT_OPTIONS, IMAGE_SIZE_OPTIONS, LANGUAGE_OPTIONS, STYLE_OPTIONS } from './ProjectSettingsModal';
-import SceneEditModal from './SceneEditModal';
-import ShotEditModal from './ShotEditModal';
+import { DURATION_OPTIONS, GENRE_OPTIONS, IMAGE_COUNT_OPTIONS, IMAGE_SIZE_OPTIONS, LANGUAGE_OPTIONS, STYLE_OPTIONS } from './modals/ProjectSettingsModal';
+import ShotEditModal from './modals/ShotEditModal';
 
 interface Props {
   project: ProjectState;
@@ -64,7 +63,6 @@ const StageScript: React.FC<Props> = ({
   const [tempScene, setTempScene] = useState<Partial<Scene>>({});
   const [showAddScene, setShowAddScene] = useState(false);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
-  const [editingSceneInMain, setEditingSceneInMain] = useState<Scene | null>(null);
   const [addingShotForSceneId, setAddingShotForSceneId] = useState<string | null>(null);
 
   const [localLlmProvider, setLocalLlmProvider] = useState(project.modelProviders?.llm || '');
@@ -321,21 +319,6 @@ const StageScript: React.FC<Props> = ({
     setEditingSceneId(null);
     setTempScene({});
   }, [project.scriptData, editingSceneId, tempScene.location, tempScene, updateProject]);
-
-  const saveSceneFromModal = useCallback((updatedScene: Partial<Scene>, updatedStoryParagraphs: any[]) => {
-    if (!project.scriptData || !editingSceneInMain) return;
-    const updatedScenes = project.scriptData.scenes.map(s =>
-      s.id === editingSceneInMain.id ? { ...s, ...updatedScene } as Scene : s
-    );
-    updateProject({
-      scriptData: {
-        ...project.scriptData,
-        scenes: updatedScenes,
-        storyParagraphs: updatedStoryParagraphs
-      }
-    });
-    setEditingSceneInMain(null);
-  }, [project.scriptData, editingSceneInMain, updateProject]);
 
   const addScene = useCallback(() => {
     if (!project.scriptData || !tempScene.location) return;
@@ -1234,22 +1217,13 @@ const StageScript: React.FC<Props> = ({
                            <div className="px-4 md:px-8 pb-4 border-b border-slate-600">
                               <div className="flex gap-2">
                                  <button
-                                    onClick={() => setEditingSceneInMain(scene)}
-                                    disabled={regeneratingSceneId === scene.id}
-                                    className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-50 bg-slate-700/80 border border-slate-600 hover:bg-slate-600/80 hover:border-slate-300 rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                                    title="编辑场景"
-                                 >
-                                    <Edit className="w-3 h-3" />
-                                    <span>修改</span>
-                                 </button>
-                                 <button
                                     onClick={() => startAddShot(scene.id)}
                                     disabled={regeneratingSceneId === scene.id}
                                     className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-400 bg-slate-700/80 border hover:bg-slate-600/80 border-slate-600 hover:border-slate-300 rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                                     title="添加分镜"
                                  >
                                     <Plus className="w-3 h-3" />
-                                    <span>新增</span>
+                                    <span>新增分镜</span>
                                  </button>
                                  <button
                                     onClick={() => handleRegenerateSceneShots(scene.id, index)}
@@ -1259,15 +1233,6 @@ const StageScript: React.FC<Props> = ({
                                  >
                                     <Wand2 className="w-3 h-3" />
                                     <span>{regeneratingSceneId === scene.id ? '生成中...' : '重新分镜'}</span>
-                                 </button>
-                                 <button
-                                    onClick={() => deleteScene(scene.id)}
-                                    disabled={regeneratingSceneId === scene.id}
-                                    className="px-2.5 py-1.5 text-[11px] font-medium text-slate-400 hover:text-red-400 bg-slate-700/80 border border-slate-600 hover:bg-slate-600/80 hover:border-red-900/50 rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                                    title="删除场景"
-                                 >
-                                    <Trash className="w-3 h-3" />
-                                    <span>删除</span>
                                  </button>
                               </div>
                            </div>
@@ -1371,39 +1336,6 @@ const StageScript: React.FC<Props> = ({
            </div>
            {/* Sidebar: Index */}
            <div className="md:w-96 h-full overflow-y-auto w-full border-r border-slate-600 bg-slate-700 flex flex-col md:flex shadow-2xl animate-in slide-in-from-right-10 duration-300 transition-all ease-in-out">
-              {/* Genre Selection 
-              <div className="md:p-6 p-2 border-b border-slate-900">
-                 <div>
-                   <div className="flex items-center justify-between mb-2">
-                     <h3 className="text-[12px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                       <TextQuote className="w-3 h-3" /> 题材类型
-                     </h3>
-                     {!editingGenre && (
-                       <button onClick={startEditGenre} className="text-slate-500 hover:text-slate-50 cursor-pointer transition-colors">
-                         <Edit className="w-3 h-3" />
-                       </button>
-                     )}
-                   </div>
-                   {editingGenre ? (
-                     <div className="relative">
-                       <CustomSelect
-                         options={GENRE_OPTIONS}
-                         value={tempGenre}
-                         onChange={setTempGenre}
-                         className="w-full"
-                         size="sm"
-                       />
-                       <div className="flex gap-2 mt-2">
-                         <button onClick={saveGenre} className="flex-1 py-1 bg-slate-500/60 text-slate-300 text-[11px] rounded hover:bg-slate-500/20 cursor-pointer">保存</button>
-                         <button onClick={() => setEditingGenre(false)} className="flex-1 py-1 bg-slate-600 text-slate-300 text-[11px] rounded hover:bg-slate-600/50 transition-colors cursor-pointer">取消</button>
-                       </div>
-                     </div>
-                   ) : (
-                     <p className="text-xs text-slate-300 font-medium cursor-text hover:text-slate-50" onClick={startEditGenre}>{project.scriptData?.genre || '剧情片'}</p>
-                   )}
-                 </div>
-              </div>
-              */}
               <div className="md:p-6 p-4 border-b border-slate-900">
                  {/* Logline */}
                  <div>
@@ -1699,26 +1631,10 @@ const StageScript: React.FC<Props> = ({
     return null;
   };
 
-  const renderEditSceneModal = () => {
-    if (!editingSceneInMain) return null;
-
-    return (
-      <SceneEditModal
-        scene={editingSceneInMain}
-        storyParagraphs={project.scriptData?.storyParagraphs || []}
-        onSave={saveSceneFromModal}
-        onClose={() => {
-          setEditingSceneInMain(null);
-        }}
-      />
-    );
-  };
-
   return (
     <div className="h-full bg-slate-900">
       {activeTab === 'story' ? renderStoryInput() : renderScriptBreakdown()}
       {renderEditShotModal()}
-      {renderEditSceneModal()}
     </div>
   );
 };

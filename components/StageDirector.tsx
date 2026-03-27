@@ -1,17 +1,16 @@
 import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
 import { addMediaHistory, getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Character, Keyframe, ProjectState, Scene, SeriesRecord, Shot } from '../types';
-import CustomSelect from './CustomSelect';
+import CustomSelect from './common/CustomSelect';
 import { useDialog } from './dialog';
-import FileUploadModal, { downloadImage, downloadVideo } from './FileUploadModal';
-import SceneEditModal from './SceneEditModal';
-import ShotEditModal from './ShotEditModal';
-import VideoPromptModal from './VideoPromptModal';
-import WardrobeModal from './WardrobeModal';
+import FileUploadModal, { downloadImage, downloadVideo } from './modals/FileUploadModal';
+import ShotEditModal from './modals/ShotEditModal';
+import VideoPromptModal from './modals/VideoPromptModal';
+import WardrobeModal from './modals/WardrobeModal';
 
 interface Props {
   project: ProjectState;
@@ -60,7 +59,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
-  const [editingSceneInMain, setEditingSceneInMain] = useState<Scene | null>(null);
   const [processingState, setProcessingState] = useState<{id: string, type: 'kf_start'|'kf_end'|'kf_full'|'video'|'character'}|null>(null);
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number, message: string} | null>(null);
   const [localStyle, setLocalStyle] = useState(project.visualStyle || '真人写实');
@@ -235,21 +233,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     );
     updateProject({ shots: newShots });
     setEditingShotId(null);
-  };
-
-  const saveSceneFromModal = (updatedScene: Partial<Scene>, updatedStoryParagraphs: any[]) => {
-    if (!project.scriptData || !editingSceneInMain) return;
-    const updatedScenes = project.scriptData.scenes.map(s =>
-      s.id === editingSceneInMain.id ? { ...s, ...updatedScene } as Scene : s
-    );
-    updateProject({
-      scriptData: {
-        ...project.scriptData,
-        scenes: updatedScenes,
-        storyParagraphs: updatedStoryParagraphs
-      }
-    });
-    setEditingSceneInMain(null);
   };
 
   const getRefImagesForShot = (shot: Shot) => {
@@ -1302,13 +1285,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     <MapPin className="w-4 h-4 text-slate-500" />
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">场景：{scene?.location || '未知场景'}
                     </span>
-                    <button
-                    onClick={() => setEditingSceneInMain(scene!)}
-                    className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all cursor-pointer"
-                    title="编辑场景"
-                 >
-                    <Edit className="w-3.5 h-3.5" />
-                 </button>
                  <div className="flex-1 flex justify-end items-center">
                   {imageCount>0 && (
                     <button
@@ -2076,16 +2052,6 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               imageCount={project.imageCount}
               scriptData={project.scriptData}
               visualStyle={project.visualStyle}
-            />
-          )}
-
-          {/* Edit Scene Modal */}
-          {editingSceneInMain && (
-            <SceneEditModal
-              scene={editingSceneInMain}
-              storyParagraphs={project.scriptData?.storyParagraphs || []}
-              onSave={saveSceneFromModal}
-              onClose={() => setEditingSceneInMain(null)}
             />
           )}
 

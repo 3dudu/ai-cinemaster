@@ -1,10 +1,10 @@
 import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderKanban, Images, List, NotebookPen, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
-import ModalSettings from './ModalSettings';
-import ProjectSettingsModal from './ProjectSettingsModal';
-import PromptTemplateModal from './PromptTemplateModal';
-import { ThemeToggle } from './ThemeToggle';
+import { ThemeToggle } from './common/ThemeToggle';
+import ProjectSettingsModal from './modals/ProjectSettingsModal';
+import PromptTemplateModal from './modals/PromptTemplateModal';
+import ModalSettings from './modals/SystemSettingsModal';
 
 interface SidebarMobileProps {
   currentStage: string;

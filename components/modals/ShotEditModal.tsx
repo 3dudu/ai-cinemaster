@@ -1,9 +1,9 @@
 import { Aperture, Check, Plus, RefreshCw, Trash, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { modelConfigEventBus } from '../services/modelConfigEvents';
-import { getAllModelConfigs } from '../services/storageService';
-import { AIModelConfig, Keyframe, Props, Shot } from '../types';
-import CustomSelect from './CustomSelect';
+import { modelConfigEventBus } from '../../services/modelConfigEvents';
+import { getAllModelConfigs } from '../../services/storageService';
+import { AIModelConfig, Keyframe, Props, Shot } from '../../types';
+import CustomSelect from '../common/CustomSelect';
 import VideoPromptModal from './VideoPromptModal';
 
 const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, imageCount, scriptData, visualStyle = '真人写实' }) => {

@@ -1,11 +1,11 @@
 import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderKanban, Github as GithubIcon, Images, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
-import ImageSelectorModal from './ImageSelectorModal';
-import ModalSettings from './ModalSettings';
-import ProjectSettingsModal from './ProjectSettingsModal';
-import PromptTemplateModal from './PromptTemplateModal';
-import { ThemeToggle } from './ThemeToggle';
+import { ThemeToggle } from './common/ThemeToggle';
+import ImageSelectorModal from './modals/ImageSelectorModal';
+import ProjectSettingsModal from './modals/ProjectSettingsModal';
+import PromptTemplateModal from './modals/PromptTemplateModal';
+import ModalSettings from './modals/SystemSettingsModal';
 
 interface Props {
   project: ProjectState;
@@ -37,8 +37,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
   const [previewIndex, setPreviewIndex] = useState(0);
 
   const navItems = [
-    { id: 'script', label: '剧本与故事', icon: BookOpen, sub: '制作脚本' },
     { id: 'assets', label: '角色与场景', icon: Drama, sub: '角色布景' },
+    { id: 'script', label: '剧本与故事', icon: BookOpen, sub: '制作脚本' },
     { id: 'director', label: '导演工作台', icon: Clapperboard, sub: '拍摄制作' },
     { id: 'export', label: '成片与导出', icon: Film, sub: '剪辑合成' },
   ];

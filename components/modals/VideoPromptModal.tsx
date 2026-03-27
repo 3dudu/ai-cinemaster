@@ -1,8 +1,8 @@
 import { Loader2, NotebookPen, RefreshCw, RotateCcw, Save, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { ModelService } from '../services/modelService';
-import { ScriptData, Shot } from '../types';
-import { useDialog } from './dialog';
+import { ModelService } from '../../services/modelService';
+import { ScriptData, Shot } from '../../types';
+import { useDialog } from '../dialog';
 
 interface Props {
   isOpen: boolean;

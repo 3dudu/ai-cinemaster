@@ -1,11 +1,11 @@
 import { Download, Loader2, Plus, RefreshCw, Shirt, Upload, User, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { ModelService } from '../services/modelService';
-import { renderTemplate } from '../services/promptTemplates';
-import { addMediaHistory } from '../services/storageService';
-import { Character, CharacterVariation, ProjectState, SeriesRecord } from '../types';
+import React, { useState } from 'react';
+import { ModelService } from '../../services/modelService';
+import { renderTemplate } from '../../services/promptTemplates';
+import { addMediaHistory } from '../../services/storageService';
+import { Character, CharacterVariation, ProjectState, SeriesRecord } from '../../types';
+import { useDialog } from '../dialog';
 import FileUploadModal, { downloadImage } from './FileUploadModal';
-import { useDialog } from './dialog';
 
 interface Props {
   character: Character | null;
@@ -38,17 +38,9 @@ const WardrobeModal: React.FC<Props> = ({
   // Variation Form State
   const [newVarName, setNewVarName] = useState("");
   const [newVarPrompt, setNewVarPrompt] = useState("");
-  const [editingVisualPrompt, setEditingVisualPrompt] = useState("");
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
   const [uploadingVariationId, setUploadingVariationId] = useState<string | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
-
-  // Sync visual prompt when character is selected
-  useEffect(() => {
-    if (character) {
-      setEditingVisualPrompt(character.visualPrompt || '');
-    }
-  }, [character]);
 
   const handleAddVariation = () => {
       if (!project.scriptData || !character) return;
@@ -133,17 +125,6 @@ const WardrobeModal: React.FC<Props> = ({
       updateProject({ scriptData: newData });
   };
 
-  const handleSaveVisualPrompt = () => {
-    if (!project.scriptData || !character) return;
-
-    const newData = { ...project.scriptData };
-    const char = newData.characters.find(c => c.id === character.id);
-    if (char) {
-      char.visualPrompt = editingVisualPrompt;
-      updateProject({ scriptData: newData });
-    }
-  };
-
   const handleDownloadImage = async (imageUrl: string, name: string) => {
     if(downloadStatus)return;
     setDownloadStatus('downloading');
@@ -178,7 +159,7 @@ const WardrobeModal: React.FC<Props> = ({
   if (!character) return null;
 
   return (
-    <div className="absolute inset-0 z-40 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+    <div className="absolute inset-0 z-50 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
         <div className="bg-slate-800 border border-slate-600 w-full max-w-4xl max-h-[80vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
             <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between shrink-0 bg-slate-600/80">
@@ -189,7 +170,6 @@ const WardrobeModal: React.FC<Props> = ({
                     <X className="w-5 h-5 text-slate-500" />
                 </button>
             </div>
-            
             {/* Modal Body */}
             <div className="flex-1 p-2 md:p-6 bg-slate-700 space-y-5 overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-6">
@@ -211,16 +191,6 @@ const WardrobeModal: React.FC<Props> = ({
                                         <span className="text-slate-50/80 text-xs font-bold uppercase tracking-wider">点击预览</span>
                                     </div>
                                 )}
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[12px] text-slate-300 uppercase tracking-wider font-bold">视觉提示</label>
-                                <textarea
-                                    value={editingVisualPrompt}
-                                    onChange={(e) => setEditingVisualPrompt(e.target.value)}
-                                    onBlur={handleSaveVisualPrompt}
-                                    placeholder="输入角色的视觉描述..."
-                                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-[12px] text-slate-50 placeholder:text-slate-600 focus:outline-none focus:border-slate-500 transition-colors resize-none h-24 font-mono"
-                                />
                             </div>
                         </div>
                     </div>

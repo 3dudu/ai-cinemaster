@@ -1,15 +1,16 @@
-import { AlertCircle, Camera, Download, Drama, Expand, Loader2, MapPin, Mic, Palette, Plus, RefreshCw, Shirt, Sparkles, Trash2, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Camera, Download, Drama, Edit2, Expand, Loader2, MapPin, Mic, Palette, Plus, RefreshCw, Shirt, Sparkles, Trash2, Upload, User, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
-import { addLibraryCharacter, addLibraryScene, deleteLibraryCharacter, deleteLibraryScene, generateId } from '../services/seriesService';
+import { addLibraryCharacter, addLibraryScene, deleteLibraryCharacter, deleteLibraryScene } from '../services/seriesService';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Scene, SeriesRecord } from '../types';
-import FileUploadModal, { downloadImage } from './FileUploadModal';
-import VoiceSynthesisModal from './VoiceSynthesisModal';
-import WardrobeModal from './WardrobeModal';
 import { useDialog } from './dialog';
-import SceneEditModal from './modals/SceneEditModal';
+import CharacterAddModal from './modals/CharacterAddModal';
+import FileUploadModal, { downloadImage } from './modals/FileUploadModal';
+import SceneAddModal from './modals/SceneAddModal';
+import VoiceSynthesisModal from './modals/VoiceSynthesisModal';
+import WardrobeModal from './modals/WardrobeModal';
 
 interface Props {
   project: ProjectState;
@@ -50,6 +51,8 @@ const StageAssets: React.FC<Props> = ({
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
   const [addCharacterModalOpen, setAddCharacterModalOpen] = useState(false);
   const [addSceneModalOpen, setAddSceneModalOpen] = useState(false);
+  const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
+  const [editingScene, setEditingScene] = useState<Scene | null>(null);
 
   // Sync local state with project settings
   useEffect(() => {
@@ -322,31 +325,71 @@ const StageAssets: React.FC<Props> = ({
 
   const handleAddCharacter = useCallback(() => {
     if (!series || !updateSeries) return;
+    setEditingCharacter(null);
+    setAddCharacterModalOpen(true);
+  }, [series, updateSeries]);
+
+  const handleEditCharacter = useCallback((char: Character) => {
+    if (!series || !updateSeries) return;
+    setEditingCharacter(char);
     setAddCharacterModalOpen(true);
   }, [series, updateSeries]);
 
   const handleAddScene = useCallback(() => {
     if (!series || !updateSeries) return;
+    setEditingScene(null);
+    setAddSceneModalOpen(true);
+  }, [series, updateSeries]);
+
+  const handleEditScene = useCallback((scene: Scene) => {
+    if (!series || !updateSeries) return;
+    setEditingScene(scene);
     setAddSceneModalOpen(true);
   }, [series, updateSeries]);
 
   const handleSaveCharacter = useCallback((character: Character) => {
     if (!series || !updateSeries) return;
 
-    const updatedSeries = addLibraryCharacter(series, character);
-    updateSeries(updatedSeries);
+    if (editingCharacter) {
+      // Update existing character
+      const updatedSeries = { ...series };
+      const charIndex = updatedSeries.library.characters.findIndex(c => c.id === character.id);
+      if (charIndex >= 0) {
+        updatedSeries.library.characters[charIndex] = character;
+        updateSeries(updatedSeries);
+        dialog.toast({ message: '角色已更新', type: 'success' });
+      }
+    } else {
+      // Add new character
+      const updatedSeries = addLibraryCharacter(series, character);
+      updateSeries(updatedSeries);
+      dialog.toast({ message: '角色已添加', type: 'success' });
+    }
     setAddCharacterModalOpen(false);
-    dialog.toast({ message: '角色已添加', type: 'success' });
-  }, [series, updateSeries, dialog]);
+    setEditingCharacter(null);
+  }, [series, updateSeries, dialog, editingCharacter]);
 
   const handleSaveScene = useCallback((scene: Scene) => {
     if (!series || !updateSeries) return;
 
-    const updatedSeries = addLibraryScene(series, scene);
-    updateSeries(updatedSeries);
+    if (editingScene) {
+      // Update existing scene
+      const updatedSeries = { ...series };
+      const sceneIndex = updatedSeries.library.scenes.findIndex(s => s.id === scene.id);
+      if (sceneIndex >= 0) {
+        updatedSeries.library.scenes[sceneIndex] = scene;
+        updateSeries(updatedSeries);
+        dialog.toast({ message: '场景已更新', type: 'success' });
+      }
+    } else {
+      // Add new scene
+      const updatedSeries = addLibraryScene(series, scene);
+      updateSeries(updatedSeries);
+      dialog.toast({ message: '场景已添加', type: 'success' });
+    }
     setAddSceneModalOpen(false);
-    dialog.toast({ message: '场景已添加', type: 'success' });
-  }, [series, updateSeries, dialog]);
+    setEditingScene(null);
+  }, [series, updateSeries, dialog, editingScene]);
 
   if (!project.scriptData&&!isSeriesMode || (displayCharacters.length === 0 && displayScenes.length === 0)) return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">
@@ -401,23 +444,6 @@ const StageAssets: React.FC<Props> = ({
         />
       )}
 
-      {/* Scene Edit Modal */}
-      {selectedSceneId && (
-        <SceneEditModal
-          scene={displayScenes.find(s => s.id === selectedSceneId) || null}
-          series={series}
-          updateSeries={updateSeries}
-          project={project}
-          localStyle={localStyle}
-          imageSize={imageSize}
-          processingState={processingState}
-          setProcessingState={setProcessingState}
-          updateProject={updateProject}
-          onClose={() => setSelectedSceneId(null)}
-          setPreviewImage={setPreviewImage}
-        />
-      )}
-
       {/* Header - Consistent with Director */}
       <div className="h-14 border-b border-slate-600 bg-slate-700 md:px-6 px-2 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
@@ -450,16 +476,14 @@ const StageAssets: React.FC<Props> = ({
                <p className="text-xs text-slate-500 mt-1 pl-3.5">为剧本角色生成一致参考图</p>
             </div>
             <div className="flex items-center gap-2">
-              {isSeriesMode && (
-                <button
-                  onClick={handleAddCharacter}
-                  disabled={!!batchProgress}
-                  className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
-                >
-                  <Plus className="w-3 h-3" />
-                  新增
-                </button>
-              )}
+              <button
+                onClick={handleAddCharacter}
+                disabled={!!batchProgress}
+                className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
+              >
+                <Plus className="w-3 h-3" />
+                新增
+              </button>
               <button
               onClick={() => handleBatchGenerate('character')}
               disabled={!!batchProgress}
@@ -479,17 +503,23 @@ const StageAssets: React.FC<Props> = ({
             {displayCharacters.map((char) => (
               <div key={char.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[3/4] bg-slate-900 relative overflow-hidden">
-                  {/* Delete Button - Top Left */}
-                  {isSeriesMode && (
-                    <button
-                      onClick={() => handleDeleteCharacter(char.id)}
-                      disabled={!!batchProgress || !!processingState}
-                      className="absolute top-2 left-2 p-2 bg-red-600/50 text-slate-50 rounded-full hover:bg-red-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
-                      title="删除角色"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
+                  {/* Edit & Delete Buttons - Top Left */}
+                  <button
+                    onClick={() => handleEditCharacter(char)}
+                    disabled={!!batchProgress || !!processingState}
+                    className="absolute top-2 left-2 p-2 bg-blue-600/50 text-slate-50 rounded-full hover:bg-blue-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
+                    title="编辑角色"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCharacter(char.id)}
+                    disabled={!!batchProgress || !!processingState}
+                    className="absolute top-10 left-2 p-2 bg-red-600/50 text-slate-50 rounded-full hover:bg-red-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
+                    title="删除角色"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                   {char.referenceImage ? (
                     <>
                       <img src={char.referenceImage} alt={char.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -585,8 +615,8 @@ const StageAssets: React.FC<Props> = ({
                   <div className="flex items-center justify-between mb-1">
                   <div  className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-bold text-slate-200 truncate text-sm">{char.name}</h3>
-                  {char.gender!='未指定' && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 uppercase font-mono">{char.gender}</span>}
-                  {char.age!='未指定' && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 uppercase font-mono">{char.age}</span>}
+                  {(char.gender!='未指定'&&char.gender!='未知') && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 uppercase font-mono">{char.gender}</span>}
+                  {(char.age!='未指定'&&char.age!='未知') && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 uppercase font-mono">{char.age}</span>}
                      {char.variations && char.variations.length > 0 && (
                          <span className="px-1.5 py-0.5 text-[11px] rounded border border-slate-600 uppercase text-slate-400 font-mono flex items-center gap-1">
                              <Shirt className="w-2.5 h-2.5" /> +{char.variations.length}
@@ -608,16 +638,14 @@ const StageAssets: React.FC<Props> = ({
                <p className="text-xs text-slate-500 mt-1 pl-3.5">为剧本场景生成环境参考图</p>
             </div>
             <div className="flex items-center gap-2">
-              {isSeriesMode && (
-                <button
-                  onClick={handleAddScene}
-                  disabled={!!batchProgress}
-                  className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
-                >
-                  <Plus className="w-3 h-3" />
-                  新增
-                </button>
-              )}
+              <button
+                onClick={handleAddScene}
+                disabled={!!batchProgress}
+                className="px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
+              >
+                <Plus className="w-3 h-3" />
+                新增
+              </button>
               <button
               onClick={() => handleBatchGenerate('scene')}
               disabled={!!batchProgress}
@@ -637,17 +665,23 @@ const StageAssets: React.FC<Props> = ({
             {displayScenes.map((scene) => (
               <div key={scene.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[16/9] bg-slate-800/50 relative overflow-hidden">
-                  {/* Delete Button - Top Left */}
-                  {isSeriesMode && (
-                    <button
-                      onClick={() => handleDeleteScene(scene.id)}
-                      disabled={!!batchProgress || !!processingState}
-                      className="absolute top-2 left-2 p-2 bg-red-600/50 text-slate-50 rounded-full hover:bg-red-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
-                      title="删除场景"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
+                  {/* Edit & Delete Buttons - Top Left */}
+                  <button
+                    onClick={() => handleEditScene(scene)}
+                    disabled={!!batchProgress || !!processingState}
+                    className="absolute top-2 left-2 p-2 bg-blue-600/50 text-slate-50 rounded-full hover:bg-blue-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
+                    title="编辑场景"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteScene(scene.id)}
+                    disabled={!!batchProgress || !!processingState}
+                    className="absolute top-10 left-2 p-2 bg-red-600/50 text-slate-50 rounded-full hover:bg-red-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
+                    title="删除场景"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                   {scene.referenceImage ? (
                     <>
                       <img src={scene.referenceImage} alt={scene.location} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -727,32 +761,9 @@ const StageAssets: React.FC<Props> = ({
                 <div className="p-3 border-t border-slate-600 bg-slate-900">
                   <div className="flex justify-between items-center mb-1">
                      <h3 className="font-bold text-slate-200 text-sm truncate">{scene.location}</h3>
-                     <span className="max-w-32 line-clamp-1 mb-2 truncate px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 uppercase font-mono whitespace-nowrap">{scene.time}</span>
+                     <span className="max-w-32 line-clamp-1 truncate px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 uppercase font-mono whitespace-nowrap">{scene.time}</span>
                   </div>
-                  <p className="text-[12px] text-slate-500 line-clamp-1 mb-2">{scene.atmosphere}</p>
-                  {scene.visualPrompt && (
-                    <div className="mt-2 pt-2 border-t border-slate-600/50">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[12px] text-slate-300 font-mono line-clamp-2 flex-1">{scene.visualPrompt}</p>
-                        <button
-                          onClick={() => setSelectedSceneId(scene.id)}
-                          className="text-[11px] text-green-400 hover:text-green-300 flex-shrink-0 font-bold uppercase tracking-wider cursor-pointer"
-                        >
-                          编辑
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {!scene.visualPrompt && (
-                    <div className="mt-2 pt-2 border-t border-slate-600/50">
-                      <button
-                        onClick={() => setSelectedSceneId(scene.id)}
-                        className="w-full text-[11px] text-slate-500 hover:text-green-400 font-mono text-center py-1 border border-dashed border-slate-600 rounded hover:border-green-500/50 transition-colors cursor-pointer"
-                      >
-                        + 添加视觉提示
-                      </button>
-                    </div>
-                  )}
+                  <p className="text-[12px] text-slate-500 line-clamp-1 pt-2">{scene.atmosphere}</p>
                 </div>
               </div>
             ))}
@@ -847,189 +858,25 @@ const StageAssets: React.FC<Props> = ({
         />
       )}
 
-      {/* Add Character Modal */}
-      {addCharacterModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-700/90 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-600 rounded-xl shadow-2xl w-full max-w-md mx-4">
-            <div className="p-6 border-b border-slate-600">
-              <h2 className="text-xl font-bold text-slate-50 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-green-400" />
-                新增角色
-              </h2>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">角色名称</label>
-                <input
-                  id="new-char-name"
-                  type="text"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 focus:outline-none focus:border-slate-400"
-                  placeholder="请输入角色名称"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">性别</label>
-                <select
-                  id="new-char-gender"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 focus:outline-none focus:border-slate-400"
-                >
-                  <option value="男">男</option>
-                  <option value="女">女</option>
-                  <option value="未指定">未指定</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">年龄</label>
-                <input
-                  id="new-char-age"
-                  type="text"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 focus:outline-none focus:border-slate-400"
-                  placeholder="例如：25岁、中年"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">性格特点</label>
-                <textarea
-                  id="new-char-personality"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 focus:outline-none focus:border-slate-400 min-h-[80px]"
-                  placeholder="请输入角色性格特点"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">视觉提示</label>
-                <textarea
-                  id="new-char-visual"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 focus:outline-none focus:border-slate-400 min-h-[80px]"
-                  placeholder="请输入视觉生成提示词"
-                />
-              </div>
-            </div>
-            <div className="p-6 border-t border-slate-600 flex justify-end gap-3">
-              <button
-                onClick={() => setAddCharacterModalOpen(false)}
-                className="px-6 py-2 rounded-lg text-sm font-bold uppercase tracking-wide bg-slate-800 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-400 transition-all cursor-pointer"
-              >
-                取消
-              </button>
-              <button
-                onClick={async () => {
-                  const name = (document.getElementById('new-char-name') as HTMLInputElement)?.value;
-                  const gender = (document.getElementById('new-char-gender') as HTMLSelectElement)?.value;
-                  const age = (document.getElementById('new-char-age') as HTMLInputElement)?.value;
-                  const personality = (document.getElementById('new-char-personality') as HTMLTextAreaElement)?.value;
-                  const visualPrompt = (document.getElementById('new-char-visual') as HTMLTextAreaElement)?.value;
+      {/* Add/Edit Character Modal */}
+      <CharacterAddModal
+        isOpen={addCharacterModalOpen}
+        onClose={() => { setAddCharacterModalOpen(false); setEditingCharacter(null); }}
+        onSave={handleSaveCharacter}
+        character={editingCharacter}
+        genre={project.scriptData?.genre}
+        visualStyle={project.visualStyle}
+      />
 
-                  if (!name) {
-                    await dialog.toast({ message: '请输入角色名称', type: 'error' });
-                    return;
-                  }
-
-                  const newChar: Character = {
-                    id: generateId('char'),
-                    name,
-                    gender,
-                    age: age || '未指定',
-                    personality: personality || '',
-                    visualPrompt: visualPrompt || '',
-                    referenceImage: '',
-                    variations: []
-                  };
-
-                  handleSaveCharacter(newChar);
-                }}
-                className="px-6 py-2 rounded-lg text-sm font-bold uppercase tracking-wide bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20 transition-all cursor-pointer"
-              >
-                保存
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Scene Modal */}
-      {addSceneModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-700/90 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-600 rounded-xl shadow-2xl w-full max-w-md mx-4">
-            <div className="p-6 border-b border-slate-600">
-              <h2 className="text-xl font-bold text-slate-50 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-green-400" />
-                新增场景
-              </h2>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">场景地点</label>
-                <input
-                  id="new-scene-location"
-                  type="text"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 focus:outline-none focus:border-slate-400"
-                  placeholder="例如：办公室、公园、餐厅"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">时间</label>
-                <input
-                  id="new-scene-time"
-                  type="text"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 focus:outline-none focus:border-slate-400"
-                  placeholder="例如：白天、夜晚、黄昏"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">氛围</label>
-                <textarea
-                  id="new-scene-atmosphere"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 focus:outline-none focus:border-slate-400 min-h-[80px]"
-                  placeholder="请输入场景氛围描述"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">视觉提示</label>
-                <textarea
-                  id="new-scene-visual"
-                  className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 focus:outline-none focus:border-slate-400 min-h-[80px]"
-                  placeholder="请输入视觉生成提示词"
-                />
-              </div>
-            </div>
-            <div className="p-6 border-t border-slate-600 flex justify-end gap-3">
-              <button
-                onClick={() => setAddSceneModalOpen(false)}
-                className="px-6 py-2 rounded-lg text-sm font-bold uppercase tracking-wide bg-slate-800 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-400 transition-all cursor-pointer"
-              >
-                取消
-              </button>
-              <button
-                onClick={async () => {
-                  const location = (document.getElementById('new-scene-location') as HTMLInputElement)?.value;
-                  const time = (document.getElementById('new-scene-time') as HTMLInputElement)?.value;
-                  const atmosphere = (document.getElementById('new-scene-atmosphere') as HTMLTextAreaElement)?.value;
-                  const visualPrompt = (document.getElementById('new-scene-visual') as HTMLTextAreaElement)?.value;
-
-                  if (!location) {
-                    await dialog.toast({ message: '请输入场景地点', type: 'error' });
-                    return;
-                  }
-
-                  const newScene: Scene = {
-                    id: generateId('scene'),
-                    location,
-                    time: time || '未指定',
-                    atmosphere: atmosphere || '',
-                    visualPrompt: visualPrompt || '',
-                    referenceImage: ''
-                  };
-
-                  handleSaveScene(newScene);
-                }}
-                className="px-6 py-2 rounded-lg text-sm font-bold uppercase tracking-wide bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20 transition-all cursor-pointer"
-              >
-                保存
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Add/Edit Scene Modal */}
+      <SceneAddModal
+        isOpen={addSceneModalOpen}
+        onClose={() => { setAddSceneModalOpen(false); setEditingScene(null); }}
+        onSave={handleSaveScene}
+        scene={editingScene}
+        genre={project.scriptData?.genre}
+        visualStyle={project.visualStyle}
+      />
 
     </div>
   );

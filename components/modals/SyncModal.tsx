@@ -1,9 +1,9 @@
 import { ArrowDown, ArrowUp, Check, Cloud, Loader2, RefreshCw, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { getAllProjectsMetadata, saveProjectToDB } from '../services/storageService';
-import { deleteProject, downloadProject, getServerFiles, initSync, SyncFileInfo, uploadProject } from '../services/syncService';
-import { ProjectState } from '../types';
-import { useDialog } from './dialog';
+import { getAllProjectsMetadata, saveProjectToDB } from '../../services/storageService';
+import { deleteProject, downloadProject, getServerFiles, initSync, SyncFileInfo, uploadProject } from '../../services/syncService';
+import { ProjectState } from '../../types';
+import { useDialog } from '../dialog';
 
 interface SyncModalProps {
   isOpen: boolean;

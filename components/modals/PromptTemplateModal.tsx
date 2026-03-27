@@ -1,8 +1,8 @@
 import { Download, NotebookPen, RotateCcw, Save, Upload, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { PROMPT_TEMPLATES } from '../services/promptTemplates';
-import CustomSelect from './CustomSelect';
-import { useDialog } from './dialog';
+import { PROMPT_TEMPLATES } from '../../services/promptTemplates';
+import CustomSelect from '../common/CustomSelect';
+import { useDialog } from '../dialog';
 
 interface Template {
   key: string;

@@ -1,11 +1,11 @@
 import { Check, Download, Edit, Eye, EyeOff, Film, Globe, Image, Key, Link, Music, Plus, Sparkles, Tags, Trash2, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { triggerModelConfigChanged } from '../services/modelConfigEvents';
-import { createDefaultModelConfigs, saveModelConfigWithExclusiveEnabled, toggleConfigEnabled } from '../services/modelConfigService';
-import { deleteModelConfig, getAllModelConfigs, saveModelConfig } from '../services/storageService';
-import { AIModelConfig } from '../types';
-import CustomSelect from './CustomSelect';
-import { useDialog } from './dialog';
+import { triggerModelConfigChanged } from '../../services/modelConfigEvents';
+import { createDefaultModelConfigs, saveModelConfigWithExclusiveEnabled, toggleConfigEnabled } from '../../services/modelConfigService';
+import { deleteModelConfig, getAllModelConfigs, saveModelConfig } from '../../services/storageService';
+import { AIModelConfig } from '../../types';
+import CustomSelect from '../common/CustomSelect';
+import { useDialog } from '../dialog';
 
 interface Props {
   isOpen: boolean;
@@ -100,7 +100,7 @@ const getModelTypeColorStyles = (modelType: AIModelConfig['modelType']) => {
   return colorMap[modelType] || colorMap.llm;
 };
 
-const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => {
+const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => {
   const dialog = useDialog();
   const [configs, setConfigs] = useState<AIModelConfig[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -684,4 +684,4 @@ const ModalSettings: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => 
   );
 };
 
-export default ModalSettings;
+export default SystemSettingsModal;

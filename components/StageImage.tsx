@@ -1,11 +1,11 @@
 import { ArrowRightLeft, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
 import { ProjectState, SeriesRecord } from '../types';
-import CustomSelect from './CustomSelect';
+import CustomSelect from './common/CustomSelect';
 import { useDialog } from './dialog';
-import { downloadImage, downloadVideo } from './FileUploadModal';
-import PromptDetailModal from './PromptDetailModal';
+import { downloadImage, downloadVideo } from './modals/FileUploadModal';
+import PromptDetailModal from './modals/PromptDetailModal';
 
 interface ImageItem {
   id: string;

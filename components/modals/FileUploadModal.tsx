@@ -1,8 +1,8 @@
 import { Check, Images, Loader2, Upload, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { ProjectState } from '../types';
-import { uploadBase64File } from '../utils/fileUploadUtils';
-import { useDialog } from './dialog';
+import { ProjectState } from '../../types';
+import { uploadBase64File } from '../../utils/fileUploadUtils';
+import { useDialog } from '../dialog';
 import ImageSelectorModal from './ImageSelectorModal';
 
 // 导出下载工具函数供其他组件使用

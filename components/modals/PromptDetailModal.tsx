@@ -1,6 +1,6 @@
 import { Copy, Search, X } from 'lucide-react';
 import React from 'react';
-import { useDialog } from './dialog';
+import { useDialog } from '../dialog';
 
 interface PromptDetailModalProps {
   isOpen: boolean;

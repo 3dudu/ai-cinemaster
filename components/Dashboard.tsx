@@ -1,6 +1,6 @@
 import { AlertTriangle, ArrowUpDown, Calendar, Check, ChevronRight, Copy, Download, Edit, Film, Loader2, Plus, Power, Settings, Sparkles, Trash2, Upload, Video } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { createSeriesEpisode, importProjectAsEpisode } from '../services/seriesService';
+import { createSeriesEpisode, generateId, importProjectAsEpisode } from '../services/seriesService';
 import {
   createNewProjectState,
   deleteProjectFromDB,
@@ -14,15 +14,14 @@ import {
   saveSeriesToDB
 } from '../services/storageService';
 import { ProjectState, SeriesRecord } from '../types';
-import ApiKeyModal from './ApiKeyModal';
+import { ThemeToggle } from './common/ThemeToggle';
 import { useDialog } from './dialog';
 import CreateTypeDialog from './dialog/CreateTypeDialog';
-import ModalSettings from './ModalSettings';
-import ProjectSettingsModal from './ProjectSettingsModal';
-import SeriesSettingsModal from './SeriesSettingsModal';
-import SyncModal from './SyncModal';
-import { ThemeToggle } from './ThemeToggle';
-import { generateId } from '../services/seriesService';
+import ApiKeyModal from './modals/ApiKeyModal';
+import ProjectSettingsModal from './modals/ProjectSettingsModal';
+import SeriesSettingsModal from './modals/SeriesSettingsModal';
+import SyncModal from './modals/SyncModal';
+import ModalSettings from './modals/SystemSettingsModal';
 
 interface Props {
   onOpenProject: (project: ProjectState) => void;
