@@ -6,6 +6,7 @@ interface Option {
   label: string;
   suffix?: string;
   description?: string;
+  disabled?: boolean;
 }
 
 interface Props {
@@ -139,16 +140,22 @@ const CustomSelect: React.FC<Props> = ({
               key={option.value}
               type="button"
               ref={option.value === value ? selectedItemRef : null}
+              disabled={option.disabled}
               onClick={() => {
+                if (option.disabled) return;
                 onChange(option.value);
                 setShowDropdown(false);
               }}
-              className={`w-full text-left hover:bg-slate-500/60 hover:text-slate-200 ${
+              className={`w-full text-left ${
                 size === 'sm' ? 'px-2 py-1 text-xs' : 'px-4 py-2 text-sm'
               } ${
-                option.value === value
+                option.disabled
+                  ? 'opacity-50 cursor-not-allowed text-slate-500'
+                  : 'hover:bg-slate-500/60 hover:text-slate-200 text-slate-200'
+              } ${
+                option.value === value && !option.disabled
                   ? 'bg-slate-600 text-slate-300'
-                  : 'text-slate-200'
+                  : ''
               }`}
             >
               <div className="flex items-center justify-between w-full">

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { generateId } from '../../services/seriesService';
 import { Character } from '../../types';
+import CustomSelect from '../common/CustomSelect';
 
 interface Props {
   isOpen: boolean;
@@ -173,15 +174,15 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
           {/* 性别 */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">性别</label>
-            <select
+            <CustomSelect
+              options={[
+                { value: '男', label: '男' },
+                { value: '女', label: '女' },
+                { value: '未知', label: '未知' }
+              ]}
               value={formData.gender}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
-            >
-              <option value="男">男</option>
-              <option value="女">女</option>
-              <option value="未知">未知</option>
-            </select>
+              onChange={(value) => setFormData({ ...formData, gender: value })}
+            />
           </div>
 
           {/* 年龄 */}

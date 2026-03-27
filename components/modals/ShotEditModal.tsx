@@ -49,10 +49,56 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
     setTempShot({ ...tempShot, characters: updatedChars });
   };
 
+  const getAvailableKeyframeType = (): 'start' | 'end' | 'full' | null => {
+    const keyframes = tempShot.keyframes || [];
+    const hasStart = keyframes.some(kf => kf.type === 'start');
+    const hasEnd = keyframes.some(kf => kf.type === 'end');
+    const hasFull = keyframes.some(kf => kf.type === 'full');
+
+    // If 'full' exists, cannot add more
+    if (hasFull) return null;
+    // If 'start' exists, can only add 'end' (to complete start+end pair)
+    if (hasStart) return 'end';
+    // If 'end' exists without 'start', can add 'start'
+    if (hasEnd) return 'start';
+    // If none exist, can add 'start' or 'full' (default to 'start')
+    return 'start';
+  };
+
+  const getAvailableKeyframeOptions = () => {
+    const keyframes = tempShot.keyframes || [];
+    const hasStart = keyframes.some(kf => kf.type === 'start');
+    const hasEnd = keyframes.some(kf => kf.type === 'end');
+    const hasFull = keyframes.some(kf => kf.type === 'full');
+
+    // If any frame exists, show all options but disable invalid ones
+    if (hasStart || hasEnd || hasFull) {
+      return [
+        { value: 'start', label: '起始帧', disabled: hasEnd },
+        { value: 'end', label: '结束帧', disabled: !hasStart || hasEnd },
+        { value: 'full', label: '连环画', disabled: true }
+      ];
+    }
+
+    // Initial state: can choose start or full
+    return [
+      { value: 'start', label: '起始帧' },
+      { value: 'end', label: '结束帧', disabled: true },
+      { value: 'full', label: '连环画' }
+    ];
+  };
+
+  const canAddKeyframe = (): boolean => {
+    return getAvailableKeyframeType() !== null;
+  };
+
   const addKeyframe = () => {
+    const availableType = getAvailableKeyframeType();
+    if (!availableType) return;
+
     const newKeyframe: Keyframe = {
       id: `kf-${Date.now()}`,
-      type: 'start',
+      type: availableType,
       visualPrompt: '',
       status: 'pending'
     };
@@ -257,7 +303,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                     onClick={() => toggleCharacter(char.name)}
                     className={`relative px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 border flex items-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-lg shadow-slate-500/25 scale-105'
+                        ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-lg shadow-slate-500/25 scale-100'
                         : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-300 hover:text-slate-300 hover:bg-slate-800'
                     }`}
                   >
@@ -296,7 +342,12 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
               <label className="text-[12px] font-bold text-slate-500 uppercase tracking-widest">关键帧</label>
               <button
                 onClick={addKeyframe}
-                className="text-xs font-bold text-slate-400 hover:text-slate-50 flex items-center gap-1 px-3 py-1.5 bg-slate-900 border border-slate-600 rounded hover:border-slate-300 transition-all cursor-pointer"
+                disabled={!canAddKeyframe()}
+                className={`text-xs font-bold flex items-center gap-1 px-3 py-1.5 border rounded transition-all cursor-pointer ${
+                  canAddKeyframe()
+                    ? 'text-slate-400 hover:text-slate-50 bg-slate-900 border-slate-600 hover:border-slate-300'
+                    : 'text-slate-600 bg-slate-800/50 border-slate-700 cursor-not-allowed'
+                }`}
               >
                 <Plus className="w-3 h-3" />
                 添加关键帧
@@ -309,11 +360,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
                       <CustomSelect
-                        options={[
-                          { value: 'start', label: '起始帧' },
-                          { value: 'end', label: '结束帧' },
-                          { value: 'full', label: '连环画' }
-                        ]}
+                        options={getAvailableKeyframeOptions()}
                         value={kf.type || 'start'}
                         onChange={(value) => updateKeyframe(kfIdx, 'type', value)}
                         size="sm"

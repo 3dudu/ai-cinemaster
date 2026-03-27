@@ -980,7 +980,7 @@ const StageScript: React.FC<Props> = ({
                   </button>
                 ))}
               {localDuration === 'custom' && (
-                <div className="pt-1">
+                <div>
                   <input
                     type="text"
                     value={customDurationInput}

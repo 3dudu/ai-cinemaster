@@ -26,8 +26,8 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
   
 
   const navItems = [
+    { id: 'assets', label: '资产', icon: Drama },
     { id: 'script', label: '分镜', icon: List },
-    { id: 'assets', label: '素材', icon: Drama },
     { id: 'director', label: '导演', icon: Clapperboard },
     { id: 'images', label: '媒体', icon: Images },
     { id: 'export', label: '成片', icon: Film },
