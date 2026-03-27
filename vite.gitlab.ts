@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       base: '/ai/mandirector-ai/', // 替换为你的实际二级路径：比如仓库名是my-react-proj，就写/base: '/my-react-proj/'
+      root: path.resolve(__dirname, 'src'),
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -59,10 +60,12 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, 'src'),
         }
       },
       build: {
+        outDir: path.resolve(__dirname, 'dist'),
+        assetsDir: 'assets',
         rollupOptions: {
           output: {
             manualChunks: {
