@@ -645,9 +645,9 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      </button>
                    </div> 
                    <div className="flex-1">
-                      <h3 className="text-sm font-bold text-slate-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2 group-hover:text-slate-50 ">
+                      <h3 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2 group-hover:text-slate-50 ">
                         <Film className="w-4 h-4" />
-                        {series.title}
+                        <span className="line-clamp-1">{series.title}</span>
                       </h3>
                         <div className="flex flex-wrap gap-2 mb-3">
                             {series.visualStyle && (
@@ -798,8 +798,8 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                       ) : null}
                      </div> 
                      <div className="flex-1">
-                      <h3 className="text-sm font-bold text-slate-300 mb-2 line-clamp-1 tracking-wide flex items-center gap-2 group-hover:text-slate-50">
-                            <Video className="w-4 h-4" />{proj.title}</h3>
+                      <h3 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2 group-hover:text-slate-50">
+                            <Video className="w-4 h-4"/><span className="line-clamp-1">{proj.title}</span></h3>
                         <div className="flex flex-wrap gap-2 mb-3">
                             {proj.visualStyle && (
                               <span className="text-[11px] text-green-600 bg-slate-900/50 border border-green-800/50 px-1.5 py-0.5 rounded-full">

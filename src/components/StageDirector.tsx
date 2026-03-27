@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, Play, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
@@ -7,6 +7,7 @@ import { addMediaHistory, getAllModelConfigs } from '../services/storageService'
 import { AIModelConfig, Character, Keyframe, ProjectState, Scene, SeriesRecord, Shot } from '../types';
 import CustomSelect from './common/CustomSelect';
 import { useDialog } from './dialog';
+import EpisodePreviewModal from './modals/EpisodePreviewModal';
 import FileUploadModal, { downloadImage, downloadVideo } from './modals/FileUploadModal';
 import ShotEditModal from './modals/ShotEditModal';
 import VideoPromptModal from './modals/VideoPromptModal';
@@ -76,6 +77,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const [hoverTimers, setHoverTimers] = useState<Record<string, NodeJS.Timeout>>({});
   const [selectedShotIds, setSelectedShotIds] = useState<Set<string>>(new Set());
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
+  const [previewingProject, setPreviewingProject] = useState<ProjectState | null>(null);
 
   // 连环画规格常量
   const IMAGE_X = [
@@ -1213,11 +1215,21 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               </h2>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 md:gap-3">
             {!isMobile && (
               <span className="text-xs text-slate-500 mr-4 font-mono">
                   {project.shots.filter(s => s.interval?.videoUrl).length} / {project.shots.length} 完成
               </span>
+            )}
+            {project.shots?.some(s => s.interval?.videoUrl) && (
+              <button
+                onClick={() => setPreviewingProject(project)}
+                className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 cursor-pointer"
+                title="预览播放"
+              >
+                <Play className="w-3 h-3" />
+                {!isMobile && '预览播放'}
+              </button>
             )}
             {imageCount>0 && (
               <button
@@ -1236,7 +1248,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               <button
                   onClick={handleBatchGenerateVideos}
                   disabled={!!batchProgress || !!batchVideoProgress}
-                  className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-600 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-500 shadow-lg shadow-slate-600/20 cursor-pointer"
               >
                   <Video className="w-3 h-3" />
                   {!isMobile && (project.shots.every(s => s.interval?.videoUrl) ? '重新生成' : '批量视频')}
@@ -1285,12 +1297,12 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     <MapPin className="w-4 h-4 text-slate-500" />
                     <span className="text-xs font-bold text-slate-400 tracking-widest">场景：{scene?.location || '未知场景'}
                     </span>
-                 <div className="flex-1 flex justify-end items-center">
+                 <div className="flex-1 flex justify-end items-center gap-2">
                   {imageCount>0 && (
                     <button
                         onClick={() => handleSceneBatchGenerateImages(scene.id)}
                         disabled={!!batchProgress || !!batchVideoProgress}
-                        className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all flex items-center gap-1 cursor-pointer"
+                        className="text-[11px] border border-slate-600 font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
                         title="批量生成图片"
                     >
                         <Camera className="w-3 h-3" />
@@ -1300,7 +1312,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                     <button
                         onClick={() => handleSceneBatchGenerateVideos(scene.id)}
                         disabled={!!batchProgress || !!batchVideoProgress}
-                        className="text-[11px] font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded transition-all flex items-center gap-1 cursor-pointer"
+                        className="text-[11px] border border-slate-600 font-medium text-slate-400 hover:text-slate-50 hover:bg-slate-600 p-1 md:p-1.5 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
                         title="批量生成视频"
                     >
                         <Video className="w-3 h-3" />
@@ -2072,6 +2084,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               setPreviewImage={setPreviewImageUrl}
             />
           )}
+
+      {/* Episode Preview Modal */}
+      <EpisodePreviewModal
+        episode={previewingProject}
+        isOpen={!!previewingProject}
+        onClose={() => setPreviewingProject(null)}
+      />
 
       {/* File Upload Modal */}
       <FileUploadModal

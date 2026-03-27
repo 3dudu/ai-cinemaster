@@ -1,4 +1,4 @@
-import { Film, X } from 'lucide-react';
+import { ArrowRightLeft, Film, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ProjectState, Shot } from '../../types';
 
@@ -16,6 +16,7 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [tranVideoIndex, setTranVideoIndex] = useState(0);
 
   // Get shots with video URLs
   const videoShots = React.useMemo(() => {
@@ -24,7 +25,10 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
   }, [episode]);
 
   const videoUrls = React.useMemo(() => {
-    return videoShots.map(shot => shot.interval!.videoUrl!);
+    return videoShots.map(shot => shot.transitionUrl
+      ? [shot.interval!.videoUrl!, shot.transitionUrl]
+      : [shot.interval!.videoUrl!]
+    );
   }, [videoShots]);
 
   // Reset index when modal opens
@@ -36,11 +40,15 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
 
   // Handle video ended - auto play next
   const handleVideoEnded = useCallback(() => {
-    if (currentVideoIndex < videoUrls.length - 1) {
-      setCurrentVideoIndex(prev => prev + 1);
-    } else {
-      // All videos played, reset or close
-      onClose();
+    if(tranVideoIndex==0 && videoUrls[currentVideoIndex][1]){
+      setTranVideoIndex(1);
+    }else{
+      if (currentVideoIndex < videoUrls.length - 1) {
+        setCurrentVideoIndex(prev => prev + 1);
+      } else {
+        // All videos played, reset or close
+        //onClose();
+      }
     }
   }, [currentVideoIndex, videoUrls.length, onClose]);
 
@@ -99,7 +107,7 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
               controls
               autoPlay
               className="w-full h-full object-contain"
-              src={videoUrls[currentVideoIndex]}
+              src={videoUrls[currentVideoIndex][tranVideoIndex]}
               onEnded={handleVideoEnded}
             >
               您的浏览器不支持视频播放。
@@ -152,6 +160,11 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
                 <div className="absolute bottom-0 left-0 right-0 bg-slate-900/60 text-[10px] text-center text-slate-300 py-0.5">
                   {idx + 1}
                 </div>
+                {videoUrls[idx].length>1 && (
+                <div className="absolute top-0 right-0 bg-slate-900/60 text-[10px] text-center text-indigo-300 py-0.5">
+                <ArrowRightLeft className="w-3 h-3" />
+                </div>
+                )}
               </button>
             ))}
           </div>
