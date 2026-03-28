@@ -96,11 +96,11 @@ const StageAssets: React.FC<Props> = ({
     let prompt = "";
     try {
       // Find the item
-      let imagesize = '2304x1728';
+      let imagesize = '2560x1440';
       let new_prompt = prompt;
       const genre = isSeriesMode ? series?.genre : project.scriptData?.genre;
       if (type === 'character') {
-        imagesize = '1728x2304';
+        imagesize = '2560x1440';
         const char = characters.find(c => String(c.id) === String(id));
         imageUrl = char?.referenceImage;
         prompt = char?.visualPrompt;
