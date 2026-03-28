@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Film, X } from 'lucide-react';
+import { ArrowRightLeft, Download, Film, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ProjectState, Shot } from '../../types';
 
@@ -17,6 +17,7 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [tranVideoIndex, setTranVideoIndex] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Get shots with video URLs
   const videoShots = React.useMemo(() => {
@@ -68,6 +69,47 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
       thumbnailContainerRef.current.scrollLeft += e.deltaY;
     }
   }, []);
+
+  // Handle download all videos
+  const handleDownloadAll = useCallback(async () => {
+    if (isDownloading || videoUrls.length === 0) return;
+    setIsDownloading(true);
+
+    for (let i = 0; i < videoUrls.length; i++) {
+      const urls = videoUrls[i];
+      const shot = videoShots[i];
+
+      for (let j = 0; j < urls.length; j++) {
+        const url = urls[j];
+        const isTransition = j === 1;
+
+        try {
+          const response = await fetch(url);
+          if (!response.ok) continue;
+
+          const blob = await response.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.target = '_blank';
+          a.download = `${episode?.title || 'shot'}-${String(i + 1).padStart(3, '0')}${isTransition ? '-transition' : ''}.mp4`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(blobUrl);
+        } catch (e) {
+          console.error('Download failed:', e);
+        }
+
+        // Small delay between downloads
+        if (i < videoUrls.length - 1 || j < urls.length - 1) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+    }
+
+    setIsDownloading(false);
+  }, [isDownloading, videoUrls, videoShots, episode?.title]);
 
   // Handle keyboard escape
   useEffect(() => {
@@ -128,8 +170,28 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
 
         {/* Thumbnail Strip */}
         <div className="p-4 bg-slate-800 border-t border-slate-600">
-          <div className="text-xs text-slate-400 mb-2 font-mono">
-            镜头序列 ({videoUrls.length} 个视频)
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-slate-400 font-mono">
+              镜头序列 ({videoUrls.length} 个视频)
+            </div>
+            <button
+              onClick={handleDownloadAll}
+              disabled={isDownloading}
+              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+              title="下载所有视频"
+            >
+              {isDownloading ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                  下载中...
+                </>
+              ) : (
+                <>
+                  <Download className="w-3 h-3" />
+                  下载全部
+                </>
+              )}
+            </button>
           </div>
           <div
             ref={thumbnailContainerRef}
