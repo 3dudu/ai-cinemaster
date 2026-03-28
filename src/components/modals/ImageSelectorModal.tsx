@@ -137,9 +137,8 @@ const ImageSelectorModal: React.FC<Props> = ({
 
       // 从 allImages 中移除 hash 相同的元素
       setAllImages(prevImages => prevImages.filter(img => img.id !== image.id));
-
       // 删除媒体文件
-      await deleteSingleMediaFile(image.projectId, image.id);
+      await deleteSingleMediaFile(image.projectId, image.hash);
     } catch (error) {
       console.error('Failed to delete media history:', error);
     }

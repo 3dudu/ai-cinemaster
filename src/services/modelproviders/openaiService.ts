@@ -294,8 +294,10 @@ export const generateImage = async (
     "2560x1440": "1024x1024",
     "1440x2560": "1024x1024",
   };
-  const dallE3Size = sizeMap[imageSize] || "1024x1024";
-
+  let dallE3Size = sizeMap[imageSize] || "1024x1024";
+  if(imageType === "character"){
+    dallE3Size = "2560x1440"
+  }
   // 构建提示词
   let finalPrompt = prompt;
 

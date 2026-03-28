@@ -332,7 +332,7 @@ export const generateImage = async (
   const endpoint = `${runtimeApiUrl}/images/generations`;
   const requestBody: any = {
     model: runtimeImageModel,
-    size: imageType=="character"?"1728x2304":imageSize,
+    size: imageType=="character"?"2560x1440":imageSize,
     //sequential_image_generation: ischaracter?"disabled":"auto",
     watermark: false
   };

@@ -1,4 +1,4 @@
-import { Loader2, MapPin, Sparkles, X } from 'lucide-react';
+import { Copy, Loader2, MapPin, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { generateId } from '../../services/seriesService';
@@ -65,13 +65,6 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
     };
 
     onSave(sceneData);
-    // Reset form
-    setFormData({
-      location: '',
-      time: '',
-      atmosphere: '',
-      visualPrompt: ''
-    });
   };
 
   const handleClose = () => {
@@ -105,12 +98,25 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
       };
 
       const prompt = await ModelService.generateVisualPrompts('scene', tempScene, genre, visualStyle);
-      setFormData(prev => ({ ...prev, visualPrompt: prompt }));
+      setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
       console.error(e);
       setError('生成视觉提示失败，请重试');
     } finally {
       setIsGeneratingPrompt(false);
+    }
+  };
+
+  const handleCopyPrompt = async () => {
+    if (!formData.visualPrompt.trim()) {
+      setError('没有可复制的提示词');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(formData.visualPrompt);
+    } catch (e) {
+      console.error('复制失败', e);
+      setError('复制失败');
     }
   };
 
@@ -202,7 +208,19 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
                 <span className="text-[11px] text-slate-400 font-mono">
                   {formData.visualPrompt.length} 字
                 </span>
-                {/* 右边AI生成按钮 */}
+                {/* 右边按钮组 */}
+                <div className="flex items-center gap-2">
+                  {/* 复制按钮 */}
+                  <button
+                    onClick={handleCopyPrompt}
+                    disabled={!formData.visualPrompt.trim()}
+                    className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                    title="复制提示词"
+                  >
+                    <Copy className="w-3 h-3" />
+                    复制
+                  </button>
+                  {/* AI生成按钮 */}
                 <button
                   onClick={handleGenerateVisualPrompt}
                   disabled={isGeneratingPrompt}
@@ -216,6 +234,7 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
                   )}
                   {isGeneratingPrompt ? '生成中...' : 'AI生成'}
                 </button>
+                </div>
               </div>
             </div>
           </div>

@@ -1353,7 +1353,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                         </button>
                                         <button
                                           onClick={(e) => {e.stopPropagation();deleteShot(shot.id)}}
-                                          className="p-1 md:p-1.5 hover:bg-red-900/20 text-slate-600 group-hover:text-red-400 rounded transition-colors cursor-pointer"
+                                          className="p-1 md:p-1.5 hover:bg-red-900/20 text-red-400 group-hover:text-red-600 rounded transition-colors cursor-pointer"
                                           title="删除"
                                         >
                                           <Trash className="w-3 h-3" />
@@ -1428,7 +1428,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                           }}
                                         />
                                     ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center text-slate-600">
+                                        <div className="absolute inset-0 flex items-center bg-slate-700/50 justify-center text-slate-500">
                                             <Camera className="w-8 h-8 opacity-20" />
                                         </div>
                                     )}
@@ -1594,7 +1594,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                    <button
                                                        onClick={() => deleteKeyframeImage(activeShot.id, 'full')}
                                                        disabled={!!processingState || !!batchProgress}
-                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                       className="text-[12px] text-red-400 group-hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                        title="删除起始帧图片"
                                                    >
                                                        <Trash className="w-3 h-3" />
@@ -1671,7 +1671,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                    <button
                                                        onClick={() => deleteKeyframeImage(activeShot.id, 'start')}
                                                        disabled={!!processingState || !!batchProgress}
-                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                       className="text-[12px] text-red-400 group-hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                        title="删除起始帧图片"
                                                    >
                                                        <Trash className="w-3 h-3" />
@@ -1756,7 +1756,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                    <button
                                                        onClick={() => deleteKeyframeImage(activeShot.id, 'end')}
                                                        disabled={!!processingState || !!batchProgress}
-                                                       className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                       className="text-[12px] text-red-400 group-hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                        title="删除尾帧图片"
                                                    >
                                                        <Trash className="w-3 h-3" />

@@ -66,24 +66,29 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
 
   // Get project images for preview - ✅ Use useCallback with flatMap
   const getProjectImages = useCallback((proj: ProjectState): string[] => {
-    // Collect character images
-    const charImages = proj.scriptData?.characters?.flatMap(char => [
-      char.referenceImage,
-      ...(char.variations?.map(v => v.referenceImage) || [])
-    ].filter(Boolean)) || [];
-    
-    // Collect scene images
-    const sceneImages = proj.scriptData?.scenes
-      ?.map(s => s.referenceImage)
-      .filter(Boolean) || [];
-    
-    // Collect keyframe images
+    // In series mode, get images from library via refId
+    const charImages = proj.scriptData?.characters?.flatMap(char => {
+      const libChar = series.library?.characters?.find(c => c.id === char.refId);
+      if (!libChar) return [];
+      return [
+        libChar.referenceImage,
+        ...(libChar.variations?.map(v => v.referenceImage) || [])
+      ].filter(Boolean);
+    }) || [];
+
+    // Collect scene images from library via refId
+    const sceneImages = proj.scriptData?.scenes?.flatMap(scene => {
+      const libScene = series.library?.scenes?.find(s => s.id === scene.refId);
+      return libScene?.referenceImage ? [libScene.referenceImage] : [];
+    }) || [];
+
+    // Collect keyframe images (shots are stored in project directly)
     const keyframeImages = proj.shots?.flatMap(shot =>
       shot.keyframes?.map(kf => kf.imageUrl).filter(Boolean) || []
     ) || [];
-    
+
     return [...charImages, ...sceneImages, ...keyframeImages].filter(Boolean);
-  }, []);
+  }, [series.library?.characters, series.library?.scenes]);
 
   // Get episode stats - ✅ Use useCallback
   const getEpisodeStats = useCallback((proj: ProjectState) => {

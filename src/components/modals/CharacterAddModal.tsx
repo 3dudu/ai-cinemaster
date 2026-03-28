@@ -1,4 +1,4 @@
-import { Loader2, Sparkles, User, X } from 'lucide-react';
+import { Copy, Loader2, Sparkles, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { generateId } from '../../services/seriesService';
@@ -71,14 +71,6 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
     };
 
     onSave(charData);
-    // Reset form
-    setFormData({
-      name: '',
-      gender: '男',
-      age: '',
-      personality: '',
-      visualPrompt: ''
-    });
   };
 
   const handleClose = () => {
@@ -115,12 +107,25 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
       };
 
       const prompt = await ModelService.generateVisualPrompts('character', tempChar, genre, visualStyle);
-      setFormData(prev => ({ ...prev, visualPrompt: prompt }));
+      setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
       console.error(e);
       setError('生成视觉提示失败，请重试');
     } finally {
       setIsGeneratingPrompt(false);
+    }
+  };
+
+  const handleCopyPrompt = async () => {
+    if (!formData.visualPrompt.trim()) {
+      setError('没有可复制的提示词');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(formData.visualPrompt);
+    } catch (e) {
+      console.error('复制失败', e);
+      setError('复制失败');
     }
   };
 
@@ -226,20 +231,33 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
                 <span className="text-[11px] text-slate-400 font-mono">
                   {formData.visualPrompt.length} 字
                 </span>
-                {/* 右边AI生成按钮 */}
-                <button
-                  onClick={handleGenerateVisualPrompt}
-                  disabled={isGeneratingPrompt}
-                  className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
-                  title="AI生成视觉提示"
-                >
-                  {isGeneratingPrompt ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3 h-3" />
-                  )}
-                  {isGeneratingPrompt ? '生成中...' : 'AI生成'}
-                </button>
+                {/* 右边按钮组 */}
+                <div className="flex items-center gap-2">
+                  {/* 复制按钮 */}
+                  <button
+                    onClick={handleCopyPrompt}
+                    disabled={!formData.visualPrompt.trim()}
+                    className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                    title="复制提示词"
+                  >
+                    <Copy className="w-3 h-3" />
+                    复制
+                  </button>
+                  {/* AI生成按钮 */}
+                  <button
+                    onClick={handleGenerateVisualPrompt}
+                    disabled={isGeneratingPrompt}
+                    className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                    title="AI生成视觉提示"
+                  >
+                    {isGeneratingPrompt ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    {isGeneratingPrompt ? '生成中...' : 'AI生成'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -104,7 +104,7 @@ const StoryParagraphsModal: React.FC<Props> = ({
                   </span>
                   <button
                     onClick={() => deleteParagraph(index)}
-                    className="p-1.5 hover:bg-red-900/20 text-slate-600 hover:text-red-400 rounded transition-colors cursor-pointer"
+                    className="p-1.5 hover:bg-red-900/20 text-red-400 group-hover:text-red-600 rounded transition-colors cursor-pointer"
                     title="删除段落"
                   >
                     <Trash className="w-3.5 h-3.5" />

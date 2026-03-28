@@ -569,6 +569,10 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                         const episode = projects.find(p => p.id === firstEpisode);
                         onOpenProject(episode);
                       }
+                    }else{
+                        const firstEpisode = series.episodeOrder[0];
+                        const episode = projects.find(p => p.id === firstEpisode);
+                        onOpenProject(episode);
                     }
                   }}
                 >

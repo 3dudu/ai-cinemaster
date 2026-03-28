@@ -192,7 +192,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                       const updatedDialogue = (tempShot.dialogue || []).filter((_: any, i: number) => i !== index);
                       setTempShot({ ...tempShot, dialogue: updatedDialogue });
                     }}
-                    className="p-2.5 hover:bg-red-900/20 text-slate-600 hover:text-red-400 rounded transition-colors shrink-0 cursor-pointer"
+                    className="p-2.5 hover:bg-red-900/20 text-red-400 group-hover:text-red-600 rounded transition-colors shrink-0 cursor-pointer"
                     title="删除对话"
                   >
                     <Trash className="w-3.5 h-3.5" />
@@ -368,7 +368,7 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
                     </div>
                     <button
                       onClick={() => deleteKeyframe(kfIdx)}
-                      className="p-1.5 hover:bg-red-900/20 text-slate-600 hover:text-red-400 rounded transition-colors cursor-pointer"
+                      className="p-1.5 hover:bg-red-900/20 text-red-400 group-hover:text-red-600 rounded transition-colors cursor-pointer"
                       title="删除关键帧"
                     >
                       <Trash className="w-3.5 h-3.5" />

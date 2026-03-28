@@ -292,9 +292,9 @@ export const generateImage = async (
   });
 
   const [width, height] = imageSize.split('x').map(Number);
-  const isLandscape = width > height;
-  if (isLandscape) {
-  } else {
+  let isLandscape = width > height;
+  if (ischaracter==="character") {
+    isLandscape = true;
   }
 
   const requestBody = {

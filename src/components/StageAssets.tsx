@@ -61,15 +61,23 @@ const StageAssets: React.FC<Props> = ({
   }, [project.visualStyle, project.imageSize]);
 
   const handleGenerateAsset = useCallback(async (type: 'character' | 'scene', id: string, skipConfirm?: boolean) => {
+    // Determine data source based on mode
+    const characters = isSeriesMode
+      ? series?.library?.characters || []
+      : project.scriptData?.characters || [];
+    const scenes = isSeriesMode
+      ? series?.library?.scenes || []
+      : project.scriptData?.scenes || [];
+
     // Check if item already has a reference image (regenerate)
     const existingImage = type === 'character'
-      ? project.scriptData?.characters.find(c => String(c.id) === String(id))?.referenceImage
-      : project.scriptData?.scenes.find(s => String(s.id) === String(id))?.referenceImage;
+      ? characters.find(c => String(c.id) === String(id))?.referenceImage
+      : scenes.find(s => String(s.id) === String(id))?.referenceImage;
 
     if (existingImage && !skipConfirm) {
       const itemName = type === 'character'
-        ? project.scriptData?.characters.find(c => String(c.id) === String(id))?.name
-        : project.scriptData?.scenes.find(s => String(s.id) === String(id))?.location;
+        ? characters.find(c => String(c.id) === String(id))?.name
+        : scenes.find(s => String(s.id) === String(id))?.location;
 
       const confirmed = await dialog.confirm({
         title: '确认重新生成',
@@ -90,47 +98,75 @@ const StageAssets: React.FC<Props> = ({
       // Find the item
       let imagesize = '2304x1728';
       let new_prompt = prompt;
+      const genre = isSeriesMode ? series?.genre : project.scriptData?.genre;
       if (type === 'character') {
         imagesize = '1728x2304';
-        const char = project.scriptData?.characters.find(c => String(c.id) === String(id));
+        const char = characters.find(c => String(c.id) === String(id));
         imageUrl = char?.referenceImage;
         prompt = char?.visualPrompt;
         new_prompt = prompt;
         if (char) {
-          prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, project.scriptData?.genre || '剧情片',project.visualStyle);
-          new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', localStyle, prompt,char.name);
+          prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, genre || '剧情片', project.visualStyle);
+          new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', localStyle, prompt, char.name);
         }
       } else {
-        const scene = project.scriptData?.scenes.find(s => String(s.id) === String(id));
+        const scene = scenes.find(s => String(s.id) === String(id));
         imageUrl = scene?.referenceImage;
         prompt = scene?.visualPrompt;
         new_prompt = prompt;
         if (scene) {
-          prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, project.scriptData?.genre || '剧情片',project.visualStyle);
-          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt,scene.atmosphere);
+          prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle);
+          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt, scene.atmosphere);
         }
       }
 
       // Real API Call
-      imageUrl = await ModelService.generateImage(new_prompt, [], type, localStyle, imagesize,1,null,project.id,id);
+      imageUrl = await ModelService.generateImage(new_prompt, [], type, localStyle, imagesize, 1, null, project.id, id);
 
       // Save to media history
       if (imageUrl) {
         const fileName = type === 'character'
-          ? `角色_${project.scriptData?.characters.find(c => String(c.id) === String(id))?.name || id}`
-          : `场景_${project.scriptData?.scenes.find(s => String(s.id) === String(id))?.id || id}`;
-        await addMediaHistory(project.id, imageUrl, fileName, 'image', type,new_prompt);
+          ? `角色_${characters.find(c => String(c.id) === String(id))?.name || id}`
+          : `场景_${scenes.find(s => String(s.id) === String(id))?.id || id}`;
+        await addMediaHistory(project.id, imageUrl, fileName, 'image', type, new_prompt);
       }
-      // Update state
-      if (project.scriptData) {
-        // Find the item in project scriptData
+
+      // Update state - series mode: update series.library; standalone mode: update project.scriptData
+      if (isSeriesMode && series && updateSeries) {
+        const item = type === 'character'
+          ? characters.find(c => String(c.id) === String(id))
+          : scenes.find(s => String(s.id) === String(id));
+        if (!item) return;
+
+        const newSeries = { ...series };
+        if (type === 'character') {
+          const charIndex = newSeries.library.characters.findIndex(c => c.id === id);
+          if (charIndex >= 0) {
+            newSeries.library.characters[charIndex] = {
+              ...newSeries.library.characters[charIndex],
+              referenceImage: imageUrl,
+              visualPrompt: prompt
+            };
+          }
+        } else {
+          const sceneIndex = newSeries.library.scenes.findIndex(s => s.id === id);
+          if (sceneIndex >= 0) {
+            newSeries.library.scenes[sceneIndex] = {
+              ...newSeries.library.scenes[sceneIndex],
+              referenceImage: imageUrl,
+              visualPrompt: prompt
+            };
+          }
+        }
+        updateSeries(newSeries);
+      } else if (project.scriptData) {
+        // Standalone mode: update project scriptData
         const scriptDataItem = type === 'character'
           ? project.scriptData.characters.find(c => String(c.id) === String(id))
           : project.scriptData.scenes.find(s => String(s.id) === String(id));
-        
+
         if (!scriptDataItem) return;
-        
-        // Update project scriptData (lightweight ref)
+
         const newData = { ...project.scriptData };
         if (type === 'character') {
           const c = newData.characters.find(c => String(c.id) === String(id));
@@ -146,41 +182,13 @@ const StageAssets: React.FC<Props> = ({
           }
         }
         updateProject({ scriptData: newData });
-        
-        // In series mode, also update the library directly
-        if (isSeriesMode && series && updateSeries) {
-          const refId = (scriptDataItem as Character | Scene).refId;
-          if (refId) {
-            const newSeries = { ...series };
-            if (type === 'character') {
-              const charIndex = newSeries.library.characters.findIndex(c => c.id === refId);
-              if (charIndex >= 0) {
-                newSeries.library.characters[charIndex] = {
-                  ...newSeries.library.characters[charIndex],
-                  referenceImage: imageUrl,
-                  visualPrompt: prompt
-                };
-              }
-            } else {
-              const sceneIndex = newSeries.library.scenes.findIndex(s => s.id === refId);
-              if (sceneIndex >= 0) {
-                newSeries.library.scenes[sceneIndex] = {
-                  ...newSeries.library.scenes[sceneIndex],
-                  referenceImage: imageUrl,
-                  visualPrompt: prompt
-                };
-              }
-            }
-            updateSeries(newSeries);
-          }
-        }
       }
     } catch (e) {
       console.error(e);
-      if(e.message?.includes("enough")){
+      if (e.message?.includes("enough")) {
         await dialog.toast({ message: '余额不足，请充值', type: 'error' });
-      }else{
-        await dialog.toast({ message: (type === 'character'?'角色 ':'场景 ')+id+' 生成失败，请重试。'+e?.message, type: 'error' });
+      } else {
+        await dialog.toast({ message: (type === 'character' ? '角色 ' : '场景 ') + id + ' 生成失败，请重试。' + e?.message, type: 'error' });
       }
     } finally {
       setProcessingState(null);
@@ -228,32 +236,13 @@ const StageAssets: React.FC<Props> = ({
   }, []);
 
   const handleFileUploadSuccess = useCallback((fileUrl: string) => {
-    if (!project.scriptData || !uploadingItem) return;
+    if (!uploadingItem) return;
 
-    const newData = { ...project.scriptData };
-    let refId: string | undefined;
-
-    if (uploadingItem.type === 'character') {
-      const char = newData.characters.find(c => c.id === uploadingItem.id);
-      if (char) {
-        char.referenceImage = fileUrl;
-        refId = char.refId;
-      }
-    } else {
-      const scene = newData.scenes.find(s => s.id === uploadingItem.id);
-      if (scene) {
-        scene.referenceImage = fileUrl;
-        refId = scene.refId;
-      }
-    }
-
-    updateProject({ scriptData: newData });
-    
-    // In series mode, also update the library
-    if (isSeriesMode && series && updateSeries && refId) {
+    // Series mode: update series.library directly
+    if (isSeriesMode && series && updateSeries) {
       const newSeries = { ...series };
       if (uploadingItem.type === 'character') {
-        const charIndex = newSeries.library.characters.findIndex(c => c.id === refId);
+        const charIndex = newSeries.library.characters.findIndex(c => c.id === uploadingItem.id);
         if (charIndex >= 0) {
           newSeries.library.characters[charIndex] = {
             ...newSeries.library.characters[charIndex],
@@ -261,7 +250,7 @@ const StageAssets: React.FC<Props> = ({
           };
         }
       } else {
-        const sceneIndex = newSeries.library.scenes.findIndex(s => s.id === refId);
+        const sceneIndex = newSeries.library.scenes.findIndex(s => s.id === uploadingItem.id);
         if (sceneIndex >= 0) {
           newSeries.library.scenes[sceneIndex] = {
             ...newSeries.library.scenes[sceneIndex],
@@ -270,8 +259,23 @@ const StageAssets: React.FC<Props> = ({
         }
       }
       updateSeries(newSeries);
+    } else if (project.scriptData) {
+      // Standalone mode: update project scriptData
+      const newData = { ...project.scriptData };
+      if (uploadingItem.type === 'character') {
+        const char = newData.characters.find(c => c.id === uploadingItem.id);
+        if (char) {
+          char.referenceImage = fileUrl;
+        }
+      } else {
+        const scene = newData.scenes.find(s => s.id === uploadingItem.id);
+        if (scene) {
+          scene.referenceImage = fileUrl;
+        }
+      }
+      updateProject({ scriptData: newData });
     }
-    
+
     setUploadingItem(null);
   }, [project.scriptData, uploadingItem, isSeriesMode, series, updateSeries, updateProject]);
 
@@ -543,10 +547,10 @@ const StageAssets: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 py-4 md:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6 gap-6">
+          <div className="grid grid-cols-1 py-4 md:grid-cols-3 xl:grid-cols-4 gap-6">
             {displayCharacters.map((char) => (
               <div key={char.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
-                <div className="aspect-[3/4] bg-slate-900 relative overflow-hidden">
+                <div className="aspect-[16/9] bg-slate-900 relative overflow-hidden">
                   {/* Edit & Delete Buttons - Top Left */}
                   <button
                     onClick={() => handleEditCharacter(char)}
@@ -596,7 +600,7 @@ const StageAssets: React.FC<Props> = ({
                       </div>
                     </>
                   ) : (
-                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 p-4 text-center">
+                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-700/50 text-slate-500 p-4 text-center">
                        <User className="w-10 h-10 mb-3 opacity-10" />
                         <button
                           onClick={() => handleGenerateAsset('character', char.id)}
@@ -608,7 +612,7 @@ const StageAssets: React.FC<Props> = ({
                        </button>
                      </div>
                   )}
-                  <div className="absolute bottom-0 right-0 flex flex-col xl:flex-row items-end gap-1 p-1">
+                  <div className="absolute bottom-0 right-0 flex flex-row items-end gap-1 p-1">
                   {/* Action Buttons */}
                   {char.referenceImage && (
                     <>
@@ -660,7 +664,7 @@ const StageAssets: React.FC<Props> = ({
                   <div  className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-bold text-slate-200 truncate text-sm">{char.name}</h3>
                   {(char.gender!='未指定'&&char.gender!='未知') && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 font-mono">{char.gender}</span>}
-                  {(char.age!='未指定'&&char.age!='未知') && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 font-mono">{char.age}</span>}
+                  {(char.age&&char.age!='未指定'&&char.age!='未知') && <span className="px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 font-mono">{char.age}</span>}
                      {char.variations && char.variations.length > 0 && (
                          <span className="px-1.5 py-0.5 text-[11px] rounded border border-slate-600 text-slate-400 font-mono flex items-center gap-1">
                              <Shirt className="w-2.5 h-2.5" /> +{char.variations.length}
@@ -758,7 +762,7 @@ const StageAssets: React.FC<Props> = ({
                       </div>
                     </>
                   ) : (
-                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 p-4 text-center">
+                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-700/50 text-slate-500 p-4 text-center">
                        <MapPin className="w-10 h-10 mb-3 opacity-10" />
                        <button
                           onClick={() => { handleGenerateAsset('scene', scene.id); }}
@@ -805,7 +809,7 @@ const StageAssets: React.FC<Props> = ({
                 <div className="p-3 border-t border-slate-600 bg-slate-900">
                   <div className="flex justify-between items-center mb-1">
                      <h3 className="font-bold text-slate-200 text-sm truncate">{scene.location}</h3>
-                     <span className="max-w-32 line-clamp-1 truncate px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 font-mono whitespace-nowrap">{scene.time}</span>
+                     {(scene.time&&scene.time!='未指定'&&scene.time!='未知') && (<span className="max-w-32 line-clamp-1 truncate px-1.5 py-0.5 bg-slate-900 text-slate-500 text-[11px] rounded border border-slate-600 font-mono whitespace-nowrap">{scene.time}</span>)}
                   </div>
                   <p className="text-[12px] text-slate-500 line-clamp-1 pt-2">{scene.atmosphere}</p>
                 </div>

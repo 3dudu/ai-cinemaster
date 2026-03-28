@@ -702,7 +702,7 @@ const StageScript: React.FC<Props> = ({
         genre: finalGenre || project.scriptData?.genre || '剧情片',
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
-      const scriptData = await ModelService.importScriptToData(localScript, localLanguage,localGenre);
+      let scriptData = await ModelService.importScriptToData(localScript, localLanguage,localGenre);
       console.log('scriptData', scriptData);
       if(scriptData.scenes.length > 0){
         updateProject({ isParsingScript: true });
@@ -714,6 +714,24 @@ const StageScript: React.FC<Props> = ({
           scriptData.title = localTitle;
         }
         scriptData.genre = localGenre;
+
+        // Series mode: merge to library and create lightweight refs
+        if (series && updateSeries) {
+          setProcessingStep('正在同步到剧集库...');
+          const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
+            mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+          
+          // Remap references in scriptData
+          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+          
+          // Create lightweight characters/scenes for episode
+          scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
+          scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+          
+          // Update series
+          updateSeries(updatedSeries);
+        }
+
         // 逐场景生成分镜
         const allShots: any[] = [];
   
@@ -1271,7 +1289,7 @@ const StageScript: React.FC<Props> = ({
                                        </button>
                                        <button
                                          onClick={() => deleteShot(shot.id)}
-                                         className="p-1.5 hover:bg-red-900/20 text-slate-400 group-hover:text-red-400 rounded transition-colors cursor-pointer"
+                                         className="p-1.5 hover:bg-red-900/20 text-red-400 group-hover:text-red-600 rounded transition-colors cursor-pointer"
                                          title="删除"
                                        >
                                          <Trash className="w-3.5 h-3.5" />
