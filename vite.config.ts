@@ -40,10 +40,17 @@ export default defineConfig(({ mode }) => {
         react(),
         tailwindcss(),
         VitePWA({
-          outDir: 'dist',
+          buildBase: '/',
+          outDir: path.resolve(__dirname, 'dist'),
           registerType: 'autoUpdate',
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+            globDirectory: '.',
+            globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+            globIgnores: [
+              'node_modules/**/*',
+              'sw.js',
+              'workbox-*.js'
+            ]
           },
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
           manifest: {
