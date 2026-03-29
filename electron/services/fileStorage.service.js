@@ -6,11 +6,31 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const config = JSON.parse(readFileSync(path.join(__dirname, '../config/default.json'), 'utf-8'));
+
+/**
+ * 获取存储根目录
+ * 优先级：用户自定义目录 > Electron userData > 配置文件
+ */
+function getStorageRoot() {
+  // 1. 优先使用用户自定义目录（通过菜单设置）
+  if (process.env.CUSTOM_STORAGE_PATH) {
+    return process.env.CUSTOM_STORAGE_PATH;
+  }
+  // 2. 其次使用 Electron userData 目录，解决 macOS 权限问题
+  if (process.env.ELECTRON_USER_DATA_PATH) {
+    return path.join(process.env.ELECTRON_USER_DATA_PATH, 'upload');
+  }
+  // 3. 最后使用配置文件中的路径（兼容独立服务器模式）
+  return path.resolve(__dirname, '../../', config.storage.local.path);
+}
+
 class FileStorageService {
   constructor() {
     this.storageType = config.storage.type;
-    this.uploadPath = path.resolve(__dirname, '../../', config.storage.local.path);
+    this.uploadPath = getStorageRoot();
     this.urlPrefix = config.storage.local.urlPrefix;
+    
+    console.log('[FileStorage] 存储路径:', this.uploadPath);
     
     // 确保上传目录存在
     this.ensureDirectoryExists(this.uploadPath);

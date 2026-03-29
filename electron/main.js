@@ -1,4 +1,5 @@
-import { app, BrowserWindow, Menu, shell } from 'electron';
+import { app, BrowserWindow, dialog, Menu, shell } from 'electron';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { startServer } from './index.js';
@@ -8,10 +9,67 @@ const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
+// 设置 Electron userData 路径到环境变量，供文件存储服务使用
+// 这解决了 macOS 上的存储权限问题
+process.env.ELECTRON_USER_DATA_PATH = app.getPath('userData');
+
+// 获取用户配置文件路径
+function getConfigPath() {
+  return path.join(app.getPath('userData'), 'config.json');
+}
+
+/**
+ * 获取存储根目录
+ * 优先级：用户自定义目录 > Electron userData > 配置文件
+ */
+function getStorageRoot() {
+  // 1. 优先使用用户自定义目录（通过菜单设置）
+  if (process.env.CUSTOM_STORAGE_PATH) {
+    return process.env.CUSTOM_STORAGE_PATH;
+  }
+  // 2. 其次使用 Electron userData 目录，解决 macOS 权限问题
+  if (process.env.ELECTRON_USER_DATA_PATH) {
+    return path.join(process.env.ELECTRON_USER_DATA_PATH, 'upload');
+  }
+  // 3. 最后使用配置文件中的路径（兼容独立服务器模式）
+  return path.resolve(__dirname, '../../', config.storage.local.path);
+}
+
+// 获取用户自定义存储目录
+function getCustomStoragePath() {
+  const configPath = getConfigPath();
+  if (fs.existsSync(configPath)) {
+    try {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      return config.customStoragePath || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+}
+
+// 保存用户自定义存储目录
+function saveCustomStoragePath(customPath) {
+  const configPath = getConfigPath();
+  let config = {};
+  if (fs.existsSync(configPath)) {
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    } catch (e) {
+      config = {};
+    }
+  }
+  config.customStoragePath = customPath;
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  process.env.CUSTOM_STORAGE_PATH = customPath;
+}
+
 let mainWindow;
+let server;
 
 function createWindow() {
-  const server = startServer(8080);
+  server = startServer(8080,getStorageRoot());
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -47,6 +105,9 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    if(server){
+      server.close();
+    }
   });
 }
 
@@ -75,6 +136,25 @@ function createMenu() {
           accelerator: 'CmdOrCtrl+S',
           click: () => {
             mainWindow?.webContents.send('save-project');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: '设置存储目录...',
+          accelerator: 'CmdOrCtrl+Shift+D',
+          click: async () => {
+            const result = await dialog.showOpenDialog(mainWindow, {
+              properties: ['openDirectory','createDirectory'],
+              title: '选择文件存储目录'
+            });
+            if (!result.canceled && result.filePaths.length > 0) {
+              saveCustomStoragePath(result.filePaths[0]);
+              dialog.showMessageBox(mainWindow, {
+                type: 'info',
+                title: '设置成功',
+                message: `存储目录已设置为：\n${result.filePaths[0]}\n\n应用重启后将生效。`
+              });
+            }
           }
         },
         { type: 'separator' },
@@ -124,6 +204,12 @@ function createMenu() {
 }
 
 app.whenReady().then(() => {
+  // 加载用户自定义存储目录
+  const customPath = getCustomStoragePath();
+  if (customPath) {
+    process.env.CUSTOM_STORAGE_PATH = customPath;
+  }
+  
   createWindow();
   createMenu();
 
