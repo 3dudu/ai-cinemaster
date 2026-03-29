@@ -7,6 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      root: path.resolve(__dirname, 'src'),
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -28,6 +29,7 @@ export default defineConfig(({ mode }) => {
         react(),
         tailwindcss(),
         VitePWA({
+          outDir: 'dist',
           registerType: 'autoUpdate',
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg}']
@@ -70,11 +72,12 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, 'src'),
         }
       },
       build: {
-        outDir: 'build',
+        outDir: path.resolve(__dirname, 'build'),
+        assetsDir: 'assets',
         rollupOptions: {
           output: {
             manualChunks: {

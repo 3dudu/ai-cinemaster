@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       base: './',
+      root: path.resolve(__dirname, 'src'),
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -39,6 +40,7 @@ export default defineConfig(({ mode }) => {
         react(),
         tailwindcss(),
         VitePWA({
+          outDir: 'dist',
           registerType: 'autoUpdate',
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg}']
@@ -84,11 +86,11 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, 'src'),
         }
       },
       build: {
-        outDir: 'dist',
+        outDir: path.resolve(__dirname, 'dist'),
         assetsDir: 'assets',
         rollupOptions: {
           output: {
