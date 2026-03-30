@@ -80,7 +80,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         characters: args[1] || '',
         lang: args[2] || '中文',
         imageCount: args[3] || 1,
-        scriptText: args[4] || ''
+        scriptText: args[4] || '',
+        duration: args[5] || '30s'
       };
     case 'GENERATE_SHOTS':
       const [, location, time, atmosphere, paragraphs, genre, duration, characters, lang,imageCount] = args;
@@ -667,6 +668,7 @@ export const PROMPT_TEMPLATES = {
     characters: string,
     lang: string,
     imageCount: number,
+    duration: string,
     scriptText: string
   ) => `担任专业摄影师，从分镜脚本原文中读取分镜头清单。
 
@@ -685,7 +687,7 @@ ${characters}
 5. 对话：如果存在，为每个角色生成对话，包含角色名字、内容，角色名称需要转换成角色列表中的名称。
 
 ### 生成内容
-1. 镜头时长：设定每个镜头时长为 4-12 秒，。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-12 秒，使整部剧的时长控制在 ${duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
@@ -712,7 +714,8 @@ ${characters}
     characters: string,
     lang: string,
     imageCount: number,
-    scriptText: string
+    scriptText: string,
+    duration: string
   ) => `担任专业摄影师，从分镜脚本原文中读取特定场景的分镜头清单。
 
 ## 提取场景:
@@ -729,7 +732,7 @@ ${characters}
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：设定每个镜头时长为 4-12 秒，。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-12 秒，使整部剧的时长控制在 ${duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
