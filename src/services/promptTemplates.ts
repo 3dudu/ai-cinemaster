@@ -110,6 +110,14 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         desc: args[1] || {},
         visualStyle: args[2] || '真人写实'
       };
+    case 'GENERATE_VARIATION_PROMPT':
+      return {
+        genre: args[0] || '剧情片',
+        desc: args[1] || {},
+        visualStyle: args[2] || '真人写实',
+        variation: args[3] || '',
+        variationDesc: args[4] || ''
+      };
     case 'GENERATE_SCENE_PROMPT':
       return {
         genre: args[0] || '剧情片',
@@ -868,6 +876,14 @@ ${characters}
   GENERATE_CHARACTER_PROMPT: (genre: string,desc: string,visualStyle:string) => `
     为 ${genre} 类视频中的角色 生成高还原度图像提示词，图像风格必须为：${visualStyle}。
     角色 的描述信息如下: ${desc}
+     - 角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
+    只要输出角色的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。
+  `,
+  // ============ 视觉提示词生成 ============
+  GENERATE_VARIATION_PROMPT: (genre: string,desc: string,visualStyle:string,variation:string,variationDesc:string) => `
+    为 ${genre} 类视频中的角色新造型: ${variation}  生成高还原度图像提示词，图像风格必须为：${visualStyle}。
+    角色 的基本信息如下: ${desc}
+    角色的新造型描述信息如下: ${variationDesc}
      - 角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
     只要输出角色的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。
   `,

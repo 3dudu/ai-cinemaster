@@ -1,4 +1,4 @@
-import { Download, Edit2, Loader2, Plus, RefreshCw, Shirt, Upload, User, X } from 'lucide-react';
+import { Download, Edit2, Loader2, Plus, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { renderTemplate } from '../../services/promptTemplates';
@@ -45,6 +45,8 @@ const WardrobeModal: React.FC<Props> = ({
   const [editingVariationId, setEditingVariationId] = useState<string | null>(null);
   const [editVarName, setEditVarName] = useState("");
   const [editVarPrompt, setEditVarPrompt] = useState("");
+  // AI Generation State
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
 
   // Check if in series mode
   const isSeriesMode = !!series && !!updateSeries;
@@ -127,6 +129,33 @@ const WardrobeModal: React.FC<Props> = ({
       setEditingVariationId(null);
       setEditVarName("");
       setEditVarPrompt("");
+  };
+
+  const handleGenerateEditPrompt = async () => {
+      if (!character) return;
+      setIsGeneratingPrompt(true);
+      try {
+          const prompt = await ModelService.generateVisualPrompts(
+              'variation',
+              {
+                  ...character,
+                  styleName: editingVariationId?editVarName:newVarName,
+                  stylePrompt: editingVariationId?editVarPrompt:newVarPrompt
+              },
+              project.scriptData?.genre || '剧情片',
+              localStyle,
+              editingVariationId?editVarName:newVarName,
+              editingVariationId?editVarPrompt:newVarPrompt
+          );
+          if (prompt) {
+              editingVariationId?setEditVarPrompt(prompt):setNewVarPrompt(prompt);
+          }
+      } catch (error) {
+          console.error('生成视觉提示词失败:', error);
+          await dialog.alert({ title: '错误', message: '生成视觉提示词失败', type: 'error' });
+      } finally {
+          setIsGeneratingPrompt(false);
+      }
   };
 
   const handleGenerateVariation = async (varId: string) => {
@@ -291,12 +320,35 @@ const WardrobeModal: React.FC<Props> = ({
                                             onChange={e => setEditVarName(e.target.value)}
                                             className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-amber-500 focus:outline-none transition-all"
                                         />
-                                        <textarea
-                                            placeholder="服饰 / 状态的视觉描述……"
-                                            value={editVarPrompt}
-                                            onChange={e => setEditVarPrompt(e.target.value)}
-                                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-amber-500 focus:outline-none transition-all resize-none h-16"
-                                        />
+                                        <div className="relative">
+                                            <textarea
+                                                placeholder="服饰 / 状态的视觉描述……"
+                                                value={editVarPrompt}
+                                                onChange={e => setEditVarPrompt(e.target.value)}
+                                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 pb-10 text-xs text-slate-50 placeholder:text-slate-600 focus:border-amber-500 focus:outline-none transition-all resize-none h-48"
+                                            />
+                                            {/* 底部浮动按钮 */}
+                                            <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-slate-800/80 backdrop-blur-sm border border-slate-600 rounded-b flex items-center justify-between">
+                                                {/* 左边字数统计 */}
+                                                <span className="text-[10px] text-slate-400 font-mono">
+                                                    {editVarPrompt.length} 字
+                                                </span>
+                                                {/* AI生成按钮 */}
+                                                <button
+                                                    onClick={handleGenerateEditPrompt}
+                                                    disabled={isGeneratingPrompt || !editVarName.trim()}
+                                                    className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[10px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+                                                    title="AI生成视觉提示"
+                                                >
+                                                    {isGeneratingPrompt ? (
+                                                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                                    ) : (
+                                                        <Sparkles className="w-2.5 h-2.5" />
+                                                    )}
+                                                    {isGeneratingPrompt ? '生成中...' : 'AI补齐'}
+                                                </button>
+                                            </div>
+                                        </div>
                                         <button
                                             onClick={handleSaveEdit}
                                             disabled={!editVarName.trim()}
@@ -315,12 +367,35 @@ const WardrobeModal: React.FC<Props> = ({
                                             onChange={e => setNewVarName(e.target.value)}
                                             className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all"
                                         />
+                                                                                <div className="relative">
                                         <textarea
                                             placeholder="服饰 / 状态的视觉描述……"
                                             value={newVarPrompt}
                                             onChange={e => setNewVarPrompt(e.target.value)}
-                                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all resize-none h-16"
+                                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all resize-none h-56"
                                         />
+                                                                                    {/* 底部浮动按钮 */}
+                                            <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-slate-800/80 backdrop-blur-sm border border-slate-600 rounded-b flex items-center justify-between">
+                                                {/* 左边字数统计 */}
+                                                <span className="text-[10px] text-slate-400 font-mono">
+                                                    {editVarPrompt.length} 字
+                                                </span>
+                                                {/* AI生成按钮 */}
+                                                <button
+                                                    onClick={handleGenerateEditPrompt}
+                                                    disabled={isGeneratingPrompt || !newVarPrompt.trim()}
+                                                    className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[10px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+                                                    title="AI生成视觉提示"
+                                                >
+                                                    {isGeneratingPrompt ? (
+                                                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                                    ) : (
+                                                        <Sparkles className="w-2.5 h-2.5" />
+                                                    )}
+                                                    {isGeneratingPrompt ? '生成中...' : 'AI补齐'}
+                                                </button>
+                                            </div>
+                                            </div>
                                         <button
                                             onClick={handleAddVariation}
                                             disabled={!newVarName || !newVarPrompt}
@@ -342,7 +417,8 @@ const WardrobeModal: React.FC<Props> = ({
                         </div>
 
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4 overflow-y-auto max-h-[calc(40vh-155px)]"> 
+                            <div className="flex overflow-y-auto h-[45vh]"> 
+                            <div className="grid grid-cols-2 gap-4"> 
                             {/* List */}
                             {(character.variations || []).map((variation) => (
                                 <div key={variation.id} className="flex flex-col gap-4 p-4 bg-slate-800 border border-slate-600 rounded-xl group hover:border-slate-300 transition-colors">
@@ -403,6 +479,7 @@ const WardrobeModal: React.FC<Props> = ({
                                     </div>
                                 </div>
                             ))}
+                            </div>
                             </div>
                         </div>
                     </div>

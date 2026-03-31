@@ -631,10 +631,12 @@ export class ModelService {
    * @param genre - 题材类型
    */
   static async generateVisualPrompts(
-    type: "character" | "scene",
+    type: "character" | "scene" | 'variation',
     data: any,
     genre: string,
-    visualStyle: string
+    visualStyle: string,
+    variationName?: string,
+    variationPrompt?: string
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成视觉提示词`);
@@ -652,7 +654,12 @@ export class ModelService {
       newdata.voiceUrl=null;
     }
     const desc = JSON.stringify(newdata);
-    const prompt = renderTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', genre,desc,visualStyle);
+    let prompt = "";
+    if(type=='variation'){
+      prompt = renderTemplate('GENERATE_VARIATION_PROMPT', genre,desc,visualStyle,variationName,variationPrompt);
+    }else{
+      prompt = renderTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', genre,desc,visualStyle);
+    }
     let visualPrompt = renderTemplate('SYSTEM_CHARA_DESIGNER');
     if(type=='scene'){
       visualPrompt=renderTemplate('SYSTEM_SCENE_DESIGNER');

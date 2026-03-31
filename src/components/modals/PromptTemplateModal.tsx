@@ -31,6 +31,7 @@ const PromptTemplateModal: React.FC<{
     { key: 'GENERATE_CHARACTER_VARIATION', name: '视觉设计师-角色造型变体生成提示词', description: '生成角色的新造型', hasParams: true },
     { key: 'GENERATE_KEYFRAME_PROMPT', name: '视觉设计师-关键帧提示词生成提示词', description: '为关键帧生成连环画风格提示词', hasParams: true },
     { key: 'GENERATE_CHARACTER_PROMPT', name: '视觉设计师-角色提示词润色', description: '为图片模型生成角色提示词', hasParams: true },
+    { key: 'GENERATE_VARIATION_PROMPT', name: '视觉设计师-造型提示词润色', description: '为图片模型生成造型提示词', hasParams: true },
     { key: 'GENERATE_SCENE_PROMPT', name: '视觉设计师-场景提示词润色', description: '为图片模型生成场景提示词', hasParams: true },
     { key: 'GENERATE_VIDEO_PROMPT', name: '导演-视频拍摄提示词生成提示词', description: '为单个镜头生成视频拍摄提示词', hasParams: true },
     { key: 'GENERATE_TRANSITION_VIDEO', name: '导演-转场视频提示词生成提示词', description: '生成镜头之间的转场视频提示词', hasParams: true },
@@ -177,6 +178,11 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     只要输出场景的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
       'GENERATE_CHARACTER_PROMPT': `为 {genre} 类视频中的角色 生成高还原度图像提示词，图像风格必须为：{visualStyle}。
     角色 的描述信息如下: {desc}
+     - 角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
+    只要输出角色的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
+      'GENERATE_VARIATION_PROMPT': `为 {genre} 类视频中的角色新造型: {variation}  生成高还原度图像提示词，图像风格必须为：{visualStyle}。
+    角色 的基本信息如下: {desc}
+    角色的新造型描述信息如下: {variationDesc}
      - 角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
     只要输出角色的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
       'JOIN_IMAGES': `请将这些图片拼成一张{imageCount}宫格图片，图片之间留有1个像素的间隔，最终图片大小为{imageSize}。`,
@@ -535,6 +541,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'IMPORT_SHOTS_FOR_SCENE': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{duration}'],
     'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}'],
     'GENERATE_CHARACTER_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
+    'GENERATE_VARIATION_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
     'GENERATE_SCENE_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
     'JOIN_IMAGES': ['{imageCount}', '{imageSize}'],
     'IMAGE_GENERATION_WITH_REFERENCE': ['{prompt}', '{visualStyle}'],
