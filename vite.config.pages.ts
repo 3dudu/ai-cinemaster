@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       base: '/comic_master/', // 替换为你的实际二级路径：比如仓库名是my-react-proj，就写/base: '/my-react-proj/'
+      root: path.resolve(__dirname, 'src'),
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -17,9 +18,17 @@ export default defineConfig(({ mode }) => {
         react(),
         tailwindcss(),
         VitePWA({
+          buildBase: '/',
+          outDir: path.resolve(__dirname, 'dist'),
           registerType: 'autoUpdate',
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+            globDirectory: '.',
+            globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+            globIgnores: [
+              'node_modules/**/*',
+              'sw.js',
+              'workbox-*.js'
+            ]
           },
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
           manifest: {
@@ -59,10 +68,12 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, 'src'),
         }
       },
       build: {
+        outDir: path.resolve(__dirname, 'dist'),
+        assetsDir: 'assets',
         rollupOptions: {
           output: {
             manualChunks: {

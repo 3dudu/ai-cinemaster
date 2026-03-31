@@ -7,6 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      root: path.resolve(__dirname, 'src'),
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -28,9 +29,17 @@ export default defineConfig(({ mode }) => {
         react(),
         tailwindcss(),
         VitePWA({
+          buildBase: '/',
+          outDir: path.resolve(__dirname, 'dist'),
           registerType: 'autoUpdate',
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+            globDirectory: '.',
+            globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+            globIgnores: [
+              'node_modules/**/*',
+              'sw.js',
+              'workbox-*.js'
+            ]
           },
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
           manifest: {
@@ -70,11 +79,12 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(__dirname, 'src'),
         }
       },
       build: {
-        outDir: 'build',
+        outDir: path.resolve(__dirname, 'build'),
+        assetsDir: 'assets',
         rollupOptions: {
           output: {
             manualChunks: {
