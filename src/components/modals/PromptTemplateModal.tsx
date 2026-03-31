@@ -192,14 +192,28 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - 画面风格必须为：{visualStyle}。
 - 严格保持与场景参考图一致的视觉风格、光影效果和环境氛围。
 - 若画面中出现角色，必须与所提供的角色参考图高度相似。`,
-      'GENERATE_CHARACTER_VARIATION': `生成角色：{character} 的新造型图，画面风格必须为：{visualStyle}，符合下面描述。
-造型描述：
-    {variationPrompt}
-要求：
-    - 画面风为：{visualStyle}
-    - 画面内容为角色的一张图
-    - 如果有参考图，参考图为角色的三视图加头像，必须保持面部特征与参考图一致。
-    - 如果没有，角色原来是这样的：{baseCharacterPrompt}`,
+      'GENERATE_CHARACTER_VARIATION': `核心主题: 根据参考图生成角色：{character} 的新造型图，为：{visualStyle} 风格的角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集，专业游戏 / 影视角色设计规范
+
+【造型描述】
+        {variationPrompt}
+【角色基础形象】
+ - 有参考图，必须保持面部特征与参考图一致。
+ - 没有参考图，角色按如下描述设定：{baseCharacterPrompt}
+
+
+【画面布局与构图】
+整体为角色设定表版式，分模块排版：
+- 左上：三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
+- 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
+- 右上：完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
+- 左下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
+所有模块均为白底，黑色细框分隔，文字标注清晰（中文）
+【光影与渲染】
+冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
+写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
+无环境干扰，纯展示向，适合作为游戏 / 动画角色原画
+【负面提示词】
+模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
       'GENERATE_VIDEO_PROMPT': `为单个镜头创作详细的视频拍摄提示词。
 
 镜头信息：
@@ -229,13 +243,53 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 角色描述：{prompt}
 强制要求：纯白色背景、无阴影、无道具、无文字。
 
-如果只有一个角色，则生成角色三视图加头像，在同一张图中生成丰富细节的角色展示风格图片。
-具体要求：左边1/3为从头部到肩膀的清晰正面头像；右边2/3为三个全身视图正面，侧面，背面；所有视图必须为同一角色，五官、发型、服装、体型、风格、比例与细节完全一致，不改变人物特征；三视图三个角色水平排列，人物处于同一水平线，比例统一、姿态自然、双手自然下垂。`,
-      'GENERATE_SCENE_IMAGE': `生成符合下面要求的场景图片，图片风格必须为：{visualStyle}。
-场景名：{name}
-场景描述：{prompt}
+核心主题: {visualStyle} 风格角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集，专业游戏 / 影视角色设计规范
+【画面布局与构图】
+整体为角色设定表版式，分模块排版：
+- 左上：三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
+- 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
+- 右上：完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
+- 左下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
+所有模块均为白底，黑色细框分隔，文字标注清晰（中文）
+【光影与渲染】
+冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
+写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
+无环境干扰，纯展示向，适合作为游戏 / 动画角色原画
+【负面提示词】
+模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
+      'GENERATE_SCENE_IMAGE': `生成符合下面要求的场景图片
 
-图片比例16:9，具体要求：图中无角色、无文字。`,
+- 场景名称：{name}
+- 画风风格：{visualStyle}
+- 场景详细描述：{prompt}
+---
+[核心要求]
+根据用户提供的场景描述绘制场景/环境。重要：场景必须完全空旷，不得出现任何人物、角色、人形轮廓或剪影。
+[艺术风格]
+严格按照用户提供的画风风格进行渲染。输出必须清晰体现该艺术风格，不得输出普通照片或未经处理的写实图像。
+[布局规范 — 严格遵守]
+整个图像由一条从上到下的实线黑色竖线分为左右两半。
+左侧区域（占40%宽度）：
+- 场景的高细节广角全景图，展示整体建筑、比例、光照和氛围
+- 绝对不得出现人物或角色
+- 右侧边缘有一条实线黑色竖线，将其与右侧分隔
+右侧区域（占60%宽度）：
+  同一场景的三个不同视角：
+  1) 鸟瞰俯视图，展示完整布局
+  2) 平视角度的另一视角
+  3) 关键区域或焦点的特写细节图
+  三个视图必须描绘同一地点，保持一致的光照和色彩。所有视图均不得出现人物。整齐排列，视图之间可有或无细黑线分隔。
+  
+[关键布局规则]
+1. 必须有一条实线黑色竖线分隔左右两半
+[质量与约束]
+- 高分辨率，所有视图的细节和色彩保持一致，纯白色背景
+- 图像中不得有其他文字、标签、标题、水印或签名
+- 不得添加任何UI元素、注释覆盖层或额外标签
+- 保持所有插图视图简洁。让视觉效果自己说话
+请严格按照系统规范生成标准场景图。
+[负面提示词]
+模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、畸形比例`,
       'GENERATE_TRANSITION_VIDEO': `视频风格：{visualStyle}；故事从 {currentShotSummary} 过渡到 {nextShotSummary}。景别变化：从 {currentShotSize} 到 {nextShotSize}；制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
 镜头开始：{endFrameVisualPrompt}；
 镜头结束：{startFrameVisualPrompt}；
@@ -353,7 +407,47 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
 ## 负面提示词：
 静止画面，慢镜头，空镜，人物背面，面部扭曲，肢体不协调，手部变形，有字幕，配音口语和语调不适配美国，背景音乐使用环球音乐集团、索尼音乐娱乐、华纳音乐集团及其关联公司版权音乐
-`
+`,
+'AI_SPLIT_SEGMENTS':`
+## 任务
+请根据以下分镜数据，智能拆分成多个视频片段。
+
+## 分镜数据（JSON格式）
+\`\`\`json
+{shotsJson}
+\`\`\`
+
+## 角色信息（id: 名称）
+{charactersMap}
+
+## 场景信息（id: 位置）
+{scenesMap}
+
+## 项目风格
+- 视觉风格：{visualStyle}
+- 题材类型：{genre}
+
+## 输出要求
+请返回 JSON 格式的拆分方案：
+\`\`\`json
+{
+  "segments": [
+    {
+      "shotIds": ["分镜id数组，按顺序排列"],
+      "sceneIds": ["场景id数组，按顺序排列"],
+      "characterIds": ["角色id数组，按顺序排列"],
+      "estimatedDuration": 预估时长（秒）
+    }
+  ],
+  "reasoning": "拆分理由简述"
+}
+\`\`\`
+
+## 注意事项
+1. shotIds 必须是上述分镜数据中存在的 id
+2. shotIds 必须按原始顺序排列
+3. 每个分镜必须且只能属于一个片段
+4. 所有分镜都必须被分配`,
 };
 
     return previews[key] || '';
@@ -451,7 +545,8 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}'],
     'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
     'GENERATE_SEGMENT_PROMPT': ['{shotDescriptions}', '{visualstyle}','{genre}'],
-    'GENERATE_SEGMENT_VIDEO_PROMPT': ['{scenes}', '{segment}','{shotnum}','transitionFrom','transitionTo'],
+    'GENERATE_SEGMENT_VIDEO_PROMPT': ['{scenes}', '{segment}','{shotnum}','{transitionFrom}','{transitionTo}'],
+    'AI_SPLIT_SEGMENTS': ['{shotsJson}', '{charactersMap}','{scenesMap}','{visualStyle}','{genre}'],
   };
 
   if (!isOpen) return null;

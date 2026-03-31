@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Copy, Edit, Film, ListVideo, Loader2, Notebo
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Character, ProjectState, Scene, Segment, SeriesRecord } from '../types';
 import {
+  aiConvertShotsToSegments,
   convertShotsToSegments,
   generateAllSegmentDescriptions,
   generateAllTransitionDescriptions,
@@ -380,10 +381,35 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       cancelText: '取消',
     });
     if(confirmed){
-      const newSegments = convertShotsToSegments(project.shots);
-      updateProject({ segments: newSegments });
-      setSelectedSegmentId(null);
-      dialog.toast({ message: `已重新拆分为 ${newSegments.length} 个片段`, type: 'success' });
+
+      // 拆分前询问用户
+    const useAi = await dialog.confirm({
+      title: '拆分片段',
+      message: '是否使用 AI 智能拆分？',
+      confirmText: 'AI 智能拆分',
+      cancelText: '规则拆分'
+    });
+
+    let newSegments: Segment[];
+    if (useAi) {
+      // AI 拆分（失败返回 null）
+      const characters = isSeriesMode ? series?.library?.characters : project.scriptData.characters;
+      const scenes = isSeriesMode ? series?.library?.scenes : project.scriptData.scenes;
+      newSegments = await aiConvertShotsToSegments(
+        project.shots, characters, scenes, project.visualStyle, project.genre
+      ) ?? [];
+      if (newSegments.length === 0) {
+        dialog.toast({ message: 'AI 拆分失败', type: 'error' });
+        return;
+      }
+    } else {
+      // 规则拆分（默认）
+      newSegments = convertShotsToSegments(project.shots);
+    }
+
+    updateProject({ segments: newSegments });
+    setSelectedSegmentId(null);
+    dialog.toast({ message: `已重新拆分为 ${newSegments.length} 个片段`, type: 'success' });
     }
   }, [project.shots, updateProject, dialog]);
 

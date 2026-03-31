@@ -343,3 +343,169 @@ export function addShotsToSegment(
     lastModified: Date.now(),
   };
 }
+
+/**
+ * AI 智能拆分片段
+ * 将分镜数据发送给 LLM，由大模型决定如何拆分
+ * @returns 拆分后的片段数组，失败返回 null
+ */
+export async function aiConvertShotsToSegments(
+  shots: Shot[],
+  characters: Character[],
+  scenes: Scene[],
+  visualStyle: string = "真人写实",
+  genre: string = "剧情片"
+): Promise<Segment[] | null> {
+  if (!shots || shots.length === 0) {
+    return [];
+  }
+
+  // 1. 简化 shots 数据（去除大体积字段）
+  const simplifiedShots = shots.map(shot => ({
+    id: shot.id,
+    sceneId: shot.sceneId,
+    actionSummary: shot.actionSummary,
+    dialogue: shot.dialogue,
+    cameraMovement: shot.cameraMovement,
+    shotSize: shot.shotSize,
+    characters: shot.characters,
+    interval: shot.interval ? { duration: shot.interval.duration } : undefined,
+  }));
+
+  // 2. 构建角色映射（id: name）
+  const charactersMap = characters.map(c => `${c.id}: ${c.name}`).join('\n');
+
+  // 3. 构建场景映射（id: location）
+  const scenesMap = scenes.map(s => `${s.id}: ${s.location}`).join('\n');
+
+  // 4. 构建 prompt
+  const prompt = renderTemplate(
+    'AI_SPLIT_SEGMENTS',
+    JSON.stringify(simplifiedShots, null, 2),
+    charactersMap,
+    scenesMap,
+    visualStyle,
+    genre
+  );
+
+  try {
+    // 5. 调用 LLM
+    const response = await ModelService.generateSegmentPropmt(prompt);
+
+    // 6. 解析响应（失败返回 null）
+    return parseAiSegmentResponse(response, shots);
+
+  } catch (error) {
+    console.error('AI 拆分片段失败:', error);
+    return null;
+  }
+}
+
+/**
+ * 解析 AI 返回的片段拆分结果
+ * @returns 有效的片段数组，失败返回 null
+ */
+function parseAiSegmentResponse(response: string, originalShots: Shot[]): Segment[] | null {
+  try {
+    // 提取 JSON 部分
+    let jsonStr = response;
+    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1];
+    }
+
+    const parsed = JSON.parse(jsonStr);
+
+    if (!parsed.segments || !Array.isArray(parsed.segments)) {
+      console.warn('AI 响应缺少 segments 数组');
+      return null;
+    }
+
+    // 验证并构建 Segment 对象
+    const segments: Segment[] = [];
+    const assignedShotIds = new Set<string>();
+    const validShotIds = new Set(originalShots.map(s => s.id));
+
+    for (let i = 0; i < parsed.segments.length; i++) {
+      const seg = parsed.segments[i];
+
+      // 验证 shotIds
+      if (!seg.shotIds || !Array.isArray(seg.shotIds)) {
+        continue;
+      }
+
+      const validShotIdsForSeg = seg.shotIds.filter((id: string) => {
+        if (!validShotIds.has(id) || assignedShotIds.has(id)) {
+          return false;
+        }
+        assignedShotIds.add(id);
+        return true;
+      });
+
+      if (validShotIdsForSeg.length === 0) {
+        continue;
+      }
+
+      // 获取该片段的分镜数据
+      const segShots = originalShots.filter(s => validShotIdsForSeg.includes(s.id));
+
+      // 计算场景 IDs 和角色 IDs
+      const sceneIds = [...new Set(segShots.map(s => s.sceneId))];
+      const characterIds = [...new Set(segShots.flatMap(s => s.characters))];
+
+      // 计算预估时长
+      const calculatedDuration = segShots.reduce(
+        (sum, s) => sum + (s.interval?.duration || 2),
+        0
+      );
+
+      // 构建 Segment
+      segments.push({
+        id: `segment-${Date.now()}-${i}`,
+        shotIds: validShotIdsForSeg,
+        sceneIds,
+        characterIds,
+        description: seg.description || '',
+        transitionFrom: '',
+        transitionTo: '',
+        estimatedDuration: seg.estimatedDuration || calculatedDuration,
+        createdAt: Date.now(),
+        lastModified: Date.now(),
+      });
+    }
+
+    // 检查是否所有分镜都被分配
+    const unassignedShots = originalShots.filter(s => !assignedShotIds.has(s.id));
+    if (unassignedShots.length > 0) {
+      // 将未分配的分镜添加到最后一个片段
+      if (segments.length > 0) {
+        const lastSegment = segments[segments.length - 1];
+        lastSegment.shotIds.push(...unassignedShots.map(s => s.id));
+        lastSegment.sceneIds = [...new Set([
+          ...lastSegment.sceneIds,
+          ...unassignedShots.map(s => s.sceneId)
+        ])];
+        lastSegment.characterIds = [...new Set([
+          ...lastSegment.characterIds,
+          ...unassignedShots.flatMap(s => s.characters)
+        ])];
+        // 重新计算时长
+        const allSegShots = originalShots.filter(s => lastSegment.shotIds.includes(s.id));
+        lastSegment.estimatedDuration = allSegShots.reduce(
+          (sum, s) => sum + (s.interval?.duration || 2),
+          0
+        );
+      } else {
+        // 如果没有有效片段，返回 null
+        console.warn('AI 拆分没有产生有效片段');
+        return null;
+      }
+    }
+
+    return segments.length > 0 ? segments : null;
+
+  } catch (error) {
+    console.error('解析 AI 片段响应失败:', error);
+    return null;
+  }
+}

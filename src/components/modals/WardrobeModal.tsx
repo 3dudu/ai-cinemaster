@@ -1,4 +1,4 @@
-import { Download, Loader2, Plus, RefreshCw, Shirt, Upload, User, X } from 'lucide-react';
+import { Download, Edit2, Loader2, Plus, RefreshCw, Shirt, Upload, User, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { renderTemplate } from '../../services/promptTemplates';
@@ -41,6 +41,10 @@ const WardrobeModal: React.FC<Props> = ({
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
   const [uploadingVariationId, setUploadingVariationId] = useState<string | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
+  // Edit State
+  const [editingVariationId, setEditingVariationId] = useState<string | null>(null);
+  const [editVarName, setEditVarName] = useState("");
+  const [editVarPrompt, setEditVarPrompt] = useState("");
 
   // Check if in series mode
   const isSeriesMode = !!series && !!updateSeries;
@@ -88,10 +92,41 @@ const WardrobeModal: React.FC<Props> = ({
       const updatedChar = { ...char };
       if (!updatedChar.variations) updatedChar.variations = [];
       updatedChar.variations = [...updatedChar.variations, newVar];
-      
+
       updateCharacter(updatedChar);
       setNewVarName("");
       setNewVarPrompt("");
+  };
+
+  const handleStartEdit = (variation: CharacterVariation) => {
+      setEditingVariationId(variation.id);
+      setEditVarName(variation.name);
+      setEditVarPrompt(variation.visualPrompt || "");
+  };
+
+  const handleCancelEdit = () => {
+      setEditingVariationId(null);
+      setEditVarName("");
+      setEditVarPrompt("");
+  };
+
+  const handleSaveEdit = () => {
+      if (!character || !editingVariationId) return;
+      const characters = getCharacters();
+      const char = characters.find(c => c.id === character.id);
+      if (!char) return;
+
+      const updatedChar = { ...char };
+      const variation = updatedChar.variations?.find(v => v.id === editingVariationId);
+      if (variation) {
+          variation.name = editVarName || variation.name;
+          variation.visualPrompt = editVarPrompt;
+          updateCharacter(updatedChar);
+      }
+
+      setEditingVariationId(null);
+      setEditVarName("");
+      setEditVarPrompt("");
   };
 
   const handleGenerateVariation = async (varId: string) => {
@@ -114,7 +149,7 @@ const WardrobeModal: React.FC<Props> = ({
             prompt
           );
 
-          const imageUrl = await ModelService.generateImage(enhancedPrompt, refImages, "variation", localStyle, '1728x2304',1,{},project.id,character.id);
+          const imageUrl = await ModelService.generateImage(enhancedPrompt, refImages, "variation", localStyle, '2560x1440',1,{},project.id,character.id);
 
           // Save to media history
           if (imageUrl) {
@@ -233,30 +268,68 @@ const WardrobeModal: React.FC<Props> = ({
                                 )}
                             </div>
                         </div>
-                            {/* Add New */}
+                            {/* Add New / Edit Form */}
                             <div className="p-4 border border-dashed border-slate-600 rounded-xl bg-slate-800/20">
-                                <div className="space-y-3">
-                                    <input 
-                                        type="text" 
-                                        placeholder="造型名称（示例：穿校服）" 
-                                        value={newVarName}
-                                        onChange={e => setNewVarName(e.target.value)}
-                                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all"
-                                    />
-                                    <textarea 
-                                        placeholder="服饰 / 状态的视觉描述……"
-                                        value={newVarPrompt}
-                                        onChange={e => setNewVarPrompt(e.target.value)}
-                                        className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all resize-none h-16"
-                                    />
-                                    <button
-                                        onClick={handleAddVariation}
-                                        disabled={!newVarName || !newVarPrompt}
-                                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold tracking-wider flex items-center justify-center gap-2"
-                                    >
-                                        <Plus className="w-3 h-3" /> 添加造型
-                                    </button>
-                                </div>
+                                {editingVariationId ? (
+                                    // Edit Mode
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-amber-400 flex items-center gap-1">
+                                                <Edit2 className="w-3 h-3" /> 编辑造型
+                                            </span>
+                                            <button
+                                                onClick={handleCancelEdit}
+                                                className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                                            >
+                                                取消
+                                            </button>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="造型名称"
+                                            value={editVarName}
+                                            onChange={e => setEditVarName(e.target.value)}
+                                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-amber-500 focus:outline-none transition-all"
+                                        />
+                                        <textarea
+                                            placeholder="服饰 / 状态的视觉描述……"
+                                            value={editVarPrompt}
+                                            onChange={e => setEditVarPrompt(e.target.value)}
+                                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-amber-500 focus:outline-none transition-all resize-none h-16"
+                                        />
+                                        <button
+                                            onClick={handleSaveEdit}
+                                            disabled={!editVarName.trim()}
+                                            className="w-full py-2 bg-amber-600/80 hover:bg-amber-600 text-slate-50 rounded text-xs font-bold tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Edit2 className="w-3 h-3" /> 保存修改
+                                        </button>
+                                    </div>
+                                ) : (
+                                    // Add Mode
+                                    <div className="space-y-3">
+                                        <input
+                                            type="text"
+                                            placeholder="造型名称（示例：穿校服）"
+                                            value={newVarName}
+                                            onChange={e => setNewVarName(e.target.value)}
+                                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all"
+                                        />
+                                        <textarea
+                                            placeholder="服饰 / 状态的视觉描述……"
+                                            value={newVarPrompt}
+                                            onChange={e => setNewVarPrompt(e.target.value)}
+                                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all resize-none h-16"
+                                        />
+                                        <button
+                                            onClick={handleAddVariation}
+                                            disabled={!newVarName || !newVarPrompt}
+                                            className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold tracking-wider flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Plus className="w-3 h-3" /> 添加造型
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                     </div>
 
@@ -269,14 +342,13 @@ const WardrobeModal: React.FC<Props> = ({
                         </div>
 
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4 overflow-y-auto max-h-[calc(40vh-155px)] py-2"> 
+                            <div className="grid grid-cols-2 gap-4 overflow-y-auto max-h-[calc(40vh-155px)]"> 
                             {/* List */}
                             {(character.variations || []).map((variation) => (
                                 <div key={variation.id} className="flex flex-col gap-4 p-4 bg-slate-800 border border-slate-600 rounded-xl group hover:border-slate-300 transition-colors">
                                     <div className={`aspect-[16/9] bg-slate-900 rounded-lg flex-shrink-0 overflow-hidden relative border border-slate-600 ${variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? 'cursor-pointer' : ''}`} onClick={variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? () => setPreviewImage(variation.referenceImage) : undefined}>
-                                    <button onClick={() => handleDeleteVariation(variation.id)} className="absolute top-1 right-1 p-1  text-slate-600 hover:text-red-500 cursor-pointer"><X className="w-3 h-3"/></button>
                                         {variation.referenceImage ? (
-                                            <img src={variation.referenceImage} className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
+                                            <img src={variation.referenceImage} className="w-full h-full object-contain hover:scale-105 transition-transform duration-200" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
                                                 <Shirt className="w-6 h-6 text-slate-600" />
@@ -294,12 +366,12 @@ const WardrobeModal: React.FC<Props> = ({
                                         )}
 <div className="absolute bottom-0 right-0 flex items-center justify-center gap-1 p-1">
                                         {variation.referenceImage && (
-                                        <button
+                                            <button
                                             onClick={(e) => { e.stopPropagation(); handleDownloadImage(variation.referenceImage!, variation.name); }}
                                             className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur"
                                             title="下载图片"
                                             disabled={!!downloadStatus}
-                                        >
+                                            >
                                             <Download className="w-3 h-3" />
                                         </button>
                                         )}
@@ -311,6 +383,8 @@ const WardrobeModal: React.FC<Props> = ({
                                         >
                                             <Upload className="w-3 h-3" />
                                         </button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleStartEdit(variation); }} className="p-2 rounded-full bg-slate-700/50 text-slate-50  hover:bg-slate-800 hover:text-amber-400 cursor-pointer" title="编辑"><Edit2 className="w-3 h-3"/></button>
+                                        <button onClick={() => handleDeleteVariation(variation.id)} className="p-2 rounded-full bg-slate-700/50 p-1 text-slate-50  hover:bg-slate-800 hover:text-red-500 cursor-pointer" title="删除"><X className="w-3 h-3"/></button>
 </div>
                                     </div>
                                     <div className="flex-1 min-w-0">
