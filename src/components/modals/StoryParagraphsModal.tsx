@@ -70,9 +70,6 @@ const StoryParagraphsModal: React.FC<Props> = ({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
     >
       <div className="bg-slate-800 border border-slate-600 rounded-2xl w-[700px] max-w-[90vw] h-[80vh] overflow-hidden shadow-2xl flex flex-col select-text">
         {/* Header */}

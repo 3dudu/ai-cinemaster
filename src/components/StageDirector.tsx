@@ -249,8 +249,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
-            // Find episode character by name first
-            const episodeChar = activeCharacters.find(c => String(c.name) === String(charId));
+            // Find episode character by ID
+            const episodeChar = activeCharacters.find(c => String(c.id) === String(charId));
             if (!episodeChar) return;
             // Get full character data from library if in series mode
             const char = getCharacterWithAssets(String(episodeChar.id));
@@ -288,8 +288,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         // 2. Character References (Appearance)
         if (shot.characters) {
           shot.characters.forEach(charId => {
-            // Find episode character by name first
-            const episodeChar = activeCharacters.find(c => String(c.name) === String(charId));
+            // Find episode character by ID
+            const episodeChar = activeCharacters.find(c => String(c.id) === String(charId));
             if (!episodeChar) return;
             // Get full character data from library if in series mode
             const char = getCharacterWithAssets(String(episodeChar.id));
@@ -1078,8 +1078,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       // String comparison for safety
       const scene = getSceneWithAssets(String(activeShot.sceneId));
       // Get full character data from library if in series mode
-      const contextCharacters = activeShot.characters.map(charName => {
-        const episodeChar = project.scriptData!.characters.find(c => c.name === charName);
+      const contextCharacters = activeShot.characters.map(charId => {
+        const episodeChar = project.scriptData!.characters.find(c => c.id === charId);
         return episodeChar ? getCharacterWithAssets(String(episodeChar.id)) : null;
       }).filter((c): c is Character => c !== null);
 

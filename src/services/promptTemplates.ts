@@ -179,6 +179,14 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         visualstyle: args[1] || '真人写实',
         genre: args[2] || '剧情片'
       };
+    case 'GENERATE_SEGMENT_VIDEO_PROMPT':
+      return {
+        scenes: args[0] || '',
+        segment: args[1] || '',
+        shotnum: args[2] || 1,
+        transitionFrom: args[2] || '',
+        transitionTo: args[2] || '',
+      };
     default:
       return {};
   }
@@ -619,23 +627,37 @@ export const PROMPT_TEMPLATES = {
 ${shotDescriptions}
 
 ## 要求：
-1. 画面风格和类型: ${visualstyle}, ${genres}
-2. 描述要自然流畅，符合电影叙事逻辑
-3. 包含分镜的分镜号、时长、场景、角色、运镜、对话、动作描述
-4. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
-5. 突出主要动作和情感
-6. 控制在50-100字之间
-7. 不要包含"分镜"、"镜头"等技术词汇
+1. 说明总体画面风格和类型，可加以补充。基本风格和类型：${visualstyle}, ${genres}
+2. 运动强度：（文戏3-5 / 正常5-7 / 冲突7-10）
+3. 说明故事情节曲线，情绪曲线：（贴合剧情，2-3种情绪递进）
+4. 自动识别：人物、场景、关键物品、情绪、动作节奏。
+5. 每一句包含分镜的分镜号、时长、场景、角色、运镜、对话、动作描述
+6. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
+7. 台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
+8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过15s。
+9. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
+10. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。
 
 ## 正确示例：
 
-画面风格和类型: ${visualstyle}, ${genres}
-生成一个由以下2个分镜组成的视频:
-场景参考: 林家大厅_内,林家大厅_外
+画面风格和类型: 3D, CG动画, 废土末世,男频科幻/游戏
 
+情绪曲线：屈辱 → 隐忍 → 杀意 → 复仇决心
+运动强度：7
 分镜1: 时长 3s 时间：日，**林尘** 衣衫褴褛，正用尽全力将一块沉重的生锈废铁拖向近处的简易掩体，动作吃力，步履蹒跚。林尘 的面部朝向掩体方向，视线也聚焦于此。镜头静止。
 分镜2: 时长 4s 时间：日，**林尘** 林尘缓缓起身，摊开的掌心中，一枚丹药正散发着柔和金光。满堂的讥笑声瞬间凝固。林尘 仰头服下丹药，一股金色气浪猛然自体内爆发，衣发狂舞。镜头从他光芒四射的背影拉远，映出赵灵儿惊惶后退的身影。`,
+GENERATE_SEGMENT_VIDEO_PROMPT: (scenes: string, segment: string,shotnum: number,transitionFrom: string,transitionTo: string) =>
+`生成一个由以下 ${shotnum} 个分镜组成的视频:
+场景参考: ${scenes}
 
+${segment}
+
+## 分镜过度：
+- 入场: ${transitionFrom}
+- 出场: ${transitionTo}
+
+## 负面提示词：
+静止画面，慢镜头，空镜，人物背面，面部扭曲，肢体不协调，手部变形，有字幕，配音口语和语调不适配美国，背景音乐使用环球音乐集团、索尼音乐娱乐、华纳音乐集团及其关联公司版权音乐`,
   // ============ 镜头清单生成 ============
   GENERATE_SHOTS: (
     sceneindex: number,
@@ -664,7 +686,7 @@ ${shotDescriptions}
     题材类型: ${genre}
     剧本整体目标时长: ${duration}
 
-    ## 角色:
+    ## 角色 (格式: ID: 名字: 性格描述):
     ${characters}
 
     ## 说明：
@@ -686,7 +708,7 @@ ${shotDescriptions}
     - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
     - cameraMovement（字符串类型）
     - shotSize（字符串类型）
-    - characters（字符串数组类型）
+    - characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
     - keyframes（对象数组类型，每个对象定义不同的帧，对象包含如下属性： id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 ${lang} 语言描述） 字段）
     - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   `,
@@ -703,7 +725,7 @@ ${shotDescriptions}
 ## 场景列表:
 ${scenes}
 
-## 角色列表:
+## 角色列表 (格式: ID: 名字: 性格描述):
 ${characters}
 
 ## 说明：
@@ -711,8 +733,8 @@ ${characters}
 1. 提取分镜脚本中全部的镜头序列。
 2. 镜头画面描述actionSummary：详细描述该镜头内发生的情节。
 3. 场景id：镜头所属的场景id，在提供的场景列表数据中。
-4. 角色：镜头中出现的角色名，要在提供的角色列表中存在
-5. 对话：如果存在，为每个角色生成对话，包含角色名字、内容，角色名称需要转换成角色列表中的名称。
+4. 角色：镜头中出现的角色ID，要在提供的角色列表中存在（使用ID而非名字）
+5. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
 1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-12 秒，使整部剧的时长控制在 ${duration} 左右。
@@ -730,7 +752,7 @@ ${characters}
 - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
 - cameraMovement（字符串类型）
 - shotSize（字符串类型）
-- characters（字符串数组类型）
+- characters（字符串数组类型，角色id）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
 - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
@@ -749,14 +771,14 @@ ${characters}
 ## 提取场景:
 ${scenes}
 
-## 角色列表:
+## 角色列表 (格式: ID: 名字: 性格描述):
 ${characters}
 
 ## 说明：
 ### 提取内容
 1. 提取分镜脚本中全部的镜头序列。
 2. 镜头画面描述actionSummary：详细描述该镜头内发生的情节。
-3. 角色：镜头中出现的角色名，要在提供的角色列表中存在
+3. 角色：镜头中出现的角色ID，要在提供的角色列表中存在（使用ID而非名字）
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
@@ -775,7 +797,7 @@ ${characters}
 - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
 - cameraMovement（字符串类型）
 - shotSize（字符串类型）
-- characters（字符串数组类型）
+- characters（字符串数组类型，角色id）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
 - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   

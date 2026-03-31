@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { VOICE_LIBRARY, VOICE_LIBRARY_TYPE_NAMES } from '../../config/voiceLibrary';
 import { ModelService } from '../../services/modelService';
 import { addMediaHistory } from '../../services/storageService';
-import { Character, ProjectState, Shot, TtsParams } from '../../types';
+import { Character, ProjectState, SeriesRecord, Shot, TtsParams } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 import { useDialog } from '../dialog';
 
@@ -13,6 +13,8 @@ interface VoiceSynthesisModalProps {
   character: Character;
   project: ProjectState;
   updateProject: (updates: Partial<ProjectState>) => void;
+  series?: SeriesRecord | null;
+  updateSeries?: (series: SeriesRecord) => void;
 }
 
 const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
@@ -20,7 +22,9 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
   onClose,
   character,
   project,
-  updateProject
+  updateProject,
+  series,
+  updateSeries
 }) => {
   const dialog = useDialog();
   const [ttsParams, setTtsParams] = useState<TtsParams>({
@@ -34,6 +38,41 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
   const [previewAudio, setPreviewAudio] = useState<string | null>(null);
   const [generatedVoiceUrl, setGeneratedVoiceUrl] = useState<string | null>(null);
   const [dialogueText, setDialogueText] = useState<string>('');
+
+  // Check if in series mode
+  const isSeriesMode = !!series && !!updateSeries;
+
+  // Helper: Get characters data source
+  const getCharacters = (): Character[] => {
+    if (isSeriesMode && series?.library?.characters) {
+      return series.library.characters;
+    }
+    return project.scriptData?.characters || [];
+  };
+
+  // Helper: Update character voice data
+  const updateCharacterVoice = (voiceUrl: string, params: TtsParams) => {
+    if (isSeriesMode && series && updateSeries) {
+      const newLibrary = { ...series.library };
+      const charIndex = newLibrary.characters?.findIndex(c => c.id === character.id);
+      if (charIndex !== undefined && charIndex >= 0) {
+        newLibrary.characters[charIndex] = {
+          ...newLibrary.characters[charIndex],
+          voiceUrl,
+          ttsParams: params
+        };
+        updateSeries({ ...series, library: newLibrary });
+      }
+    } else {
+      const newData = { ...project.scriptData! };
+      const char = newData.characters.find(c => c.id === character.id);
+      if (char) {
+        char.voiceUrl = voiceUrl;
+        char.ttsParams = params;
+        updateProject({ scriptData: newData });
+      }
+    }
+  };
 
   // Load character's TTS params and voice URL when modal opens
   useEffect(() => {
@@ -91,14 +130,8 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       const voiceUrl = await ModelService.generateSpeechUrl(dialogueText, {}, ttsParams, project.id);
       setGeneratedVoiceUrl(voiceUrl);
 
-      // Save to character
-      const newData = { ...project.scriptData! };
-      const char = newData.characters.find(c => c.id === character.id);
-      if (char) {
-        char.voiceUrl = voiceUrl;
-        char.ttsParams = ttsParams;
-        updateProject({ scriptData: newData });
-      }
+      // Save to character (in project or series library)
+      updateCharacterVoice(voiceUrl, ttsParams);
 
       // Save to media history
       await addMediaHistory(project.id, voiceUrl, `${character.name}_语音`, 'audio', 'character','');

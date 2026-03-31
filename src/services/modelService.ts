@@ -28,6 +28,35 @@ const IMAGE_X = [
 ];
 
 /**
+ * Helper: 将 shots 中的角色名转换为角色 ID
+ * LLM 可能返回角色名而非 ID，需要映射转换
+ */
+const normalizeShotCharacters = (shots: Shot[], scriptData: ScriptData): Shot[] => {
+  if (!scriptData.characters || scriptData.characters.length === 0) return shots;
+  
+  // 构建名字到 ID 的映射
+  const nameToIdMap = new Map<string, string>();
+  const validIds = new Set<string>();
+  scriptData.characters.forEach(c => {
+    nameToIdMap.set(c.name, c.id);
+    validIds.add(c.id);
+  });
+  
+  return shots.map(shot => {
+    if (!shot.characters || shot.characters.length === 0) return shot;
+    
+    const normalizedChars = shot.characters.map(char => {
+      // 如果已经是有效的 ID，直接返回
+      if (validIds.has(char)) return char;
+      // 否则尝试从名字映射到 ID
+      return nameToIdMap.get(char) || char;
+    });
+    
+    return { ...shot, characters: normalizedChars };
+  });
+};
+
+/**
  * 根据 projectid 计算数字 seed
  * 确保同一个 projectid 总是生成相同的 seed
  * @param projectid - 项目ID字符串
@@ -518,7 +547,7 @@ export class ModelService {
 
     if (!paragraphs.trim()) return [];
     let characters = "";
-    characters = scriptData.characters ? scriptData.characters.map(d =>`${d.name}: ${d.personality}`).join('\n') : "";
+    characters = scriptData.characters ? scriptData.characters.map(d =>`${d.id}: ${d.name}: ${d.personality}`).join('\n') : "";
     const prompt = renderTemplate('GENERATE_SHOTS',
       sceneIndex+1,
       scene.location,
@@ -531,20 +560,28 @@ export class ModelService {
       lang,
       imageCount
     );
+    let shots: Shot[] = [];
     switch (provider.provider) {
       case 'deepseek':
-        return await (await this.getProviderModule('deepseek')).generateShotListForScene(scene, prompt);
+        shots = await (await this.getProviderModule('deepseek')).generateShotListForScene(scene, prompt);
+        break;
       case 'doubao':
-        return await (await this.getProviderModule('doubao')).generateShotListForScene(scene, prompt);
+        shots = await (await this.getProviderModule('doubao')).generateShotListForScene(scene, prompt);
+        break;
       case 'gemini':
-        return await (await this.getProviderModule('gemini')).generateShotListForScene(scene, prompt);
+        shots = await (await this.getProviderModule('gemini')).generateShotListForScene(scene, prompt);
+        break;
       case 'yunwu':
-        return await (await this.getProviderModule('yunwu')).generateShotListForScene(scene, prompt);
+        shots = await (await this.getProviderModule('yunwu')).generateShotListForScene(scene, prompt);
+        break;
       case 'openai':
-        return await (await this.getProviderModule('openai')).generateShotListForScene(scene, prompt);
+        shots = await (await this.getProviderModule('openai')).generateShotListForScene(scene, prompt);
+        break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的镜头生成`);
     }
+    // 后处理：将角色名转换为角色 ID
+    return normalizeShotCharacters(shots, scriptData);
   }
 
   /**
@@ -776,7 +813,6 @@ export class ModelService {
         // Doubao 使用固定配置
         break;
       case 'openai':
-        // TODO: 实现 OpenAI
         void this.getProviderModule('openai').then(mod => mod.setApiUrl(apiUrl));
         break;
       case 'gemini':
@@ -1141,27 +1177,35 @@ export class ModelService {
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
 
     let scenes = scriptData.scenes ? scriptData.scenes.map(d =>`id:${d.id}, location:${d.location},time:${d.time}`).join('\n') : "";
-    let characters = scriptData.characters ? scriptData.characters.map(d =>`${d.name}: ${d.personality}`).join('\n') : "";
+    let characters = scriptData.characters ? scriptData.characters.map(d =>`${d.id}: ${d.name}: ${d.personality}`).join('\n') : "";
     const prompt = renderTemplate('IMPORT_SHOTS_FOR_SCENE',
       scenes,
       characters,
       imageCount,
       scriptText
     );
+    let shots: Shot[] = [];
     switch (provider.provider) {
       case 'deepseek':
-        return await (await this.getProviderModule('deepseek')).importShotListForScene( scene,prompt);
+        shots = await (await this.getProviderModule('deepseek')).importShotListForScene( scene,prompt);
+        break;
       case 'doubao':
-        return await (await this.getProviderModule('doubao')).importShotListForScene( scene,prompt);
+        shots = await (await this.getProviderModule('doubao')).importShotListForScene( scene,prompt);
+        break;
       case 'gemini':
-        return await (await this.getProviderModule('gemini')).importShotListForScene( scene,prompt);
+        shots = await (await this.getProviderModule('gemini')).importShotListForScene( scene,prompt);
+        break;
       case 'yunwu':
-        return await (await this.getProviderModule('yunwu')).importShotListForScene( scene,prompt);
+        shots = await (await this.getProviderModule('yunwu')).importShotListForScene( scene,prompt);
+        break;
       case 'openai':
-        return await (await this.getProviderModule('openai')).importShotListForScene( scene,prompt);
+        shots = await (await this.getProviderModule('openai')).importShotListForScene( scene,prompt);
+        break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的镜头生成`);
     }
+    // 后处理：将角色名转换为角色 ID
+    return normalizeShotCharacters(shots, scriptData);
   }
 
   static async importShotList(
@@ -1173,27 +1217,35 @@ export class ModelService {
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
 
     let scenes = scriptData.scenes ? scriptData.scenes.map(d =>`id:${d.id}, location:${d.location},time:${d.time}`).join('\n') : "";
-    let characters = scriptData.characters ? scriptData.characters.map(d =>`${d.name}: ${d.personality}`).join('\n') : "";
+    let characters = scriptData.characters ? scriptData.characters.map(d =>`${d.id}: ${d.name}: ${d.personality}`).join('\n') : "";
     const prompt = renderTemplate('IMPORT_SHOTS',
       scenes,
       characters,
       imageCount,
       scriptText
     );
+    let shots: Shot[] = [];
     switch (provider.provider) {
       case 'deepseek':
-        return await (await this.getProviderModule('deepseek')).importShotList( prompt);
+        shots = await (await this.getProviderModule('deepseek')).importShotList( prompt);
+        break;
       case 'doubao':
-        return await (await this.getProviderModule('doubao')).importShotList( prompt);
+        shots = await (await this.getProviderModule('doubao')).importShotList( prompt);
+        break;
       case 'gemini':
-        return await (await this.getProviderModule('gemini')).importShotList( prompt);
+        shots = await (await this.getProviderModule('gemini')).importShotList( prompt);
+        break;
       case 'yunwu':
-        return await (await this.getProviderModule('yunwu')).importShotList( prompt);
+        shots = await (await this.getProviderModule('yunwu')).importShotList( prompt);
+        break;
       case 'openai':
-        return await (await this.getProviderModule('openai')).importShotList( prompt);
+        shots = await (await this.getProviderModule('openai')).importShotList( prompt);
+        break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的镜头生成`);
     }
+    // 后处理：将角色名转换为角色 ID
+    return normalizeShotCharacters(shots, scriptData);
   }
 
 

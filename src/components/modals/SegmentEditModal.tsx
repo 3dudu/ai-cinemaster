@@ -1,6 +1,6 @@
-import { Film, Save, X } from 'lucide-react';
+import { ChevronDown, Expand, Film, Save, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { Character, Scene, Segment, Shot } from '../../types';
+import { Character, CharacterVariation, Scene, Segment, Shot } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 
 interface SegmentEditModalProps {
@@ -48,6 +48,10 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
   const [selectedCharacterIds, setSelectedCharacterIds] = useState<Set<string>>(
     new Set(segment.characterIds),
   );
+  const [characterVariations, setCharacterVariations] = useState<{ [characterId: string]: string }>(
+    segment.characterVariations || {},
+  );
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -57,6 +61,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
       shotIds: Array.from(selectedShotIds),
       sceneIds: Array.from(selectedSceneIds),
       characterIds: Array.from(selectedCharacterIds),
+      characterVariations,
       lastModified: Date.now(),
     };
     onSave(updatedSegment);
@@ -94,10 +99,21 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
     const newSelected = new Set(selectedCharacterIds);
     if (newSelected.has(characterId)) {
       newSelected.delete(characterId);
+      // Also remove variation selection when removing character
+      const newVariations = { ...characterVariations };
+      delete newVariations[characterId];
+      setCharacterVariations(newVariations);
     } else {
       newSelected.add(characterId);
     }
     setSelectedCharacterIds(newSelected);
+  };
+
+  const handleSelectVariation = (characterId: string, variationId: string) => {
+    setCharacterVariations((prev) => ({
+      ...prev,
+      [characterId]: variationId,
+    }));
   };
 
   const availableShots = allShots.filter((s) => !selectedShotIds.has(s.id));
@@ -238,11 +254,19 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                       <X className="w-3 h-3" />
                     </button>
                     {scene.referenceImage ? (
-                      <img
-                        src={scene.referenceImage}
-                        alt={scene.location}
-                        className="w-full aspect-video object-cover rounded border border-slate-500"
-                      />
+                      <div
+                        className="relative w-full aspect-video rounded border border-slate-500 overflow-hidden cursor-pointer group"
+                        onClick={() => setPreviewImage(scene.referenceImage!)}
+                      >
+                        <img
+                          src={scene.referenceImage}
+                          alt={scene.location}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-slate-700/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Expand className="w-5 h-5 text-slate-50" />
+                        </div>
+                      </div>
                     ) : (
                       <div className="w-full aspect-video bg-slate-600 flex items-center justify-center text-2xl rounded border border-slate-500">
                         🏞️
@@ -287,10 +311,27 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                   : allCharacters.find((c) => c.id === charId);
                 if (!character) return null;
 
+                // Get available variations (base + variations with images)
+                const availableLooks: { id: string; name: string; image: string }[] = [];
+                if (character.referenceImage) {
+                  availableLooks.push({ id: 'base', name: '默认造型', image: character.referenceImage });
+                }
+                character.variations?.forEach((v) => {
+                  if (v.referenceImage) {
+                    availableLooks.push({ id: v.id, name: v.name, image: v.referenceImage });
+                  }
+                });
+
+                // Get current selected look
+                const selectedVariationId = characterVariations[charId];
+                const currentLook = selectedVariationId
+                  ? availableLooks.find((l) => l.id === selectedVariationId) || availableLooks[0]
+                  : availableLooks[0];
+
                 return (
                   <div
                     key={charId}
-                    className="relative flex flex-col items-center gap-2 p-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-slate-50 w-[120px]"
+                    className="relative flex flex-col items-center gap-2 p-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-slate-50 w-[140px]"
                   >
                     <button
                       onClick={() => handleToggleCharacter(charId)}
@@ -298,18 +339,43 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                     >
                       <X className="w-3 h-3" />
                     </button>
-                    {character.referenceImage ? (
-                      <img
-                        src={character.referenceImage}
-                        alt={character.name}
-                        className="w-full aspect-video object-cover rounded border border-slate-500"
-                      />
+                    {currentLook?.image ? (
+                      <div
+                        className="relative w-full aspect-video rounded border border-slate-500 overflow-hidden cursor-pointer group"
+                        onClick={() => setPreviewImage(currentLook.image)}
+                      >
+                        <img
+                          src={currentLook.image}
+                          alt={character.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-slate-700/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Expand className="w-5 h-5 text-slate-50" />
+                        </div>
+                      </div>
                     ) : (
                       <div className="w-full aspect-video bg-slate-600 flex items-center justify-center text-2xl rounded border border-slate-500">
                         👤
                       </div>
                     )}
                     <span className="text-xs text-center truncate w-full px-1">{character.name}</span>
+                    {/* Variation Selector */}
+                    {availableLooks.length > 1 && (
+                      <div className="w-full relative">
+                        <select
+                          value={currentLook?.id || 'base'}
+                          onChange={(e) => handleSelectVariation(charId, e.target.value)}
+                          className="w-full px-2 py-1 text-[10px] bg-slate-800 border border-slate-600 rounded text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer appearance-none"
+                        >
+                          {availableLooks.map((look) => (
+                            <option key={look.id} value={look.id}>
+                              {look.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500 pointer-events-none" />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -338,6 +404,27 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Fullscreen Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-slate-700/90 backdrop-blur-sm flex items-center justify-center"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={previewImage}
+            alt="Full screen preview"
+            className="max-w-[95vw] max-h-[95vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };

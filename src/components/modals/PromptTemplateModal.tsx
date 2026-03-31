@@ -47,7 +47,8 @@ const PromptTemplateModal: React.FC<{
     { key: 'IMPORT_SHOTS', name: '策划师-镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
     { key: 'IMPORT_SHOTS_FOR_SCENE', name: '策划师-特定场景镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
     { key: 'SYSTEM_SEGMENT_DESIGNER', name: '导演-片段视频拍摄提示词生成提示词', description: '为单个片段生成视频拍摄提示词', hasParams: true },
-    { key: 'GENERATE_SEGMENT_PROMPT', name: '导演-片段视频拍摄提示词生成提示词', description: '导演-片段视频拍摄提示词生成提示词', hasParams: true },
+    { key: 'GENERATE_SEGMENT_PROMPT', name: '导演-片段视频拍摄提示词润色', description: '导演-片段视频拍摄提示词润色', hasParams: true },
+    { key: 'GENERATE_SEGMENT_VIDEO_PROMPT', name: '导演-片段视频拍摄提示词', description: '导演-片段视频拍摄提示词', hasParams: true },
   ], []);
 
   // 从 localStorage 加载自定义内容
@@ -131,7 +132,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 题材类型: {genre}
 剧本整体目标时长: {duration}
 
-## 角色:
+## 角色 (格式: ID: 名字: 性格描述):
 {characters}
 
 ## 说明：
@@ -153,7 +154,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
 - cameraMovement（字符串类型）
 - shotSize（字符串类型）
-- characters（字符串数组类型）
+- characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
 - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）`,
       'GENERATE_SCRIPT': `你是一名专业的编剧。请根据以下提示词创作一个完整的影视剧本。
@@ -271,7 +272,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
 - cameraMovement（字符串类型）
 - shotSize（字符串类型）
-- characters（字符串数组类型）
+- characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
 - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
@@ -309,7 +310,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
 - cameraMovement（字符串类型）
 - shotSize（字符串类型）
-- characters（字符串数组类型）
+- characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
 - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
@@ -321,21 +322,39 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
 ## 要求：
 
-1. 画面风格和类型: {visualstyle}, {genres}
-2. 描述要自然流畅，符合电影叙事逻辑
-3. 包含分镜的分镜号、时长、场景、角色、运镜、对话、动作描述
-4. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
-5. 突出主要动作和情感
-6. 控制在50-100字之间
+1. 说明总体画面风格和类型，可加以补充。基本风格和类型：{visualstyle}, {genres}
+2. 运动强度：（文戏3-5 / 正常5-7 / 冲突7-10）
+3. 说明故事情节曲线，情绪曲线：（贴合剧情，2-3种情绪递进）
+4. 自动识别：人物、场景、关键物品、情绪、动作节奏。
+5. 每一句包含分镜的分镜号、时长、场景、角色、运镜、对话、动作描述
+6. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
+7. 台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
+8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过15s。
+9. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
+10. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。
 
 ## 正确示例：
 
 画面风格和类型: {visualstyle}, {genres}
-生成一个由以下2个分镜组成的视频:
-场景参考: 林家大厅_内,林家大厅_外
+
+情绪曲线：屈辱 → 隐忍 → 杀意 → 复仇决心
+运动强度：7
 分镜1: 时长 3s 时间：日，林尘 衣衫褴褛，正用尽全力将一块沉重的生锈废铁拖向近处的简易掩体，动作吃力，步履蹒跚。林尘 的面部朝向掩体方向，视线也聚焦于此。镜头静止。
-分镜2: 时长 4s 时间：日，林尘 林尘缓缓起身，摊开的掌心中，一枚丹药正散发着柔和金光。满堂的讥笑声瞬间凝固。林尘 仰头服下丹药，一股金色气浪猛然自体内爆发，衣发狂舞。镜头从他光芒四射的背影拉远，映出赵灵儿惊惶后退的身影。`
-    };
+分镜2: 时长 4s 时间：日，林尘 林尘缓缓起身，摊开的掌心中，一枚丹药正散发着柔和金光。满堂的讥笑声瞬间凝固。林尘 仰头服下丹药，一股金色气浪猛然自体内爆发，衣发狂舞。镜头从他光芒四射的背影拉远，映出赵灵儿惊惶后退的身影。`,
+'GENERATE_SEGMENT_VIDEO_PROMPT':
+`生成一个由以下 {shotnum} 个分镜组成的视频:
+场景参考: {scenes}
+
+{segment}
+
+## 分镜过度：
+- 入场: {transitionFrom}
+- 出场: {transitionTo}
+
+## 负面提示词：
+静止画面，慢镜头，空镜，人物背面，面部扭曲，肢体不协调，手部变形，有字幕，配音口语和语调不适配美国，背景音乐使用环球音乐集团、索尼音乐娱乐、华纳音乐集团及其关联公司版权音乐
+`
+};
 
     return previews[key] || '';
   };
@@ -432,6 +451,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}'],
     'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
     'GENERATE_SEGMENT_PROMPT': ['{shotDescriptions}', '{visualstyle}','{genre}'],
+    'GENERATE_SEGMENT_VIDEO_PROMPT': ['{scenes}', '{segment}','{shotnum}','transitionFrom','transitionTo'],
   };
 
   if (!isOpen) return null;

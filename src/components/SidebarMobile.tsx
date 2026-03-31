@@ -1,4 +1,4 @@
-import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderKanban, Images, List, NotebookPen, Settings, Sparkles } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderKanban, Images, List, ListVideo, NotebookPen, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import { ThemeToggle } from './common/ThemeToggle';
@@ -29,7 +29,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
     { id: 'assets', label: '资产', icon: Drama },
     { id: 'script', label: '分镜', icon: List },
     { id: 'director', label: '导演', icon: Clapperboard },
-    { id: 'segments', label: '片段', icon: Edit },
+    { id: 'segments', label: '片段', icon: ListVideo },
     { id: 'images', label: '媒体', icon: Images },
     { id: 'export', label: '成片', icon: Film },
   ];
