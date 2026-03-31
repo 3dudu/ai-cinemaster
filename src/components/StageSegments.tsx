@@ -1,6 +1,6 @@
 import { ModelService } from '@/services/modelService';
 import { renderTemplate } from '@/services/promptTemplates';
-import { ChevronLeft, ChevronRight, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, RefreshCw, Sparkles, Trash, Video, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RefreshCw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Character, ProjectState, Scene, Segment, SeriesRecord } from '../types';
 import {
@@ -50,6 +50,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [transitionToDraft, setTransitionToDraft] = useState('');
   const [editingScript, setEditingScript] = useState(false);  // 控制描述编辑区显示
   const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);  // 视频生成状态
+  const [insertIndex, setInsertIndex] = useState<number | null>(null);  // 新片段插入位置
 
   // Refs for auto-scroll to selected segment
   const segmentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -248,19 +249,48 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     setSegmentEditModalOpen(true);
   }, []);
 
+  // Add new segment after current index
+  const handleAddSegmentAfter = useCallback((index: number) => {
+    const newSegment: Segment = {
+      id: `segment-${Date.now()}`,
+      shotIds: [],
+      sceneIds: [],
+      characterIds: [],
+      description: '',
+      transitionFrom: '',
+      transitionTo: '',
+      estimatedDuration: 0,
+      createdAt: Date.now(),
+      lastModified: Date.now(),
+    };
+    setEditingSegment(newSegment);
+    setInsertIndex(index + 1);
+    setSegmentEditModalOpen(true);
+  }, []);
+
   // Save segment from edit modal
   const handleSaveSegment = useCallback(
     (updatedSegment: Segment) => {
       const segments = project.segments || [];
-      updateProject({
-        segments: segments.map((s) =>
-          s.id === updatedSegment.id ? updatedSegment : s,
-        ),
-      });
+      if (editingSegment && segments.find(s => s.id === editingSegment.id)) {
+        // Update existing segment
+        updateProject({
+          segments: segments.map((s) =>
+            s.id === updatedSegment.id ? updatedSegment : s,
+          ),
+        });
+      } else {
+        // Insert new segment at specified position
+        const newSegments = [...segments];
+        const insertPos = insertIndex !== null ? insertIndex : newSegments.length;
+        newSegments.splice(insertPos, 0, updatedSegment);
+        updateProject({ segments: newSegments });
+      }
       setSegmentEditModalOpen(false);
       setEditingSegment(null);
+      setInsertIndex(null);
     },
-    [project.segments, updateProject],
+    [project.segments, updateProject, editingSegment, insertIndex],
   );
 
   // Get thumbnail image for segment (first shot's scene image, fallback to start keyframe)
@@ -907,8 +937,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 const isSelected = selectedSegmentId === segment.id;
 
                 return (
+                  <React.Fragment key={segment.id}>
                   <div
-                    key={segment.id}
                     ref={(el) => {
                       if (el) {
                         segmentRefs.current.set(segment.id, el);
@@ -926,7 +956,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     onMouseLeave={() => setHoveredSegmentId(null)}
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-full h-full bg-slate-800 overflow-hidden">
+                    <div className="relative w-full h-24 bg-slate-800 overflow-hidden">
                       {thumbnail ? (
                         <img
                           src={thumbnail}
@@ -952,7 +982,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                           <Play className="w-5 h-5 text-white" />
                         </div>
                       )}
-
+                      {/* Bottom Actions */}
                       <div className="absolute bottom-1 w-full flex items-center justify-between px-1.5 py-0.5">
                         <span className="text-[10px] text-slate-500 font-mono">
                           {segment.shotIds.length} 镜
@@ -979,11 +1009,21 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         </div>
                       </div>
                     </div>
+
+                  {/* Add Segment Button - Invisible by default, visible on hover */}
+                  <div className="flex items-center justify-center w-6 -ml-3 z-10 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                    <button
+                      onClick={() => handleAddSegmentAfter(index)}
+                      className="w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-all hover:scale-110"
+                      title="在此后添加片段"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                );
-              })}
+                </React.Fragment>
+              )}}
             </div>
-          )}
+            )}
         </div>
       </div>
 
