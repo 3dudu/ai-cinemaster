@@ -622,19 +622,19 @@ export class ModelService {
     }
     switch (provider.provider) {
       case 'deepseek':
-        visualPrompt = await (await this.getProviderModule('deepseek')).generateVisualPrompts(prompt,visualPrompt);
+        visualPrompt = await (await this.getProviderModule('deepseek')).generateCommonPrompts(prompt,visualPrompt);
         break;
       case 'doubao':
-        visualPrompt = await (await this.getProviderModule('doubao')).generateVisualPrompts(prompt,visualPrompt);
+        visualPrompt = await (await this.getProviderModule('doubao')).generateCommonPrompts(prompt,visualPrompt);
         break;
       case 'gemini':
-        visualPrompt = await (await this.getProviderModule('gemini')).generateVisualPrompts(prompt,visualPrompt);
+        visualPrompt = await (await this.getProviderModule('gemini')).generateCommonPrompts(prompt,visualPrompt);
         break;
       case 'yunwu':
-        visualPrompt = await (await this.getProviderModule('yunwu')).generateVisualPrompts(prompt,visualPrompt);
+        visualPrompt = await (await this.getProviderModule('yunwu')).generateCommonPrompts(prompt,visualPrompt);
         break;
       case 'openai':
-        visualPrompt = await (await this.getProviderModule('openai')).generateVisualPrompts(prompt,visualPrompt);
+        visualPrompt = await (await this.getProviderModule('openai')).generateCommonPrompts(prompt,visualPrompt);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的视觉提示词生成`);
@@ -691,21 +691,22 @@ export class ModelService {
     );
 
     let videoPrompt = '';
+    const systemPrompt = renderTemplate('SYSTEM_VIDEO_DIRECTOR');
     switch (provider.provider) {
       case 'deepseek':
-        videoPrompt = await (await this.getProviderModule('deepseek')).generateVideoPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('deepseek')).generateCommonPrompts(prompt,systemPrompt);
         break;
       case 'doubao':
-        videoPrompt = await (await this.getProviderModule('doubao')).generateVideoPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('doubao')).generateCommonPrompts(prompt,systemPrompt);
         break;
       case 'gemini':
-        videoPrompt = await (await this.getProviderModule('gemini')).generateVideoPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('gemini')).generateCommonPrompts(prompt,systemPrompt);
         break;
       case 'yunwu':
-        videoPrompt = await (await this.getProviderModule('yunwu')).generateVideoPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('yunwu')).generateCommonPrompts(prompt,systemPrompt);
         break;
       case 'openai':
-        videoPrompt = await (await this.getProviderModule('openai')).generateVideoPrompts(prompt);
+        videoPrompt = await (await this.getProviderModule('openai')).generateCommonPrompts(prompt,systemPrompt);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的视频提示词生成`);
@@ -1195,5 +1196,40 @@ export class ModelService {
     }
   }
 
+
+  /**
+   * 生成视觉提示词
+   * @param type - 角色 or 场景
+   * @param data - 角色或场景数据
+   * @param genre - 题材类型
+   */
+  static async generateSegmentPropmt(
+    prompt: string
+  ): Promise<string> {
+    const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
+  
+    let visualPrompt = "";
+    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
+    switch (provider.provider) {
+      case 'deepseek':
+        visualPrompt = await (await this.getProviderModule('deepseek')).generateCommonPrompts(prompt,sysctemPrompt);
+        break;
+      case 'doubao':
+        visualPrompt = await (await this.getProviderModule('doubao')).generateCommonPrompts(prompt,sysctemPrompt);
+        break;
+      case 'gemini':
+        visualPrompt = await (await this.getProviderModule('gemini')).generateCommonPrompts(prompt,sysctemPrompt);
+        break;
+      case 'yunwu':
+        visualPrompt = await (await this.getProviderModule('yunwu')).generateCommonPrompts(prompt,sysctemPrompt);
+        break;
+      case 'openai':
+        visualPrompt = await (await this.getProviderModule('openai')).generateCommonPrompts(prompt,sysctemPrompt);
+        break;
+      default:
+        throw new Error(`暂不支持 ${provider} 提供商的视觉提示词生成`);
+    }
+    return cleanJsonString(visualPrompt);
+  }
 }
 

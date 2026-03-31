@@ -551,6 +551,9 @@ export const createNewProjectState = (seriesDefaults?: {
     scriptData: null,
     shots: [],
     isParsingScript: false,
+    // Segment mode default values
+    isSegmentMode: false,
+    segments: [],
     // Default to empty providers (will be set by user)
     modelProviders: {
       llm: undefined,

@@ -46,6 +46,8 @@ const PromptTemplateModal: React.FC<{
     { key: 'IMPORT_SCRIPT', name: '策划师-剧本导入提示词', description: '导入原始剧本，提取剧集基本信息', hasParams: true },
     { key: 'IMPORT_SHOTS', name: '策划师-镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
     { key: 'IMPORT_SHOTS_FOR_SCENE', name: '策划师-特定场景镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
+    { key: 'SYSTEM_SEGMENT_DESIGNER', name: '导演-片段视频拍摄提示词生成提示词', description: '为单个片段生成视频拍摄提示词', hasParams: true },
+    { key: 'GENERATE_SEGMENT_PROMPT', name: '导演-片段视频拍摄提示词生成提示词', description: '导演-片段视频拍摄提示词生成提示词', hasParams: true },
   ], []);
 
   // 从 localStorage 加载自定义内容
@@ -313,6 +315,26 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
   
 ## 脚本原文：
     {scriptText}`,
+    'GENERATE_SEGMENT_PROMPT':`请根据以下分镜信息，用自然语言生成一个连贯的片段描述，一个分镜一行：
+
+{shotDescriptions}
+
+## 要求：
+
+1. 画面风格和类型: {visualstyle}, {genres}
+2. 描述要自然流畅，符合电影叙事逻辑
+3. 包含分镜的分镜号、时长、场景、角色、运镜、对话、动作描述
+4. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
+5. 突出主要动作和情感
+6. 控制在50-100字之间
+
+## 正确示例：
+
+画面风格和类型: {visualstyle}, {genres}
+生成一个由以下2个分镜组成的视频:
+场景参考: 林家大厅_内,林家大厅_外
+分镜1: 时长 3s 时间：日，林尘 衣衫褴褛，正用尽全力将一块沉重的生锈废铁拖向近处的简易掩体，动作吃力，步履蹒跚。林尘 的面部朝向掩体方向，视线也聚焦于此。镜头静止。
+分镜2: 时长 4s 时间：日，林尘 林尘缓缓起身，摊开的掌心中，一枚丹药正散发着柔和金光。满堂的讥笑声瞬间凝固。林尘 仰头服下丹药，一股金色气浪猛然自体内爆发，衣发狂舞。镜头从他光芒四射的背影拉远，映出赵灵儿惊惶后退的身影。`
     };
 
     return previews[key] || '';
@@ -409,6 +431,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}','{name}'],
     'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}'],
     'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
+    'GENERATE_SEGMENT_PROMPT': ['{shotDescriptions}', '{visualstyle}','{genre}'],
   };
 
   if (!isOpen) return null;

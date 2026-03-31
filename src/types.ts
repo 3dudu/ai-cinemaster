@@ -106,7 +106,7 @@ export interface ProjectState {
   title: string;
   createdAt: number;
   lastModified: number;
-  stage: 'script' | 'assets' | 'director' | 'export' | 'images';
+  stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images';
   seed?: number;
   seriesRefId?: string; // Reference to SeriesRecord.id (if this project is an episode of a series)
   // Script Phase Data
@@ -122,6 +122,10 @@ export interface ProjectState {
   shots: Shot[];
   isParsingScript: boolean;
 
+  // Segment Mode Data
+  isSegmentMode: boolean; // 是否为片段模式
+  segments: Segment[]; // 片段数组
+
   // Export Phase Data
   mergedVideoUrl?: string;
 
@@ -131,6 +135,21 @@ export interface ProjectState {
     text2image?: string; // Text-to-image model config ID
     image2video?: string; // Image-to-video model config ID
   };
+}
+
+export interface Segment {
+  id: string;
+  shotIds: string[]; // 包含的分镜ID数组
+  sceneIds: string[]; // 涉及的场景ID列表（去重）
+  characterIds: string[]; // 涉及的角色ID列表（去重）
+  characterVariations?: { [characterId: string]: string }; // Added: Map char ID to variation ID for this shot
+  description: string; // 片段描述（由LLM生成）
+  transitionFrom?: string; // 转场描述：从上一个片段到此片段（由LLM生成）
+  transitionTo?: string; // 转场描述：从此片段到下一个片段（由LLM生成）
+  estimatedDuration: number; // 预估时长（秒），不超过15秒
+  createdAt: number;
+  lastModified: number;
+  videoUrl?: string; 
 }
 
 export interface AIModelConfig {

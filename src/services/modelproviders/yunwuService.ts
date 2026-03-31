@@ -377,7 +377,7 @@ export const generateScript = async (
 /**
  * Agent 3: Visual Design (Prompt Generation)
  */
-export const generateVisualPrompts = async (
+export const generateCommonPrompts = async (
   prompt: string,
   systemPrompt: string = "视觉设计师",
 ): Promise<string> => {
@@ -387,40 +387,6 @@ export const generateVisualPrompts = async (
       parts: [
         {
           text: systemPrompt,
-        },
-      ],
-    },
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: prompt,
-          },
-        ],
-      },
-    ],
-    generationConfig: {
-      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
-    },
-  };
-
-  const response =  await fetchWithRetry(endpoint, {
-    method: "POST",
-    body: JSON.stringify(requestBody),
-  });
-
-  return response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-};
-export const generateVideoPrompts = async (
-  prompt: string
-): Promise<string> => {
-  const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
-  const requestBody = {
-    systemInstruction: {
-      parts: [
-        {
-          text: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
         },
       ],
     },

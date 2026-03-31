@@ -8,7 +8,7 @@ import ModalSettings from './modals/SystemSettingsModal';
 
 interface SidebarMobileProps {
   currentStage: string;
-  setStage: (stage: 'script' | 'assets' | 'director' | 'export' | 'images') => void;
+  setStage: (stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images') => void;
   onExit: () => void;
   onOpenSettings : () => void;
   projectName?: string;
@@ -29,6 +29,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
     { id: 'assets', label: '资产', icon: Drama },
     { id: 'script', label: '分镜', icon: List },
     { id: 'director', label: '导演', icon: Clapperboard },
+    { id: 'segments', label: '片段', icon: Edit },
     { id: 'images', label: '媒体', icon: Images },
     { id: 'export', label: '成片', icon: Film },
   ];

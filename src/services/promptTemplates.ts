@@ -91,7 +91,7 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         time: time || '',
         atmosphere: atmosphere || '',
         paragraphs: paragraphs || '',
-        genre: genre || '',
+        genre: genre || '剧情片',
         duration: duration || '30s',
         characters: characters || '',
         lang: lang || '中文',
@@ -101,18 +101,18 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
       return {
         prompt: args[0] || '',
         duration: args[1] || '30s',
-        genre: args[2] || '',
+        genre: args[2] || '剧情片',
         lang: args[3] || '中文'
       };
     case 'GENERATE_CHARACTER_PROMPT':
       return {
-        genre: args[0] || '',
+        genre: args[0] || '剧情片',
         desc: args[1] || {},
         visualStyle: args[2] || '真人写实'
       };
     case 'GENERATE_SCENE_PROMPT':
       return {
-        genre: args[0] || '',
+        genre: args[0] || '剧情片',
         desc: args[1] || {},
         visualStyle: args[2] || '真人写实'
       };
@@ -172,6 +172,12 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         visualStyle: args[4] || '真人写实',
         endFrameVisualPrompt: args[5] || '',
         startFrameVisualPrompt: args[6] || ''
+      };
+    case 'GENERATE_SEGMENT_PROMPT':
+      return {
+        shotDescriptions: args[0] || '',
+        visualstyle: args[1] || '真人写实',
+        genre: args[2] || '剧情片'
       };
     default:
       return {};
@@ -607,6 +613,28 @@ export const PROMPT_TEMPLATES = {
     ${text}
   `,
 
+  SYSTEM_SEGMENT_DESIGNER: `你是一个专业的分镜设计师，现在需要将多个分镜的拍摄方式告诉豆包 seedance2.0，生成他能理解的分镜描述 。内容连贯，包含场景，角色，运镜，对话，动作描述。`,
+  GENERATE_SEGMENT_PROMPT: (shotDescriptions: string, visualstyle: string, genres:string) => `请根据以下分镜信息，用自然语言生成一个连贯的片段描述，一个分镜一行：
+
+${shotDescriptions}
+
+## 要求：
+1. 画面风格和类型: ${visualstyle}, ${genres}
+2. 描述要自然流畅，符合电影叙事逻辑
+3. 包含分镜的分镜号、时长、场景、角色、运镜、对话、动作描述
+4. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
+5. 突出主要动作和情感
+6. 控制在50-100字之间
+7. 不要包含"分镜"、"镜头"等技术词汇
+
+## 正确示例：
+
+画面风格和类型: ${visualstyle}, ${genres}
+生成一个由以下2个分镜组成的视频:
+场景参考: 林家大厅_内,林家大厅_外
+
+分镜1: 时长 3s 时间：日，**林尘** 衣衫褴褛，正用尽全力将一块沉重的生锈废铁拖向近处的简易掩体，动作吃力，步履蹒跚。林尘 的面部朝向掩体方向，视线也聚焦于此。镜头静止。
+分镜2: 时长 4s 时间：日，**林尘** 林尘缓缓起身，摊开的掌心中，一枚丹药正散发着柔和金光。满堂的讥笑声瞬间凝固。林尘 仰头服下丹药，一股金色气浪猛然自体内爆发，衣发狂舞。镜头从他光芒四射的背影拉远，映出赵灵儿惊惶后退的身影。`,
 
   // ============ 镜头清单生成 ============
   GENERATE_SHOTS: (

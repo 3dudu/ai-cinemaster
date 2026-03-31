@@ -1216,6 +1216,18 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           </div>
 
           <div className="flex items-center gap-1 md:gap-3">
+            {project.shots.length > 0 && (
+              <button
+                onClick={() => {
+                  updateProject({ stage: 'segments', isSegmentMode: true });
+                }}
+                className="px-4 py-2 rounded-lg border border-indigo-600 bg-indigo-700/20 text-indigo-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-600/30 hover:border-indigo-500 cursor-pointer"
+                title="切换到片段模式"
+              >
+                <Film className="w-3 h-3" />
+                {!isMobile && '片段模式'}
+              </button>
+            )}
             {!isMobile && (
               <span className="text-xs text-slate-500 mr-4 font-mono">
                   {project.shots.filter(s => s.interval?.videoUrl).length} / {project.shots.length} 完成
