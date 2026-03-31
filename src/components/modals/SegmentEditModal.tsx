@@ -124,7 +124,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
     >
-      <div className="bg-slate-800 border border-slate-600 rounded-2xl w-[700px] max-w-[90vw] h-[65vh] overflow-hidden shadow-2xl flex flex-col select-text">
+      <div className="bg-slate-800 border border-slate-600 rounded-2xl w-[700px] max-w-[90vw] h-[85vh] overflow-hidden shadow-2xl flex flex-col select-text">
         {/* Header */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
@@ -398,7 +398,6 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
           </button>
           <button
             onClick={handleSave}
-            disabled={selectedShotIds.size === 0}
             className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold tracking-wider rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
           >
             <Save className="w-4 h-4" />

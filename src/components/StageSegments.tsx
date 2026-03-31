@@ -88,8 +88,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
   // Initialize segments if empty
   useEffect(() => {
-    const segments = project.segments || [];
-    if (segments.length === 0 && project.shots.length > 0) {
+    const segments = project.segments;
+    if (!segments && project.shots.length > 0) {
       const newSegments = convertShotsToSegments(project.shots);
       updateProject({ segments: newSegments });
     }
@@ -697,37 +697,18 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   </div>
                 )}
                 </div>
-              {/* Action Buttons */}
-              <div className="mt-4 flex items-center gap-3 justify-end w-full">
-                <button
-                  onClick={handleOpenEditScript}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-500 cursor-pointer"
-                >
-                  <NotebookPen className="w-3 h-3" />
-                  编辑脚本
-                </button>
-                <button
-                  onClick={handleGenerateSegmentVideo}
-                  disabled={generatingVideo === selectedSegment.id}
-                  className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {generatingVideo === selectedSegment.id ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Video className="w-3 h-3" />
-                  )}
-                  {selectedSegment.videoUrl ? '重新生成视频' : '生成视频'}
-                </button>
-              </div>
+
               </div>
               {/* Shot Thumbnails */}
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+              <div className="relative">
+                <div className="pt-3 flex gap-2 overflow-x-auto pb-2">
                 {selectedSegment.shotIds.map((shotId, idx) => {
                   const shot = project.shots.find((s) => s.id === shotId);
                   const thumbnail = shot?.keyframes?.find((k) => k.type === 'start')?.imageUrl;
                   return (
                     <div
                       key={shotId}
+                      title={shot?.actionSummary || ''}
                       className="flex-shrink-0 w-20 h-12 bg-slate-800 rounded overflow-hidden relative border border-slate-600"
                     >
                       {thumbnail ? (
@@ -743,6 +724,29 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </div>
                   );
                 })}
+                </div>
+              {/* Action Buttons */}
+              <div className="absolute top-5 right-2 flex items-center gap-2 justify-end">
+                <button
+                  onClick={handleOpenEditScript}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-500 cursor-pointer"
+                >
+                  <NotebookPen className="w-3 h-3" />
+                  编辑提示词
+                </button>
+                <button
+                  onClick={handleGenerateSegmentVideo}
+                  disabled={generatingVideo === selectedSegment.id}
+                  className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {generatingVideo === selectedSegment.id ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Video className="w-3 h-3" />
+                  )}
+                  {selectedSegment.videoUrl ? '重新生成视频' : '生成视频'}
+                </button>
+              </div>
               </div>
             </div>
 
@@ -750,10 +754,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             {editingScript && (
             <div className={`${isMobile ? 'w-full' : 'md:w-[55%] lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 3xl:w-[720px]'} bg-slate-700/50 flex flex-col h-full shadow-2xl animate-in slide-in-from-right-10 duration-300 relative z-20`}>
 
-            <div className="md:p-6 p-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
+            <div className="md:p-4 p-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
                                    <div className="flex items-center gap-3">
               <h3 className="text-sm font-bold text-slate-50 flex items-center gap-2">
-                <Edit className="w-4 h-4 text-slate-500" />
+                <NotebookPen className="w-4 h-4 text-slate-500" />
                 描述提示词编辑
               </h3>
               </div>
@@ -771,7 +775,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                                          </button>
                                      </div>
             </div>
-            <div className="flex-1 overflow-y-auto md:p-6 p-2 space-y-6 border-b border-slate-600">
+            <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-6 border-b border-slate-600">
               {/* Description */}
               <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
@@ -929,9 +933,19 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
               <p className="text-xs">暂无片段，请先在导演工作台创建分镜</p>
+              <div className="flex items-center h-24 justify-center z-10 opacity-80 hover:opacity-100 transition-opacity duration-200">
+                <button
+                  onClick={() => handleAddSegmentAfter(0)}
+                  className="text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-all hover:scale-110"
+                  title="在此后添加片段"
+                >
+                  <Plus className="rounded-full bg-indigo-600 hover:bg-indigo-500 w-6 h-6" />
+               <p className="text-xs">添加第一个片段</p>
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="flex gap-3 h-full">
+            <div className="flex h-full">
               {(project.segments || []).map((segment, index) => {
                 const thumbnail = getSegmentThumbnail(segment);
                 const isSelected = selectedSegmentId === segment.id;
@@ -956,7 +970,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     onMouseLeave={() => setHoveredSegmentId(null)}
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-full h-24 bg-slate-800 overflow-hidden">
+                    <div className="relative w-full h-24 bg-slate-800">
                       {thumbnail ? (
                         <img
                           src={thumbnail}
@@ -1009,9 +1023,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         </div>
                       </div>
                     </div>
-
+                  </div>
                   {/* Add Segment Button - Invisible by default, visible on hover */}
-                  <div className="flex items-center justify-center w-6 -ml-3 z-10 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                  <div className="flex items-center h-24 justify-center w-6 z-10 opacity-0 hover:opacity-100 transition-opacity duration-200">
                     <button
                       onClick={() => handleAddSegmentAfter(index)}
                       className="w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-all hover:scale-110"
@@ -1021,7 +1035,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </button>
                   </div>
                 </React.Fragment>
-              )}}
+              )})}
             </div>
             )}
         </div>
