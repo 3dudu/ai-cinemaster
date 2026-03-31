@@ -11,6 +11,7 @@ import StageDirector from './components/StageDirector';
 import StageExport from './components/StageExport';
 import StageImage from './components/StageImage';
 import StageScript from './components/StageScript';
+import StageSegments from './components/StageSegments';
 import { initializeCozeConfig } from './services/modelproviders/cozeService';
 import { ModelService } from './services/modelService';
 import { getAllProjectsMetadata, loadSeriesFromDB, saveProjectToDB, saveSeriesToDB } from './services/storageService';
@@ -121,7 +122,7 @@ function App() {
     });
   };
 
-  const setStage = (stage: 'script' | 'assets' | 'director' | 'export') => {
+  const setStage = (stage: 'script' | 'assets' | 'director' | 'segments' | 'export') => {
     updateProject({ stage });
   };
 
@@ -205,9 +206,19 @@ function App() {
         );
       case 'director':
         return (
-          <StageDirector 
-            project={project} 
-            updateProject={updateProject} 
+          <StageDirector
+            project={project}
+            updateProject={updateProject}
+            isMobile={isMobile}
+            series={series}
+            updateSeries={updateSeries}
+          />
+        );
+      case 'segments':
+        return (
+          <StageSegments
+            project={project}
+            updateProject={updateProject}
             isMobile={isMobile}
             series={series}
             updateSeries={updateSeries}

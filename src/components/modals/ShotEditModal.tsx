@@ -126,9 +126,6 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
       <div className="bg-slate-800 border border-slate-600 rounded-2xl w-[600px] max-w-[90vw] h-[85vh] overflow-hidden shadow-2xl flex flex-col select-text">
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
@@ -295,12 +292,12 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">角色</label>
             <div className="flex flex-wrap gap-2">
               {characters.map(char => {
-                const isSelected = (tempShot.characters || []).includes(char.name);
+                const isSelected = (tempShot.characters || []).includes(char.id);
                 const hasImage = !!char.referenceImage;
                 return (
                   <button
-                    key={char.name}
-                    onClick={() => toggleCharacter(char.name)}
+                    key={char.id}
+                    onClick={() => toggleCharacter(char.id)}
                     className={`relative px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 border flex items-center gap-1.5 cursor-pointer ${
                       isSelected
                         ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-lg shadow-slate-500/25 scale-100'

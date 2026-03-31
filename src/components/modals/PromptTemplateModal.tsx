@@ -31,6 +31,7 @@ const PromptTemplateModal: React.FC<{
     { key: 'GENERATE_CHARACTER_VARIATION', name: '视觉设计师-角色造型变体生成提示词', description: '生成角色的新造型', hasParams: true },
     { key: 'GENERATE_KEYFRAME_PROMPT', name: '视觉设计师-关键帧提示词生成提示词', description: '为关键帧生成连环画风格提示词', hasParams: true },
     { key: 'GENERATE_CHARACTER_PROMPT', name: '视觉设计师-角色提示词润色', description: '为图片模型生成角色提示词', hasParams: true },
+    { key: 'GENERATE_VARIATION_PROMPT', name: '视觉设计师-造型提示词润色', description: '为图片模型生成造型提示词', hasParams: true },
     { key: 'GENERATE_SCENE_PROMPT', name: '视觉设计师-场景提示词润色', description: '为图片模型生成场景提示词', hasParams: true },
     { key: 'GENERATE_VIDEO_PROMPT', name: '导演-视频拍摄提示词生成提示词', description: '为单个镜头生成视频拍摄提示词', hasParams: true },
     { key: 'GENERATE_TRANSITION_VIDEO', name: '导演-转场视频提示词生成提示词', description: '生成镜头之间的转场视频提示词', hasParams: true },
@@ -46,6 +47,9 @@ const PromptTemplateModal: React.FC<{
     { key: 'IMPORT_SCRIPT', name: '策划师-剧本导入提示词', description: '导入原始剧本，提取剧集基本信息', hasParams: true },
     { key: 'IMPORT_SHOTS', name: '策划师-镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
     { key: 'IMPORT_SHOTS_FOR_SCENE', name: '策划师-特定场景镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
+    { key: 'SYSTEM_SEGMENT_DESIGNER', name: '导演-片段视频拍摄提示词生成提示词', description: '为单个片段生成视频拍摄提示词', hasParams: true },
+    { key: 'GENERATE_SEGMENT_PROMPT', name: '导演-片段视频拍摄提示词润色', description: '导演-片段视频拍摄提示词润色', hasParams: true },
+    { key: 'GENERATE_SEGMENT_VIDEO_PROMPT', name: '导演-片段视频拍摄提示词', description: '导演-片段视频拍摄提示词', hasParams: true },
   ], []);
 
   // 从 localStorage 加载自定义内容
@@ -129,7 +133,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 题材类型: {genre}
 剧本整体目标时长: {duration}
 
-## 角色:
+## 角色 (格式: ID: 名字: 性格描述):
 {characters}
 
 ## 说明：
@@ -151,7 +155,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
 - cameraMovement（字符串类型）
 - shotSize（字符串类型）
-- characters（字符串数组类型）
+- characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
 - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）`,
       'GENERATE_SCRIPT': `你是一名专业的编剧。请根据以下提示词创作一个完整的影视剧本。
@@ -176,6 +180,11 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     角色 的描述信息如下: {desc}
      - 角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
     只要输出角色的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
+      'GENERATE_VARIATION_PROMPT': `为 {genre} 类视频中的角色新造型: {variation}  生成高还原度图像提示词，图像风格必须为：{visualStyle}。
+    角色 的基本信息如下: {desc}
+    角色的新造型描述信息如下: {variationDesc}
+     - 角色要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
+    只要输出角色的提示词，中文输出提示词，以逗号分隔，聚焦视觉细节（光线、质感、外观）。`,
       'JOIN_IMAGES': `请将这些图片拼成一张{imageCount}宫格图片，图片之间留有1个像素的间隔，最终图片大小为{imageSize}。`,
       'IMAGE_GENERATION_WITH_REFERENCE': `生成符合下面描述的图画，画面风格必须为：{visualStyle}。
 图像描述：
@@ -189,14 +198,28 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - 画面风格必须为：{visualStyle}。
 - 严格保持与场景参考图一致的视觉风格、光影效果和环境氛围。
 - 若画面中出现角色，必须与所提供的角色参考图高度相似。`,
-      'GENERATE_CHARACTER_VARIATION': `生成角色：{character} 的新造型图，画面风格必须为：{visualStyle}，符合下面描述。
-造型描述：
-    {variationPrompt}
-要求：
-    - 画面风为：{visualStyle}
-    - 画面内容为角色的一张图
-    - 如果有参考图，参考图为角色的三视图加头像，必须保持面部特征与参考图一致。
-    - 如果没有，角色原来是这样的：{baseCharacterPrompt}`,
+      'GENERATE_CHARACTER_VARIATION': `核心主题: 根据参考图生成角色：{character} 的新造型图，为：{visualStyle} 风格的角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集，专业游戏 / 影视角色设计规范
+
+【造型描述】
+        {variationPrompt}
+【角色基础形象】
+ - 有参考图，必须保持面部特征与参考图一致。
+ - 没有参考图，角色按如下描述设定：{baseCharacterPrompt}
+
+
+【画面布局与构图】
+整体为角色设定表版式，分模块排版：
+- 左上：三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
+- 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
+- 右上：完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
+- 左下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
+所有模块均为白底，黑色细框分隔，文字标注清晰（中文）
+【光影与渲染】
+冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
+写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
+无环境干扰，纯展示向，适合作为游戏 / 动画角色原画
+【负面提示词】
+模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
       'GENERATE_VIDEO_PROMPT': `为单个镜头创作详细的视频拍摄提示词。
 
 镜头信息：
@@ -226,13 +249,53 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 角色描述：{prompt}
 强制要求：纯白色背景、无阴影、无道具、无文字。
 
-如果只有一个角色，则生成角色三视图加头像，在同一张图中生成丰富细节的角色展示风格图片。
-具体要求：左边1/3为从头部到肩膀的清晰正面头像；右边2/3为三个全身视图正面，侧面，背面；所有视图必须为同一角色，五官、发型、服装、体型、风格、比例与细节完全一致，不改变人物特征；三视图三个角色水平排列，人物处于同一水平线，比例统一、姿态自然、双手自然下垂。`,
-      'GENERATE_SCENE_IMAGE': `生成符合下面要求的场景图片，图片风格必须为：{visualStyle}。
-场景名：{name}
-场景描述：{prompt}
+核心主题: {visualStyle} 风格角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集，专业游戏 / 影视角色设计规范
+【画面布局与构图】
+整体为角色设定表版式，分模块排版：
+- 左上：三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
+- 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
+- 右上：完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
+- 左下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
+所有模块均为白底，黑色细框分隔，文字标注清晰（中文）
+【光影与渲染】
+冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
+写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
+无环境干扰，纯展示向，适合作为游戏 / 动画角色原画
+【负面提示词】
+模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
+      'GENERATE_SCENE_IMAGE': `生成符合下面要求的场景图片
 
-图片比例16:9，具体要求：图中无角色、无文字。`,
+- 场景名称：{name}
+- 画风风格：{visualStyle}
+- 场景详细描述：{prompt}
+---
+[核心要求]
+根据用户提供的场景描述绘制场景/环境。重要：场景必须完全空旷，不得出现任何人物、角色、人形轮廓或剪影。
+[艺术风格]
+严格按照用户提供的画风风格进行渲染。输出必须清晰体现该艺术风格，不得输出普通照片或未经处理的写实图像。
+[布局规范 — 严格遵守]
+整个图像由一条从上到下的实线黑色竖线分为左右两半。
+左侧区域（占40%宽度）：
+- 场景的高细节广角全景图，展示整体建筑、比例、光照和氛围
+- 绝对不得出现人物或角色
+- 右侧边缘有一条实线黑色竖线，将其与右侧分隔
+右侧区域（占60%宽度）：
+  同一场景的三个不同视角：
+  1) 鸟瞰俯视图，展示完整布局
+  2) 平视角度的另一视角
+  3) 关键区域或焦点的特写细节图
+  三个视图必须描绘同一地点，保持一致的光照和色彩。所有视图均不得出现人物。整齐排列，视图之间可有或无细黑线分隔。
+  
+[关键布局规则]
+1. 必须有一条实线黑色竖线分隔左右两半
+[质量与约束]
+- 高分辨率，所有视图的细节和色彩保持一致，纯白色背景
+- 图像中不得有其他文字、标签、标题、水印或签名
+- 不得添加任何UI元素、注释覆盖层或额外标签
+- 保持所有插图视图简洁。让视觉效果自己说话
+请严格按照系统规范生成标准场景图。
+[负面提示词]
+模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、畸形比例`,
       'GENERATE_TRANSITION_VIDEO': `视频风格：{visualStyle}；故事从 {currentShotSummary} 过渡到 {nextShotSummary}。景别变化：从 {currentShotSize} 到 {nextShotSize}；制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
 镜头开始：{endFrameVisualPrompt}；
 镜头结束：{startFrameVisualPrompt}；
@@ -254,7 +317,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：设定每个镜头时长为 4-12 秒，。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-12 秒，使整部剧的时长控制在 {duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
@@ -269,13 +332,129 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
 - cameraMovement（字符串类型）
 - shotSize（字符串类型）
-- characters（字符串数组类型）
+- characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
 - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
 ## 脚本原文：
     {scriptText}`,
-    };
+    'IMPORT_SHOTS_FOR_SCENE': `担任专业摄影师，从分镜脚本原文中读取分镜头清单。
+
+## 场景列表:
+{scenes}
+
+## 角色列表:
+{characters}
+
+## 说明：
+### 提取内容
+1. 提取分镜脚本中全部的镜头序列。
+2. 镜头画面描述actionSummary：详细描述该镜头内发生的情节。
+3. 场景id：镜头所属的场景id，在提供的场景列表数据中。
+3. 角色：镜头中出现的角色名，要在提供的角色列表中存在
+4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
+
+### 生成内容
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-12 秒，使整部剧的时长控制在 {duration} 左右。
+2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
+3. 景别：明确取景范围（如：大特写、中景、全景）。
+4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
+5. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
+6. 关键帧：生成规则 现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧；如果imageCount是 2，则必须生成一个起始帧和一个结束帧；如果imageCount大于 2 则是一张完整连环画帧。
+7. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
+
+## 输出格式：JSON 数组，数组内对象包含以下字段，避免出现 JSON 截断错误：
+- id（字符串类型）
+- sceneId（场景id，字符串类型）
+- actionSummary（字符串类型）
+- dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
+- cameraMovement（字符串类型）
+- shotSize（字符串类型）
+- characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
+- keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+  
+## 脚本原文：
+    {scriptText}`,
+    'GENERATE_SEGMENT_PROMPT':`请根据以下分镜信息，用自然语言生成一个连贯的片段描述，一个分镜一行：
+
+{shotDescriptions}
+
+## 要求：
+
+1. 说明总体画面风格和类型，可加以补充。基本风格和类型：{visualstyle}, {genres}
+2. 运动强度：（文戏3-5 / 正常5-7 / 冲突7-10）
+3. 说明故事情节曲线，情绪曲线：（贴合剧情，2-3种情绪递进）
+4. 自动识别：人物、场景、关键物品、情绪、动作节奏。
+5. 每一句包含分镜的分镜号、时长、场景、角色、运镜、对话、动作描述
+6. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
+7. 台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
+8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过15s。
+9. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
+10. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。
+
+## 正确示例：
+
+画面风格和类型: {visualstyle}, {genres}
+
+情绪曲线：屈辱 → 隐忍 → 杀意 → 复仇决心
+运动强度：7
+分镜1: 时长 3s 时间：日，林尘 衣衫褴褛，正用尽全力将一块沉重的生锈废铁拖向近处的简易掩体，动作吃力，步履蹒跚。林尘 的面部朝向掩体方向，视线也聚焦于此。镜头静止。
+分镜2: 时长 4s 时间：日，林尘 林尘缓缓起身，摊开的掌心中，一枚丹药正散发着柔和金光。满堂的讥笑声瞬间凝固。林尘 仰头服下丹药，一股金色气浪猛然自体内爆发，衣发狂舞。镜头从他光芒四射的背影拉远，映出赵灵儿惊惶后退的身影。`,
+'GENERATE_SEGMENT_VIDEO_PROMPT':
+`生成一个由以下 {shotnum} 个分镜组成的视频:
+场景参考: {scenes}
+
+{segment}
+
+## 分镜过度：
+- 入场: {transitionFrom}
+- 出场: {transitionTo}
+
+## 负面提示词：
+静止画面，慢镜头，空镜，人物背面，面部扭曲，肢体不协调，手部变形，有字幕，配音口语和语调不适配美国，背景音乐使用环球音乐集团、索尼音乐娱乐、华纳音乐集团及其关联公司版权音乐
+`,
+'AI_SPLIT_SEGMENTS':`
+## 任务
+请根据以下分镜数据，智能拆分成多个视频片段。
+
+## 分镜数据（JSON格式）
+\`\`\`json
+{shotsJson}
+\`\`\`
+
+## 角色信息（id: 名称）
+{charactersMap}
+
+## 场景信息（id: 位置）
+{scenesMap}
+
+## 项目风格
+- 视觉风格：{visualStyle}
+- 题材类型：{genre}
+
+## 输出要求
+请返回 JSON 格式的拆分方案：
+\`\`\`json
+{
+  "segments": [
+    {
+      "shotIds": ["分镜id数组，按顺序排列"],
+      "sceneIds": ["场景id数组，按顺序排列"],
+      "characterIds": ["角色id数组，按顺序排列"],
+      "estimatedDuration": 预估时长（秒）
+    }
+  ],
+  "reasoning": "拆分理由简述"
+}
+\`\`\`
+
+## 注意事项
+1. shotIds 必须是上述分镜数据中存在的 id
+2. shotIds 必须按原始顺序排列
+3. 每个分镜必须且只能属于一个片段
+4. 所有分镜都必须被分配`,
+};
 
     return previews[key] || '';
   };
@@ -358,10 +537,11 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'PARSE_SCRIPT': ['{text}', '{lang}', '{genre}'],
     'IMPORT_SCRIPT': ['{text}', '{lang}'],
     'GENERATE_SHOTS': ['{sceneindex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}', '{imageCount}'],
-    'IMPORT_SHOTS': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}'],
-    'IMPORT_SHOTS_FOR_SCENE': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}'],
+    'IMPORT_SHOTS': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{duration}'],
+    'IMPORT_SHOTS_FOR_SCENE': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{duration}'],
     'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}'],
     'GENERATE_CHARACTER_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
+    'GENERATE_VARIATION_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
     'GENERATE_SCENE_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
     'JOIN_IMAGES': ['{imageCount}', '{imageSize}'],
     'IMAGE_GENERATION_WITH_REFERENCE': ['{prompt}', '{visualStyle}'],
@@ -371,6 +551,9 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}','{name}'],
     'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}'],
     'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
+    'GENERATE_SEGMENT_PROMPT': ['{shotDescriptions}', '{visualstyle}','{genre}'],
+    'GENERATE_SEGMENT_VIDEO_PROMPT': ['{scenes}', '{segment}','{shotnum}','{transitionFrom}','{transitionTo}'],
+    'AI_SPLIT_SEGMENTS': ['{shotsJson}', '{charactersMap}','{scenesMap}','{visualStyle}','{genre}'],
   };
 
   if (!isOpen) return null;

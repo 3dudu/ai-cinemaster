@@ -125,9 +125,6 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
     >
       <div className="bg-slate-800 border border-slate-600 rounded-2xl w-[600px] max-w-[90vw] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col select-text">
         {/* 标题栏 */}

@@ -1,4 +1,4 @@
-import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderOpen, Github as GithubIcon, Images, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
+import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderOpen, Github as GithubIcon, Images, ListVideo, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import { ThemeToggle } from './common/ThemeToggle';
@@ -14,7 +14,7 @@ interface Props {
 
 interface SidebarProps {
   currentStage: string;
-  setStage: (stage: 'script' | 'assets' | 'director' | 'export') => void;
+  setStage: (stage: 'script' | 'assets' | 'director' | 'segments' | 'export') => void;
   onExit: () => void;
   onOpenSettings: () => void;
   onToggleSidebar: () => void;
@@ -40,6 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
     { id: 'assets', label: '角色与场景', icon: Drama, sub: '角色布景' },
     { id: 'script', label: '剧本与故事', icon: BookOpen, sub: '制作脚本' },
     { id: 'director', label: '导演工作台', icon: Clapperboard, sub: '拍摄制作' },
+    { id: 'segments', label: '片段编辑器', icon: ListVideo, sub: '片段管理' },
     { id: 'export', label: '成片与导出', icon: Film, sub: '剪辑合成' },
   ];
 

@@ -92,7 +92,9 @@ export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
     imageCount: series.imageCount ?? 1,
     scriptData: null,
     isParsingScript: false,
-    rawScript: series.rawScript || `标题：示例剧本`
+    rawScript: series.rawScript || `标题：示例剧本`,
+    isSegmentMode: false,
+    segments: []
   };
 };
 

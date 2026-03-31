@@ -128,7 +128,7 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
     <div className="fixed inset-0 z-[60] bg-slate-900/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="h-14 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-700/50">
+        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-700/50">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
             <Film className="w-5 h-5 text-slate-500" />
             {episode.title} - 预览

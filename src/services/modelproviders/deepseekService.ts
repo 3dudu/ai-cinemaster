@@ -224,7 +224,7 @@ export const generateScript = async (
  * DeepSeek: Visual Design (Prompt Generation)
  * 生成视觉提示词
  */
-export const generateVisualPrompts = async (
+export const generateCommonPrompts = async (
   prompt: string,
   systemPrompt: string = "视觉设计师",
 ): Promise<string> => {
@@ -237,35 +237,6 @@ export const generateVisualPrompts = async (
         {
             role: "system",
             content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
-    }),
-  });
-
-  return response.choices?.[0]?.message?.content || "";
-};
-
-/**
- * DeepSeek: Visual Design (Prompt Generation)
- * 生成视觉提示词
- */
-export const generateVideoPrompts = async (
-  prompt: string,
-): Promise<string> => {
-  const endpoint = `${runtimeApiUrl}/chat/completions`;
-  const response = await fetchWithRetry(endpoint, {
-    method: "POST",
-    body: JSON.stringify({
-      model: runtimeTextModel,
-      messages: [
-        {
-            role: "system",
-            content: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
         },
         {
           role: "user",

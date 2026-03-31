@@ -266,7 +266,7 @@ export const generateScript = async (
 /**
  * Agent 3: Visual Design (Prompt Generation)
  */
-export const generateVisualPrompts = async (
+export const generateCommonPrompts = async (
   prompt: string,
   systemPrompt: string = "视觉设计师",
 ): Promise<string> => {
@@ -279,30 +279,6 @@ export const generateVisualPrompts = async (
         {
             role: "system",
             content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
-    }),
-  });
-
-  return response.choices?.[0]?.message?.content || "";
-};
-export const generateVideoPrompts = async (
-  prompt: string
-): Promise<string> => {
-  const endpoint = `${runtimeApiUrl}/chat/completions`;
-  const response = await fetchWithRetry(endpoint, {
-    method: "POST",
-    body: JSON.stringify({
-      model: runtimeTextModel,
-      messages: [
-        {
-            role: "system",
-            content: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
         },
         {
           role: "user",
@@ -451,6 +427,7 @@ export const generateVideo = async (
   generate_audio: boolean = false,
   imageSize: string = "2560x1440",
   seed: number = 0,
+  referenceImages: string[] = [],
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks`;
 
@@ -500,6 +477,18 @@ export const generateVideo = async (
                 "url": endImageBase64
             },
             "role": "last_frame"
+    });
+  }
+
+  if (referenceImages && referenceImages.length > 0){
+    referenceImages.forEach((imageUrl) => {
+      requestBody.content.push({
+        "type": "image_url",
+        "image_url": {
+          "url": imageUrl
+        },
+        "role": "reference_image"
+      });
     });
   }
   

@@ -211,25 +211,13 @@ export const generateScript = async (
 /**
  * Agent 3: Visual Design (Prompt Generation)
  */
-export const generateVisualPrompts = async (prompt: string,systemPrompt: string = "视觉设计师"): Promise<string> => {
+export const generateCommonPrompts = async (prompt: string,systemPrompt: string = "视觉设计师"): Promise<string> => {
    const ai = getAiClient();
    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
      model: 'gemini-2.5-flash',
      contents: prompt,
      config: {
       systemInstruction: systemPrompt,
-      maxOutputTokens: 8192,
-     }
-   }));
-   return (response.text || "").trim();
-};
-export const generateVideoPrompts = async (prompt: string): Promise<string> => {
-   const ai = getAiClient();
-   const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
-     model: 'gemini-2.5-flash',
-     contents: prompt,
-     config: {
-      systemInstruction: renderTemplate('SYSTEM_VIDEO_DIRECTOR'),
       maxOutputTokens: 8192,
      }
    }));

@@ -42,6 +42,34 @@ export const saveProjectToDB = async (project: ProjectState, sync: boolean = fal
   });
 };
 
+// Helper function to migrate shot character names to IDs
+const migrateShotCharacterNamesToIds = (project: ProjectState): ProjectState => {
+  if (!project.scriptData?.characters || !project.shots) return project;
+  
+  const characterNameToId = new Map<string, string>();
+  project.scriptData.characters.forEach(c => {
+    characterNameToId.set(c.name, c.id);
+  });
+  
+  const needsMigration = project.shots.some(shot => 
+    shot.characters?.some(c => characterNameToId.has(c))
+  );
+  
+  if (!needsMigration) return project;
+  
+  const migratedShots = project.shots.map(shot => ({
+    ...shot,
+    characters: shot.characters?.map(c => {
+      // If c is already an ID (exists in map values), keep it
+      if (project.scriptData!.characters!.some(ch => ch.id === c)) return c;
+      // Otherwise try to convert from name to ID
+      return characterNameToId.get(c) || c;
+    }) || []
+  }));
+  
+  return { ...project, shots: migratedShots };
+};
+
 export const loadProjectFromDB = async (id: string): Promise<ProjectState> => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -49,8 +77,14 @@ export const loadProjectFromDB = async (id: string): Promise<ProjectState> => {
     const store = tx.objectStore(STORE_NAME);
     const request = store.get(id);
     request.onsuccess = () => {
-      if (request.result) resolve(request.result);
-      else reject(new Error("Project not found"));
+      if (request.result) {
+        const project = request.result as ProjectState;
+        // Migrate old data: convert character names to IDs in shots
+        const migratedProject = migrateShotCharacterNamesToIds(project);
+        resolve(migratedProject);
+      } else {
+        reject(new Error("Project not found"));
+      }
     };
     request.onerror = () => reject(request.error);
   });
@@ -551,6 +585,9 @@ export const createNewProjectState = (seriesDefaults?: {
     scriptData: null,
     shots: [],
     isParsingScript: false,
+    // Segment mode default values
+    isSegmentMode: false,
+    segments: [],
     // Default to empty providers (will be set by user)
     modelProviders: {
       llm: undefined,
@@ -638,15 +675,21 @@ export const importFromFile = (): Promise<ImportResult> => {
         if (data.version === 2) {
           const bundle = data as ExportBundle;
           if (bundle.type === 'standalone' && bundle.project) {
-            resolve({ type: 'standalone', project: bundle.project });
+            // Migrate character names to IDs in shots
+            const migratedProject = migrateShotCharacterNamesToIds(bundle.project);
+            resolve({ type: 'standalone', project: migratedProject });
           } else if (bundle.type === 'series' && bundle.series) {
-            resolve({ type: 'series', series: bundle.series, projects: bundle.projects || [] });
+            // Migrate all projects in series
+            const migratedProjects = (bundle.projects || []).map(migrateShotCharacterNamesToIds);
+            resolve({ type: 'series', series: bundle.series, projects: migratedProjects });
           } else {
             reject(new Error('Invalid bundle format'));
           }
         } else if (data.id && data.title && data.createdAt) {
           // Legacy v1 format (just ProjectState)
-          resolve({ type: 'standalone', project: data as ProjectState });
+          const project = data as ProjectState;
+          const migratedProject = migrateShotCharacterNamesToIds(project);
+          resolve({ type: 'standalone', project: migratedProject });
         } else {
           reject(new Error('Invalid file format'));
         }
