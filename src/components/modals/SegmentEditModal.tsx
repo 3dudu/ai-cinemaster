@@ -1,6 +1,6 @@
 import { ChevronDown, Expand, Film, Save, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { Character, CharacterVariation, Scene, Segment, Shot } from '../../types';
+import { Character, Scene, Segment, Shot } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 
 interface SegmentEditModalProps {
@@ -237,9 +237,10 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
             </div>
             <div className="flex flex-wrap gap-3">
               {Array.from(selectedSceneIds).map((sceneId) => {
-                const scene = getSceneWithAssets
-                  ? getSceneWithAssets(sceneId)
-                  : allScenes.find((s) => s.id === sceneId);
+                let scene = allScenes.find((c) => c.id === sceneId);
+                if(!scene && getSceneWithAssets){
+                  scene = getSceneWithAssets(sceneId);
+                }
                 if (!scene) return null;
 
                 return (
@@ -306,9 +307,10 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
             </div>
             <div className="flex flex-wrap gap-3">
               {Array.from(selectedCharacterIds).map((charId) => {
-                const character = getCharacterWithAssets
-                  ? getCharacterWithAssets(charId)
-                  : allCharacters.find((c) => c.id === charId);
+                let character = allCharacters.find((c) => c.id === charId);
+                if(!character && getCharacterWithAssets){
+                  character = getCharacterWithAssets(charId);
+                }
                 if (!character) return null;
 
                 // Get available variations (base + variations with images)

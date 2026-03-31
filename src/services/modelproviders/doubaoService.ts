@@ -427,6 +427,7 @@ export const generateVideo = async (
   generate_audio: boolean = false,
   imageSize: string = "2560x1440",
   seed: number = 0,
+  referenceImages: string[] = [],
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks`;
 
@@ -476,6 +477,18 @@ export const generateVideo = async (
                 "url": endImageBase64
             },
             "role": "last_frame"
+    });
+  }
+
+  if (referenceImages && referenceImages.length > 0){
+    referenceImages.forEach((imageUrl) => {
+      requestBody.content.push({
+        "type": "image_url",
+        "image_url": {
+          "url": imageUrl
+        },
+        "role": "reference_image"
+      });
     });
   }
   

@@ -1078,7 +1078,7 @@ export class ModelService {
     switch (provider.provider) {
       case 'doubao':
         const generate_audio = provider.description.indexOf("sound")>-1;
-        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio,imageSize, finalSeed);
+        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio,imageSize, finalSeed,referenceImages);
         break;
       case 'gemini':
         videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);

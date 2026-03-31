@@ -35,8 +35,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
   // Internal merge logic for series mode
   const isSeriesMode = !!project.seriesRefId;
-  const activeCharacters = project.scriptData?.characters || [];
-  const activeScenes = project.scriptData?.scenes || [];
+  const activeCharacters = isSeriesMode?series.library.characters:project.scriptData?.characters || [];
+  const activeScenes = isSeriesMode?series.library.scenes:project.scriptData?.scenes || [];
 
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const [generatingDescription, setGeneratingDescription] = useState<Set<string>>(new Set());
@@ -502,42 +502,47 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   // Generate video for segment
   const handleGenerateSegmentVideo = useCallback(async () => {
     if (!selectedSegment) return;
-
     setGeneratingVideo(selectedSegment.id);
     try {
-      // TODO: 调用视频生成服务
-      // 这里需要根据 segment 生成视频，可能需要整合 segment 中所有 shot 的视频
-      const scenes = activeScenes.map(d => d.location ? `` : `"${d.location}"`).join(',');
-      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes,selectedSegment.description,selectedSegment.shotIds.length,
-        selectedSegment.transitionFrom,selectedSegment.transitionTo
-      );
-
       // Collect reference images from scenes and characters
       const referenceImages: string[] = [];
       const imageLabels: string[] = [];
+      const scenes: string[] = [];
       let imageIndex = 1;
 
       // Add scene images
       selectedSegment.sceneIds?.forEach((sceneId) => {
-        const scene = activeScenes.find((s) => s.id === sceneId);
-        if (scene?.referenceImage) {
+        let scene = activeScenes.find((s) => s.id === sceneId);
+        if(!scene && getSceneWithAssets){
+          scene = getSceneWithAssets(sceneId);
+        }
+        if (scene && scene?.referenceImage) {
           referenceImages.push(scene.referenceImage);
           imageLabels.push(`图${imageIndex}: ${scene.location}`);
+          scenes.push(scene.location);
           imageIndex++;
         }
       });
 
       // Add character images
       selectedSegment.characterIds?.forEach((charId) => {
-        const character = activeCharacters.find((c) => c.id === charId);
-        if (character?.referenceImage) {
+        let character = activeCharacters.find((c) => c.id === charId);
+        if(!character && getCharacterWithAssets){
+          character = getCharacterWithAssets(charId);
+        }
+        if (character && character?.referenceImage) {
           referenceImages.push(character.referenceImage);
           imageLabels.push(`图${imageIndex}: ${character.name}`);
           imageIndex++;
         }
       });
 
-      const prompt = '参考图说明：\n'+imageLabels.map((l,i)=>`${i+1}. ${l}`).join('\n')+'\n\n'+videoPrompt;
+      // 这里需要根据 segment 生成视频，可能需要整合 segment 中所有 shot 的视频
+      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),selectedSegment.description,selectedSegment.shotIds.length,
+        selectedSegment.transitionFrom,selectedSegment.transitionTo
+      );
+
+      const prompt = '## 参考图说明：\n'+imageLabels.map((l,i)=>`${i+1}. ${l}`).join('\n')+'\n\n'+videoPrompt;
 
       const videoUrl = await ModelService.generateVideo(
           prompt,
@@ -550,7 +555,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.imageSize,
           project.visualStyle,
           selectedSegment.id,
-          [],
+          referenceImages,
           project.seed
       );
 

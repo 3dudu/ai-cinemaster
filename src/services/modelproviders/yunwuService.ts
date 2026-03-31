@@ -173,6 +173,7 @@ export const generateVideo = async (
   const requestBody: any = {
     model: runtimeVideoModel || "veo3-fast-frames",
     prompt: prompt,
+    duration: duration,
     images: [],
   };
 
