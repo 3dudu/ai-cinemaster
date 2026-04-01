@@ -13,13 +13,14 @@ import {
   saveProjectToDB,
   saveSeriesToDB
 } from '../services/storageService';
-import { ProjectState, SeriesRecord } from '../types';
+import { ProjectState, Segment, SeriesRecord } from '../types';
 import { ThemeToggle } from './common/ThemeToggle';
 import { useDialog } from './dialog';
 import CreateTypeDialog from './dialog/CreateTypeDialog';
 import ApiKeyModal from './modals/ApiKeyModal';
 import EpisodePreviewModal from './modals/EpisodePreviewModal';
 import ProjectSettingsModal from './modals/ProjectSettingsModal';
+import SegmentPreviewModal from './modals/SegmentPreviewModal';
 import SeriesManagerModal from './modals/SeriesManagerModal';
 import SeriesSettingsModal from './modals/SeriesSettingsModal';
 import SyncModal from './modals/SyncModal';
@@ -355,6 +356,19 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       setEditingTitle('');
     }
   }, [editingTitle, loadData, dialog]);
+
+    // Get thumbnail image for segment (first shot's scene image, fallback to start keyframe)
+  const getSegmentThumbnail = useCallback(
+    (segment: Segment): string | undefined => {
+      const sceneid = segment.sceneIds[0];
+      if (sceneid) {
+        const scene = previewingProject.scriptData.scenes.find((s) => s.id === sceneid);
+        if (scene?.referenceImage) {
+          return scene.referenceImage;
+        }
+    }},
+    [previewingProject],
+  );
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent, proj: ProjectState) => {
     if (e.key === 'Enter') {
@@ -765,8 +779,12 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                   <div className="flex-1 px-6 pt-2 relative flex flex-col">
                      {/* Edit Button */}
                      <div className='flex flex-row items-center justify-end gap-1'>
-                     {/* Preview Button - only show if project has videos */}
-                     {editingProjectId === null && proj.shots?.some(s => s.interval?.videoUrl) ? (
+                     {/* Preview Button - show if project has videos (segment mode or shot mode) */}
+                     {editingProjectId === null && (
+                       proj.isSegmentMode 
+                         ? (proj.segments?.some(s => s.videoUrl))
+                         : (proj.shots?.some(s => s.interval?.videoUrl))
+                     ) ? (
                      <button
                         onClick={(e) => { e.stopPropagation(); setPreviewingProject(proj); }}
                         className="group-hover:opacity-100 p-2 hover:bg-slate-700 text-slate-400 hover:text-slate-400 transition-all rounded-sm z-10 cursor-pointer"
@@ -933,11 +951,21 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       />
 
       {/* Video Preview Modal */}
-      <EpisodePreviewModal
-        episode={previewingProject}
-        isOpen={!!previewingProject}
-        onClose={() => setPreviewingProject(null)}
-      />
+      {previewingProject?.isSegmentMode ? (
+        <SegmentPreviewModal
+          segments={previewingProject.segments || []}
+          projectTitle={previewingProject.title}
+          isOpen={!!previewingProject}
+          onClose={() => setPreviewingProject(null)}
+          getSegmentThumbnail={getSegmentThumbnail}
+        />
+      ) : (
+        <EpisodePreviewModal
+          episode={previewingProject}
+          isOpen={!!previewingProject}
+          onClose={() => setPreviewingProject(null)}
+        />
+      )}
 
       {/* Create Type Dialog */}
       <CreateTypeDialog

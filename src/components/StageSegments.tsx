@@ -307,34 +307,24 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   // Get thumbnail image for segment (first shot's scene image, fallback to start keyframe)
   const getSegmentThumbnail = useCallback(
     (segment: Segment): string | undefined => {
-      if (segment.shotIds.length === 0) return undefined;
-      const firstShotId = segment.shotIds[0];
-      
-      // Use cached shots map for O(1) lookup instead of O(n) find
-      const shotsMap = new Map(project.shots.map(shot => [shot.id, shot]));
-      const firstShot = shotsMap.get(firstShotId);
-      if (!firstShot) return undefined;
-
-      // Priority 1: Get scene reference image (with series library support)
-      const scene = activeScenes.find((s) => String(s.id) === String(firstShot.sceneId));
-      if (scene) {
+      const sceneid = segment.sceneIds[0];
+      if (sceneid) {
         // In series mode, get scene from library for full assets
-        if (isSeriesMode && scene.refId && series?.library?.scenes) {
-          const libraryScene = series.library.scenes.find((s) => s.id === scene.refId);
+        if (isSeriesMode){
+          if(series?.library?.scenes) {
+          const libraryScene = series.library.scenes.find((s) => s.id === sceneid);
           if (libraryScene?.referenceImage) {
             return libraryScene.referenceImage;
           }
-        }
-        // Use project scene reference image
-        if (scene.referenceImage) {
-          return scene.referenceImage;
+        }else{
+          const scene = project.scriptData.scenes.find((s) => s.id === sceneid);
+          if (scene?.referenceImage) {
+            return scene.referenceImage;
+          }
         }
       }
-
-      // Priority 2: Fallback to shot's start keyframe
-      return firstShot.keyframes?.find((k) => k.type === 'start')?.imageUrl;
-    },
-    [project.shots, activeScenes, isSeriesMode, series?.library?.scenes],
+    }},
+    [project, isSeriesMode, series?.library?.scenes],
   );
 
   // Calculate total duration - memoized to prevent re-calculation

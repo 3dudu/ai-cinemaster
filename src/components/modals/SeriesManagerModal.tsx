@@ -2,10 +2,11 @@ import { Calendar, ChevronLeft, ChevronRight, Download, Edit3, Film, Loader2, Pl
 import React, { useCallback, useMemo, useState } from 'react';
 import { createSeriesEpisode, getEffectiveScriptData, importProjectAsEpisode } from '../../services/seriesService';
 import { exportProjectToFile, getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
-import { ProjectState, SeriesRecord } from '../../types';
+import { ProjectState, Segment, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';
 import EpisodePreviewModal from './EpisodePreviewModal';
 import ProjectSettingsModal from './ProjectSettingsModal';
+import SegmentPreviewModal from './SegmentPreviewModal';
 import SeriesSettingsModal from './SeriesSettingsModal';
 
 interface SeriesManagerModalProps {
@@ -237,8 +238,15 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     dialog.toast({ message: '单集导出成功', type: 'success' });
   }, [series, dialog]);
 
-  // Get video URLs for preview (shots with videoUrl)
+  // Get video URLs for preview (shots with videoUrl or segments with videoUrl)
   const getEpisodeVideoUrls = useCallback((ep: ProjectState): string[] => {
+    if (ep.isSegmentMode) {
+      // Segment mode: get videoUrls from segments
+      return (ep.segments || [])
+        .filter(segment => segment.videoUrl)
+        .map(segment => segment.videoUrl!);
+    }
+    // Shot mode: get videoUrls from shots
     return ep.shots
       .filter(shot => shot.interval?.videoUrl)
       .map(shot => shot.interval!.videoUrl!);
@@ -295,6 +303,21 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       dialog.toast({ message: '保存分集设置失败', type: 'error' });
     });
   }, [editingEpisode, refreshProjects, dialog]);
+
+  const getSegmentThumbnail = useCallback(
+      (segment: Segment): string | undefined => {
+        const sceneid = segment.sceneIds[0];
+        if (sceneid) {
+          // In series mode, get scene from library for full assets
+          if(series?.library?.scenes) {
+          const libraryScene = series.library.scenes.find((s) => s.id === sceneid);
+          if (libraryScene?.referenceImage) {
+            return libraryScene.referenceImage;
+          }
+        }
+      }},
+      [series?.library?.scenes],
+  );
 
   if (!isOpen) return null;
 
@@ -539,11 +562,21 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
 />
 
 {/* Video Preview Modal */}
-<EpisodePreviewModal
-  episode={previewingEpisode}
-  isOpen={!!previewingEpisode}
-  onClose={() => setPreviewingEpisode(null)}
-/>
+{previewingEpisode?.isSegmentMode ? (
+  <SegmentPreviewModal
+    segments={previewingEpisode.segments || []}
+    projectTitle={previewingEpisode.title}
+    isOpen={!!previewingEpisode}
+    onClose={() => setPreviewingEpisode(null)}
+    getSegmentThumbnail={getSegmentThumbnail}
+  />
+) : (
+  <EpisodePreviewModal
+    episode={previewingEpisode}
+    isOpen={!!previewingEpisode}
+    onClose={() => setPreviewingEpisode(null)}
+  />
+)}
     </div>
 );
 
