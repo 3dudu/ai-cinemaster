@@ -1399,7 +1399,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                   }}
                                 >
                                     {videoReadyShots.has(shot.id) && hasVideo && videoPlayingShots.has(shot.id) ? (
-                                        <video
+                                        <video crossOrigin="anonymous"
                                           data-shot-id={shot.id}
                                           src={shot.interval?.videoUrl}
                                           className="w-full h-full object-contain"
@@ -1416,7 +1416,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                           <img src={sKf!.imageUrl || fKf!.imageUrl} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105" />
                                           {/* Preload video in background after 2 seconds hover */}
                                           {hasVideo && !videoReadyShots.has(shot.id) && hoveredShotId === shot.id && (
-                                            <video
+                                            <video crossOrigin="anonymous"
                                               src={shot.interval?.videoUrl}
                                               className="hidden"
                                               onCanPlay={() => {
@@ -1428,7 +1428,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                           )}
                                         </>
                                     ) : hasVideo ? (
-                                        <video
+                                        <video crossOrigin="anonymous"
                                           data-shot-id={shot.id}
                                           className="w-full h-full object-contain"
                                           src={shot.interval?.videoUrl}
@@ -1913,7 +1913,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
                            {(activeShot.interval?.videoUrl || activeShot.transitionUrl) ? (
                                <div className="w-full aspect-video bg-slate-800/50 rounded-lg overflow-hidden border border-slate-600 relative shadow-lg">
-                                   <video
+                                   <video crossOrigin="anonymous"
                                        src={activeShot.transitionUrl && playingTransition[activeShot.id] ? activeShot.transitionUrl : activeShot.interval?.videoUrl}
                                        controls
                                        className="w-full h-full object-contain"

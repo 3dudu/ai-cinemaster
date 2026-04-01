@@ -15,6 +15,7 @@ import {
 } from '../utils/segmentUtils';
 import { useDialog } from './dialog';
 import SegmentEditModal from './modals/SegmentEditModal';
+import SegmentPreviewModal from './modals/SegmentPreviewModal';
 
 interface StageSegmentsProps {
   project: ProjectState;
@@ -60,6 +61,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [editingScript, setEditingScript] = useState(false);  // 控制描述编辑区显示
   const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);  // 视频生成状态
   const [insertIndex, setInsertIndex] = useState<number | null>(null);  // 新片段插入位置
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);  // 预览模态框状态
 
   // Refs for auto-scroll to selected segment
   const segmentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -658,6 +660,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setPreviewModalOpen(true)}
+            disabled={(project.segments || []).filter(s => s.videoUrl).length === 0}
+            className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            title="预览所有片段视频"
+          >
+            <Play className="w-3 h-3" />
+            {!isMobile && '预览片段'}
+          </button>
+          <button
             onClick={handleReconvertSegments}
             disabled={project.shots.length === 0}
             className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -710,7 +721,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600 p-2 md:p-4">
                 <div className="w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg overflow-hidden border border-slate-600 relative shadow-lg">
                 {selectedSegment.videoUrl ? (
-                  <video
+                  <video crossOrigin="anonymous"
                     src={selectedSegment.videoUrl}
                     controls
                     className="w-full h-full object-contain"
@@ -1075,6 +1086,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           onSave={handleSaveSegment}
         />
       )}
+
+      {/* Segment Preview Modal */}
+      <SegmentPreviewModal
+        segments={project.segments || []}
+        projectTitle={project.title}
+        isOpen={previewModalOpen}
+        onClose={() => setPreviewModalOpen(false)}
+        getSegmentThumbnail={getSegmentThumbnail}
+      />
     </div>
   );
 };

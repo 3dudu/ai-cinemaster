@@ -165,7 +165,7 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
         {/* Video Player */}
         <div className="flex-1 bg-slate-900 overflow-hidden flex flex-col items-center justify-center px-4 pt-4">
           <div className="w-full aspect-[16/9] bg-slate-700 rounded-lg overflow-hidden relative">
-            <video
+            <video crossOrigin="anonymous"
               ref={videoRef}
               controls
               autoPlay
