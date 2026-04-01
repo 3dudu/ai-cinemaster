@@ -2071,7 +2071,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           {editingShotId && (
             <ShotEditModal
               shot={project.shots.find(s => s.id === editingShotId)!}
-              characters={activeCharacters}
+              characters={isSeriesMode && series?.library?.characters ? series.library.characters : activeCharacters}
+              scenes={isSeriesMode && series?.library?.scenes ? series.library.scenes : activeScenes}
               onSave={saveShot}
               onClose={() => setEditingShotId(null)}
               imageCount={project.imageCount}

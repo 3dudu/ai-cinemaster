@@ -1,15 +1,27 @@
-import { Aperture, Check, Plus, RefreshCw, Trash, X } from 'lucide-react';
+import { Aperture, Check, Expand, Plus, RefreshCw, Trash, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../../services/modelConfigEvents';
 import { getAllModelConfigs } from '../../services/storageService';
-import { AIModelConfig, Keyframe, Props, Shot } from '../../types';
+import { AIModelConfig, Keyframe, Scene, Shot } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 import VideoPromptModal from './VideoPromptModal';
 
-const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, imageCount, scriptData, visualStyle = '真人写实' }) => {
+interface ShotEditModalProps {
+  shot: Shot;
+  characters: { id: string; name: string; referenceImage?: string }[];
+  scenes?: Scene[];
+  onSave: (updatedShot: Partial<Shot>) => void;
+  onClose: () => void;
+  imageCount: number;
+  scriptData?: any;
+  visualStyle?: string;
+}
+
+const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes = [], onSave, onClose, imageCount, scriptData, visualStyle = '真人写实' }) => {
   const [tempShot, setTempShot] = useState<Partial<Shot>>({ ...shot });
   const [modelConfigs, setModelConfigs] = useState<AIModelConfig[]>([]);
   const [isVideoPromptModalOpen, setIsVideoPromptModalOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const isNewShot = !shot.id;
 
   useEffect(() => {
@@ -140,6 +152,106 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 md:p-6 space-y-5 bg-slate-700">
+
+          {/* Scene */}
+          {scenes.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">场景</label>
+              <CustomSelect
+                options={[
+                  { value: '', label: '未选择场景' },
+                  ...scenes.map(scene => ({
+                    value: scene.id,
+                    label: scene.location
+                  }))
+                ]}
+                value={tempShot.sceneId || ''}
+                onChange={(value) => setTempShot({ ...tempShot, sceneId: value })}
+                placeholder="选择场景"
+                className="w-full"
+              />
+              {tempShot.sceneId && (() => {
+                const selectedScene = scenes.find(s => s.id === tempShot.sceneId);
+                if (!selectedScene) return null;
+                return (
+                  <div className="flex items-center gap-3 p-3 bg-slate-800/50 border border-slate-600 rounded-lg">
+                    {selectedScene.referenceImage ? (
+                      <div
+                        className="relative w-20 h-12 rounded overflow-hidden cursor-pointer group flex-shrink-0"
+                        onClick={() => setPreviewImage(selectedScene.referenceImage!)}
+                      >
+                        <img
+                          src={selectedScene.referenceImage}
+                          alt={selectedScene.location}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-slate-700/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Expand className="w-4 h-4 text-slate-50" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-20 h-12 bg-slate-700 rounded flex items-center justify-center text-xl flex-shrink-0">
+                        🏞️
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-50 truncate">{selectedScene.location}</p>
+                      <p className="text-xs text-slate-500">
+                        {selectedScene.time} · {selectedScene.atmosphere}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Characters */}
+          <div className="space-y-2">
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">角色</label>
+            <div className="flex flex-wrap gap-2">
+              {characters.map(char => {
+                const isSelected = (tempShot.characters || []).includes(char.id);
+                const hasImage = !!char.referenceImage;
+                return (
+                  <button
+                    key={char.id}
+                    onClick={() => toggleCharacter(char.id)}
+                    className={`relative px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 border flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-lg shadow-slate-500/25 scale-100'
+                        : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-300 hover:text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    {/* 头像 */}
+                    {hasImage && (
+                      <div className={`w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ${
+                        isSelected ? 'ring-2 ring-white/30' : 'opacity-70'
+                      }`}>
+                        <img
+                          src={char.referenceImage}
+                          alt={char.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    {/* 对勾图标 - 如果没有头像则显示，如果有头像则显示在右侧 */}
+                    {isSelected && !hasImage && <Check className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={3} />}
+                    {/* 角色名 */}
+                    <span className="truncate">{char.name}</span>
+                    {/* 选中且有头像时的对勾 */}
+                    {isSelected && hasImage && <Check className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={3} />}
+                  </button>
+                );
+              })}
+            </div>
+            {(tempShot.characters || []).length > 0 && (
+              <div className="text-[11px] text-slate-500">
+                已选择 {tempShot.characters?.length} 个角色
+              </div>
+            )}
+          </div>
+
           {/* Action Summary */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">动作描述</label>
@@ -284,52 +396,6 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
               </div>
             </div>
           )}
-
-          {/* Characters */}
-          <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">角色</label>
-            <div className="flex flex-wrap gap-2">
-              {characters.map(char => {
-                const isSelected = (tempShot.characters || []).includes(char.id);
-                const hasImage = !!char.referenceImage;
-                return (
-                  <button
-                    key={char.id}
-                    onClick={() => toggleCharacter(char.id)}
-                    className={`relative px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 border flex items-center gap-1.5 cursor-pointer ${
-                      isSelected
-                        ? 'bg-slate-600 text-slate-50 border-slate-500 shadow-lg shadow-slate-500/25 scale-100'
-                        : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-300 hover:text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    {/* 头像 */}
-                    {hasImage && (
-                      <div className={`w-5 h-5 rounded-full overflow-hidden flex-shrink-0 ${
-                        isSelected ? 'ring-2 ring-white/30' : 'opacity-70'
-                      }`}>
-                        <img
-                          src={char.referenceImage}
-                          alt={char.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    {/* 对勾图标 - 如果没有头像则显示，如果有头像则显示在右侧 */}
-                    {isSelected && !hasImage && <Check className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={3} />}
-                    {/* 角色名 */}
-                    <span className="truncate">{char.name}</span>
-                    {/* 选中且有头像时的对勾 */}
-                    {isSelected && hasImage && <Check className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={3} />}
-                  </button>
-                );
-              })}
-            </div>
-            {(tempShot.characters || []).length > 0 && (
-              <div className="text-[11px] text-slate-500">
-                已选择 {tempShot.characters?.length} 个角色
-              </div>
-            )}
-          </div>
 
           {/* Keyframes */}
           <div className="space-y-3">
@@ -483,6 +549,27 @@ const ShotEditModal: React.FC<Props> = ({ shot, characters, onSave, onClose, ima
           });
         }}
       />
+
+      {/* Fullscreen Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={previewImage}
+            alt="Full screen preview"
+            className="max-w-[95vw] max-h-[95vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
