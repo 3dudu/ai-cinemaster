@@ -478,7 +478,7 @@ const ImageSelectorModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-60 bg-slate-700/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
+    <div className="fixed inset-0 z-60 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
       {/* Modal 内容 */}
       <div className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-6xl h-[80vh] flex flex-col">
         {/* 标题栏 */}

@@ -168,21 +168,21 @@
   /* Custom scrollbar for specific elements */
   .custom-scrollbar {
     -ms-overflow-style: auto;
-    scrollbar-width: thin;
+    scrollbar-width:thin;
   }
   .custom-scrollbar::-webkit-scrollbar {
     display: block;
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: var(--bg-secondary);
+    background: var(--bg-progress);
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--color-border-secondary);
+    background: var(--bg-progress);
     border-radius: 3px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--color-border-primary);
+    background: var(--bg-progress);
   }
 }
