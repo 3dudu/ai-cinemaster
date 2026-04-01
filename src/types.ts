@@ -125,6 +125,7 @@ export interface ProjectState {
   // Segment Mode Data
   isSegmentMode: boolean; // 是否为片段模式
   segments: Segment[]; // 片段数组
+  initSegment?: boolean;
 
   // Export Phase Data
   mergedVideoUrl?: string;

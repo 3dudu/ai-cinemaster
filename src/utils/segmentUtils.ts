@@ -102,7 +102,9 @@ export async function generateSegmentDescription(
   const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', shotDescriptions, visualstyle, genre);
 
   try {
-    const response = await ModelService.generateSegmentPropmt(prompt);
+    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
+
+    const response = await ModelService.generateSegmentPropmt(prompt,sysctemPrompt);
     return response || '';
   } catch (error) {
     console.error('生成片段描述失败:', error);
@@ -130,9 +132,10 @@ export async function generateTransitionDescription(
 2. 可以是镜头移动、时间流逝、视角切换等
 3. 控制在20-50字之间
 4. 简洁明了，富有画面感`;
+    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_TRANSLATE');
 
   try {
-    const response = await ModelService.generateSegmentPropmt(prompt);
+    const response = await ModelService.generateSegmentPropmt(prompt,sysctemPrompt);
     return response || '';
   } catch (error) {
     console.error('生成转场描述失败:', error);
@@ -389,8 +392,10 @@ export async function aiConvertShotsToSegments(
   );
 
   try {
+    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_SPLIT');
+
     // 5. 调用 LLM
-    const response = await ModelService.generateSegmentPropmt(prompt);
+    const response = await ModelService.generateSegmentPropmt(prompt,sysctemPrompt);
 
     // 6. 解析响应（失败返回 null）
     return parseAiSegmentResponse(response, shots);
@@ -413,7 +418,7 @@ function parseAiSegmentResponse(response: string, originalShots: Shot[]): Segmen
     if (jsonMatch) {
       jsonStr = jsonMatch[1];
     }
-
+    console.log('jsonStr', jsonStr);
     const parsed = JSON.parse(jsonStr);
 
     if (!parsed.segments || !Array.isArray(parsed.segments)) {

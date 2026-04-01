@@ -47,9 +47,12 @@ const PromptTemplateModal: React.FC<{
     { key: 'IMPORT_SCRIPT', name: '策划师-剧本导入提示词', description: '导入原始剧本，提取剧集基本信息', hasParams: true },
     { key: 'IMPORT_SHOTS', name: '策划师-镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
     { key: 'IMPORT_SHOTS_FOR_SCENE', name: '策划师-特定场景镜头清单导入提示词', description: '导入场景的镜头调度设计', hasParams: true },
-    { key: 'SYSTEM_SEGMENT_DESIGNER', name: '导演-片段视频拍摄提示词生成提示词', description: '为单个片段生成视频拍摄提示词', hasParams: true },
+    { key: 'SYSTEM_SEGMENT_DESIGNER', name: '导演系统提示词-片段视频拍摄提示词生成提示词', description: '为单个片段生成视频拍摄提示词', hasParams: true },
+    { key: 'SYSTEM_SEGMENT_TRANSLATE', name: '导演系统提示词-片段视频转场提示词', description: '为单个片段生成视频转场提示词', hasParams: true },
     { key: 'GENERATE_SEGMENT_PROMPT', name: '导演-片段视频拍摄提示词润色', description: '导演-片段视频拍摄提示词润色', hasParams: true },
     { key: 'GENERATE_SEGMENT_VIDEO_PROMPT', name: '导演-片段视频拍摄提示词', description: '导演-片段视频拍摄提示词', hasParams: true },
+    { key: 'AI_SPLIT_SEGMENTS', name: '导演-分段提示词', description: '导演-分段提示词', hasParams: true },
+    { key: 'SYSTEM_SEGMENT_SPLIT', name: '导演系统提示词-分段提示词', description: '导演系统提示词-分段提示词', hasParams: true },
   ], []);
 
   // 从 localStorage 加载自定义内容
@@ -178,10 +181,13 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
      - 要描述场景的时间、地点、景色、光线、氛围等，不要出现角色。
      - 聚焦视觉细节（光线、空间关系，质感、外观）。`,
       'GENERATE_CHARACTER_PROMPT': `为 {genre} 类视频中的角色生成高还原度的角色设计。
-    角色的描述信息如下: {desc}
-    - 图像风格必须为：{visualStyle}。
-    - 要体现出角色的年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
-    - 聚焦视觉细节（光线、材质、质感、外观）。`,
+    角色的描述信息如下，包含年龄，性别，性格: {desc}
+
+## 要求
+  - 图像风格必须为：{visualStyle}。
+  - 要着重描写角色的年龄、性别、性格、外貌、动作、衣着、神态等。
+  - 聚焦视觉细节（光线、材质、质感、外观），突出人物性格。
+  - 不要出现场景`,
       'GENERATE_VARIATION_PROMPT': `    为 {genre} 类视频中的角色设计造型: {variation} ，结合角色基本信息和造型描述，扩展完善新的造型描述。
     - 角色的基本信息: {desc}
     - 角色的造型描述: {variationDesc}
@@ -254,8 +260,8 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
       'GENERATE_KEYFRAME_PROMPT': `连环画规格：{imageGridSpec} 连环画图，包含 {imageCount} 张连续且风格统一的图片，每张长宽比 {imageRate}，白色背景，铺满整张图。`,
       'GENERATE_CHARACTER_IMAGE': `生成符合下面要求的角色图片，图片风格必须为：{visualStyle}。
 角色名：{name}
-角色描述：{prompt}
-强制要求：纯白色背景、无阴影、无道具、无文字。
+角色描述：
+{prompt}
 
 核心主题: {visualStyle} 风格角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集，专业游戏 / 影视角色设计规范
 【画面布局与构图】
@@ -393,13 +399,14 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 1. 说明总体画面风格和类型，可加以补充。基本风格和类型：{visualstyle}, {genres}
 2. 运动强度：（文戏3-5 / 正常5-7 / 冲突7-10）
 3. 说明故事情节曲线，情绪曲线：（贴合剧情，2-3种情绪递进）
-4. 自动识别：人物、场景、关键物品、情绪、动作节奏。
-5. 每一句包含分镜的分镜号、时长、场景、角色、运镜、对话、动作描述
-6. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
-7. 台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
-8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过15s。
-9. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
-10. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。
+4  设计高超的构图，不同分镜的构图可以保持一致，也可进行变化，可选构图类型：中心构图，对称构图，三分线构图，框构框架，引导线构图，三角线构图，黄金螺旋构图，水平构图，对角构图。
+5. 自动识别：人物、场景、关键物品、情绪、动作节奏。
+6. 每一句包含分镜的分镜号、时长、场景、角色、运镜、对话、动作描述
+7. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
+8. 台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
+9. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过15s。
+10. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
+11. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。
 
 ## 正确示例：
 

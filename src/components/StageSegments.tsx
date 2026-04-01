@@ -62,6 +62,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);  // 视频生成状态
   const [insertIndex, setInsertIndex] = useState<number | null>(null);  // 新片段插入位置
   const [previewModalOpen, setPreviewModalOpen] = useState(false);  // 预览模态框状态
+  const [aiSplitting, setAiSplitting] = useState(false);  // AI 分镜等待遮罩
 
   // Refs for auto-scroll to selected segment
   const segmentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -99,10 +100,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
   // Initialize segments if empty
   useEffect(() => {
-    const segments = project.segments;
-    if (!segments && project.shots.length > 0) {
+    if (!project.initSegment && project.shots.length > 0) {
       const newSegments = convertShotsToSegments(project.shots);
-      updateProject({ segments: newSegments });
+      updateProject({ segments: newSegments,initSegment:true });
     }
   }, [project.segments, project.shots, updateProject]);
 
@@ -414,7 +414,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       return;
     }
 
-    const confirmed = await dialog.confirm({
+    const confirmed = project.segments.length ==0 || await dialog.confirm({
       title: '重新拆分片段',
       message: '这将根据当前分镜重新生成片段，现有片段的描述和转场设置将被重置。是否继续？',
       confirmText: '重新拆分',
@@ -433,14 +433,19 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     let newSegments: Segment[];
     if (useAi) {
       // AI 拆分（失败返回 null）
-      const characters = isSeriesMode ? series?.library?.characters : project.scriptData.characters;
-      const scenes = isSeriesMode ? series?.library?.scenes : project.scriptData.scenes;
-      newSegments = await aiConvertShotsToSegments(
-        project.shots, characters, scenes, project.visualStyle, project.genre
-      ) ?? [];
-      if (newSegments.length === 0) {
-        dialog.toast({ message: 'AI 拆分失败', type: 'error' });
-        return;
+      setAiSplitting(true);
+      try {
+        const characters = isSeriesMode ? series?.library?.characters : project.scriptData.characters;
+        const scenes = isSeriesMode ? series?.library?.scenes : project.scriptData.scenes;
+        newSegments = await aiConvertShotsToSegments(
+          project.shots, characters, scenes, project.visualStyle, project.genre
+        ) ?? [];
+        if (newSegments.length === 0) {
+          dialog.toast({ message: 'AI 拆分失败', type: 'error' });
+          return;
+        }
+      } finally {
+        setAiSplitting(false);
       }
     } else {
       // 规则拆分（默认）
@@ -1097,6 +1102,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         onClose={() => setPreviewModalOpen(false)}
         getSegmentThumbnail={getSegmentThumbnail}
       />
+
+      {/* AI 分镜等待遮罩 */}
+      {aiSplitting && (
+        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+          <Loader2 className="w-12 h-12 text-slate-50 animate-spin mb-6" />
+          <h3 className="text-xl font-bold text-slate-50 mb-2">AI 智能分镜中...</h3>
+          <p className="text-slate-400">请稍候，正在分析分镜数据</p>
+        </div>
+      )}
     </div>
   );
 };

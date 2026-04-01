@@ -554,7 +554,7 @@ const StageAssets: React.FC<Props> = ({
                   {/* Edit & Delete Buttons - Top Left */}
                   <button
                     onClick={() => handleEditCharacter(char)}
-                    disabled={!!batchProgress || !!processingState}
+                    disabled={!!batchProgress}
                     className="absolute top-2 left-2 p-2 bg-blue-600/50 text-slate-50 rounded-full hover:bg-blue-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
                     title="编辑角色"
                   >
@@ -716,7 +716,7 @@ const StageAssets: React.FC<Props> = ({
                   {/* Edit & Delete Buttons - Top Left */}
                   <button
                     onClick={() => handleEditScene(scene)}
-                    disabled={!!batchProgress || !!processingState}
+                    disabled={!!batchProgress}
                     className="absolute top-2 left-2 p-2 bg-blue-600/50 text-slate-50 rounded-full hover:bg-blue-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
                     title="编辑场景"
                   >

@@ -6,7 +6,7 @@ import { cleanJsonString } from "../utils/apiHelper";
 import { uploadFileToService } from "../utils/fileUploadUtils";
 import { imageUrlToBase64 } from "../utils/imageUtils";
 import { getEnabledConfigByType } from "./modelConfigService";
-import { renderTemplate } from "./promptTemplates";
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "./promptTemplates";
 import { getAllModelConfigs } from "./storageService";
 
 const loadDeepseekModule = () => import("./modelproviders/deepseekService");
@@ -1263,27 +1263,27 @@ export class ModelService {
    * @param genre - 题材类型
    */
   static async generateSegmentPropmt(
-    prompt: string
+    prompt: string,
+    sysctemPrompt:string
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
   
     let visualPrompt = "";
-    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
     switch (provider.provider) {
       case 'deepseek':
-        visualPrompt = await (await this.getProviderModule('deepseek')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('deepseek')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       case 'doubao':
-        visualPrompt = await (await this.getProviderModule('doubao')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('doubao')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       case 'gemini':
-        visualPrompt = await (await this.getProviderModule('gemini')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('gemini')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       case 'yunwu':
-        visualPrompt = await (await this.getProviderModule('yunwu')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('yunwu')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       case 'openai':
-        visualPrompt = await (await this.getProviderModule('openai')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('openai')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的视觉提示词生成`);
