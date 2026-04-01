@@ -1,4 +1,4 @@
-import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderKanban, Images, List, ListVideo, NotebookPen, Settings, Sparkles } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderOpen, Images, List, ListVideo, NotebookPen, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import { ThemeToggle } from './common/ThemeToggle';
@@ -75,7 +75,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
               className="text-slate-400 hover:text-slate-300 transition-colors p-1"
               title="剧集管理"
             >
-              <FolderKanban className="w-4 h-4" />
+              <FolderOpen className="w-4 h-4" />
             </button>
           )}
           <button

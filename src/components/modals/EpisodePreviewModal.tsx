@@ -14,6 +14,7 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
   onClose,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const segmentRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [tranVideoIndex, setTranVideoIndex] = useState(0);
@@ -39,6 +40,26 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
     }
   }, [isOpen]);
 
+  // Auto-scroll selected segment into view
+  useEffect(() => {
+      if (currentVideoIndex) {
+        const element = segmentRefs.current.get(currentVideoIndex);
+        const container = thumbnailContainerRef.current;
+        if (element && container) {
+          const elementRect = element.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const isOverflowing = elementRect.left < containerRect.left || elementRect.right > containerRect.right;
+  
+          if (isOverflowing) {
+            element.scrollIntoView({
+              behavior: 'smooth',
+              inline: 'center',
+              block: 'nearest',
+            });
+          }
+        }
+      }
+    }, [currentVideoIndex]);
   // Handle video ended - auto play next
   const handleVideoEnded = useCallback(() => {
     if(tranVideoIndex==0 && videoUrls[currentVideoIndex][1]){
@@ -126,9 +147,9 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-60 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
-      <div className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-4xl flex flex-col max-h-[90vh]">
+      <div className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl w-full lg:max-w-6xl overflow-hidden flex flex-col max-h-[85vh]">
         {/* Modal Header */}
-        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-700/50">
+        <div className="min-h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-700/50">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
             <Film className="w-5 h-5 text-slate-500" />
             {episode.title} - 预览
@@ -142,15 +163,16 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
         </div>
 
         {/* Video Player */}
-        <div className="flex-1 bg-slate-900 flex flex-col items-center justify-center px-4 pt-4">
-          <div className="w-full aspect-video bg-slate-950 rounded-lg overflow-hidden relative">
-            <video
+        <div className="flex-1 bg-slate-900 overflow-hidden flex flex-col items-center justify-center px-4 pt-4">
+          <div className="w-full aspect-[16/9] bg-slate-700 rounded-lg overflow-hidden relative">
+            <video crossOrigin="anonymous"
               ref={videoRef}
               controls
               autoPlay
               className="w-full h-full object-contain"
               src={videoUrls[currentVideoIndex][tranVideoIndex]}
               onEnded={handleVideoEnded}
+              onError={handleVideoEnded}
             >
               您的浏览器不支持视频播放。
             </video>
@@ -199,8 +221,16 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
             className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar flex-shrink-0"
           >
             {videoShots.map((shot: Shot, idx: number) => (
+              <React.Fragment key={shot.id}>
               <button
                 key={shot.id}
+                ref={(el) => {
+                  if (el) {
+                    segmentRefs.current.set(idx, el);
+                  } else {
+                    segmentRefs.current.delete(idx);
+                  }
+                }}
                 onClick={() => setCurrentVideoIndex(idx)}
                 className={`relative flex-shrink-0 w-24 h-16 rounded-lg overflow-hidden border-2 transition-all ${
                   idx === currentVideoIndex
@@ -228,6 +258,7 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
                 </div>
                 )}
               </button>
+              </React.Fragment>
             ))}
           </div>
         </div>
