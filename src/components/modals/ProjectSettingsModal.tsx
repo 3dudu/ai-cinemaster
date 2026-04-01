@@ -176,10 +176,8 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-150 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
-    >
-      <div className="bg-slate-600/80 border border-slate-600 w-[480px] max-w-[90vw] h-[85vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col select-text">
+    <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-slate-800 border border-slate-600 w-[480px] max-w-[90vw] h-[85vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col select-text">
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
             <Settings className="w-5 h-5 text-slate-400" />

@@ -46,9 +46,7 @@ const PromptDetailModal: React.FC<PromptDetailModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] bg-slate-700/95 flex items-center justify-center backdrop-blur-sm select-text"
-    >
+    <div className="absolute inset-0 z-50 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
       <div
         className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-2xl mx-4"
         onClick={(e) => e.stopPropagation()}

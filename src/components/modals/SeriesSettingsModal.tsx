@@ -165,9 +165,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-150 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
-    >
+    <div className="fixed inset-0 z-60 bg-slate-700/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
       <div className="bg-slate-600/80 border border-slate-600 w-[480px] max-w-[90vw] h-[80vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col select-text">
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">

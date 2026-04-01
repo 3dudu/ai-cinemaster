@@ -348,13 +348,8 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-150 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !showAddModal) onClose();
-      }}
-    >
-      <div className="bg-slate-800 bg-bg-input border border-slate-600 rounded-2xl w-[800px] max-w-[90vw] h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-3xl h-[80vh] flex flex-col">
         {/* Header */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
