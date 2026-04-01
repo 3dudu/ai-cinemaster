@@ -1,5 +1,5 @@
 import { Download, Edit2, Loader2, Plus, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ModelService } from '../../services/modelService';
 import { renderTemplate } from '../../services/promptTemplates';
 import { addMediaHistory } from '../../services/storageService';
@@ -51,12 +51,17 @@ const WardrobeModal: React.FC<Props> = ({
   // Check if in series mode
   const isSeriesMode = !!series && !!updateSeries;
 
-  // Helper: Get character data source (project scriptData or series library)
-  const getCharacters = (): Character[] => {
+  // Memoized characters to prevent re-calculation
+  const characters = useMemo(() => {
     if (isSeriesMode && series?.library?.characters) {
       return series.library.characters;
     }
     return project.scriptData?.characters || [];
+  }, [isSeriesMode, series?.library?.characters, project.scriptData?.characters]);
+
+  // Helper: Get character data source (project scriptData or series library)
+  const getCharacters = (): Character[] => {
+    return characters;
   };
 
   // Helper: Update character data

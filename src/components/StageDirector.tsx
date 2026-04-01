@@ -1456,7 +1456,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                 className={`p-1 rounded shadow-lg backdrop-blur cursor-pointer transition-all ${
                                                     selectedShotIds.has(shot.id)
                                                         ? 'bg-emerald-500 text-slate-50'
-                                                        : 'bg-slate-700/50 text-slate-400 hover:bg-slate-600'
+                                                        : 'bg-slate-700/50 text-slate-400 group-hover:bg-slate-600'
                                                 }`}
                                             >
                                                 <Check className="w-3 h-3" />
