@@ -75,6 +75,9 @@ const StageScript: React.FC<Props> = ({
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Series mode check
+  const isSeriesMode = !!project.seriesRefId;
+
   useEffect(() => {
     setLocalScript(project.rawScript);
     setLocalTitle(project.title);
@@ -1211,7 +1214,7 @@ const StageScript: React.FC<Props> = ({
            <div className="h-full flex-1 overflow-y-auto bg-slate-900 p-0 ">
               <div className="max-w-5xl mx-auto pb-2">
                  {localScenes.map((scene, index) => {
-                   const sceneShots = project.shots.filter(s => s.sceneId === scene.id);
+                   const sceneShots = project.shots.filter(s => s.sceneId === scene.refId || s.sceneId === scene.id);
                    //if (sceneShots.length === 0) return null;
 
                    return (
@@ -1649,8 +1652,20 @@ const StageScript: React.FC<Props> = ({
   };
 
   const renderEditShotModal = () => {
-    // Always use local characters from project.scriptData
+    // Single project mode: use project.scriptData
+    // Series mode: use series.library for full assets
     const localCharacters = project.scriptData?.characters || [];
+    const localScenes = project.scriptData?.scenes || [];
+
+    // Select characters based on mode
+    const charactersForSelect = isSeriesMode && series?.library?.characters
+      ? series.library.characters
+      : localCharacters;
+
+    // Select scenes based on mode
+    const scenesForSelect = isSeriesMode && series?.library?.scenes
+      ? series.library.scenes
+      : localScenes;
 
     // 编辑现有 shot
     if (editingShotId) {
@@ -1660,7 +1675,8 @@ const StageScript: React.FC<Props> = ({
       return (
         <ShotEditModal
           shot={shot}
-          characters={localCharacters}
+          characters={charactersForSelect}
+          scenes={scenesForSelect}
           onSave={saveShot}
           onClose={() => {
             setEditingShotId(null);
@@ -1687,7 +1703,8 @@ const StageScript: React.FC<Props> = ({
       return (
         <ShotEditModal
           shot={newShot}
-          characters={localCharacters}
+          characters={charactersForSelect}
+          scenes={scenesForSelect}
           onSave={saveShot}
           onClose={() => {
             setAddingShotForSceneId(null);
