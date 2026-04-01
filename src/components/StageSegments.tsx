@@ -35,8 +35,17 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
   // Internal merge logic for series mode
   const isSeriesMode = !!project.seriesRefId;
-  const activeCharacters = isSeriesMode?series.library.characters:project.scriptData?.characters || [];
-  const activeScenes = isSeriesMode?series.library.scenes:project.scriptData?.scenes || [];
+  
+  // Memoized active characters and scenes to prevent re-calculation on every render
+  const activeCharacters = useMemo(() => 
+    isSeriesMode ? series?.library?.characters : project.scriptData?.characters || [],
+    [isSeriesMode, series?.library?.characters, project.scriptData?.characters]
+  );
+  
+  const activeScenes = useMemo(() => 
+    isSeriesMode ? series?.library?.scenes : project.scriptData?.scenes || [],
+    [isSeriesMode, series?.library?.scenes, project.scriptData?.scenes]
+  );
 
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const [generatingDescription, setGeneratingDescription] = useState<Set<string>>(new Set());
@@ -298,7 +307,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     (segment: Segment): string | undefined => {
       if (segment.shotIds.length === 0) return undefined;
       const firstShotId = segment.shotIds[0];
-      const firstShot = project.shots.find((s) => s.id === firstShotId);
+      
+      // Use cached shots map for O(1) lookup instead of O(n) find
+      const shotsMap = new Map(project.shots.map(shot => [shot.id, shot]));
+      const firstShot = shotsMap.get(firstShotId);
       if (!firstShot) return undefined;
 
       // Priority 1: Get scene reference image (with series library support)
@@ -323,11 +335,17 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     [project.shots, activeScenes, isSeriesMode, series?.library?.scenes],
   );
 
-  // Calculate total duration
-  const totalDuration = (project.segments || []).reduce((sum, s) => sum + s.estimatedDuration, 0);
+  // Calculate total duration - memoized to prevent re-calculation
+  const totalDuration = useMemo(() => 
+    (project.segments || []).reduce((sum, s) => sum + s.estimatedDuration, 0),
+    [project.segments]
+  );
 
-  // Calculate total shots
-  const totalShots = project.shots.length;
+  // Calculate total shots - memoized to prevent re-calculation
+  const totalShots = useMemo(() => 
+    project.shots.length,
+    [project.shots]
+  );
 
   // 当前选中 segment 的索引
   const activeSegmentIndex = useMemo(() => {
@@ -519,7 +537,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     if (activeSegmentIndex > 0) {
       setSelectedSegmentId(segments[activeSegmentIndex - 1].id);
     }
-  }, [activeSegmentIndex, project.segments]);
+  }, [activeSegmentIndex, project.segments])
+
+  // Handle wheel event for horizontal scrolling
+  const handleThumbnailWheel = useCallback((e: React.WheelEvent) => {
+    if (scrollContainerRef.current) {
+      e.preventDefault();
+      scrollContainerRef.current.scrollLeft += e.deltaY;
+    }
+  }, []);
 
   // Navigate to next segment
   const goToNextSegment = useCallback(() => {
@@ -729,7 +755,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               <div className="absolute top-5.5 right-2 flex items-center gap-2 justify-end">
                 <button
                   onClick={handleOpenEditScript}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-500 cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs border border-slate-500 font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 cursor-pointer"
                 >
                   <NotebookPen className="w-3 h-3" />
                   编辑提示词
@@ -737,7 +763,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 <button
                   onClick={handleGenerateSegmentVideo}
                   disabled={generatingVideo === selectedSegment.id}
-                  className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {generatingVideo === selectedSegment.id ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -779,12 +805,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               {/* Description */}
               <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
-                <div className="relative h-[40vh]">
+                <div className="relative h-[35vh]">
                   <textarea
                     value={descriptionDraft}
                     onChange={(e) => setDescriptionDraft(e.target.value)}
                     placeholder="输入片段描述..."
-                    className="w-full h-full p-3 pb-14 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-50 placeholder:text-slate-600"
+                    className="w-full h-full p-3 pb-14 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
                   />
                   {/* 底部悬浮按钮层 */}
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border border-slate-600 border-t-slate-600/50 rounded-b-lg flex items-center justify-between">
@@ -806,7 +832,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                       <button
                         onClick={() => handleGenerateDescription(selectedSegment.id)}
                         disabled={generatingDescription.has(selectedSegment.id)}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-slate-50 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                        className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                         title="AI生成描述"
                       >
                         {generatingDescription.has(selectedSegment.id) ? (
@@ -837,7 +863,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     <button
                       onClick={handleGenerateTransitionFrom}
                       disabled={generatingTransition}
-                      className="p-1.5 text-[10px] text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 text-[10px] text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       title="AI生成"
                     >
                       {generatingTransition ? (
@@ -850,7 +876,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     <button
                       onClick={() => handleCopyText(transitionFromDraft, '入场转场')}
                       disabled={!transitionFromDraft}
-                      className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       title="复制"
                     >
                       <Copy className="w-3 h-3" />
@@ -861,7 +887,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   value={transitionFromDraft}
                   onChange={(e) => setTransitionFromDraft(e.target.value)}
                   placeholder="描述从上一个片段的转场效果..."
-                  className="w-full h-16 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-50 placeholder:text-slate-600"
+                  className="w-full h-20 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
                 />
               </div>
 
@@ -876,8 +902,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     <button
                       onClick={handleGenerateTransitionTo}
                       disabled={generatingTransition}
-                      className="p-1.5 text-[10px] text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="AI生成"
+                      className="p-1.5 text-[10px] text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      title="AI 生成"
                     >
                       {generatingTransition ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -889,7 +915,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     <button
                       onClick={() => handleCopyText(transitionToDraft, '出场转场')}
                       disabled={!transitionToDraft}
-                      className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       title="复制"
                     >
                       <Copy className="w-3 h-3" />
@@ -900,7 +926,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   value={transitionToDraft}
                   onChange={(e) => setTransitionToDraft(e.target.value)}
                   placeholder="描述到下一个片段的转场效果..."
-                  className="w-full h-16 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-50 placeholder:text-slate-600"
+                  className="w-full h-20 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
                 />
               </div>
 
@@ -925,11 +951,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       </div>
 
       {/* Bottom: Segments List - Horizontal Scroll */}
-      <div className="h-40 border-t border-slate-600 bg-slate-800/50">
+      <div className="h-42 border-t border-slate-600 bg-slate-700/50">
         <p className="text-xs text-slate-400 font-mono px-4 py-3">
           {(project.segments || []).length} 个片段 · {totalShots} 个分镜 · 总时长 {totalDuration.toFixed(1)} 秒
         </p>
-        <div ref={scrollContainerRef} className="overflow-x-auto overflow-y-hidden px-4">
+        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="pb-2 overflow-x-auto overflow-y-hidden px-4 custom-scrollbar">
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
               <p className="text-xs">暂无片段，请先在导演工作台创建分镜</p>
@@ -960,10 +986,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         segmentRefs.current.delete(segment.id);
                       }
                     }}
-                    className={`flex-shrink-0 w-48 bg-slate-900 border rounded-lg overflow-hidden cursor-pointer transition-all ${
+                    className={`flex-shrink-0 w-48 bg-slate-900 border rounded-lg overflow-hidden cursor-pointer transition-all group ${
                       isSelected
-                        ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-500/20'
-                        : 'border-slate-600 hover:border-slate-400 hover:shadow-lg'
+                        ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-700/40'
+                        : 'border-slate-600 hover:border-slate-400 hover:shadow-lg shadow-indigo-800/60'
                     }`}
                     onClick={() => setSelectedSegmentId(segment.id)}
                     onMouseEnter={() => setHoveredSegmentId(segment.id)}
@@ -975,7 +1001,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         <img
                           src={thumbnail}
                           alt={`片段 ${index + 1}`}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-600">
@@ -990,12 +1016,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                       <div className="absolute top-1 right-1 bg-slate-900/80 text-slate-300 text-[10px] px-1.5 py-0.5 rounded">
                         {segment.estimatedDuration.toFixed(0)}s
                       </div>
-                      {/* Play Icon on Hover */}
-                      {hoveredSegmentId === segment.id && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <Play className="w-5 h-5 text-white" />
-                        </div>
-                      )}
                       {/* Bottom Actions */}
                       <div className="absolute bottom-1 w-full flex items-center justify-between px-1.5 py-0.5">
                         <span className="text-[10px] text-slate-500 font-mono">
@@ -1007,7 +1027,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                               e.stopPropagation();
                               handleEditSegment(segment);
                             }}
-                            className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200 transition-colors"
+                            className="p-1 group-hover:bg-slate-700 rounded text-slate-400 group-hover:text-slate-200 transition-colors cursor-pointer"
                           >
                             <Edit className="w-3 h-3" />
                           </button>
@@ -1016,7 +1036,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                               e.stopPropagation();
                               handleDeleteSegment(segment.id);
                             }}
-                            className="p-1 hover:bg-red-900/30 rounded text-slate-400 hover:text-red-400 transition-colors"
+                            className="p-1 group-hover:bg-slate-700 rounded text-slate-400 group-hover:text-red-400 transition-colors cursor-pointer"
                           >
                             <Trash className="w-3 h-3" />
                           </button>
@@ -1025,13 +1045,13 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </div>
                   </div>
                   {/* Add Segment Button - Invisible by default, visible on hover */}
-                  <div className="flex items-center h-26 justify-center w-6 z-10 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                  <div className="flex items-center h-26 justify-center w-0.5 mx-1 hover:bg-indigo-500 z-10 opacity-0 hover:opacity-100 transition-opacity duration-200">
                     <button
                       onClick={() => handleAddSegmentAfter(index)}
-                      className="w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-all hover:scale-110"
+                      className="p-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-all hover:scale-110 cursor-pointer"
                       title="在此后添加片段"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3 h-3" />
                     </button>
                   </div>
                 </React.Fragment>

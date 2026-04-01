@@ -57,11 +57,14 @@ const migrateShotCharacterNamesToIds = (project: ProjectState): ProjectState => 
   
   if (!needsMigration) return project;
   
+  // Cache scriptData characters for faster lookup
+  const scriptDataCharacters = project.scriptData.characters;
+  
   const migratedShots = project.shots.map(shot => ({
     ...shot,
     characters: shot.characters?.map(c => {
       // If c is already an ID (exists in map values), keep it
-      if (project.scriptData!.characters!.some(ch => ch.id === c)) return c;
+      if (scriptDataCharacters.some(ch => ch.id === c)) return c;
       // Otherwise try to convert from name to ID
       return characterNameToId.get(c) || c;
     }) || []

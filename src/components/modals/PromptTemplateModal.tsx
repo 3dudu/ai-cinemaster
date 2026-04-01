@@ -190,6 +190,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
      - 图像风格必须为：{visualStyle}
      - 人物五官特征要与基本形象一致，或具有延续性
      - 为新造型设计新的服装，饰品，动作，表情等
+     - 重点描述新造型的变化和特征，角色的基本信息不要过多描述
      - 要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
      - 聚焦视觉细节（光线、材质、质感、外观）。`,
       'JOIN_IMAGES': `请将这些图片拼成一张{imageCount}宫格图片，图片之间留有1个像素的间隔，最终图片大小为{imageSize}。`,
@@ -566,7 +567,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-60 bg-slate-700/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
+    <div className="fixed inset-0 z-60 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
       <div className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-6xl h-[80vh] flex flex-col">
         {/* 标题栏 */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
