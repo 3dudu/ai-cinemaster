@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
           outDir: path.resolve(__dirname, 'dist'),
           registerType: 'autoUpdate',
           workbox: {
-            globDirectory: '.',
+            globDirectory: path.resolve(__dirname, 'dist'),
             globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
             globIgnores: [
               'node_modules/**/*',
@@ -52,7 +52,7 @@ export default defineConfig(({ mode }) => {
               'workbox-*.js'
             ]
           },
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+          includeAssets: ['128x128.png', '192x192.png', '512x512.png'],
           manifest: {
             name: 'AI漫剧工场',
             short_name: 'AI漫剧',
