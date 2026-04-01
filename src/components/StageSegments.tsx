@@ -15,6 +15,7 @@ import {
 } from '../utils/segmentUtils';
 import { useDialog } from './dialog';
 import SegmentEditModal from './modals/SegmentEditModal';
+import SegmentPreviewModal from './modals/SegmentPreviewModal';
 
 interface StageSegmentsProps {
   project: ProjectState;
@@ -60,6 +61,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [editingScript, setEditingScript] = useState(false);  // 控制描述编辑区显示
   const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);  // 视频生成状态
   const [insertIndex, setInsertIndex] = useState<number | null>(null);  // 新片段插入位置
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);  // 预览模态框状态
 
   // Refs for auto-scroll to selected segment
   const segmentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -305,34 +307,24 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   // Get thumbnail image for segment (first shot's scene image, fallback to start keyframe)
   const getSegmentThumbnail = useCallback(
     (segment: Segment): string | undefined => {
-      if (segment.shotIds.length === 0) return undefined;
-      const firstShotId = segment.shotIds[0];
-      
-      // Use cached shots map for O(1) lookup instead of O(n) find
-      const shotsMap = new Map(project.shots.map(shot => [shot.id, shot]));
-      const firstShot = shotsMap.get(firstShotId);
-      if (!firstShot) return undefined;
-
-      // Priority 1: Get scene reference image (with series library support)
-      const scene = activeScenes.find((s) => String(s.id) === String(firstShot.sceneId));
-      if (scene) {
+      const sceneid = segment.sceneIds[0];
+      if (sceneid) {
         // In series mode, get scene from library for full assets
-        if (isSeriesMode && scene.refId && series?.library?.scenes) {
-          const libraryScene = series.library.scenes.find((s) => s.id === scene.refId);
+        if (isSeriesMode){
+          if(series?.library?.scenes) {
+          const libraryScene = series.library.scenes.find((s) => s.id === sceneid);
           if (libraryScene?.referenceImage) {
             return libraryScene.referenceImage;
           }
-        }
-        // Use project scene reference image
-        if (scene.referenceImage) {
-          return scene.referenceImage;
+        }else{
+          const scene = project.scriptData.scenes.find((s) => s.id === sceneid);
+          if (scene?.referenceImage) {
+            return scene.referenceImage;
+          }
         }
       }
-
-      // Priority 2: Fallback to shot's start keyframe
-      return firstShot.keyframes?.find((k) => k.type === 'start')?.imageUrl;
-    },
-    [project.shots, activeScenes, isSeriesMode, series?.library?.scenes],
+    }},
+    [project, isSeriesMode, series?.library?.scenes],
   );
 
   // Calculate total duration - memoized to prevent re-calculation
@@ -658,6 +650,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setPreviewModalOpen(true)}
+            disabled={(project.segments || []).filter(s => s.videoUrl).length === 0}
+            className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            title="预览所有片段视频"
+          >
+            <Play className="w-3 h-3" />
+            {!isMobile && '预览片段'}
+          </button>
+          <button
             onClick={handleReconvertSegments}
             disabled={project.shots.length === 0}
             className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -697,7 +698,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         {selectedSegment ? (
           <>
             {/* Left: Video Preview (2/3) */}
-            <div className={`${editingScript && isMobile?'hidden':''} ${editingScript ? 'border-r' : ''} border-slate-600 p-4 flex flex-col flex-1 overflow-y-auto transition-all duration-500 ease-in-out`}>
+            <div className={`${editingScript && isMobile?'hidden':''} ${editingScript ? 'border-r' : ''} border-slate-600 p-2 md:p-4 flex flex-col flex-1 overflow-y-auto transition-all duration-500 ease-in-out`}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-bold text-slate-50 flex items-center gap-2">
                   <Play className="w-4 h-4 text-slate-500" />
@@ -710,7 +711,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600 p-2 md:p-4">
                 <div className="w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg overflow-hidden border border-slate-600 relative shadow-lg">
                 {selectedSegment.videoUrl ? (
-                  <video
+                  <video crossOrigin="anonymous"
                     src={selectedSegment.videoUrl}
                     controls
                     className="w-full h-full object-contain"
@@ -934,7 +935,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               {/* Save Button */}
               <button
                 onClick={handleSaveDescription}
-                className="m-4 px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center justify-center gap-2 hover:bg-slate-600 border border-slate-600 cursor-pointer"
+                className="m-4 px-2 md:px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center justify-center gap-2 hover:bg-slate-600 border border-slate-600 cursor-pointer"
               >
                 保存描述
               </button>
@@ -951,11 +952,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       </div>
 
       {/* Bottom: Segments List - Horizontal Scroll */}
-      <div className="h-42 border-t border-slate-600 bg-slate-700/50">
+      <div className="pb-1 border-t border-slate-600 bg-slate-700/50">
         <p className="text-xs text-slate-400 font-mono px-4 py-3">
           {(project.segments || []).length} 个片段 · {totalShots} 个分镜 · 总时长 {totalDuration.toFixed(1)} 秒
         </p>
-        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="pb-2 overflow-x-auto overflow-y-hidden px-4 custom-scrollbar">
+        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="pb-2 mx-2 md:mx-4 overflow-x-auto overflow-y-hidden custom-scrollbar">
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
               <p className="text-xs">暂无片段，请先在导演工作台创建分镜</p>
@@ -986,7 +987,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         segmentRefs.current.delete(segment.id);
                       }
                     }}
-                    className={`flex-shrink-0 w-48 bg-slate-900 border rounded-lg overflow-hidden cursor-pointer transition-all group ${
+                    className={`flex-shrink-0 w-48 bg-slate-900 border rounded-lg overflow-hidden cursor-pointer transition-all ${
                       isSelected
                         ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-700/40'
                         : 'border-slate-600 hover:border-slate-400 hover:shadow-lg shadow-indigo-800/60'
@@ -996,7 +997,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     onMouseLeave={() => setHoveredSegmentId(null)}
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-full h-26 bg-slate-800">
+                    <div className="relative w-full h-26 bg-slate-800 group">
                       {thumbnail ? (
                         <img
                           src={thumbnail}
@@ -1045,7 +1046,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </div>
                   </div>
                   {/* Add Segment Button - Invisible by default, visible on hover */}
-                  <div className="flex items-center h-26 justify-center w-0.5 mx-1 hover:bg-indigo-500 z-10 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                  <div className="flex items-center h-26 justify-center w-0.5 mx-1 hover:bg-indigo-500 z-10 opacity-100 md:opacity-0 hover:opacity-100 transition-opacity duration-200">
                     <button
                       onClick={() => handleAddSegmentAfter(index)}
                       className="p-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-all hover:scale-110 cursor-pointer"
@@ -1075,6 +1076,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           onSave={handleSaveSegment}
         />
       )}
+
+      {/* Segment Preview Modal */}
+      <SegmentPreviewModal
+        segments={project.segments || []}
+        projectTitle={project.title}
+        isOpen={previewModalOpen}
+        onClose={() => setPreviewModalOpen(false)}
+        getSegmentThumbnail={getSegmentThumbnail}
+      />
     </div>
   );
 };
