@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, Play, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, ListVideo, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, Play, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
@@ -1136,10 +1136,18 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                          >
                                              {displayImage && <img src={displayImage} className="w-full h-full object-cover" />}
                                          </div>
-                                         <span className="text-[11px] text-slate-300 font-medium">{char.name}</span>
                                      </div>
-
-                                     <div className="flex items-center gap-2">
+                                     <div className="flex pl-2 items-end gap-2 flex-col flex-1">
+                                      <div className="flex items-center gap-2 justify-between w-full">
+                                         <span className="text-[11px] text-slate-300 font-medium">{char.name}</span>
+                                         <button
+                                             onClick={() => setSelectedCharId(char.id)}
+                                             className="p-1.5 bg-slate-700/50 text-slate-400 hover:text-slate-50 rounded-full hover:bg-slate-800/20 transition-all border border-white/10 cursor-pointer"
+                                             title="管理造型"
+                                         >
+                                        <Shirt className="w-3 h-3" />
+                                        </button>
+                                      </div>
                                          {hasVars && (
                                              <CustomSelect
                                                 options={[
@@ -1148,17 +1156,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                                 ]}
                                                 value={activeShot.characterVariations?.[String(char.id)] || ""}
                                                 onChange={(value) => handleVariationChange(activeShot.id, String(char.id), value)}
-                                                className="min-w-[60px]"
+                                                className="min-w-[145px]"
                                                 size="sm"
                                              />
                                          )}
-                                         <button
-                                             onClick={() => setSelectedCharId(char.id)}
-                                             className="p-1.5 bg-slate-700/50 text-slate-400 hover:text-slate-50 rounded-full hover:bg-slate-800/20 transition-all border border-white/10 cursor-pointer"
-                                             title="管理造型"
-                                         >
-                                        <Shirt className="w-3 h-3" />
-                                         </button>
                                      </div>
                                  </div>
                              );
@@ -1229,7 +1230,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                 className="px-4 py-2 rounded-lg border border-indigo-600 bg-indigo-700/20 text-indigo-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-600/30 hover:border-indigo-500 cursor-pointer"
                 title="切换到片段模式"
               >
-                <Film className="w-3 h-3" />
+                <ListVideo className="w-3 h-3" />
                 <span className='hidden lg:inline'>{!isMobile && '片段模式'}</span>
               </button>
             )}
@@ -1664,7 +1665,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                        <textarea
                                            value={fullKf.visualPrompt || ''}
                                            onChange={(e) => updateKeyframePrompt(activeShot.id, 'full', e.target.value)}
-                                           className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-all"
+                                           className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-16 transition-all"
                                            placeholder="输入宫格图画面描述..."
                                            rows={3}
                                        />
@@ -1751,7 +1752,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            <textarea
                                                value={startKf.visualPrompt || ''}
                                                onChange={(e) => updateKeyframePrompt(activeShot.id, 'start', e.target.value)}
-                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-all"
+                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-16 transition-all"
                                                placeholder="输入起始帧画面描述..."
                                                rows={3}
                                            />
@@ -1836,7 +1837,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                            <textarea
                                                value={endKf.visualPrompt || ''}
                                                onChange={(e) => updateKeyframePrompt(activeShot.id, 'end', e.target.value)}
-                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-18 transition-all"
+                                               className="w-full bg-slate-800 border border-slate-600 text-slate-300 text-xs rounded p-2 focus:border-slate-500 focus:outline-none resize-none h-16 transition-all"
                                                placeholder="输入结束帧画面描述..."
                                                rows={3}
                                            />

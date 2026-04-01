@@ -77,8 +77,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       {/* Project Status */}
       {!collapsed ? (
         <div className="px-6 py-2 border-b border-slate-700">
+            {isSeriesMode && (
            <div className="overflow-hidden pr-2 flex items-center">
-            {isSeriesMode && (<>
             <h1 className="text-[12px] font-bold text-slate-400 line-clamp-1 tracking-wide">{serieName}</h1>
             <button
               onClick={onOpenSeriesManager}
@@ -87,11 +87,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
               >
               <FolderOpen className="w-4 h-4" />
             </button>
-              </>
-            )}
             </div>
+            )}
            <div className="overflow-hidden pr-2 flex items-center">
-             <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide">{projectName || '未命名项目'}</h1>
+           <h1 className="text-xs font-bold text-slate-50 line-clamp-1 tracking-wide">{projectName || '未命名项目'}</h1>
            <button
                 onClick={() => setShowProjectSettings(true)}
               className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
@@ -102,13 +101,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         </div>
       ):(
         <div className="px-6 py-2 border-b border-slate-700 flex items-center flex-col">
-          <button
+           {isSeriesMode && (
+           <button
               onClick={onOpenSeriesManager}
               className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
               title="剧集管理"
               >
               <FolderOpen className="w-4 h-4" />
             </button>
+          )}
           <button
                 onClick={() => setShowProjectSettings(true)}
               className="flex justify-center text-slate-500 hover:text-slate-50 cursor-pointer transition-colors p-2 hover:bg-slate-700 rounded-lg"
