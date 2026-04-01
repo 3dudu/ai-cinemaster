@@ -1,7 +1,7 @@
 import { Calendar, ChevronLeft, ChevronRight, Download, Edit3, Film, Loader2, Play, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { createSeriesEpisode, getEffectiveScriptData, importProjectAsEpisode } from '../../services/seriesService';
-import { exportProjectToFile, getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
+import { deleteProjectFromDB, exportProjectToFile, getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
 import { ProjectState, Segment, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';
 import EpisodePreviewModal from './EpisodePreviewModal';
@@ -158,7 +158,6 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     try {
       if (deleteData) {
         // Delete project from DB
-        const { deleteProjectFromDB } = await import('../../services/storageService');
         await deleteProjectFromDB(projectId);
       } else {
         // Just remove series reference
