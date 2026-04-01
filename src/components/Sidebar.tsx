@@ -124,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         {navItems.map((item) => {
           const isActive = currentStage === item.id;
           return (
-            <button
+            (project.isSegmentMode&&item.id!='director' || !project.isSegmentMode&&item.id!='segments') && <button
               key={item.id}
               onClick={() => setStage(item.id as any)}
               className={`w-full flex ${collapsed ? 'flex-col' : 'flex-row'} cursor-pointer flex-col items-center justify-between px-6 py-4 transition-all duration-200 group relative border-l-2 ${

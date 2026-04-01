@@ -151,7 +151,7 @@ const SegmentPreviewModal: React.FC<SegmentPreviewModalProps> = ({
         </div>
 
         {/* Video Player */}
-        <div className="flex-1 bg-slate-900 overflow-hidden flex flex-col items-center justify-center px-4 pt-4">
+        <div className="flex-1 bg-slate-900 overflow-hidden flex flex-col items-center justify-center px-2 pt-2 md:px-4 md:pt-4">
           <div className="w-full aspect-[16/9] bg-slate-700 rounded-lg overflow-hidden relative">
             <video
               ref={videoRef}
@@ -179,7 +179,7 @@ const SegmentPreviewModal: React.FC<SegmentPreviewModalProps> = ({
         </div>
 
         {/* Thumbnail Strip */}
-        <div className="p-4 bg-slate-800 border-t border-slate-600">
+        <div className="md:p-4 p-2 bg-slate-800 border-t border-slate-600">
           <div className="flex items-center justify-between mb-2">
             <div className="text-xs text-slate-400 font-mono">
               片段序列 ({videoUrls.length} 个视频)

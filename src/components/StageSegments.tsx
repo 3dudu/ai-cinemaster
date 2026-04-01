@@ -649,6 +649,18 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {project.shots.length > 0 && (
+            <button
+              onClick={() => {
+                updateProject({ stage: 'director', isSegmentMode: false });
+              }}
+              className="px-4 py-2 rounded-lg border border-indigo-600 bg-indigo-700/20 text-indigo-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-600/30 hover:border-indigo-500 cursor-pointer"
+              title="切换到分镜模式"
+            >
+              <ListVideo className="w-3 h-3" />
+              <span className='hidden lg:inline'>{!isMobile && '分镜模式'}</span>
+            </button>
+          )}
           <button
             onClick={() => setPreviewModalOpen(true)}
             disabled={(project.segments || []).filter(s => s.videoUrl).length === 0}
@@ -759,7 +771,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs border border-slate-500 font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 cursor-pointer"
                 >
                   <NotebookPen className="w-3 h-3" />
-                  编辑提示词
+                  {!isMobile && '编辑提示词'}
                 </button>
                 <button
                   onClick={handleGenerateSegmentVideo}
@@ -771,7 +783,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   ) : (
                     <Video className="w-3 h-3" />
                   )}
-                  {selectedSegment.videoUrl ? '重新生成视频' : '生成视频'}
+                  {!isMobile && (selectedSegment.videoUrl ? '重新生成视频' : '生成视频')}
                 </button>
               </div>
               </div>

@@ -108,7 +108,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
         {navItems.map((item) => {
           const isActive = currentStage === item.id;
           return (
-            <button
+            (project.isSegmentMode&&item.id!='director' || !project.isSegmentMode&&item.id!='segments') && <button
               key={item.id}
               onClick={() => setStage(item.id as any)}
               className={`
