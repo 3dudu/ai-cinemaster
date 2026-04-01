@@ -84,6 +84,7 @@ export default defineConfig(({ mode }) => {
       },
       build: {
         outDir: path.resolve(__dirname, 'build'),
+        emptyOutDir: true,  // 添加这一行
         assetsDir: 'assets',
         rollupOptions: {
           output: {
