@@ -203,14 +203,6 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         visualStyle: args[3] || '真人写实',
         genre: args[4] || '剧情片'
       };
-    case 'AI_SPLIT_SEGMENTS':
-      return {
-        shotsJson: args[0] || '[]',
-        charactersMap: args[1] || '',
-        scenesMap: args[2] || '',
-        visualStyle: args[3] || '真人写实',
-        genre: args[4] || '剧情片'
-      };
     default:
       return {};
   }

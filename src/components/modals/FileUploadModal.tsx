@@ -162,7 +162,7 @@ const FileUploadModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="absolute inset-0 z-50 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+    <div className="absolute inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
             {/* Image Preview Modal */}
             {previewImage && (
               <div className="fixed inset-0 z-50 bg-slate-700/95 flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>

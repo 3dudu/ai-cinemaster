@@ -121,7 +121,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
   const availableCharacters = allCharacters.filter((c) => !selectedCharacterIds.has(c.id));
 
   return (
-    <div className="fixed inset-0 z-60 bg-slate-700/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
+    <div className="fixed inset-0 z-60 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
       <div className="bg-slate-800 border border-slate-600 rounded-2xl w-[700px] max-w-[90vw] h-[85vh] overflow-hidden shadow-2xl flex flex-col select-text">
         {/* Header */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
@@ -407,7 +407,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
       {/* Fullscreen Image Preview Modal */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-[60] bg-slate-700/90 backdrop-blur-sm flex items-center justify-center"
+          className="fixed inset-0 z-[60] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center"
           onClick={() => setPreviewImage(null)}
         >
           <button

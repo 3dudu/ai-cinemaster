@@ -519,7 +519,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     if (activeSegmentIndex > 0) {
       setSelectedSegmentId(segments[activeSegmentIndex - 1].id);
     }
-  }, [activeSegmentIndex, project.segments]);
+  }, [activeSegmentIndex, project.segments])
+
+  // Handle wheel event for horizontal scrolling
+  const handleThumbnailWheel = useCallback((e: React.WheelEvent) => {
+    if (scrollContainerRef.current) {
+      e.preventDefault();
+      scrollContainerRef.current.scrollLeft += e.deltaY;
+    }
+  }, []);
 
   // Navigate to next segment
   const goToNextSegment = useCallback(() => {
@@ -779,12 +787,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               {/* Description */}
               <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
-                <div className="relative h-[40vh]">
+                <div className="relative h-[35vh]">
                   <textarea
                     value={descriptionDraft}
                     onChange={(e) => setDescriptionDraft(e.target.value)}
                     placeholder="输入片段描述..."
-                    className="w-full h-full p-3 pb-14 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-50 placeholder:text-slate-600"
+                    className="w-full h-full p-3 pb-14 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
                   />
                   {/* 底部悬浮按钮层 */}
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border border-slate-600 border-t-slate-600/50 rounded-b-lg flex items-center justify-between">
@@ -837,7 +845,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     <button
                       onClick={handleGenerateTransitionFrom}
                       disabled={generatingTransition}
-                      className="p-1.5 text-[10px] text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 text-[10px] text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       title="AI生成"
                     >
                       {generatingTransition ? (
@@ -850,7 +858,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     <button
                       onClick={() => handleCopyText(transitionFromDraft, '入场转场')}
                       disabled={!transitionFromDraft}
-                      className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       title="复制"
                     >
                       <Copy className="w-3 h-3" />
@@ -861,7 +869,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   value={transitionFromDraft}
                   onChange={(e) => setTransitionFromDraft(e.target.value)}
                   placeholder="描述从上一个片段的转场效果..."
-                  className="w-full h-16 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-50 placeholder:text-slate-600"
+                  className="w-full h-20 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
                 />
               </div>
 
@@ -876,8 +884,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     <button
                       onClick={handleGenerateTransitionTo}
                       disabled={generatingTransition}
-                      className="p-1.5 text-[10px] text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="AI生成"
+                      className="p-1.5 text-[10px] text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      title="AI 生成"
                     >
                       {generatingTransition ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -889,7 +897,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     <button
                       onClick={() => handleCopyText(transitionToDraft, '出场转场')}
                       disabled={!transitionToDraft}
-                      className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       title="复制"
                     >
                       <Copy className="w-3 h-3" />
@@ -900,7 +908,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   value={transitionToDraft}
                   onChange={(e) => setTransitionToDraft(e.target.value)}
                   placeholder="描述到下一个片段的转场效果..."
-                  className="w-full h-16 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-50 placeholder:text-slate-600"
+                  className="w-full h-20 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
                 />
               </div>
 
@@ -925,11 +933,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       </div>
 
       {/* Bottom: Segments List - Horizontal Scroll */}
-      <div className="h-40 border-t border-slate-600 bg-slate-800/50">
+      <div className="h-42 border-t border-slate-600 bg-slate-800/50">
         <p className="text-xs text-slate-400 font-mono px-4 py-3">
           {(project.segments || []).length} 个片段 · {totalShots} 个分镜 · 总时长 {totalDuration.toFixed(1)} 秒
         </p>
-        <div ref={scrollContainerRef} className="overflow-x-auto overflow-y-hidden px-4">
+        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="pb-2 overflow-x-auto overflow-y-hidden px-4 custom-scrollbar">
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
               <p className="text-xs">暂无片段，请先在导演工作台创建分镜</p>
@@ -1007,7 +1015,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                               e.stopPropagation();
                               handleEditSegment(segment);
                             }}
-                            className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200 transition-colors"
+                            className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
                           >
                             <Edit className="w-3 h-3" />
                           </button>
@@ -1016,7 +1024,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                               e.stopPropagation();
                               handleDeleteSegment(segment.id);
                             }}
-                            className="p-1 hover:bg-red-900/30 rounded text-slate-400 hover:text-red-400 transition-colors"
+                            className="p-1 hover:bg-red-900/30 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
                           >
                             <Trash className="w-3 h-3" />
                           </button>
@@ -1025,13 +1033,13 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </div>
                   </div>
                   {/* Add Segment Button - Invisible by default, visible on hover */}
-                  <div className="flex items-center h-26 justify-center w-6 z-10 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                  <div className="flex items-center h-26 justify-center w-0.5 mx-1 hover:bg-indigo-500 z-10 opacity-0 hover:opacity-100 transition-opacity duration-200">
                     <button
                       onClick={() => handleAddSegmentAfter(index)}
-                      className="w-6 h-6 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-all hover:scale-110"
+                      className="w-4 h-4 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-all hover:scale-110 cursor-pointer"
                       title="在此后添加片段"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 </React.Fragment>

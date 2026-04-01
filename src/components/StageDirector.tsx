@@ -2049,7 +2049,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           {/* Fullscreen Image Preview Modal */}
           {previewImageUrl && (
             <div
-              className="fixed inset-0 z-[100] bg-slate-700/90 backdrop-blur-sm flex items-center justify-center"
+              className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center"
               onClick={() => setPreviewImageUrl(null)}
             >
               <img
