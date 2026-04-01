@@ -263,7 +263,7 @@ const WardrobeModal: React.FC<Props> = ({
   if (!character) return null;
 
   return (
-    <div className="absolute inset-0 z-50 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
+    <div className="absolute inset-0 z-45 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
         <div className="bg-slate-800 border border-slate-600 w-full max-w-4xl max-h-[80vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
             <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between shrink-0 bg-slate-600/80">
@@ -325,7 +325,7 @@ const WardrobeModal: React.FC<Props> = ({
                                                 placeholder="服饰 / 状态的视觉描述……"
                                                 value={editVarPrompt}
                                                 onChange={e => setEditVarPrompt(e.target.value)}
-                                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 pb-10 text-xs text-slate-50 placeholder:text-slate-600 focus:border-amber-500 focus:outline-none transition-all resize-none h-48"
+                                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 pb-10 text-xs text-slate-50 placeholder:text-slate-600 focus:border-amber-500 focus:outline-none transition-all resize-none h-49"
                                             />
                                             {/* 底部浮动按钮 */}
                                             <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-slate-800/80 backdrop-blur-sm border border-slate-600 rounded-b flex items-center justify-between">
@@ -417,11 +417,11 @@ const WardrobeModal: React.FC<Props> = ({
                         </div>
 
                         <div className="space-y-4">
-                            <div className="flex overflow-y-auto h-[45vh]"> 
+                            <div className="overflow-y-auto h-[45vh]"> 
                             <div className="grid grid-cols-2 gap-4"> 
                             {/* List */}
                             {(character.variations || []).map((variation) => (
-                                <div key={variation.id} className="flex flex-col gap-4 p-4 bg-slate-800 border border-slate-600 rounded-xl group hover:border-slate-300 transition-colors">
+                                <div key={variation.id} className="flex aspect-square overflow-hidden flex-col gap-4 p-4 bg-slate-800 border border-slate-600 rounded-xl group hover:border-slate-300 transition-colors">
                                     <div className={`aspect-[16/9] bg-slate-900 rounded-lg flex-shrink-0 overflow-hidden relative border border-slate-600 ${variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? 'cursor-pointer' : ''}`} onClick={variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? () => setPreviewImage(variation.referenceImage) : undefined}>
                                         {variation.referenceImage ? (
                                             <img src={variation.referenceImage} className="w-full h-full object-contain hover:scale-105 transition-transform duration-200" />

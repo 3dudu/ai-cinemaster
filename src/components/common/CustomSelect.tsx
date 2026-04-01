@@ -112,7 +112,7 @@ const CustomSelect: React.FC<Props> = ({
       </button>
 
       {showDropdown && !disabled && (
-        <div className={`absolute z-50 w-full bg-slate-700 border border-slate-500 rounded-md shadow-lg max-h-60 overflow-auto ${
+        <div className={`absolute z-60 w-full bg-slate-700 border border-slate-500 rounded-md shadow-lg max-h-60 overflow-auto ${
           (dropdownPosition === 'top' || shouldDropUp) ? 'bottom-full mb-1' : 'mt-1'
         }`}>
           {allowEmpty && (

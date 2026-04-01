@@ -123,9 +123,7 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-700/80 backdrop-blur-sm"
-    >
+    <div className="absolute inset-0 z-50 bg-slate-700/90 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
       <div className="bg-slate-800 border border-slate-600 rounded-2xl w-[600px] max-w-[90vw] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col select-text">
         {/* 标题栏 */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
@@ -200,7 +198,7 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
                 placeholder="请输入视觉生成提示词"
               />
               {/* 底部覆盖层 */}
-              <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border-t border-slate-600/50 rounded-b-md flex items-center justify-between">
+              <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border border-slate-600 rounded-b-md flex items-center justify-between">
                 {/* 左边字数统计 */}
                 <span className="text-[11px] text-slate-400 font-mono">
                   {formData.visualPrompt.length} 字
