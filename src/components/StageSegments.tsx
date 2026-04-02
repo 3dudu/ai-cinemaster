@@ -381,6 +381,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       transitionTo: transitionToDraft,
       lastModified: Date.now(),
     };
+    setEditingSegment(selectedSegment);
     handleSaveSegment(updatedSegment);
     dialog.toast({ message: '描述已保存' ,type: 'success'});
   }, [selectedSegment, descriptionDraft, transitionFromDraft, transitionToDraft, handleSaveSegment, dialog]);

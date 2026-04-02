@@ -14,7 +14,7 @@ import StageScript from './components/StageScript';
 import StageSegments from './components/StageSegments';
 import { initializeCozeConfig } from './services/modelproviders/cozeService';
 import { ModelService } from './services/modelService';
-import { getAllProjectsMetadata, loadSeriesFromDB, saveProjectToDB, saveSeriesToDB } from './services/storageService';
+import { loadSeriesFromDB, saveProjectToDB, saveSeriesToDB } from './services/storageService';
 import { ProjectState, SeriesRecord } from './types';
 
 function App() {
@@ -27,7 +27,6 @@ function App() {
   const [isMd, setIsMd] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showSeriesManager, setShowSeriesManager] = useState(false);
-  const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
 
   // Ref to hold debounce timer
   const saveTimeoutRef = useRef<any>(null);
@@ -128,17 +127,6 @@ function App() {
     // 设置项目的模型供应商配置
     setProject(proj);
     ModelService.setCurrentProjectProviders(proj.modelProviders);
-    
-    // Load all projects for series manager
-    if(!allProjects || allProjects.length==0){
-      try {
-        const projects = await getAllProjectsMetadata();
-        setAllProjects(projects);
-      } catch (err) {
-        console.error('Failed to load projects:', err);
-      }
-    }
-    
     // If project belongs to a series, load the series
     if (proj.seriesRefId) {
       try {
@@ -151,7 +139,6 @@ function App() {
     } else {
       setSeries(null);
     }
-    
   };
 
   const handleClearKey = () => {
@@ -307,8 +294,6 @@ function App() {
             series={series}
             onSeriesUpdate={setSeries}
             onSwitchEpisode={handleOpenProject}
-            allProjects={allProjects}
-            onProjectsUpdate={setAllProjects}
             isMobile={isMobile}
           />
         )}

@@ -470,9 +470,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             prompt = prompt+"\n2. **画面结束**:"+eKf?.visualPrompt+"；";
           }
       }
+    }else{
+      const referencePrompt = getRefImagesDescForShot(shot);
+      prompt = prompt+"\n"+referencePrompt;
     }
     prompt = prompt + (dialogueText?"\n###对白\n "+dialogueText:"");
     prompt = prompt+"\n\n##按照上面描述生成 "+localStyle+" 风格的视频！";
+
+    const referenceImages = getRefImagesForShot(shot);
 
     try {
       const videoUrl = await ModelService.generateVideo(
@@ -486,7 +491,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           project.imageSize,
           localStyle,
           shot.id,
-          [],
+          referenceImages,
           project.seed
       );
 

@@ -109,6 +109,29 @@ export const getAllProjectsMetadata = async (): Promise<ProjectState[]> => {
   });
 };
 
+/**
+ * 根据 seriesRefId 获取连续剧下的全部剧集
+ * @param seriesRefId - 连续剧ID
+ * @returns 该连续剧下的所有剧集，按 lastModified 降序排列
+ */
+export const getEpisodesBySeriesId = async (seriesRefId: string): Promise<ProjectState[]> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const projects = request.result as ProjectState[];
+      // Filter by seriesRefId and sort by last modified descending
+      const episodes = projects
+        .filter(p => p.seriesRefId === seriesRefId)
+        .sort((a, b) => b.lastModified - a.lastModified);
+      resolve(episodes);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
 export const deleteProjectFromDB = async (id: string): Promise<void> => {
   const db = await openDB();
   return new Promise((resolve, reject) => {

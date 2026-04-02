@@ -1,7 +1,7 @@
 import { Calendar, ChevronLeft, ChevronRight, Download, Edit3, Film, Loader2, Play, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createSeriesEpisode, getEffectiveScriptData, importProjectAsEpisode } from '../../services/seriesService';
-import { deleteProjectFromDB, exportProjectToFile, getAllProjectsMetadata, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
+import { deleteProjectFromDB, exportProjectToFile, getEpisodesBySeriesId, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
 import { ProjectState, Segment, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';
 import EpisodePreviewModal from './EpisodePreviewModal';
@@ -15,8 +15,8 @@ interface SeriesManagerModalProps {
   series: SeriesRecord;
   onSeriesUpdate: (updatedSeries: SeriesRecord) => void;
   onSwitchEpisode: (project: ProjectState) => void;
-  allProjects: ProjectState[];
-  onProjectsUpdate?: (projects: ProjectState[]) => void; // Callback to refresh all projects
+  allProjects?: ProjectState[]; // Deprecated: no longer needed, episodes are fetched from DB
+  onProjectsUpdate?: (projects: ProjectState[]) => void; // Deprecated: no longer used
   isMobile?: boolean;
 }
 
@@ -26,8 +26,6 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   series,
   onSeriesUpdate,
   onSwitchEpisode,
-  allProjects,
-  onProjectsUpdate,
   isMobile = false
 }) => {
   const dialog = useDialog();
@@ -40,25 +38,29 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   // Video preview state
   const [previewingEpisode, setPreviewingEpisode] = useState<ProjectState | null>(null);
 
-  // ✅ Use useCallback to prevent re-creation
-  const refreshProjects = useCallback(async () => {
-    if (onProjectsUpdate) {
-      try {
-        const projects = await getAllProjectsMetadata();
-        onProjectsUpdate(projects);
-      } catch (err) {
-        console.error('Failed to refresh projects:', err);
-      }
-    }
-  }, [onProjectsUpdate]);
+  // Episodes state - fetched from DB by seriesRefId
+  const [episodes, setEpisodes] = useState<ProjectState[]>([]);
+  const [loadingEpisodes, setLoadingEpisodes] = useState(false);
 
-  // Get episodes for this series
-  const episodes = useMemo(() => {
-    const projectMap = new Map(allProjects.map(p => [p.id, p]));
-    return series.episodeOrder
-      .map(id => projectMap.get(id))
-      .filter((p): p is ProjectState => p !== undefined);
-  }, [series.episodeOrder, allProjects]);
+  // Fetch episodes when series changes
+  useEffect(() => {
+    if (isOpen && series.id) {
+      setLoadingEpisodes(true);
+      getEpisodesBySeriesId(series.id)
+        .then(fetchedEpisodes => {
+          // Sort by episodeOrder
+          const ordered = series.episodeOrder
+            .map(id => fetchedEpisodes.find(e => e.id === id))
+            .filter((p): p is ProjectState => p !== undefined);
+          setEpisodes(ordered);
+        })
+        .catch(err => {
+          console.error('Failed to fetch episodes:', err);
+          setEpisodes([]);
+        })
+        .finally(() => setLoadingEpisodes(false));
+    }
+  }, [isOpen, series.id, series.episodeOrder]);
 
   // Format date - ✅ Use useCallback
   const formatDate = useCallback((ts: number) => {
@@ -116,9 +118,6 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
         // Update parent
         onSeriesUpdate(updatedSeries);
 
-        // Refresh projects list to update the grid
-        await refreshProjects();
-
         dialog.toast({ message: '分集导入成功', type: 'success' });
       } else if (result.type === 'series') {
         dialog.toast({ message: '请选择单个项目文件导入，不支持导入整套剧集', type: 'error' });
@@ -132,7 +131,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     } finally {
       setImporting(false);
     }
-  }, [series, onSeriesUpdate, refreshProjects, dialog]);
+  }, [series, onSeriesUpdate, dialog]);
 
   // Handle create new episode - ✅ Use useCallback
   const handleCreateEpisode = useCallback(async () => {
@@ -149,9 +148,8 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
 
     onSeriesUpdate(updatedSeries);
     // Refresh projects list to update the grid
-    await refreshProjects();
     // Don't close the modal, just update the grid
-  }, [series, onSeriesUpdate, refreshProjects]);
+  }, [series, onSeriesUpdate]);
 
   // Handle delete episode - ✅ Use useCallback
   const handleDeleteEpisode = useCallback(async (projectId: string, deleteData: boolean) => {
@@ -161,7 +159,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
         await deleteProjectFromDB(projectId);
       } else {
         // Just remove series reference
-        const proj = allProjects.find(p => p.id === projectId);
+        const proj = episodes.find(p => p.id === projectId);
         if (proj) {
           const updatedProj = { ...proj, seriesRefId: undefined };
           await saveProjectToDB(updatedProj);
@@ -179,9 +177,6 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       onSeriesUpdate(updatedSeries);
       setDeleteConfirmId(null);
 
-      // Refresh projects list to update the grid
-      await refreshProjects();
-
       dialog.toast({
         message: deleteData ? '分集已删除' : '分集已转为独立项目',
         type: 'success'
@@ -190,7 +185,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       console.error('Delete episode failed:', error);
       dialog.toast({ message: '删除分集失败', type: 'error' });
     }
-  }, [series, allProjects, onSeriesUpdate, refreshProjects, dialog]);
+  }, [series, onSeriesUpdate, dialog]);
 
   // Handle move episode - ✅ Use useCallback
   const handleMoveEpisode = useCallback((episodeId: string, direction: 'forward' | 'backward') => {
@@ -294,14 +289,12 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     };
 
     saveProjectToDB(updatedProject).then(() => {
-      // Refresh projects list
-      refreshProjects();
       dialog.toast({ message: '分集设置已保存', type: 'success' });
     }).catch((error) => {
       console.error('Failed to save episode settings:', error);
       dialog.toast({ message: '保存分集设置失败', type: 'error' });
     });
-  }, [editingEpisode, refreshProjects, dialog]);
+  }, [editingEpisode, dialog]);
 
   const getSegmentThumbnail = useCallback(
       (segment: Segment): string | undefined => {
