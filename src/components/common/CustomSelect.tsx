@@ -21,6 +21,7 @@ interface Props {
   allowEmpty?: boolean;
   emptyLabel?: string;
   dropdownPosition?: 'auto' | 'bottom' | 'top';
+  maxheight?: string;
 }
 
 const CustomSelect: React.FC<Props> = ({
@@ -34,7 +35,8 @@ const CustomSelect: React.FC<Props> = ({
   size = 'md',
   allowEmpty = false,
   emptyLabel = '默认',
-  dropdownPosition = 'auto'
+  dropdownPosition = 'auto',
+  maxheight = 'max-h-60'
 }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [shouldDropUp, setShouldDropUp] = useState(false);
@@ -112,7 +114,7 @@ const CustomSelect: React.FC<Props> = ({
       </button>
 
       {showDropdown && !disabled && (
-        <div className={`absolute z-60 w-full bg-slate-700 border border-slate-500 rounded-md shadow-lg max-h-60 overflow-auto ${
+        <div className={`absolute z-60 w-full bg-slate-700 border border-slate-500 rounded-md shadow-lg ${maxheight} overflow-auto ${
           (dropdownPosition === 'top' || shouldDropUp) ? 'bottom-full mb-1' : 'mt-1'
         }`}>
           {allowEmpty && (
@@ -162,7 +164,7 @@ const CustomSelect: React.FC<Props> = ({
                 <div className="flex-1 min-w-0">
                   <div className="">{option.label}{option.suffix}</div>
                   {option.description && (
-                    <div className="text-xs text-slate-300 mt-0.5">
+                    <div className="text-xs text-slate-300 mt-0.5 pl-2">
                       {option.description}
                     </div>
                   )}

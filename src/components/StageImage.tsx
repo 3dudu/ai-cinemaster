@@ -638,7 +638,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
                   className="w-full h-full cursor-pointer"
                 >
                   {image.mediaType === 'video' ? (
-                    <video crossOrigin="anonymous"
+                    <video 
                       src={image.imageUrl}
                       className="w-full h-full object-contain"
                       controls

@@ -64,6 +64,7 @@ function createSegmentFromShots(shotIds: string[], shots: Shot[], index: number)
 
   return {
     id: `segment-${Date.now()}-${index}`,
+    name: `片段 ${index + 1}`,
     shotIds,
     sceneIds,
     characterIds,
@@ -71,6 +72,9 @@ function createSegmentFromShots(shotIds: string[], shots: Shot[], index: number)
     transitionFrom: '',
     transitionTo: '',
     estimatedDuration,
+    motionIntensity: 5,
+    emotionCurve: '',
+    dialogueRhythm: '',
     createdAt: Date.now(),
     lastModified: Date.now(),
   };
@@ -86,11 +90,13 @@ export async function generateSegmentDescription(
   scenes: Scene[],
   visualstyle: string,
   genre: string,
+  scriptText: string,
+  storyParagraphs: any[]
 ): Promise<string> {
   const segmentShots = allShots.filter(s => segment.shotIds.includes(s.id));
 
   // 构建提示词
-  const shotDescriptions = segmentShots.map((shot, idx) => {
+  const shotDescriptions = segmentShots.length==0?'':segmentShots.map((shot, idx) => {
     const scene = scenes.find(s => s.id === shot.sceneId);
     const shotChars = shot.characters.map(cid =>
       characters.find(c => c.id === cid)?.name || cid
@@ -99,7 +105,12 @@ export async function generateSegmentDescription(
     return `分镜${idx + 1}：${shot.actionSummary} 场景：${scene?.location || '未知'} 角色：${shotChars}。`;
   }).join('\n');
 
-  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', shotDescriptions, visualstyle, genre);
+  const storyLine = segment.sceneIds.map(sceneId => {
+    const story = storyParagraphs.find(p => String(p.sceneRefId) == String(sceneId));
+    return story.text;
+  }).join('\n');
+
+  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,storyLine,shotDescriptions, visualstyle, genre);
 
   try {
     const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
@@ -153,6 +164,8 @@ export async function generateAllSegmentDescriptions(
   scenes: Scene[],
   visualstyle:string,
   genre:string,
+  scriptText:string,
+  storyParagraphs:any[]
 ): Promise<Segment[]> {
   const updatedSegments = [...segments];
 
@@ -163,7 +176,9 @@ export async function generateAllSegmentDescriptions(
       characters,
       scenes,
       visualstyle,
-      genre
+      genre,
+      scriptText,
+      storyParagraphs
     );
     updatedSegments[i] = {
       ...updatedSegments[i],
@@ -214,85 +229,6 @@ export async function generateAllTransitionDescriptions(
   }
 
   return updatedSegments;
-}
-
-/**
- * 合并相邻的片段
- */
-export function mergeSegments(
-  segments: Segment[],
-  mergeFromIndex: number,
-  mergeToIndex: number
-): Segment[] {
-  if (Math.abs(mergeFromIndex - mergeToIndex) !== 1) {
-    console.warn('只能合并相邻的片段');
-    return segments;
-  }
-
-  const [firstIdx, secondIdx] = mergeFromIndex < mergeToIndex
-    ? [mergeFromIndex, mergeToIndex]
-    : [mergeToIndex, mergeFromIndex];
-
-  const segment1 = segments[firstIdx];
-  const segment2 = segments[secondIdx];
-
-  const mergedSegment: Segment = {
-    id: `segment-${Date.now()}-merged`,
-    shotIds: [...segment1.shotIds, ...segment2.shotIds],
-    sceneIds: [...new Set([...segment1.sceneIds, ...segment2.sceneIds])],
-    characterIds: [...new Set([...segment1.characterIds, ...segment2.characterIds])],
-    description: '', // 重新生成
-    transitionFrom: segment1.transitionFrom,
-    transitionTo: segment2.transitionTo,
-    estimatedDuration: segment1.estimatedDuration + segment2.estimatedDuration,
-    createdAt: Math.min(segment1.createdAt, segment2.createdAt),
-    lastModified: Date.now(),
-  };
-
-  const newSegments = [...segments];
-  newSegments.splice(firstIdx, 2, mergedSegment);
-
-  return newSegments;
-}
-
-/**
- * 拆分片段
- */
-export function splitSegment(
-  segment: Segment,
-  shotIdToSplitAfter: string
-): Segment[] {
-  const splitIndex = segment.shotIds.indexOf(shotIdToSplitAfter);
-
-  if (splitIndex === -1 || splitIndex === segment.shotIds.length - 1) {
-    console.warn('无法在指定位置拆分片段');
-    return [segment];
-  }
-
-  const firstHalfShotIds = segment.shotIds.slice(0, splitIndex + 1);
-  const secondHalfShotIds = segment.shotIds.slice(splitIndex + 1);
-
-  const segment1: Segment = {
-    ...segment,
-    id: `${segment.id}-part1`,
-    shotIds: firstHalfShotIds,
-    estimatedDuration: segment.estimatedDuration / 2, // 简化处理
-    lastModified: Date.now(),
-  };
-
-  const segment2: Segment = {
-    ...segment,
-    id: `${segment.id}-part2`,
-    shotIds: secondHalfShotIds,
-    description: '',
-    transitionFrom: segment1.transitionTo,
-    transitionTo: segment.transitionTo,
-    estimatedDuration: segment.estimatedDuration / 2,
-    createdAt: Date.now(),
-    lastModified: Date.now(),
-  };
-
-  return [segment1, segment2];
 }
 
 /**
@@ -467,6 +403,7 @@ function parseAiSegmentResponse(response: string, originalShots: Shot[]): Segmen
       // 构建 Segment
       segments.push({
         id: `segment-${Date.now()}-${i}`,
+        name: seg.name || `片段 ${i + 1}`,
         shotIds: validShotIdsForSeg,
         sceneIds,
         characterIds,
@@ -474,6 +411,9 @@ function parseAiSegmentResponse(response: string, originalShots: Shot[]): Segmen
         transitionFrom: '',
         transitionTo: '',
         estimatedDuration: seg.estimatedDuration || calculatedDuration,
+        motionIntensity: seg.motionIntensity || 5,
+        emotionCurve: seg.emotionCurve || '',
+        dialogueRhythm: seg.dialogueRhythm || '',
         createdAt: Date.now(),
         lastModified: Date.now(),
       });

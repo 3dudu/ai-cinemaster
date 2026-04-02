@@ -641,7 +641,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                   >
                     {image.mediaType === 'video' ? (
                       // 视频使用 video 标签
-                      <video crossOrigin="anonymous"
+                      <video 
                         src={image.imageUrl}
                         className="w-full h-full object-contain"
                         controls

@@ -37,8 +37,8 @@ export const STYLE_OPTIONS = [
 ];
 
 export const IMAGE_SIZE_OPTIONS = [
-  { label: '横屏 16:9 (2560x1440)', value: '2560x1440' },
-  { label: '竖屏 9:16 (1440x2560)', value: '1440x2560' }
+  { label: '横屏 16:9', value: '2560x1440' },
+  { label: '竖屏 9:16', value: '1440x2560' }
 ];
 
 export const IMAGE_COUNT_OPTIONS = [

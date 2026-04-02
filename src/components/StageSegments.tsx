@@ -1,17 +1,18 @@
 import { ModelService } from '@/services/modelService';
 import { renderTemplate } from '@/services/promptTemplates';
+import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
 import { ChevronLeft, ChevronRight, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RefreshCw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Scene, Segment, SeriesRecord } from '../types';
+
 import {
   aiConvertShotsToSegments,
   convertShotsToSegments,
   generateAllSegmentDescriptions,
   generateAllTransitionDescriptions,
   generateSegmentDescription,
-  generateTransitionDescription,
-  mergeSegments,
-  splitSegment
+  generateTransitionDescription
 } from '../utils/segmentUtils';
 import { useDialog } from './dialog';
 import SegmentEditModal from './modals/SegmentEditModal';
@@ -58,11 +59,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [transitionFromDraft, setTransitionFromDraft] = useState('');
   const [transitionToDraft, setTransitionToDraft] = useState('');
-  const [editingScript, setEditingScript] = useState(false);  // 控制描述编辑区显示
+  const [editingScript, setEditingScript] = useState(isMobile?false:true);  // 控制描述编辑区显示
   const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);  // 视频生成状态
   const [insertIndex, setInsertIndex] = useState<number | null>(null);  // 新片段插入位置
   const [previewModalOpen, setPreviewModalOpen] = useState(false);  // 预览模态框状态
   const [aiSplitting, setAiSplitting] = useState(false);  // AI 分镜等待遮罩
+  const [curProjectid, setCurProjectid] = useState<string | null>(null);
 
   // Refs for auto-scroll to selected segment
   const segmentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -122,7 +124,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           activeCharacters,
           activeScenes,
           project.visualStyle,
-          project.genre
+          project.genre,
+          project.rawScript,
+          project.scriptData.storyParagraphs
         );
 
         updateProject({
@@ -163,7 +167,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         activeCharacters,
         activeScenes,
         project.visualStyle,
-        project.genre
+        project.genre,
+        project.rawScript,
+        project.scriptData.storyParagraphs
       );
 
       updateProject({ segments: updatedSegments });
@@ -219,41 +225,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     [project.segments, updateProject, dialog],
   );
 
-  // Merge adjacent segments
-  const handleMergeSegments = useCallback(
-    async (index1: number, index2: number) => {
-      const confirmed = await dialog.confirm({
-        message: '确定要合并这两个片段吗？'
-      });
-      if (!confirmed) return;
-
-      const segments = project.segments || [];
-      const newSegments = mergeSegments(segments, index1, index2);
-      updateProject({ segments: newSegments });
-      dialog.toast({ message: '片段已合并' ,type: 'success'});
-    },
-    [project.segments, updateProject, dialog],
-  );
-
-  // Split segment
-  const handleSplitSegment = useCallback(
-    async (segmentId: string, shotId: string) => {
-      const segments = project.segments || [];
-      const segment = segments.find((s) => s.id === segmentId);
-      if (!segment) return;
-
-      const newSegments = splitSegment(segment, shotId);
-      if (newSegments.length === 1) {
-        dialog.toast({ message: '无法在此位置拆分片段' ,type: 'error'});
-        return;
-      }
-
-      updateProject({ segments: newSegments });
-      dialog.toast({ message: '片段已拆分' ,type: 'success'});
-    },
-    [project.segments, updateProject, dialog],
-  );
-
   // Open edit modal
   const handleEditSegment = useCallback((segment: Segment) => {
     setEditingSegment(segment);
@@ -264,6 +235,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const handleAddSegmentAfter = useCallback((index: number) => {
     const newSegment: Segment = {
       id: `segment-${Date.now()}`,
+      name: `片段 ${(project.segments || []).length + 1}`,
       shotIds: [],
       sceneIds: [],
       characterIds: [],
@@ -271,13 +243,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       transitionFrom: '',
       transitionTo: '',
       estimatedDuration: 0,
+      motionIntensity: 5,
+      emotionCurve: '',
+      dialogueRhythm: '',
       createdAt: Date.now(),
       lastModified: Date.now(),
     };
     setEditingSegment(newSegment);
     setInsertIndex(index + 1);
     setSegmentEditModalOpen(true);
-  }, []);
+  }, [project.segments]);
 
   // Save segment from edit modal
   const handleSaveSegment = useCallback(
@@ -338,6 +313,17 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     project.shots.length,
     [project.shots]
   );
+  // Auto-select first segment when segments are available
+  useEffect(() => {
+    if(curProjectid!=project.id){
+      setCurProjectid(project.id);
+      setSelectedSegmentId(null);
+    }
+    const segments = project.segments || [];
+    if (segments.length > 0 && !selectedSegmentId) {
+      setSelectedSegmentId(segments[0].id);
+    }
+  }, [project,project.segments, selectedSegmentId]);
 
   // 当前选中 segment 的索引
   const activeSegmentIndex = useMemo(() => {
@@ -350,14 +336,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     if (activeSegmentIndex < 0) return null;
     return (project.segments || [])?.[activeSegmentIndex] || null;
   }, [activeSegmentIndex, project.segments]);
-
-  // Auto-select first segment when segments are available
-  useEffect(() => {
-    const segments = project.segments || [];
-    if (segments.length > 0 && !selectedSegmentId) {
-      setSelectedSegmentId(segments[0].id);
-    }
-  }, [project.segments, selectedSegmentId]);
 
   // Auto-scroll selected segment into view
   useEffect(() => {
@@ -409,8 +387,86 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
   // Reconvert shots to segments
   const handleReconvertSegments = useCallback(async () => {
+    // shots 为空时，从 rawScript 直接生成片段
     if (project.shots.length === 0) {
-      dialog.toast({ message: '没有分镜数据', type: 'warning' });
+      if (!project.rawScript?.trim()) {
+        dialog.toast({ message: '没有剧本内容，请先在剧本阶段输入内容', type: 'warning' });
+        return;
+      }
+
+      const confirmed = await dialog.confirm({
+        title: '生成片段',
+        message: '当前没有分镜数据，是否从剧本直接生成片段？',
+        confirmText: '生成片段',
+        cancelText: '取消',
+      });
+      if (!confirmed) return;
+
+      setAiSplitting(true);
+      try {
+        // 1. 解析剧本获取角色和场景
+        let scriptData = project.scriptData;
+        
+        // 如果没有 scriptData，先解析剧本
+        if (!scriptData || !scriptData.scenes || scriptData.scenes.length === 0) {
+          ModelService.setCurrentProjectProviders(project.modelProviders);
+          scriptData = await ModelService.parseScriptToData(
+            project.rawScript, 
+            project.language || '中文', 
+            project.genre || '剧情片'
+          );
+          
+          if (!scriptData || scriptData.scenes.length === 0) {
+            dialog.toast({ message: '解析剧本失败', type: 'error' });
+            return;
+          }
+          
+          scriptData.targetDuration = project.targetDuration;
+          scriptData.language = project.language;
+          scriptData.title = project.title;
+          scriptData.genre = project.genre;
+        }
+
+        // 2. Series 模式：合并到 library
+        if (series && updateSeries) {
+          const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
+            mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+          
+          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+          scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
+          scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+          updateSeries(updatedSeries);
+        }
+
+        // 3. 从剧本直接生成片段
+        const segments = await ModelService.generateSegmentsFromScript(
+          project.rawScript,
+          scriptData,
+          project.visualStyle,
+          project.genre,
+          project.language,
+          project.targetDuration
+        );
+
+        if (segments.length === 0) {
+          dialog.toast({ message: '生成片段失败', type: 'error' });
+          return;
+        }
+
+        updateProject({ 
+          scriptData,
+          segments, 
+          isSegmentMode: true,
+          initSegment: true 
+        });
+        setSelectedSegmentId(segments[0].id);
+        dialog.toast({ message: `已生成 ${segments.length} 个片段`, type: 'success' });
+      } catch (error) {
+        console.error('生成片段失败:', error);
+        dialog.toast({ message: '生成片段失败，请重试', type: 'error' });
+      } finally {
+        setAiSplitting(false);
+      }
       return;
     }
 
@@ -456,7 +512,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     setSelectedSegmentId(null);
     dialog.toast({ message: `已重新拆分为 ${newSegments.length} 个片段`, type: 'success' });
     }
-  }, [project.shots, updateProject, dialog]);
+  }, [project.shots, project.rawScript, project.scriptData, project.modelProviders, project.visualStyle, project.genre, project.language, project.targetDuration, updateProject, dialog, series, updateSeries, isSeriesMode]);
 
   // Generate single transition (from)
   const handleGenerateTransitionFrom = useCallback(async () => {
@@ -583,10 +639,24 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         if(!character && getCharacterWithAssets){
           character = getCharacterWithAssets(charId);
         }
-        if (character && character?.referenceImage) {
-          referenceImages.push(character.referenceImage);
-          imageLabels.push(`图${imageIndex}: ${character.name}`);
-          imageIndex++;
+        if(character){
+          if(selectedSegment.characterVariations && selectedSegment.characterVariations[charId]){
+            const variation = selectedSegment.characterVariations[charId];
+            const selectedVar = character.variations.find(v => v.id === variation);
+            if(selectedVar?.referenceImage){
+              referenceImages.push(selectedVar.referenceImage);
+              imageLabels.push(`图${imageIndex}: ${character.name}`);
+              imageIndex++;
+            }else if(character?.referenceImage){
+              referenceImages.push(character.referenceImage);
+              imageLabels.push(`图${imageIndex}: ${character.name}`);
+              imageIndex++;
+            }
+          }else if(character?.referenceImage){
+            referenceImages.push(character.referenceImage);
+            imageLabels.push(`图${imageIndex}: ${character.name}`);
+            imageIndex++;
+          }
         }
       });
 
@@ -612,7 +682,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.seed
       );
 
+      
       if (videoUrl) {
+        // Save to media history
+        const fileName = `Segment_${selectedSegment.name||selectedSegment.id}_video`;
+        await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video',prompt);
         // Update segment with videoUrl
         const updatedSegments = (project.segments || []).map((seg) =>
           seg.id === selectedSegment.id ? { ...seg, videoUrl } : seg
@@ -677,11 +751,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           </button>
           <button
             onClick={handleReconvertSegments}
-            disabled={project.shots.length === 0}
+            disabled={project.shots.length === 0 && !project.rawScript?.trim()}
             className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <ListVideo className="w-3 h-3" />
-            {!isMobile && '重新拆分片段'}
+            {!isMobile && (project.shots.length === 0 ? '生成片段' : '重新拆分片段')}
           </button>
           <button
             onClick={handleBatchGenerateDescriptions}
@@ -728,7 +802,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600 p-2 md:p-4">
                 <div className="w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg overflow-hidden border border-slate-600 relative shadow-lg">
                 {selectedSegment.videoUrl ? (
-                  <video crossOrigin="anonymous"
+                  <video
                     src={selectedSegment.videoUrl}
                     controls
                     className="w-full h-full object-contain"
@@ -745,7 +819,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               </div>
               {/* Shot Thumbnails */}
               <div className="relative">
-                <div className="pt-4 flex gap-2 overflow-x-auto pb-0">
+                <div className="pt-4 h-16 flex gap-2 overflow-x-auto pb-0">
                 {selectedSegment.shotIds.map((shotId, idx) => {
                   const shot = project.shots.find((s) => s.id === shotId);
                   const thumbnail = shot?.keyframes?.find((k) => k.type === 'start')?.imageUrl;
@@ -771,6 +845,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 </div>
               {/* Action Buttons */}
               <div className="absolute top-5.5 right-2 flex items-center gap-2 justify-end">
+                {!editingScript && (
                 <button
                   onClick={handleOpenEditScript}
                   className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs border border-slate-500 font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 cursor-pointer"
@@ -778,6 +853,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   <NotebookPen className="w-3 h-3" />
                   {!isMobile && '编辑提示词'}
                 </button>
+                )}
                 <button
                   onClick={handleGenerateSegmentVideo}
                   disabled={generatingVideo === selectedSegment.id}

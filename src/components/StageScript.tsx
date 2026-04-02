@@ -71,7 +71,14 @@ const StageScript: React.FC<Props> = ({
   const [localLlmProvider, setLocalLlmProvider] = useState(project.modelProviders?.llm || '');
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project.modelProviders?.text2image || '');
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project.modelProviders?.image2video || '');
-  const [scriptSourceMode, setScriptSourceMode] = useState<'generate' | 'import'>('generate');
+  const [scriptSourceMode, setScriptSourceMode] = useState<'generate' | 'import' | 'segment'>(project.scriptSourceMode || 'generate');
+
+  // 当 project.scriptSourceMode 变化时同步更新本地状态
+  useEffect(() => {
+    if (project.scriptSourceMode) {
+      setScriptSourceMode(project.scriptSourceMode);
+    }
+  }, [project.scriptSourceMode]);
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -184,22 +191,6 @@ const StageScript: React.FC<Props> = ({
       }
     });
     setEditingLogline(false);
-  };
-
-  const startEditGenre = () => {
-    setTempGenre(project.scriptData?.genre || '剧情片');
-    setEditingGenre(true);
-  };
-
-  const saveGenre = () => {
-    if (!project.scriptData) return;
-    updateProject({
-      scriptData: {
-        ...project.scriptData,
-        genre: tempGenre
-      }
-    });
-    setEditingGenre(false);
   };
 
   const startEditCharacter = useCallback((char: Character) => {
@@ -641,7 +632,7 @@ const StageScript: React.FC<Props> = ({
           scriptData,
           shots,
           title: scriptData.title,
-          genre: scriptData.genre || finalGenre
+          genre: finalGenre || scriptData.genre
         });
   
         setActiveTab('script');
@@ -759,7 +750,7 @@ const StageScript: React.FC<Props> = ({
           scriptData,
           shots,
           title: scriptData.title,
-          genre: scriptData.genre || finalGenre
+          genre: finalGenre || scriptData.genre
         });
   
         setActiveTab('script');
@@ -773,6 +764,129 @@ const StageScript: React.FC<Props> = ({
         });
         return;
       }
+
+    } catch (err: any) {
+      console.error(err);
+      dialog.alert({
+        title: '错误',
+        message: `错误: ${err.message || "AI 连接失败"}`,
+        type: 'error',
+      });
+      setProcessingStep('');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSegmentAnalyze = async () => {
+    if (!localScript.trim()) {
+      dialog.alert({
+        title: '错误',
+        message: '请输入剧本内容。',
+        type: 'error',
+      });
+      return;
+    }
+
+    const finalDuration = getFinalDuration();
+    if (!finalDuration) {
+      dialog.alert({
+        title: '错误',
+        message: '请选择目标时长。',
+        type: 'error',
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    setProcessingStep('正在分析剧本结构...');
+    try {
+      const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
+      updateProject({
+        title: localTitle,
+        rawScript: localScript,
+        targetDuration: getFinalDuration(),
+        language: localLanguage,
+        visualStyle: getFinalStyle(),
+        imageSize: localImageSize,
+        imageCount: localImageCount,
+        genre: finalGenre || project.scriptData?.genre || '剧情片',
+      });
+      ModelService.setCurrentProjectProviders(project.modelProviders);
+      
+      // 1. 解析剧本获取角色和场景
+      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage, localGenre);
+      
+      if (scriptData.scenes.length === 0) {
+        setProcessingStep('');
+        await dialog.alert({
+          title: '错误',
+          message: '分析剧本失败，未找到场景信息',
+          type: 'error',
+        });
+        return;
+      }
+
+      scriptData.targetDuration = finalDuration;
+      scriptData.language = localLanguage;
+      if (localTitle && localTitle !== "未命名项目") {
+        scriptData.title = localTitle;
+      }
+      scriptData.genre = localGenre;
+
+      // 2. Series 模式：合并到 library
+      if (series && updateSeries) {
+        setProcessingStep('正在同步到剧集库...');
+        const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
+          mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+        
+        // Remap references in scriptData
+        scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+        
+        // Create lightweight characters/scenes for episode
+        scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
+        scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+        
+        // Update series
+        updateSeries(updatedSeries);
+      }
+      updateProject({ isParsingScript: true });
+
+      // 3. 从剧本直接生成片段
+      setProcessingStep('正在生成片段...');
+      const segments = await ModelService.generateSegmentsFromScript(
+        localScript,
+        scriptData,
+        getFinalStyle(),
+        finalGenre || '剧情片',
+        localLanguage,
+        finalDuration
+      );
+
+      if (segments.length === 0) {
+        setProcessingStep('');
+        await dialog.alert({
+          title: '错误',
+          message: '生成片段失败',
+          type: 'error',
+        });
+        return;
+      }
+
+      setProcessingStep('正在保存数据...');
+      updateProject({
+        scriptData,
+        shots: [],
+        segments,
+        isSegmentMode: true,
+        initSegment: true,
+        title: scriptData.title,
+        genre: finalGenre || scriptData.genre,
+        stage: 'segments'
+      });
+
+      setActiveTab('script');
+      setProcessingStep('');
 
     } catch (err: any) {
       console.error(err);
@@ -882,10 +996,10 @@ const StageScript: React.FC<Props> = ({
             )}
         </div>
 
-        <div className="flex-1 overflow-y-auto md:p-6 md:pt-2 p-2 space-y-6">
+        <div className="flex-1 overflow-y-auto md:p-6 md:pt-2 p-2 space-y-4">
             {/* Title Input */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest">项目标题</label>
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">项目标题</label>
               <input 
                 type="text"
                 value={localTitle}
@@ -933,7 +1047,7 @@ const StageScript: React.FC<Props> = ({
 
             {/* Genre Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest">题材类型</label>
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">题材类型</label>
               <div className="grid grid-cols-2 gap-3">
               <CustomSelect
                 options={GENRE_OPTIONS}
@@ -956,6 +1070,7 @@ const StageScript: React.FC<Props> = ({
             </div>
 
             {/* Image Size Selection */}
+              <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
                 图片尺寸
@@ -966,10 +1081,9 @@ const StageScript: React.FC<Props> = ({
                 onChange={setLocalImageSize}
                 className="w-full"
               />
-            </div>
-
-            {/* Image Count Selection */}
+</div>
             <div className="space-y-2">
+            {/* Image Count Selection */}
               <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
                 出图数量
               </label>
@@ -979,6 +1093,7 @@ const StageScript: React.FC<Props> = ({
                 onChange={(value) => setLocalImageCount(Number(value))}
                 className="w-full"
               />
+              </div>
             </div>
 
             {/* Duration Selection */}
@@ -1019,7 +1134,10 @@ const StageScript: React.FC<Props> = ({
               <p className="text-[12px] font-bold text-slate-500 tracking-widest mb-3">分镜来源</p>
               <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-600">
                 <button
-                  onClick={() => setScriptSourceMode('generate')}
+                  onClick={() => {
+                    setScriptSourceMode('generate');
+                    updateProject({ scriptSourceMode: 'generate' });
+                  }}
                   className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-2 ${
                     scriptSourceMode === 'generate'
                       ? 'bg-slate-600 text-slate-50 shadow-sm'
@@ -1030,7 +1148,24 @@ const StageScript: React.FC<Props> = ({
                   AI生成
                 </button>
                 <button
-                  onClick={() => setScriptSourceMode('import')}
+                  onClick={() => {
+                    setScriptSourceMode('segment');
+                    updateProject({ scriptSourceMode: 'segment' });
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-2 ${
+                    scriptSourceMode === 'segment'
+                      ? 'bg-slate-600 text-slate-50 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  片段模式
+                </button>
+                <button
+                  onClick={() => {
+                    setScriptSourceMode('import');
+                    updateProject({ scriptSourceMode: 'import' });
+                  }}
                   className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-2 ${
                     scriptSourceMode === 'import'
                       ? 'bg-slate-600 text-slate-50 shadow-sm'
@@ -1044,7 +1179,9 @@ const StageScript: React.FC<Props> = ({
               <p className="text-[10px] text-slate-500">
                 {scriptSourceMode === 'generate'
                   ? 'AI将根据剧本内容自动分析并生成分镜脚本'
-                  : '导入已有的分镜脚本，系统将解析并应用'}
+                  : scriptSourceMode === 'segment'
+                    ? '片段模式：直接分析剧本生成片段，无需分镜'
+                    : '导入已有的分镜脚本，系统将解析并应用'}
               </p>
             </div>
 
@@ -1133,7 +1270,13 @@ const StageScript: React.FC<Props> = ({
         {/* Footer Action */}
         <div className="p-4 border-t border-slate-600 bg-slate-900">
            <button
-              onClick={scriptSourceMode === 'generate' ? handleAnalyze : handleImport}
+              onClick={
+                scriptSourceMode === 'generate' 
+                  ? handleAnalyze 
+                  : scriptSourceMode === 'segment'
+                    ? handleSegmentAnalyze
+                    : handleImport
+              }
               disabled={isProcessing}
               className={`w-full py-2 rounded-lg font-bold border border-slate-600 text-md tracking-widest flex items-center justify-center gap-2 transition-all  ${
                 isProcessing
@@ -1144,7 +1287,13 @@ const StageScript: React.FC<Props> = ({
               {isProcessing ? (
                 <>
                   <BrainCircuit className="w-4 h-4 animate-spin" />
-                  {processingStep || (scriptSourceMode === 'generate' ? '智能分析中...' : '导入解析中...')}
+                  {processingStep || (
+                    scriptSourceMode === 'generate' 
+                      ? '智能分析中...' 
+                      : scriptSourceMode === 'segment'
+                        ? '生成片段中...'
+                        : '导入解析中...'
+                  )}
                 </>
               ) : (
                 <>
@@ -1152,6 +1301,11 @@ const StageScript: React.FC<Props> = ({
                     <>
                       <Wand2 className="w-4 h-4" />
                       生成分镜脚本
+                    </>
+                  ) : scriptSourceMode === 'segment' ? (
+                    <>
+                      <Film className="w-4 h-4" />
+                      生成片段
                     </>
                   ) : (
                     <>

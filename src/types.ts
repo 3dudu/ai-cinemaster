@@ -124,6 +124,7 @@ export interface ProjectState {
 
   // Segment Mode Data
   isSegmentMode: boolean; // 是否为片段模式
+  scriptSourceMode?: 'generate' | 'import' | 'segment'; // 分镜来源模式
   segments: Segment[]; // 片段数组
   initSegment?: boolean;
 
@@ -140,6 +141,7 @@ export interface ProjectState {
 
 export interface Segment {
   id: string;
+  name: string; // 片段名
   shotIds: string[]; // 包含的分镜ID数组
   sceneIds: string[]; // 涉及的场景ID列表（去重）
   characterIds: string[]; // 涉及的角色ID列表（去重）
@@ -148,6 +150,9 @@ export interface Segment {
   transitionFrom?: string; // 转场描述：从上一个片段到此片段（由LLM生成）
   transitionTo?: string; // 转场描述：从此片段到下一个片段（由LLM生成）
   estimatedDuration: number; // 预估时长（秒），不超过15秒
+  motionIntensity?: number; // 运动强度 0-10
+  emotionCurve?: string; // 情绪曲线描述
+  dialogueRhythm?: string; // 台词与节奏描述
   createdAt: number;
   lastModified: number;
   videoUrl?: string; 

@@ -80,7 +80,7 @@ function App() {
 
   // Auto-save logic
   useEffect(() => {
-    if (!project || project.shots.length==0) return;
+    if (!project) return;
 
     setSaveStatus('unsaved');
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -109,9 +109,7 @@ function App() {
   const updateProject = (updates: Partial<ProjectState>) => {
     if (!project) return;
     setProject(prev => prev ? ({ ...prev, ...updates }) : null);
-    if(project?.stage=='script'){
-      ModelService.setCurrentProjectProviders(project?.modelProviders);
-    }
+    ModelService.setCurrentProjectProviders(project?.modelProviders);
   };
 
   const updateSeries = (updatedSeries: SeriesRecord) => {
@@ -128,14 +126,17 @@ function App() {
 
   const handleOpenProject = async (proj: ProjectState) => {
     // 设置项目的模型供应商配置
+    setProject(proj);
     ModelService.setCurrentProjectProviders(proj.modelProviders);
     
     // Load all projects for series manager
-    try {
-      const projects = await getAllProjectsMetadata();
-      setAllProjects(projects);
-    } catch (err) {
-      console.error('Failed to load projects:', err);
+    if(!allProjects || allProjects.length==0){
+      try {
+        const projects = await getAllProjectsMetadata();
+        setAllProjects(projects);
+      } catch (err) {
+        console.error('Failed to load projects:', err);
+      }
     }
     
     // If project belongs to a series, load the series
@@ -151,7 +152,6 @@ function App() {
       setSeries(null);
     }
     
-    setProject(proj);
   };
 
   const handleClearKey = () => {
@@ -163,7 +163,7 @@ function App() {
 
   const handleExitProject = async () => {
     // Force save before exiting
-    if (project && project.shots.length>0) {
+    if (project) {
         await saveProjectToDB(project);
     }
     // Save series if in series mode
