@@ -912,7 +912,7 @@ const StageAssets: React.FC<Props> = ({
         onClose={() => { setAddCharacterModalOpen(false); setEditingCharacter(null); }}
         onSave={handleSaveCharacter}
         character={editingCharacter}
-        genre={project.scriptData?.genre}
+        genre={project.genre}
         visualStyle={project.visualStyle}
       />
 
@@ -922,7 +922,7 @@ const StageAssets: React.FC<Props> = ({
         onClose={() => { setAddSceneModalOpen(false); setEditingScene(null); }}
         onSave={handleSaveScene}
         scene={editingScene}
-        genre={project.scriptData?.genre}
+        genre={project.genre}
         visualStyle={project.visualStyle}
       />
 

@@ -406,8 +406,8 @@ export const generateVideo = async (
   let p_duration = duration;
   if(duration<4){
     p_duration = 4;
-  }else if(duration>12){
-    p_duration = 12;
+  }else if(duration>15){
+    p_duration = 15;
   }
   const requestBody: any = {
     model: runtimeVideoModel,
