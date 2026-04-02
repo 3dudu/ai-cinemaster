@@ -223,7 +223,7 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
 // 模型生成参数配置
 export const MODEL_GENERATION_CONFIG = {
   PARSE_SCRIPT: {
-    temperature: 0.6,
+    temperature: 0.4,
     max_tokens: 8192
   },
   GENERATE_SHOTS: {

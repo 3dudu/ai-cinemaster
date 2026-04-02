@@ -258,13 +258,14 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const handleSaveSegment = useCallback(
     (updatedSegment: Segment) => {
       const segments = project.segments || [];
-      if (editingSegment && segments.find(s => s.id === editingSegment.id)) {
+      if (editingSegment || selectedSegment) {
         // Update existing segment
         updateProject({
           segments: segments.map((s) =>
             s.id === updatedSegment.id ? updatedSegment : s,
           ),
         });
+        setEditingSegment(null);
       } else {
         // Insert new segment at specified position
         const newSegments = [...segments];
@@ -273,7 +274,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         updateProject({ segments: newSegments });
       }
       setSegmentEditModalOpen(false);
-      setEditingSegment(null);
       setInsertIndex(null);
     },
     [project.segments, updateProject, editingSegment, insertIndex],
@@ -381,7 +381,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       transitionTo: transitionToDraft,
       lastModified: Date.now(),
     };
-    setEditingSegment(selectedSegment);
     handleSaveSegment(updatedSegment);
     dialog.toast({ message: '描述已保存' ,type: 'success'});
   }, [selectedSegment, descriptionDraft, transitionFromDraft, transitionToDraft, handleSaveSegment, dialog]);
@@ -1091,12 +1090,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     onMouseLeave={() => setHoveredSegmentId(null)}
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-full h-26 bg-slate-800 group">
+                    <div className="relative w-full h-26 bg-slate-800 group p-1">
                       {thumbnail ? (
                         <img
                           src={thumbnail}
                           alt={`片段 ${index + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200"
+                          className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200 rounded-lg"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-600">
