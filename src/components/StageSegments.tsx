@@ -1008,10 +1008,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     // Calculate the end position of the @ mention search text
     const mentionEndPos = mentionStartPos + 1 + mentionSearchText.length;
     
-    // Replace the @ and search text with the selected name (keep @ symbol)
+    // Replace the @ and search text with the selected name (without @ symbol)
     const beforeAt = descriptionDraft.substring(0, mentionStartPos);
     const afterMention = descriptionDraft.substring(mentionEndPos);
-    const newText = beforeAt + '@' + item.name + ' ' + afterMention;
+    const newText = beforeAt + item.name + ' ' + afterMention;
     
     // Update local state first
     setDescriptionDraft(newText);
@@ -1052,7 +1052,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     }
     
     // Set cursor position after inserted text (use requestAnimationFrame for reliability)
-    const newCursorPos = beforeAt.length + item.name.length + 2; // +2 for @ and space
+    const newCursorPos = beforeAt.length + item.name.length + 1; // +1 for space
     requestAnimationFrame(() => {
       textarea.focus();
       textarea.setSelectionRange(newCursorPos, newCursorPos);
