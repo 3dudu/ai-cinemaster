@@ -90,7 +90,13 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       shot.keyframes?.map(kf => kf.imageUrl).filter(Boolean) || []
     ) || [];
 
-    return [...charImages, ...sceneImages, ...keyframeImages].filter(Boolean);
+    // Shuffle the combined images
+    const allImages = [...charImages, ...sceneImages, ...keyframeImages].filter(Boolean);
+    for (let i = allImages.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
+    }
+    return allImages;
   }, [series.library?.characters, series.library?.scenes]);
 
   // Get episode stats - ✅ Use useCallback

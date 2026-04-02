@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Copy, Edit, Film, ListVideo, Loader2, Notebo
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Scene, Segment, SeriesRecord } from '../types';
+import CustomSelect from './common/CustomSelect';
 
 import {
   aiConvertShotsToSegments,
@@ -39,12 +40,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   
   // Memoized active characters and scenes to prevent re-calculation on every render
   const activeCharacters = useMemo(() => 
-    isSeriesMode ? series?.library?.characters : project.scriptData?.characters || [],
+    isSeriesMode ? (series?.library?.characters || []) : (project.scriptData?.characters || []),
     [isSeriesMode, series?.library?.characters, project.scriptData?.characters]
   );
   
   const activeScenes = useMemo(() => 
-    isSeriesMode ? series?.library?.scenes : project.scriptData?.scenes || [],
+    isSeriesMode ? (series?.library?.scenes || []) : (project.scriptData?.scenes || []),
     [isSeriesMode, series?.library?.scenes, project.scriptData?.scenes]
   );
 
@@ -65,6 +66,13 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [previewModalOpen, setPreviewModalOpen] = useState(false);  // 预览模态框状态
   const [aiSplitting, setAiSplitting] = useState(false);  // AI 分镜等待遮罩
   const [curProjectid, setCurProjectid] = useState<string | null>(null);
+
+  // @ Mention Picker States
+  const [mentionPickerOpen, setMentionPickerOpen] = useState(false);
+  const [mentionPickerPosition, setMentionPickerPosition] = useState({ top: 0, left: 0 });
+  const [mentionSearchText, setMentionSearchText] = useState('');
+  const [mentionStartPos, setMentionStartPos] = useState<number | null>(null);
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Refs for auto-scroll to selected segment
   const segmentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -925,6 +933,222 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     setEditingScript(false);
   }, []);
 
+  // @ Mention: Calculate cursor position for floating picker
+  const getCaretCoordinates = useCallback((element: HTMLTextAreaElement) => {
+    const rect = element.getBoundingClientRect();
+    const text = element.value.substring(0, element.selectionStart);
+    
+    // Create a mirror div to measure text position
+    const mirror = document.createElement('div');
+    const computed = window.getComputedStyle(element);
+    
+    mirror.style.position = 'absolute';
+    mirror.style.visibility = 'hidden';
+    mirror.style.whiteSpace = 'pre-wrap';
+    mirror.style.wordWrap = 'break-word';
+    mirror.style.width = computed.width;
+    mirror.style.font = computed.font;
+    mirror.style.padding = computed.padding;
+    mirror.style.border = computed.border;
+    mirror.style.boxSizing = computed.boxSizing;
+    
+    mirror.textContent = text;
+    document.body.appendChild(mirror);
+    
+    const span = document.createElement('span');
+    span.textContent = '|';
+    mirror.appendChild(span);
+    
+    const coordinates = {
+      top: rect.top + span.offsetTop + parseInt(computed.lineHeight) - element.scrollTop,
+      left: rect.left + span.offsetLeft
+    };
+    
+    document.body.removeChild(mirror);
+    return coordinates;
+  }, []);
+
+  // @ Mention: Handle textarea input for @ detection
+  const handleDescriptionInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    setDescriptionDraft(value);
+
+    // Check if user is typing @
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      // Check if there's a space or newline between @ and cursor (which would close the picker)
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+      if (!textAfterAt.includes(' ') && !textAfterAt.includes('\n')) {
+        // Open mention picker
+        const searchText = textAfterAt.toLowerCase();
+        setMentionSearchText(searchText);
+        setMentionStartPos(lastAtIndex);
+        
+        // Calculate position
+        const coords = getCaretCoordinates(e.target);
+        setMentionPickerPosition({ top: coords.top, left: coords.left });
+        setMentionPickerOpen(true);
+      } else {
+        setMentionPickerOpen(false);
+      }
+    } else {
+      setMentionPickerOpen(false);
+    }
+  }, [getCaretCoordinates]);
+
+  // @ Mention: Handle selection from picker
+  const handleSelectMention = useCallback((type: 'character' | 'scene', item: { id: string; name: string }, variationId?: string) => {
+    if (descriptionTextareaRef.current === null || mentionStartPos === null) return;
+    
+    const textarea = descriptionTextareaRef.current;
+    
+    // Calculate the end position of the @ mention search text
+    const mentionEndPos = mentionStartPos + 1 + mentionSearchText.length;
+    
+    // Replace the @ and search text with the selected name (keep @ symbol)
+    const beforeAt = descriptionDraft.substring(0, mentionStartPos);
+    const afterMention = descriptionDraft.substring(mentionEndPos);
+    const newText = beforeAt + '@' + item.name + ' ' + afterMention;
+    
+    // Update local state first
+    setDescriptionDraft(newText);
+    setMentionPickerOpen(false);
+    
+    // Update segment's characterIds or sceneIds AND description (to prevent reset)
+    if (selectedSegment) {
+      const field = type === 'character' ? 'characterIds' : 'sceneIds';
+      const currentIds = selectedSegment[field] || [];
+      if (!currentIds.includes(item.id)) {
+        const updatedSegment: Segment = {
+          ...selectedSegment,
+          description: newText,  // Include updated description to prevent reset
+          [field]: [...currentIds, item.id],
+          lastModified: Date.now()
+        };
+        // If character with variation, update characterVariations
+        if (type === 'character' && variationId) {
+          updatedSegment.characterVariations = {
+            ...selectedSegment.characterVariations,
+            [item.id]: variationId
+          };
+        }
+        handleSaveSegment(updatedSegment);
+      } else if (type === 'character' && variationId) {
+        // Character already in list, but update variation
+        const updatedSegment: Segment = {
+          ...selectedSegment,
+          description: newText,  // Include updated description to prevent reset
+          characterVariations: {
+            ...selectedSegment.characterVariations,
+            [item.id]: variationId
+          },
+          lastModified: Date.now()
+        };
+        handleSaveSegment(updatedSegment);
+      }
+    }
+    
+    // Set cursor position after inserted text (use requestAnimationFrame for reliability)
+    const newCursorPos = beforeAt.length + item.name.length + 2; // +2 for @ and space
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    });
+  }, [descriptionDraft, mentionStartPos, mentionSearchText, selectedSegment, handleSaveSegment]);
+
+  // @ Mention: Close picker on click outside
+  const handleDescriptionKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Escape') {
+      setMentionPickerOpen(false);
+    }
+  }, []);
+
+  // @ Mention: Filtered items for picker
+  const filteredCharacters = useMemo(() => {
+    const chars = activeCharacters || [];
+    if (!mentionSearchText) return chars;
+    return chars.filter(c => 
+      c.name.toLowerCase().includes(mentionSearchText)
+    );
+  }, [activeCharacters, mentionSearchText]);
+
+  const filteredScenes = useMemo(() => {
+    const scenes = activeScenes || [];
+    if (!mentionSearchText) return scenes;
+    return scenes.filter(s => 
+      s.location.toLowerCase().includes(mentionSearchText)
+    );
+  }, [activeScenes, mentionSearchText]);
+
+  // @ Mention: Expanded character for variations
+  const [expandedCharId, setExpandedCharId] = useState<string | null>(null);
+
+  // Preview image state
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Handle toggle scene
+  const handleToggleSceneInline = useCallback((sceneId: string) => {
+    if (!selectedSegment) return;
+    const currentIds = selectedSegment.sceneIds || [];
+    const newIds = currentIds.includes(sceneId)
+      ? currentIds.filter(id => id !== sceneId)
+      : [...currentIds, sceneId];
+    const updatedSegment: Segment = {
+      ...selectedSegment,
+      sceneIds: newIds,
+      lastModified: Date.now()
+    };
+    handleSaveSegment(updatedSegment);
+  }, [selectedSegment, handleSaveSegment]);
+
+  // Handle toggle character
+  const handleToggleCharacterInline = useCallback((charId: string) => {
+    if (!selectedSegment) return;
+    const currentIds = selectedSegment.characterIds || [];
+    const newIds = currentIds.includes(charId)
+      ? currentIds.filter(id => id !== charId)
+      : [...currentIds, charId];
+    const updatedSegment: Segment = {
+      ...selectedSegment,
+      characterIds: newIds,
+      lastModified: Date.now()
+    };
+    // Remove variation if character removed
+    if (!newIds.includes(charId) && selectedSegment.characterVariations?.[charId]) {
+      const newVariations = { ...selectedSegment.characterVariations };
+      delete newVariations[charId];
+      updatedSegment.characterVariations = newVariations;
+    }
+    handleSaveSegment(updatedSegment);
+  }, [selectedSegment, handleSaveSegment]);
+
+  // Handle select variation
+  const handleSelectVariationInline = useCallback((charId: string, variationId: string) => {
+    if (!selectedSegment) return;
+    const updatedSegment: Segment = {
+      ...selectedSegment,
+      characterVariations: {
+        ...selectedSegment.characterVariations,
+        [charId]: variationId
+      },
+      lastModified: Date.now()
+    };
+    handleSaveSegment(updatedSegment);
+  }, [selectedSegment, handleSaveSegment]);
+
+  // Available scenes/characters for selection
+  const availableScenesInline = useMemo(() => 
+    (activeScenes || []).filter(s => !(selectedSegment?.sceneIds || []).includes(s.id)),
+    [activeScenes, selectedSegment?.sceneIds]
+  );
+  const availableCharactersInline = useMemo(() => 
+    (activeCharacters || []).filter(c => !(selectedSegment?.characterIds || []).includes(c.id)),
+    [activeCharacters, selectedSegment?.characterIds]
+  );
+
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-hidden">
       {/* Header */}
@@ -1115,17 +1339,248 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                                          </button>
                                      </div>
             </div>
-            <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-6 border-b border-slate-600">
+            <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-4 border-b border-slate-600">
+              {/* Scenes Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-500 tracking-wide">
+                    场景 ({(selectedSegment?.sceneIds || []).length})
+                  </label>
+                  {availableScenesInline.length > 0 && (
+                    <CustomSelect
+                      value=""
+                      onChange={(val) => { if (val) handleToggleSceneInline(val); }}
+                      options={availableScenesInline.map(s => ({ value: s.id, label: s.location }))}
+                      placeholder="+ 添加场景"
+                      className="w-64" size='sm'
+                    />
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedSegment?.sceneIds || []).map(sceneId => {
+                    const scene = getSceneWithAssets(sceneId) || activeScenes.find(s => s.id === sceneId);
+                    if (!scene) return null;
+                    return (
+                      <div key={sceneId} className="relative group flex items-center gap-1.5 px-2 py-1 bg-slate-700 border border-slate-600 rounded-lg">
+                        {scene.referenceImage ? (
+                          <img
+                            src={scene.referenceImage}
+                            alt={scene.location}
+                            className="w-12 h-9 rounded object-cover cursor-pointer hover:ring-1 ring-indigo-400"
+                            onClick={() => setPreviewImage(scene.referenceImage)}
+                          />
+                        ) : (
+                          <div className="w-8 h-6 rounded bg-slate-600 flex items-center justify-center">
+                            <Film className="w-3 h-3 text-slate-400" />
+                          </div>
+                        )}
+                        <span className="text-xs text-slate-300 max-w-[80px] truncate">{scene.location}</span>
+                        <button
+                          onClick={() => handleToggleSceneInline(sceneId)}
+                          className="opacity-100 group-hover:opacity-100 p-0.5 hover:bg-red-900/30 hover:text-red-400 rounded transition-all cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {(selectedSegment?.sceneIds || []).length === 0 && (
+                    <span className="text-xs text-slate-500">未选择场景</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Characters Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-500 tracking-wide">
+                    角色 ({(selectedSegment?.characterIds || []).length})
+                  </label>
+                  {availableCharactersInline.length > 0 && (
+                    <CustomSelect
+                      value=""
+                      onChange={(val) => { if (val) handleToggleCharacterInline(val); }}
+                      options={availableCharactersInline.map(c => ({ value: c.id, label: c.name }))}
+                      placeholder="+ 添加角色"
+                      className="w-64" size='sm'
+                    />
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedSegment?.characterIds || []).map(charId => {
+                    const character = getCharacterWithAssets(charId) || activeCharacters.find(c => c.id === charId);
+                    if (!character) return null;
+                    
+                    // Get available looks
+                    const availableLooks: { id: string; name: string; image?: string }[] = [];
+                    if (character.referenceImage) {
+                      availableLooks.push({ id: 'base', name: '默认', image: character.referenceImage });
+                    }
+                    character.variations?.forEach(v => {
+                      if (v.referenceImage) {
+                        availableLooks.push({ id: v.id, name: v.name, image: v.referenceImage });
+                      }
+                    });
+                    
+                    const selectedVarId = selectedSegment?.characterVariations?.[charId];
+                    const currentLook = selectedVarId
+                      ? availableLooks.find(l => l.id === selectedVarId) || availableLooks[0]
+                      : availableLooks[0];
+                    
+                    return (
+                      <div key={charId} className="relative group flex items-center gap-1.5 px-2 py-1 bg-slate-700 border border-slate-600 rounded-lg">
+                        {currentLook?.image ? (
+                          <img
+                            src={currentLook.image}
+                            alt={character.name}
+                            className="w-10 h-10 rounded-full object-cover cursor-pointer hover:ring-1 ring-indigo-400"
+                            onClick={() => setPreviewImage(currentLook.image!)}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-400">
+                            {character.name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                        <div className="flex items-center gap-1 justify-between pb-1">
+                        <div className="flex-1 text-xs text-slate-300 max-w-[60px] truncate text-left">{character.name}</div>
+                        <button
+                          onClick={() => handleToggleCharacterInline(charId)}
+                          className="opacity-100 group-hover:opacity-100 p-0.5 hover:bg-red-900/30 hover:text-red-400 rounded transition-all cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        </div>
+                        {availableLooks.length > 1 && (
+                          <CustomSelect
+                            value={currentLook?.id || 'base'}
+                            onChange={(val) => handleSelectVariationInline(charId, val)}
+                            options={availableLooks.map(look => ({ value: look.id, label: look.name }))}
+                            className="w-24 text-[9px]"
+                            size='sm'
+                          />
+                        )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(selectedSegment?.characterIds || []).length === 0 && (
+                    <span className="text-xs text-slate-500">未选择角色</span>
+                  )}
+                </div>
+              </div>
+
               {/* Description */}
               <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
                 <div className="relative h-[35vh]">
                   <textarea
+                    ref={descriptionTextareaRef}
                     value={descriptionDraft}
-                    onChange={(e) => setDescriptionDraft(e.target.value)}
-                    placeholder="输入片段描述..."
+                    onChange={handleDescriptionInput}
+                    onKeyDown={handleDescriptionKeyDown}
+                    placeholder="输入片段描述... 使用 @ 提及角色或场景"
                     className="w-full h-full p-3 pb-14 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
                   />
+                  {/* @ Mention Picker */}
+                  {mentionPickerOpen && (
+                    <div
+                      className="fixed z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-80 overflow-y-auto w-64"
+                      style={{ 
+                        top: mentionPickerPosition.top, 
+                        left: Math.max(8, mentionPickerPosition.left - 256) // 左下角，确保不超出左边界
+                      }}
+                    >
+                      {/* Characters Section */}
+                      {filteredCharacters.length > 0 && (
+                        <div className="p-1">
+                          <div className="text-[10px] text-slate-500 px-2 py-1 font-bold tracking-wide">角色</div>
+                          {filteredCharacters.slice(0, 5).map(char => {
+                            const isExpanded = expandedCharId === char.id;
+                            const charWithAssets = getCharacterWithAssets(char.id) || char;
+                            const variations = charWithAssets.variations || [];
+                            
+                            return (
+                              <div key={char.id}>
+                                <button
+                                  onClick={() => {
+                                    if (variations.length > 0) {
+                                      setExpandedCharId(isExpanded ? null : char.id);
+                                    } else {
+                                      handleSelectMention('character', { id: char.id, name: char.name });
+                                    }
+                                  }}
+                                  className="w-full text-left px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
+                                >
+                                  {charWithAssets.referenceImage ? (
+                                    <img src={charWithAssets.referenceImage} alt={char.name} className="w-8 h-8 rounded-full object-cover" />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-slate-600 flex items-center justify-center text-[10px] text-slate-400">
+                                      {char.name.charAt(0)}
+                                    </div>
+                                  )}
+                                  <span className="flex-1">{char.name}</span>
+                                  {variations.length > 0 && (
+                                    <ChevronRight className={`w-3 h-3 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                  )}
+                                </button>
+                                {/* Variations */}
+                                {isExpanded && variations.length > 0 && (
+                                  <div className="ml-4 border-l border-slate-700 pl-1">
+                                    {variations.map(variation => (
+                                      <button
+                                        key={variation.id}
+                                        onClick={() => handleSelectMention('character', { id: char.id, name: `${char.name}(${variation.name})` }, variation.id)}
+                                        className="w-full text-left px-2 py-1 text-xs text-slate-400 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
+                                      >
+                                        {variation.referenceImage ? (
+                                          <img src={variation.referenceImage} alt={variation.name} className="w-8 h-8 rounded-full object-cover" />
+                                        ) : (
+                                          <div className="w-4 h-4 rounded bg-slate-700" />
+                                        )}
+                                        <span>{variation.name}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Scenes Section */}
+                      {filteredScenes.length > 0 && (
+                        <div className="p-1 border-t border-slate-700">
+                          <div className="text-[10px] text-slate-500 px-2 py-1 font-bold tracking-wide">场景</div>
+                          {filteredScenes.slice(0, 5).map(scene => {
+                            const sceneWithAssets = getSceneWithAssets(scene.id) || scene;
+                            return (
+                              <button
+                                key={scene.id}
+                                onClick={() => handleSelectMention('scene', { id: scene.id, name: scene.location })}
+                                className="w-full text-left px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
+                              >
+                                {sceneWithAssets.referenceImage ? (
+                                  <img src={sceneWithAssets.referenceImage} alt={scene.location} className="w-8 h-8 rounded object-cover" />
+                                ) : (
+                                  <div className="w-5 h-5 rounded bg-slate-700 flex items-center justify-center">
+                                    <Film className="w-3 h-3 text-slate-500" />
+                                  </div>
+                                )}
+                                <span>{scene.location}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* No results */}
+                      {filteredCharacters.length === 0 && filteredScenes.length === 0 && (
+                        <div className="p-3 text-sm text-slate-500 text-center">
+                          未找到匹配的角色或场景
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {/* 底部悬浮按钮层 */}
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border border-slate-600 border-t-slate-600/50 rounded-b-lg flex items-center justify-between">
                     {/* 左边占位 */}
@@ -1398,6 +1853,26 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         onClose={() => setPreviewModalOpen(false)}
         getSegmentThumbnail={getSegmentThumbnail}
       />
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setPreviewImage(null)}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+          />
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 p-2 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-slate-50 transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* AI 分镜等待遮罩 */}
       {aiSplitting && (

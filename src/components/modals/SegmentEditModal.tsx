@@ -186,11 +186,16 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">预估时长</label>
             <div className="flex items-center gap-2">
-              <div className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm text-slate-50 font-mono">
-                {editedSegment.estimatedDuration.toFixed(1)} 秒
-              </div>
+              <CustomSelect
+                value={editedSegment.estimatedDuration.toString()}
+                onChange={(val) => setEditedSegment({ ...editedSegment, estimatedDuration: parseInt(val) || 4 })}
+                options={Array.from({ length: 12 }, (_, i) => ({
+                  value: (i + 4).toString(),
+                  label: `${i + 4} 秒`,
+                }))}
+              />
               <span className="text-xs text-slate-500">
-                基于选中的分镜数量自动计算
+                建议时长 4-15 秒
               </span>
             </div>
           </div>
@@ -404,20 +409,12 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                     <span className="text-xs text-center truncate w-full px-1">{character.name}</span>
                     {/* Variation Selector */}
                     {availableLooks.length > 1 && (
-                      <div className="w-full relative">
-                        <select
-                          value={currentLook?.id || 'base'}
-                          onChange={(e) => handleSelectVariation(charId, e.target.value)}
-                          className="w-full px-2 py-1 text-[10px] bg-slate-800 border border-slate-600 rounded text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer appearance-none"
-                        >
-                          {availableLooks.map((look) => (
-                            <option key={look.id} value={look.id}>
-                              {look.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500 pointer-events-none" />
-                      </div>
+                      <CustomSelect
+                        value={currentLook?.id || 'base'}
+                        onChange={(val) => handleSelectVariation(charId, val)}
+                        options={availableLooks.map(look => ({ value: look.id, label: look.name }))}
+                        className="w-full"
+                      />
                     )}
                   </div>
                 );
