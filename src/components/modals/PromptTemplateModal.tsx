@@ -146,12 +146,12 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
 ## 详细说明：
 1. 设计一组覆盖全部情节动作的镜头序列。
-2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-12 秒，避免出现 JSON 截断错误。
+2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-15 秒，避免出现 JSON 截断错误。
 3. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 4. 景别：明确取景范围（如：大特写、中景、全景）。
 5. 镜头情节概述：详细描述该镜头内发生的情节（使用 {lang} 语言描述）。
-6. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
-7. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
+6. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
+7. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-10）。
 8. 对话：如果需要，为每个角色生成对话，包含角色名字、内容。
 9. 关键帧：现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧和一个结束帧；如果imageCount大于 1 则是一张完整连环画帧。
 10. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
@@ -336,11 +336,11 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-12 秒，使整部剧的时长控制在 {duration} 左右。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-15 秒，使整部剧的时长控制在 {duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
-4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
-5. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
+4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
+5. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-10）。
 6. 关键帧：生成规则 现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧；如果imageCount是 2，则必须生成一个起始帧和一个结束帧；如果imageCount大于 2 则是一张完整连环画帧。
 7. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
 
@@ -374,11 +374,11 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-12 秒，使整部剧的时长控制在 {duration} 左右。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-15 秒，使整部剧的时长控制在 {duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
-4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
-5. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
+4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
+5. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-10）。
 6. 关键帧：生成规则 现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧；如果imageCount是 2，则必须生成一个起始帧和一个结束帧；如果imageCount大于 2 则是一张完整连环画帧。
 7. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
 
@@ -396,9 +396,16 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 ## 脚本原文：
     {scriptText}`,
     'GENERATE_SEGMENT_PROMPT':`任务设定：
-根据提供的剧本原文和当前片段故事段落，设计一个不超过 15s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
+根据提供的剧本原文和故事段落，设计一个不超过 15s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
+根据片段名和序号，确定片段是剧本和故事中的那场戏。
 以时间轴的方式叙事故事的发展，保留剧本里的场景，角色，台词。如果有分镜表，可参考分镜表。
 时间轴的描述必须使用自然语言，以连贯讲故事的方式描述这个时段内：场景的氛围，角色的神态、动作、对话，镜头运动等
+
+## 片段名：
+{segmentName}
+
+## 片段序号：
+{segmentIndex}
 
 ## 剧本原文：
 {scriptText}
@@ -626,7 +633,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}','{name}'],
     'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}'],
     'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
-    'GENERATE_SEGMENT_PROMPT': ['{scriptText}','{storyParagraphs}','{shotDescriptions}', '{visualstyle}','{genre}'],
+    'GENERATE_SEGMENT_PROMPT': ['{scriptText}','{storyParagraphs}','{shotDescriptions}', '{visualstyle}','{genre}','{segmentName}','{segmentIndex}'],
     'GENERATE_SEGMENT_VIDEO_PROMPT': ['{scenes}', '{segment}','{shotnum}','{transitionFrom}','{transitionTo}'],
     'AI_SPLIT_SEGMENTS': ['{shotsJson}', '{charactersMap}','{scenesMap}','{visualStyle}','{genre}'],
     'GENERATE_SEGMENTS_FROM_SCRIPT': ['{rawScript}', '{characters}','{scenes}','{visualStyle}','{genre}','language','targetDuration'],

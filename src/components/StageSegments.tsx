@@ -124,7 +124,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       if (!segment) return;
 
       setGeneratingDescription((prev) => new Set([...prev, segmentId]));
-
+      const segmentIndex = segments.findIndex((s) => s.id === segmentId);
       try {
         const description = await generateSegmentDescription(
           segment,
@@ -134,7 +134,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.visualStyle,
           project.genre,
           project.rawScript,
-          project.scriptData.storyParagraphs
+          project.scriptData.storyParagraphs,
+          segmentIndex+1
         );
 
         updateProject({
@@ -186,7 +187,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.visualStyle,
             project.genre,
             project.rawScript,
-            project.scriptData?.storyParagraphs || []
+            project.scriptData?.storyParagraphs || [],
+            i+1
           );
           
           
@@ -654,6 +656,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       // 如果 description 为空，先生成 description
       let currentDescription = selectedSegment.description;
       if (!currentDescription?.trim()) {
+        const segments = project.segments || [];
+        const segmentIndex = segments.findIndex((s) => s.id === selectedSegment.id);
+
         try {
           currentDescription = await generateSegmentDescription(
             selectedSegment,
@@ -663,7 +668,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.visualStyle,
             project.genre,
             project.rawScript,
-            project.scriptData?.storyParagraphs || []
+            project.scriptData?.storyParagraphs || [],
+            segmentIndex+1
           );
           // 更新 segment 的 description
           const updatedSegments = (project.segments || []).map((seg) =>
@@ -799,7 +805,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               project.visualStyle,
               project.genre,
               project.rawScript,
-              project.scriptData?.storyParagraphs || []
+              project.scriptData?.storyParagraphs || [],
+              i+1
             );
             // 更新 description
             const segIndex = currentSegments.findIndex(s => s.id === segment.id);
