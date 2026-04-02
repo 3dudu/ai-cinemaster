@@ -128,7 +128,7 @@ const StageAssets: React.FC<Props> = ({
         const fileName = type === 'character'
           ? `角色_${characters.find(c => String(c.id) === String(id))?.name || id}`
           : `场景_${scenes.find(s => String(s.id) === String(id))?.id || id}`;
-        await addMediaHistory(project.id, imageUrl, fileName, 'image', type, new_prompt);
+        await addMediaHistory(isSeriesMode?series.id:project.id, imageUrl, fileName, 'image', type, new_prompt);
       }
 
       // Update state - series mode: update series.library; standalone mode: update project.scriptData

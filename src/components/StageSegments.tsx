@@ -9,7 +9,6 @@ import { Character, ProjectState, Scene, Segment, SeriesRecord } from '../types'
 import {
   aiConvertShotsToSegments,
   convertShotsToSegments,
-  generateAllSegmentDescriptions,
   generateAllTransitionDescriptions,
   generateSegmentDescription,
   generateTransitionDescription
@@ -61,6 +60,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [transitionToDraft, setTransitionToDraft] = useState('');
   const [editingScript, setEditingScript] = useState(isMobile?false:true);  // 控制描述编辑区显示
   const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);  // 视频生成状态
+  const [batchGeneratingVideos, setBatchGeneratingVideos] = useState(false);  // 批量生成视频状态
   const [insertIndex, setInsertIndex] = useState<number | null>(null);  // 新片段插入位置
   const [previewModalOpen, setPreviewModalOpen] = useState(false);  // 预览模态框状态
   const [aiSplitting, setAiSplitting] = useState(false);  // AI 分镜等待遮罩
@@ -160,27 +160,57 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
     setBatchGenerating(true);
 
-    try {
-      const updatedSegments = await generateAllSegmentDescriptions(
-        segments,
-        project.shots,
-        activeCharacters,
-        activeScenes,
-        project.visualStyle,
-        project.genre,
-        project.rawScript,
-        project.scriptData.storyParagraphs
-      );
+    let successCount = 0;
+    // 使用累积数组，避免每次更新后覆盖之前的修改
+    let currentSegments = [...segments];
 
-      updateProject({ segments: updatedSegments });
-      dialog.toast({ message: `成功生成 ${updatedSegments.length} 个片段描述` ,type: 'success'});
+    try {
+      // 逐个生成描述，每生成一个就保存一次
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+
+        try {
+          const description = await generateSegmentDescription(
+            segment,
+            project.shots,
+            activeCharacters,
+            activeScenes,
+            project.visualStyle,
+            project.genre,
+            project.rawScript,
+            project.scriptData?.storyParagraphs || []
+          );
+          
+          
+          // 更新当前 segment 并保存
+          /*
+          segments[i].description=description;
+          updateProject({ segments: [...segments] });
+          successCount++;
+          */
+          const segmentIndex = currentSegments.findIndex(s => s.id === segment.id);
+          if (segmentIndex >= 0) {
+            currentSegments[segmentIndex] = {
+              ...currentSegments[segmentIndex],
+              description,
+              lastModified: Date.now(),
+            };
+            updateProject({ segments: [...currentSegments] });
+            successCount++;
+          }
+          dialog.toast({ message: `成功生成 ${successCount} / ${segments.length} 个片段描述`, type: 'success' });
+        } catch (err) {
+          console.error(`生成片段 ${segment.name || segment.id} 描述失败:`, err);
+          // 继续生成下一个
+        }
+      }
     } catch (error) {
       console.error('批量生成描述失败:', error);
-      dialog.toast({ message: '批量生成描述失败，请重试',type: 'error' });
+      dialog.toast({ message: '批量生成描述失败，请重试', type: 'error' });
     } finally {
       setBatchGenerating(false);
     }
-  }, [project.segments, project.shots, activeCharacters, activeScenes, updateProject, dialog]);
+  }, [project.segments, project.shots, activeCharacters, activeScenes, project.visualStyle, project.genre, project.rawScript, project.scriptData?.storyParagraphs, updateProject, dialog]);
 
   // Generate all transition descriptions
   const handleBatchGenerateTransitions = useCallback(async () => {
@@ -613,6 +643,33 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     if (!selectedSegment) return;
     setGeneratingVideo(selectedSegment.id);
     try {
+      // 如果 description 为空，先生成 description
+      let currentDescription = selectedSegment.description;
+      if (!currentDescription?.trim()) {
+        try {
+          currentDescription = await generateSegmentDescription(
+            selectedSegment,
+            project.shots,
+            activeCharacters,
+            activeScenes,
+            project.visualStyle,
+            project.genre,
+            project.rawScript,
+            project.scriptData?.storyParagraphs || []
+          );
+          // 更新 segment 的 description
+          const updatedSegments = (project.segments || []).map((seg) =>
+            seg.id === selectedSegment.id ? { ...seg, description: currentDescription, lastModified: Date.now() } : seg
+          );
+          updateProject({ segments: updatedSegments });
+        } catch (err) {
+          console.error('生成描述失败:', err);
+          dialog.toast({ message: '生成描述失败，无法继续生成视频', type: 'error' });
+          setGeneratingVideo(null);
+          return;
+        }
+      }
+
       // Collect reference images from scenes and characters
       const referenceImages: string[] = [];
       const imageLabels: string[] = [];
@@ -660,8 +717,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         }
       });
 
-      // 这里需要根据 segment 生成视频，可能需要整合 segment 中所有 shot 的视频
-      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),selectedSegment.description,selectedSegment.shotIds.length,
+      // 使用 currentDescription（可能刚生成）
+      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),currentDescription,selectedSegment.shotIds.length,
         selectedSegment.transitionFrom,selectedSegment.transitionTo
       );
 
@@ -701,7 +758,158 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     } finally {
       setGeneratingVideo(null);
     }
-  }, [selectedSegment, dialog, updateProject, project.segments, activeScenes, activeCharacters, project.imageCount, project.modelProviders, project.id, project.imageSize, project.visualStyle, project.seed]);
+  }, [selectedSegment, dialog, updateProject, project.segments, activeScenes, activeCharacters, project.imageCount, project.modelProviders, project.id, project.imageSize, project.visualStyle, project.seed, project.shots, project.visualStyle, project.genre, project.rawScript, project.scriptData?.storyParagraphs]);
+
+  // Batch generate videos for all segments
+  const handleBatchGenerateVideos = useCallback(async () => {
+    const segments = project.segments || [];
+    if (segments.length === 0) {
+      dialog.toast({ message: '没有片段需要生成视频', type: 'warning' });
+      return;
+    }
+
+    setBatchGeneratingVideos(true);
+    let successCount = 0;
+    // 使用累积数组
+    let currentSegments = [...segments];
+
+    try {
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+
+        try {
+          setGeneratingVideo(segment.id);
+
+          // 如果 description 为空，先生成 description
+          let currentDescription = segment.description;
+          if (!currentDescription?.trim()) {
+            currentDescription = await generateSegmentDescription(
+              segment,
+              project.shots,
+              activeCharacters,
+              activeScenes,
+              project.visualStyle,
+              project.genre,
+              project.rawScript,
+              project.scriptData?.storyParagraphs || []
+            );
+            // 更新 description
+            const segIndex = currentSegments.findIndex(s => s.id === segment.id);
+            if (segIndex >= 0) {
+              currentSegments[segIndex] = {
+                ...currentSegments[segIndex],
+                description: currentDescription,
+                lastModified: Date.now(),
+              };
+            }
+          }
+
+          // Collect reference images
+          const referenceImages: string[] = [];
+          const imageLabels: string[] = [];
+          const scenes: string[] = [];
+          let imageIndex = 1;
+
+          segment.sceneIds?.forEach((sceneId) => {
+            let scene = activeScenes.find((s) => s.id === sceneId);
+            if (!scene && getSceneWithAssets) {
+              scene = getSceneWithAssets(sceneId);
+            }
+            if (scene?.referenceImage) {
+              referenceImages.push(scene.referenceImage);
+              imageLabels.push(`图${imageIndex}: ${scene.location}`);
+              scenes.push(scene.location);
+              imageIndex++;
+            }
+          });
+
+          segment.characterIds?.forEach((charId) => {
+            let character = activeCharacters.find((c) => c.id === charId);
+            if (!character && getCharacterWithAssets) {
+              character = getCharacterWithAssets(charId);
+            }
+            if (character) {
+              if (segment.characterVariations?.[charId]) {
+                const variation = segment.characterVariations[charId];
+                const selectedVar = character.variations?.find(v => v.id === variation);
+                if (selectedVar?.referenceImage) {
+                  referenceImages.push(selectedVar.referenceImage);
+                  imageLabels.push(`图${imageIndex}: ${character.name}`);
+                  imageIndex++;
+                } else if (character.referenceImage) {
+                  referenceImages.push(character.referenceImage);
+                  imageLabels.push(`图${imageIndex}: ${character.name}`);
+                  imageIndex++;
+                }
+              } else if (character.referenceImage) {
+                referenceImages.push(character.referenceImage);
+                imageLabels.push(`图${imageIndex}: ${character.name}`);
+                imageIndex++;
+              }
+            }
+          });
+
+          const videoPrompt = renderTemplate(
+            'GENERATE_SEGMENT_VIDEO_PROMPT',
+            scenes.join(','),
+            currentDescription,
+            segment.shotIds.length,
+            segment.transitionFrom,
+            segment.transitionTo
+          );
+
+          const prompt = '## 参考图说明：\n' + imageLabels.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n\n' + videoPrompt;
+
+          const videoUrl = await ModelService.generateVideo(
+            prompt,
+            null,
+            null,
+            segment.estimatedDuration || 15,
+            project.imageCount > 2,
+            project.modelProviders,
+            project.id,
+            project.imageSize,
+            project.visualStyle,
+            segment.id,
+            referenceImages,
+            project.seed
+          );
+
+          if (videoUrl) {
+            // Save to media history
+            const fileName = `Segment_${segment.name || segment.id}_video`;
+            await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video', prompt);
+
+            // Update segment with videoUrl
+            const segIndex = currentSegments.findIndex(s => s.id === segment.id);
+            if (segIndex >= 0) {
+              currentSegments[segIndex] = {
+                ...currentSegments[segIndex],
+                videoUrl,
+              };
+              updateProject({ segments: [...currentSegments] });
+              successCount++;
+            }
+          }
+        } catch (err) {
+          console.error(`生成片段 ${segment.name || segment.id} 视频失败:`, err);
+        } finally {
+          setGeneratingVideo(null);
+        }
+      }
+
+      if (successCount > 0) {
+        dialog.toast({ message: `成功生成 ${successCount} / ${segments.length} 个视频`, type: 'success' });
+      } else {
+        dialog.toast({ message: '所有视频生成失败', type: 'error' });
+      }
+    } catch (error) {
+      console.error('批量生成视频失败:', error);
+      dialog.toast({ message: '批量生成视频失败', type: 'error' });
+    } finally {
+      setBatchGeneratingVideos(false);
+    }
+  }, [project.segments, project.shots, activeCharacters, activeScenes, project.visualStyle, project.genre, project.rawScript, project.scriptData?.storyParagraphs, project.imageCount, project.modelProviders, project.id, project.imageSize, project.seed, updateProject, dialog, getSceneWithAssets, getCharacterWithAssets]);
 
   // Open edit script panel
   const handleOpenEditScript = useCallback(() => {
@@ -759,7 +967,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           </button>
           <button
             onClick={handleBatchGenerateDescriptions}
-            disabled={batchGenerating || (project.segments || []).length === 0}
+            disabled={batchGenerating || batchGeneratingVideos || (project.segments || []).length === 0}
             className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {batchGenerating ? (
@@ -771,7 +979,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           </button>
           <button
             onClick={handleBatchGenerateTransitions}
-            disabled={generatingTransition || (project.segments || []).length < 2}
+            disabled={generatingTransition || batchGeneratingVideos || (project.segments || []).length < 2}
             className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {generatingTransition ? (
@@ -780,6 +988,18 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               <RefreshCw className="w-3 h-3" />
             )}
             {!isMobile && '批量生成转场'}
+          </button>
+          <button
+            onClick={handleBatchGenerateVideos}
+            disabled={batchGeneratingVideos || (project.segments || []).length === 0}
+            className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {batchGeneratingVideos ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Video className="w-3 h-3" />
+            )}
+            {!isMobile && '批量生成视频'}
           </button>
         </div>
       </div>
@@ -856,7 +1076,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 )}
                 <button
                   onClick={handleGenerateSegmentVideo}
-                  disabled={generatingVideo === selectedSegment.id}
+                  disabled={generatingVideo === selectedSegment.id || batchGeneratingVideos}
                   className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {generatingVideo === selectedSegment.id ? (
@@ -925,7 +1145,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                       {/* AI生成按钮 */}
                       <button
                         onClick={() => handleGenerateDescription(selectedSegment.id)}
-                        disabled={generatingDescription.has(selectedSegment.id)}
+                        disabled={generatingDescription.has(selectedSegment.id) || batchGeneratingVideos}
                         className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                         title="AI生成描述"
                       >

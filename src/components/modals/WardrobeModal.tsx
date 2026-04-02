@@ -1,5 +1,5 @@
 import { Download, Edit2, Loader2, Plus, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { renderTemplate } from '../../services/promptTemplates';
 import { addMediaHistory } from '../../services/storageService';
@@ -189,7 +189,7 @@ const WardrobeModal: React.FC<Props> = ({
           if (imageUrl) {
             const variation = character.variations?.find(v => v.id === varId);
             const fileName = variation ? `${variation.name}_${character.name}` : `造型_${varId}_${character.name}`;
-            await addMediaHistory(project.id, imageUrl, fileName, 'image', 'character',enhancedPrompt);
+            await addMediaHistory(isSeriesMode?series.id:project.id, imageUrl, fileName, 'image', 'character',enhancedPrompt);
           }
 
           const characters = getCharacters();

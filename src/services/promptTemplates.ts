@@ -718,7 +718,7 @@ ${text}
     - shotSize（字符串类型）
     - characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
     - keyframes（对象数组类型，每个对象定义不同的帧，对象包含如下属性： id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 ${lang} 语言描述） 字段）
-    - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+    - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   `,
   // ============ 镜头清单生成 ============
   IMPORT_SHOTS: (
@@ -762,7 +762,7 @@ ${characters}
 - shotSize（字符串类型）
 - characters（字符串数组类型，角色id）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
 ## 脚本原文：
     ${scriptText}`,
@@ -807,7 +807,7 @@ ${characters}
 - shotSize（字符串类型）
 - characters（字符串数组类型，角色id）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
 ## 脚本原文：
     ${scriptText}`,
@@ -1052,16 +1052,16 @@ ${prompt}
 
 ## 提取片段的下列信息
 片段名称
-时长：12秒
+时长：15秒
 运动强度：（文戏3-5 / 正常5-7 / 冲突7-10）  
 情绪曲线：（贴合剧情，2-3种情绪递进）  
-台词与节奏：台词数量与语速需适配12秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完。
-（时间分段灵活分配，不强制固定段落，总时长12秒）
+台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完。
+（时间分段灵活分配，不强制固定段落，总时长15秒）
 片段分时描述：
 0-3秒：画面动作  
 3-7秒：画面动作  
 7-10秒：画面动作  
-11-12秒：画面动作  
+11-15秒：画面动作  
 负面提示词：静止画面，慢镜头，空镜，人物背面，面部扭曲，肢体不协调，手部变形，有字幕
 
 # 详细执行规则
@@ -1187,7 +1187,7 @@ ${shotDescriptions}
 4  设计高超的构图，不同分镜的构图可以保持一致，也可进行变化，可选构图类型：中心构图，对称构图，三分线构图，框构框架，引导线构图，三角线构图，黄金螺旋构图，水平构图，对角构图。
 5. 自动识别：人物、场景、关键物品、情绪、动作节奏，输出为 "片段要素"。
 6. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
-7. 台词与节奏：台词数量与语速需适配12秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
+7. 台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
 8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过15s。
 9. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
 10. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。
