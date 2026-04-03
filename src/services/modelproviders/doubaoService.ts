@@ -1,7 +1,8 @@
 // services/modelproviders/doubaoService.ts
 
 import { Scene, ScriptData, Shot } from "../../types";
-import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString, createAsyncTaskLog, LogContext, pollTask, fetchTaskStatus } from "../../utils/apiHelper";
+import { getLLMLog, saveLLMLog } from "../storageService";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // 火山引擎配置
@@ -72,11 +73,12 @@ const getAuthHeaders = () => {
   };
 };
 
-// Helper to make HTTP requests to Volcengine API
+// Helper to make HTTP requests to Volcengine API (with logging support)
 const fetchWithRetry = async (
   endpoint: string,
   options: RequestInit,
-  retries: number = 1
+  retries: number = 1,
+  logContext?: Partial<LogContext>
 ): Promise<any> => {
   const requestOptions: RequestInit = {
     ...options,
@@ -85,7 +87,21 @@ const fetchWithRetry = async (
       ...options.headers,
     },
   };
-  return apiFetchWithRetry(endpoint, requestOptions, retries, true);
+  
+  // 构建完整的日志上下文
+  const fullLogContext: LogContext | undefined = logContext ? {
+    modelType: logContext.modelType || 'llm',
+    provider: logContext.provider || 'doubao',
+    apiUrl: endpoint,
+    modelId: logContext.modelId || runtimeTextModel,
+    seriesId: logContext.seriesId,
+    projectId: logContext.projectId,
+    shotId: logContext.shotId,
+    isAsyncTask: logContext.isAsyncTask,
+    taskId: logContext.taskId
+  } : undefined;
+  
+  return apiFetchWithRetry(endpoint, requestOptions, retries, true, fullLogContext);
 };
 
 /**
@@ -94,7 +110,9 @@ const fetchWithRetry = async (
  */
 export const parseScriptToData = async (
   prompt: string,
-  language: string = "中文"
+  language: string = "中文",
+  projectId?: string,
+  seriesId?: string
 ): Promise<ScriptData> => {
     const endpoint = `${runtimeApiUrl}/chat/completions`;
     const response = await fetchWithRetry(endpoint, {
@@ -113,6 +131,11 @@ export const parseScriptToData = async (
       ],
       ...MODEL_GENERATION_CONFIG.PARSE_SCRIPT,
     }),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   const content = response.choices?.[0]?.message?.content || "{}";
@@ -167,7 +190,9 @@ export const parseScriptToData = async (
  */
 export const generateShotListForScene = async (
   scene: any,
-  prompt: string
+  prompt: string,
+  projectId?: string,
+  seriesId?: string
 ): Promise<Shot[]> => {
   try {
     const endpoint = `${runtimeApiUrl}/chat/completions`;
@@ -187,7 +212,12 @@ export const generateShotListForScene = async (
         ],
         ...MODEL_GENERATION_CONFIG.GENERATE_SHOTS,
       }),
-    });
+    }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
+  });
 
     const content = response.choices?.[0]?.message?.content || "[]";
     const shots = JSON.parse(cleanJsonString(content));
@@ -211,7 +241,9 @@ export const generateScript = async (
   prompt: string,
   genre: string = "剧情片",
   targetDuration: string = "60s",
-  language: string = "中文"
+  language: string = "中文",
+  projectId?: string,
+  seriesId?: string
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
 
@@ -231,6 +263,11 @@ export const generateScript = async (
       ],
       ...MODEL_GENERATION_CONFIG.GENERATE_SCRIPT,
     }),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   const content = response.choices?.[0]?.message?.content || "";
@@ -243,7 +280,9 @@ export const generateScript = async (
 export const generateCommonPrompts = async (
   prompt: string,
   systemPrompt: string = "视觉设计师",
-  modelconfig:any=MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT
+  modelconfig:any=MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+  projectId?: string,
+  seriesId?: string
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
@@ -262,6 +301,11 @@ export const generateCommonPrompts = async (
       ],
       ...modelconfig,
     }),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   return response.choices?.[0]?.message?.content || "";
@@ -279,6 +323,9 @@ export const generateImage = async (
   imageSize: string = "2560x1440",
   imageCount: number = 1,
   seed: number = 0,
+  projectId?: string,
+  seriesId?: string,
+  shotId?: string,
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/images/generations`;
   const requestBody: any = {
@@ -313,6 +360,12 @@ export const generateImage = async (
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify(requestBody),
+  }, 1, {
+    modelType: 'text2image',
+    modelId: runtimeImageModel,
+    projectId,
+    seriesId,
+    shotId
   });
 
   // 提取图片 URL 或 base64 数据
@@ -403,6 +456,9 @@ export const generateVideo = async (
   imageSize: string = "2560x1440",
   seed: number = 0,
   referenceImages: string[] = [],
+  projectId?: string,
+  seriesId?: string,
+  shotId?: string,
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks`;
 
@@ -479,12 +535,103 @@ export const generateVideo = async (
   }
 
   // 轮询任务状态
-  const videoUrl = await pollVideoTask(taskId);
+  //const videoUrl = await pollVideoTask(taskId, projectId, seriesId, shotId);
+
+
+   // 2. 创建异步任务日志
+  const taskendpoint = `${runtimeApiUrl}/contents/generations/tasks/${taskId}`;
+  const logId = await createAsyncTaskLog({
+    modelType: 'image2video',
+    provider: 'doubao',
+    apiUrl: taskendpoint,
+    modelId: runtimeVideoModel,
+    taskId,
+    projectId,
+    seriesId,
+    shotId
+  },  requestBody , response);
+
+    // 3. 使用 pollTask 轮询任务状态
+  const videoUrl = await pollTask(
+    // taskFetcher: 获取任务状态的函数
+    () => fetchWithRetry(taskendpoint, { method: 'GET' }),
+    // statusGetter: 从响应中提取状态
+    (data) => data.status,
+    // resultGetter: 从响应中提取视频URL
+    (data) => data.content?.video_url,
+    // errorGetter: 从响应中提取错误信息
+    (data) => data.error?.message,
+    // config: 轮询配置（可选）
+    {
+      maxAttempts: 240,    // 最多轮询 240 次
+      pollInterval: 5000,  // 每 5 秒轮询一次
+      successStatuses: ['completed', 'succeeded'],
+      failedStatuses: ['failed', 'error']
+    },
+    
+    // logContext: 日志上下文（传入 logId 用于更新日志）
+    {
+      modelType: 'image2video',
+      provider: 'doubao',
+      apiUrl: taskendpoint,
+      modelId: runtimeVideoModel,
+      logId  // 传入 logId 以便更新日志状态
+    }
+  );
   return videoUrl;
 };
 
+/**
+ * 手动查询视频任务状态（单次查询）
+ * 用于用户手动刷新异步任务状态
+ */
+export const fetchVideoTaskStatus = async (
+  taskId: string,
+  logId?: string
+): Promise<{
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  videoUrl?: string;
+  error?: string;
+}> => {
+  const endpoint = `${runtimeApiUrl}/contents/generations/tasks/${taskId}`;
+
+  const logContext: LogContext & { logId?: string } = {
+    modelType: 'image2video',
+    modelId: runtimeVideoModel,
+    provider: 'doubao',
+    apiUrl: endpoint,
+    taskId,
+    isAsyncTask: false,  // 这是查询请求，不是新的异步任务
+    logId
+  };
+
+  const result = await fetchTaskStatus(
+    // taskFetcher: 获取任务状态的函数
+    () => fetchWithRetry(endpoint, { method: 'GET' }),
+    // statusGetter: 从响应中提取状态
+    (data) => data.status,
+    // resultGetter: 从响应中提取视频URL
+    (data) => data.content?.video_url,
+    // errorGetter: 从响应中提取错误信息
+    (data) => data.error?.message,
+    // logContext
+    logContext
+  );
+
+  return {
+    status: result.status,
+    videoUrl: result.result,
+    error: result.error
+  };
+};
+
 // 轮询视频生成任务
-const pollVideoTask = async (taskId: string): Promise<string> => {
+const pollVideoTask = async (
+  taskId: string,
+  projectId?: string,
+  seriesId?: string,
+  shotId?: string
+): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks/${taskId}`;
 
   let attempts = 0;
@@ -493,6 +640,14 @@ const pollVideoTask = async (taskId: string): Promise<string> => {
   while (attempts < maxAttempts) {
     const response = await fetchWithRetry(endpoint, {
       method: "GET",
+    }, 1, {
+      modelType: 'image2video',
+      modelId: runtimeVideoModel,
+      projectId,
+      seriesId,
+      shotId,
+      isAsyncTask: false,
+      taskId
     });
 
     const status = response.status;
@@ -517,7 +672,9 @@ const pollVideoTask = async (taskId: string): Promise<string> => {
  */
 export const importScriptToData = async (
   prompt: string,
-  language: string = "中文"
+  language: string = "中文",
+  projectId?: string,
+  seriesId?: string
 ): Promise<ScriptData> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
@@ -536,6 +693,11 @@ export const importScriptToData = async (
       ],
       ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
     }),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   const content = response.choices?.[0]?.message?.content || "{}";
@@ -580,7 +742,9 @@ export const importScriptToData = async (
 };
 
 export const importShotList = async (
-  prompt: string
+  prompt: string,
+  projectId?: string,
+  seriesId?: string
 ): Promise<Shot[]> => {
 
   try {
@@ -601,7 +765,12 @@ export const importShotList = async (
         ],
         ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
       }),
-    });
+    }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
+  });
 
     const content = response.choices?.[0]?.message?.content || "[]";
     const shots = JSON.parse(cleanJsonString(content));
@@ -615,7 +784,9 @@ export const importShotList = async (
 
 export const importShotListForScene = async (
   scene:Scene,
-  prompt: string
+  prompt: string,
+  projectId?: string,
+  seriesId?: string
 ): Promise<Shot[]> => {
 
   try {
@@ -636,7 +807,12 @@ export const importShotListForScene = async (
         ],
         ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
       }),
-    });
+    }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
+  });
 
     const content = response.choices?.[0]?.message?.content || "[]";
     const shots = JSON.parse(cleanJsonString(content));

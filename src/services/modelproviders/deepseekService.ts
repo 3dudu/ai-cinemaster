@@ -1,7 +1,7 @@
 // services/modelproviders/deepseekService.ts
 
 import { Scene, ScriptData, Shot } from "../../types";
-import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString, LogContext } from "../../utils/apiHelper";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // DeepSeek 配置
@@ -41,7 +41,8 @@ const getAuthHeaders = () => {
 const fetchWithRetry = async (
   endpoint: string,
   options: RequestInit,
-  retries: number = 1
+  retries: number = 1,
+  logContext?: Partial<LogContext>
 ): Promise<any> => {
   const requestOptions: RequestInit = {
     ...options,
@@ -50,7 +51,21 @@ const fetchWithRetry = async (
       ...options.headers,
     },
   };
-  return apiFetchWithRetry(endpoint, requestOptions, retries, true);
+  
+  // 构建完整的日志上下文
+  const fullLogContext: LogContext | undefined = logContext ? {
+    modelType: logContext.modelType || 'llm',
+    provider: logContext.provider || 'doubao',
+    apiUrl: endpoint,
+    modelId: logContext.modelId || runtimeTextModel,
+    seriesId: logContext.seriesId,
+    projectId: logContext.projectId,
+    shotId: logContext.shotId,
+    isAsyncTask: logContext.isAsyncTask,
+    taskId: logContext.taskId
+  } : undefined;
+  
+  return apiFetchWithRetry(endpoint, requestOptions, retries, true, fullLogContext);
 };
 
 /**
@@ -59,7 +74,9 @@ const fetchWithRetry = async (
  */
 export const parseScriptToData = async (
   prompt: string,
-  language: string = "中文"
+  language: string = "中文",
+  projectId?: string,
+  seriesId?: string
 ): Promise<ScriptData> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
@@ -78,6 +95,11 @@ export const parseScriptToData = async (
       ],
       ...MODEL_GENERATION_CONFIG.PARSE_SCRIPT,
     }),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   const content = response.choices?.[0]?.message?.content || "{}";
@@ -133,7 +155,9 @@ export const parseScriptToData = async (
  */
 export const generateShotListForScene = async (
   scene: any,
-  prompt: string
+  prompt: string,
+  projectId?: string,
+  seriesId?: string
 ): Promise<Shot[]> => {
 
   try {
@@ -154,7 +178,12 @@ export const generateShotListForScene = async (
         ],
         ...MODEL_GENERATION_CONFIG.GENERATE_SHOTS,
       }),
-    });
+    }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
+  });
 
     const content = response.choices?.[0]?.message?.content || "[]";
     const shots = JSON.parse(cleanJsonString(content));
@@ -178,7 +207,9 @@ export const generateScript = async (
   prompt: string,
   genre: string = "剧情片",
   targetDuration: string = "60s",
-  language: string = "中文"
+  language: string = "中文",
+  projectId?: string,
+  seriesId?: string
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
 
@@ -198,6 +229,11 @@ export const generateScript = async (
       ],
       ...MODEL_GENERATION_CONFIG.GENERATE_SCRIPT,
     }),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   const content = response.choices?.[0]?.message?.content || "";
@@ -211,7 +247,9 @@ export const generateScript = async (
 export const generateCommonPrompts = async (
   prompt: string,
   systemPrompt: string = "视觉设计师",
-  modelconfig:any=MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT
+  modelconfig:any=MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+  projectId?: string,
+  seriesId?: string
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
@@ -230,6 +268,11 @@ export const generateCommonPrompts = async (
       ],
       ...modelconfig,
     }),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   return response.choices?.[0]?.message?.content || "";
@@ -242,7 +285,9 @@ export const generateCommonPrompts = async (
  */
 export const importScriptToData = async (
   prompt: string,
-  language: string = "中文"
+  language: string = "中文",
+  projectId?: string,
+  seriesId?: string
 ): Promise<ScriptData> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
@@ -261,6 +306,11 @@ export const importScriptToData = async (
       ],
       ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
     }),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   const content = response.choices?.[0]?.message?.content || "{}";
@@ -305,7 +355,9 @@ export const importScriptToData = async (
 };
 
 export const importShotList = async (
-  prompt: string
+  prompt: string,
+  projectId?: string,
+  seriesId?: string
 ): Promise<Shot[]> => {
 
   try {
@@ -326,7 +378,12 @@ export const importShotList = async (
         ],
         ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
       }),
-    });
+    }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
+  });
 
     const content = response.choices?.[0]?.message?.content || "[]";
     const shots = JSON.parse(cleanJsonString(content));
@@ -340,7 +397,9 @@ export const importShotList = async (
 
 export const importShotListForScene = async (
   scene:Scene,
-  prompt: string
+  prompt: string,
+  projectId?: string,
+  seriesId?: string
 ): Promise<Shot[]> => {
 
   try {
@@ -361,7 +420,12 @@ export const importShotListForScene = async (
         ],
         ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
       }),
-    });
+    }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
+  });
 
     const content = response.choices?.[0]?.message?.content || "[]";
     const shots = JSON.parse(cleanJsonString(content));

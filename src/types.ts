@@ -216,6 +216,45 @@ export interface ExportBundleV1 extends ProjectState {
   // No additional fields - this is just ProjectState itself
 }
 
+// ==================== LLM Call Log Types ====================
+
+export interface LLMCallLog {
+  id: string;
+  
+  // 时间信息
+  requestTime: number;          // 请求时间戳
+  responseTime: number;         // 响应时间戳
+  duration: number;             // 耗时
+  
+  // 关联信息
+  seriesId?: string;            // 连续剧ID
+  projectId?: string;           // 单剧ID/剧集ID
+  shotId?: string;              // 镜头ID (可选)
+  
+  // 模型信息
+  modelType: 'llm' | 'text2image' | 'image2video' | 'tts' | 'stt';
+  provider: string;             // 供应商：doubao, deepseek, kling 等
+  apiUrl: string;               // API地址
+  modelId: string;              // 模型ID/名称
+  
+  // 请求响应
+  requestParams: any;           // 请求参数
+  response: any;                // 响应数据
+  resultUrl?: string;           // 结果URL（视频URL、图片URL等）
+  
+  // 状态
+  success: boolean;
+  errorMessage?: string;
+  
+  // 异步任务相关
+  isAsyncTask: boolean;         // 是否为异步任务
+  taskId?: string;              // 异步任务ID
+  taskStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  pollCount?: number;           // 轮询次数
+  pollStartTime?: number;       // 开始轮询时间
+  pollEndTime?: number;         // 结束轮询时间
+}
+
 // Electron API types
 declare global {
   interface Window {
