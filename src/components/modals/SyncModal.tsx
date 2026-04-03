@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, Check, Cloud, Loader2, RefreshCw, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getAllProjectsMetadata, getAllSeriesFromDB, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
-import { deleteProject, downloadProject, downloadSeries, getServerFiles, initSync, SyncFileInfo, uploadProject, uploadSeries } from '../../services/syncService';
+import { deleteProject, downloadProject, downloadSeriesBundle, getServerFiles, initSync, SyncFileInfo, uploadProject, uploadSeriesBundle } from '../../services/syncService';
 import { ProjectState, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';
 
@@ -278,55 +278,36 @@ const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onSyncComplete }
       let success = false;
 
       if (item.isSeries) {
-        // 同步剧集（SeriesRecord）
+        // 同步剧集（SeriesRecord）- 整体操作
         if (direction === 'upload' && item.localSeries) {
-          // 上传剧集：先上传所有分集，再上传剧集本身
+          // 上传剧集：打包所有分集和剧集元数据，一次请求
           try {
-            // 获取本地分集数据
             const localProjects = await getAllProjectsMetadata();
             const episodes = localProjects.filter(p => p.seriesRefId === item.localSeries!.id);
-            
-            // 上传所有分集
-            for (const episode of episodes) {
-              const result = await uploadProject(episode, syncKey);
-              if (!result.success) {
-                console.error('Upload episode failed:', result.error);
-              }
-            }
-            
-            // 上传剧集
-            const result = await uploadSeries(item.localSeries, syncKey);
+
+            const result = await uploadSeriesBundle(item.localSeries, episodes, syncKey);
             success = result.success;
             if (!result.success) {
-              console.error('Upload series failed:', result.error);
+              console.error('Upload series bundle failed:', result.error);
             }
           } catch (err) {
             console.error('Upload series error:', err);
           }
         } else if (direction === 'download' && item.serverFile) {
-          // 下载剧集：先下载剧集，再下载所有分集
+          // 下载剧集：一次请求获取整个剧集包
           try {
-            // 下载剧集
-            const series = await downloadSeries(syncKey, item.serverFile.id);
-            
-            // 获取本地项目列表用于更新分集信息
-            const localProjects = await getAllProjectsMetadata();
-            
-            // 下载所有分集并保存
-            for (const episodeId of series.episodeOrder) {
-              try {
-                const episode = await downloadProject(syncKey, episodeId);
-                await saveProjectToDB(episode, true);
-              } catch (err) {
-                console.error('Download episode failed:', err);
-              }
+            const bundle = await downloadSeriesBundle(syncKey, item.serverFile.id);
+
+            // 保存所有分集
+            for (const episode of bundle.projects) {
+              await saveProjectToDB(episode, true);
             }
-            
-            // 保存剧集
-            await saveSeriesToDB(series);
+
+            // 保存剧集元数据
+            await saveSeriesToDB(bundle.series);
             success = true;
           } catch (err) {
-            console.error('Download series failed:', err);
+            console.error('Download series bundle failed:', err);
           }
         }
       } else {

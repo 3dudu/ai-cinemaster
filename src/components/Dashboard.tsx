@@ -254,36 +254,6 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
       onClearKey();
   }, [onClearKey]);
 
-  // Handle import episode to existing series
-  const handleImportEpisodeToSeries = useCallback(async (e: React.MouseEvent, series: SeriesRecord) => {
-    e.stopPropagation();
-    try {
-      setImporting(true);
-      const result = await importFromFile();
-
-      if (result.type === 'standalone' && result.project) {
-        // Import single project as episode
-        const { updatedProject, updatedSeries } = importProjectAsEpisode(series, result.project);
-
-        // Save to DB
-        await saveProjectToDB(updatedProject);
-        await saveSeriesToDB(updatedSeries);
-        await loadData();
-
-        dialog.toast({ message: '分集导入成功', type: 'success' });
-      } else if (result.type === 'series') {
-        dialog.toast({ message: '请选择单个项目文件导入，不支持导入整套剧集', type: 'error' });
-      }
-    } catch (error: any) {
-      console.error('Import failed:', error);
-      if (error.message !== 'Import cancelled' && error.message !== 'No file selected') {
-        dialog.toast({ message: error.message || '导入失败', type: 'error' });
-      }
-    } finally {
-      setImporting(false);
-    }
-  }, [loadData, dialog]);
-
   // Handle open series manager
   const handleOpenSeriesManager = useCallback((e: React.MouseEvent, series: SeriesRecord) => {
     e.stopPropagation();
@@ -589,7 +559,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             {seriesList.map((series) => (
                 <div 
                   key={series.id}
-                  className="group bg-slate-800 border border-slate-600 hover:border-slate-300 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
+                  className="group bg-slate-800 border border-slate-600 hover:border-yellow-600 hover:border-2 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
                   onClick={() => {
                     if (series.currentEpisodeId) {
                       const episode = projects.find(p => p.id === series.currentEpisodeId);
@@ -680,7 +650,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                      </button>
                    </div> 
                    <div className="flex-1">
-                      <h3 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2 group-hover:text-slate-50 ">
+                      <h3 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2 group-hover:text-slate-50 ">
                         <Film className="w-4 h-4" />
                         <span className="line-clamp-1">{series.title}</span>
                       </h3>
@@ -696,10 +666,10 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                               </span>
                             )}
                         </div>
-                      <p className="text-[11px] text-slate-400/70 font-mono mb-2">
+                      <p className="text-[11px] text-slate-300 font-mono mb-2">
                         {series.episodeOrder.length} 集
                       </p>
-                      <div className="text-[12px] text-slate-500 line-clamp-2 leading-relaxed font-mono border-l border-slate-600/50 pl-2">
+                      <div className="text-[12px] text-slate-300 line-clamp-2 leading-relaxed font-mono border-l border-slate-600/50 pl-2">
                         角色库: {series.library.characters.length} | 场景库: {series.library.scenes.length}
                       </div>
                          <div className="px-2 pt-4 border-t border-slate-900 flex gap-1 items-center justify-center">
@@ -743,7 +713,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
               <div 
                 key={proj.id}
                 onClick={() => onOpenProject(proj)}
-                className="group bg-slate-800 border border-slate-600 hover:border-slate-300 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
+                className="group bg-slate-800 border border-slate-600 hover:border-green-600 hover:border-2 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
               >
                   {/* Delete Confirmation Overlay */}
                   {deleteConfirmId === proj.id && (
@@ -837,7 +807,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                       ) : null}
                      </div> 
                      <div className="flex-1">
-                      <h3 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2 group-hover:text-slate-50">
+                      <h3 className="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2 group-hover:text-slate-50">
                             <Video className="w-4 h-4"/><span className="line-clamp-1">{proj.title}</span></h3>
                         <div className="flex flex-wrap gap-2 mb-3">
                             {proj.visualStyle && (
@@ -857,7 +827,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
                             )}
                         </div>
                         {proj.scriptData?.logline && (
-                            <p className="text-[12px] text-slate-500 line-clamp-2 leading-relaxed font-mono border-l border-slate-600 pl-2">
+                            <p className="text-[12px] text-slate-300 line-clamp-2 leading-relaxed font-mono border-l border-slate-600 pl-2">
                             {proj.scriptData.logline}
                             </p>
                         )}
