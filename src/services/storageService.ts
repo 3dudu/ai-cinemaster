@@ -1,11 +1,12 @@
-import { AIModelConfig, ExportBundle, ProjectState, SeriesRecord } from '../types';
+import { AIModelConfig, ExportBundle, LLMCallLog, ProjectState, SeriesRecord } from '../types';
 
 const DB_NAME = 'CineGenDB';
-const DB_VERSION = 4; // Upgraded for Series support
+const DB_VERSION = 5; // Upgraded for LLM Call Log support
 const STORE_NAME = 'projects';
 const SERIES_STORE_NAME = 'series';
 const MODEL_STORE_NAME = 'aiModels';
 const MEDIA_HISTORY_STORE_NAME = 'mediaHistory';
+const LLM_LOG_STORE_NAME = 'llmLogs';
 
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -25,6 +26,16 @@ const openDB = (): Promise<IDBDatabase> => {
       }
       if (!db.objectStoreNames.contains(MEDIA_HISTORY_STORE_NAME)) {
         db.createObjectStore(MEDIA_HISTORY_STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(LLM_LOG_STORE_NAME)) {
+        const llmLogStore = db.createObjectStore(LLM_LOG_STORE_NAME, { keyPath: 'id' });
+        llmLogStore.createIndex('requestTime', 'requestTime', { unique: false });
+        llmLogStore.createIndex('modelType', 'modelType', { unique: false });
+        llmLogStore.createIndex('provider', 'provider', { unique: false });
+        llmLogStore.createIndex('success', 'success', { unique: false });
+        llmLogStore.createIndex('taskId', 'taskId', { unique: false });
+        llmLogStore.createIndex('projectId', 'projectId', { unique: false });
+        llmLogStore.createIndex('seriesId', 'seriesId', { unique: false });
       }
     };
   });
@@ -745,5 +756,234 @@ export const importProjectFromFile = (): Promise<ProjectState> => {
         }
       })
       .catch(reject);
+  });
+};
+
+// ==================== LLM Call Log Functions ====================
+
+export const saveLLMLog = async (log: LLMCallLog): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LLM_LOG_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(LLM_LOG_STORE_NAME);
+    const request = store.put(log);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const getLLMLog = async (id: string): Promise<LLMCallLog | undefined> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LLM_LOG_STORE_NAME, 'readonly');
+    const store = tx.objectStore(LLM_LOG_STORE_NAME);
+    const request = store.get(id);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export interface LLMLogFilter {
+  startTime?: number;
+  endTime?: number;
+  modelType?: LLMCallLog['modelType'];
+  provider?: string;
+  success?: boolean;
+  projectId?: string;
+  seriesId?: string;
+  taskId?: string;
+  limit?: number;
+  offset?: number;
+  isAsyncTask?: boolean;
+  taskStatus?: LLMCallLog['taskStatus'];
+}
+
+export const queryLLMLogs = async (filter: LLMLogFilter = {}): Promise<LLMCallLog[]> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LLM_LOG_STORE_NAME, 'readonly');
+    const store = tx.objectStore(LLM_LOG_STORE_NAME);
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      let logs = request.result as LLMCallLog[];
+      
+      // Apply filters
+      if (filter.startTime) {
+        logs = logs.filter(log => log.requestTime >= filter.startTime!);
+      }
+      if (filter.endTime) {
+        logs = logs.filter(log => log.requestTime <= filter.endTime!);
+      }
+      if (filter.modelType) {
+        logs = logs.filter(log => log.modelType === filter.modelType);
+      }
+      if (filter.provider) {
+        logs = logs.filter(log => log.provider === filter.provider);
+      }
+      if (filter.success !== undefined) {
+        logs = logs.filter(log => log.success === filter.success);
+      }
+      if (filter.projectId) {
+        logs = logs.filter(log => log.projectId === filter.projectId);
+      }
+      if (filter.seriesId) {
+        logs = logs.filter(log => log.seriesId === filter.seriesId);
+      }
+      if (filter.taskId) {
+        logs = logs.filter(log => log.taskId === filter.taskId);
+      }
+      
+      // Sort by request time descending
+      logs.sort((a, b) => b.requestTime - a.requestTime);
+      
+      // Apply pagination
+      const offset = filter.offset || 0;
+      const limit = filter.limit || logs.length;
+      resolve(logs.slice(offset, offset + limit));
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const countLLMLogs = async (filter: LLMLogFilter = {}): Promise<number> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LLM_LOG_STORE_NAME, 'readonly');
+    const store = tx.objectStore(LLM_LOG_STORE_NAME);
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      let logs = request.result as LLMCallLog[];
+      
+      // Apply filters (same as queryLLMLogs but without pagination)
+      if (filter.startTime) {
+        logs = logs.filter(log => log.requestTime >= filter.startTime!);
+      }
+      if (filter.endTime) {
+        logs = logs.filter(log => log.requestTime <= filter.endTime!);
+      }
+      if (filter.modelType) {
+        logs = logs.filter(log => log.modelType === filter.modelType);
+      }
+      if (filter.provider) {
+        logs = logs.filter(log => log.provider === filter.provider);
+      }
+      if (filter.success !== undefined) {
+        logs = logs.filter(log => log.success === filter.success);
+      }
+      if (filter.projectId) {
+        logs = logs.filter(log => log.projectId === filter.projectId);
+      }
+      if (filter.seriesId) {
+        logs = logs.filter(log => log.seriesId === filter.seriesId);
+      }
+      if (filter.taskId) {
+        logs = logs.filter(log => log.taskId === filter.taskId);
+      }
+      
+      resolve(logs.length);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const deleteLLMLog = async (id: string): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LLM_LOG_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(LLM_LOG_STORE_NAME);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const clearLLMLogs = async (): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LLM_LOG_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(LLM_LOG_STORE_NAME);
+    const request = store.clear();
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export const clearOldLLMLogs = async (beforeTime: number): Promise<number> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LLM_LOG_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(LLM_LOG_STORE_NAME);
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      const logs = request.result as LLMCallLog[];
+      const oldLogs = logs.filter(log => log.requestTime < beforeTime);
+      
+      let deletedCount = 0;
+      oldLogs.forEach(log => {
+        store.delete(log.id);
+        deletedCount++;
+      });
+      
+      tx.oncomplete = () => resolve(deletedCount);
+    };
+    request.onerror = () => reject(request.error);
+  });
+};
+
+export interface LLMLogStats {
+  totalLogs: number;
+  successCount: number;
+  failedCount: number;
+  avgDuration: number;
+  modelTypeCounts: Record<string, number>;
+  providerCounts: Record<string, number>;
+}
+
+export const getLLMLogStats = async (filter: LLMLogFilter = {}): Promise<LLMLogStats> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(LLM_LOG_STORE_NAME, 'readonly');
+    const store = tx.objectStore(LLM_LOG_STORE_NAME);
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      let logs = request.result as LLMCallLog[];
+      
+      // Apply filters
+      if (filter.startTime) {
+        logs = logs.filter(log => log.requestTime >= filter.startTime!);
+      }
+      if (filter.endTime) {
+        logs = logs.filter(log => log.requestTime <= filter.endTime!);
+      }
+      
+      const totalLogs = logs.length;
+      const successCount = logs.filter(log => log.success).length;
+      const failedCount = totalLogs - successCount;
+      const avgDuration = totalLogs > 0 
+        ? logs.reduce((sum, log) => sum + log.duration, 0) / totalLogs 
+        : 0;
+      
+      const modelTypeCounts: Record<string, number> = {};
+      const providerCounts: Record<string, number> = {};
+      
+      logs.forEach(log => {
+        modelTypeCounts[log.modelType] = (modelTypeCounts[log.modelType] || 0) + 1;
+        providerCounts[log.provider] = (providerCounts[log.provider] || 0) + 1;
+      });
+      
+      resolve({
+        totalLogs,
+        successCount,
+        failedCount,
+        avgDuration,
+        modelTypeCounts,
+        providerCounts
+      });
+    };
+    request.onerror = () => reject(request.error);
   });
 };

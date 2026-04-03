@@ -1,16 +1,19 @@
-import { Check, Download, Edit, Eye, EyeOff, Film, Globe, Image, Key, Link, Music, Plus, Sparkles, Tags, Trash2, Upload, X } from 'lucide-react';
+import { Check, Database, Download, Edit, Eye, EyeOff, Film, Globe, Image, Key, Link, Music, Plus, Sparkles, Tags, Trash2, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { triggerModelConfigChanged } from '../../services/modelConfigEvents';
 import { createDefaultModelConfigs, saveModelConfigWithExclusiveEnabled, toggleConfigEnabled } from '../../services/modelConfigService';
 import { deleteModelConfig, getAllModelConfigs, saveModelConfig } from '../../services/storageService';
-import { AIModelConfig } from '../../types';
+import { AIModelConfig, ProjectState } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 import { useDialog } from '../dialog';
+import LLMLogsModal from './LLMLogsModal';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   isMobile?: boolean;
+  project?: ProjectState;
+  updateProject?: (updates: Partial<ProjectState>) => void;
 }
 
 const PROVIDER_OPTIONS = [
@@ -100,10 +103,11 @@ const getModelTypeColorStyles = (modelType: AIModelConfig['modelType']) => {
   return colorMap[modelType] || colorMap.llm;
 };
 
-const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => {
+const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false, project, updateProject }) => {
   const dialog = useDialog();
   const [configs, setConfigs] = useState<AIModelConfig[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showLogsModal, setShowLogsModal] = useState(false);
   const [editingConfig, setEditingConfig] = useState<Partial<AIModelConfig> | null>(null);
   const [formData, setFormData] = useState({
     provider: 'doubao' as AIModelConfig['provider'],
@@ -666,6 +670,13 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
                 />
               </div>
               <button
+                onClick={() => setShowLogsModal(true)}
+                className="flex-1 py-3 bg-slate-700 text-slate-400 hover:bg-slate-800 hover:text-text-primary text-[11px] font-bold tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Database className="w-4 h-4" />
+                查看日志
+              </button>
+              <button
                 onClick={() => setShowAddModal(true)}
                 className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
               >
@@ -675,6 +686,15 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
           </div>
         )}
       </div>
+      
+      {/* LLM Logs Modal */}
+      <LLMLogsModal
+        isOpen={showLogsModal}
+        onClose={() => setShowLogsModal(false)}
+        isMobile={isMobile}
+        project={project}
+        updateProject={updateProject}
+      />
     </div>
   );
 };

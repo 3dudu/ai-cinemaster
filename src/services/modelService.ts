@@ -86,7 +86,7 @@ export class ModelService {
   private static currentProjectModelProviders: any = null;
   private static providerModules = new Map<string, Promise<any>>();
 
-  private static async getProviderModule(provider: string): Promise<any> {
+  public static async getProviderModule(provider: string): Promise<any> {
     if (!this.providerModules.has(provider)) {
       let loader: (() => Promise<any>) | null = null;
       switch (provider) {
@@ -459,7 +459,7 @@ export class ModelService {
    * 获取当前启用的图生视频提供商
    * @param projectModelProviders - 项目级别的模型供应商配置
    */
-  private static async getEnabledVideoProvider(projectModelProviders?: { image2video?: string }): Promise<AIModelConfig> {
+  public static async getEnabledVideoProvider(projectModelProviders?: { image2video?: string }): Promise<AIModelConfig> {
     let config;
 
     // 优先使用项目级别的供应商配置
@@ -1100,7 +1100,8 @@ export class ModelService {
     switch (provider.provider) {
       case 'doubao':
         const generate_audio = provider.description.indexOf("sound")>-1;
-        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio,imageSize, finalSeed,processedReferenceImages);
+        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, 
+          processedEndImageBase64, duration,full_frame,generate_audio,imageSize, finalSeed,processedReferenceImages,projectid,'',shotid);
         break;
       case 'gemini':
         videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);

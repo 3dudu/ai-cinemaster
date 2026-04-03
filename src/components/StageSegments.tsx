@@ -668,6 +668,17 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   // Generate video for segment
   const handleGenerateSegmentVideo = useCallback(async () => {
     if (!selectedSegment) return;
+
+    // 如果已有视频，需要用户确认
+    if (selectedSegment.videoUrl) {
+      const confirmed = await dialog.confirm({
+        title: '重新生成视频',
+        message: '该片段已有视频，确定要重新生成吗？这将覆盖现有视频。',
+        type: 'warning'
+      });
+      if (!confirmed) return;
+    }
+
     setGeneratingVideo(selectedSegment.id);
     setVideoGenerateStartTime(Date.now());
     try {

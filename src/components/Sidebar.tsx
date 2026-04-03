@@ -249,7 +249,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       {/* Collapse Toggle Button */}
       <button
         onClick={onToggleSidebar}
-        className="hidden xl:block absolute -right-3 top-20 bg-slate-800 border border-slate-600 text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-all rounded-full p-1.5 z-60 cursor-pointer"
+        className="hidden xl:block absolute -right-3 top-20 bg-slate-800 border border-slate-600 text-slate-400 hover:text-slate-50 hover:bg-slate-700 transition-all rounded-full p-1.5 z-50 cursor-pointer"
         title={collapsed ? '展开侧边栏' : '折叠侧边栏'}
       >
         {collapsed ? <PanelRight className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
@@ -259,6 +259,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       <ModalSettings
         isOpen={showModelSettings}
         onClose={() => setShowModelSettings(false)}
+        project={project}
+        updateProject={updateProject}
       />
 
       {/* Prompt Template Modal */}
