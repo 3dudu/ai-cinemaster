@@ -101,7 +101,7 @@ const PromptTemplateModal: React.FC<{
     分析大纲：提取title:标题、genre:类型
     分析具体剧集：
     提取 logline:故事梗概。
-    提取 characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:性格）。
+    提取 characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:包含外貌特征,性格,身份,地位,职业）。
     提取 scenes:场景信息（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬，远古，古代，近代，现代，未来..）、atmosphere:氛围）。
     提取 storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
 
@@ -116,7 +116,7 @@ const PromptTemplateModal: React.FC<{
 
 ## 任务：
 提取title:标题、genre:类型、logline:故事梗概（以 {lang} 语言呈现）。
-提取characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:性格）。
+提取characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:包含外貌特征,性格,身份,地位,职业）。
 提取scenes:场景信息（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬，远古，古代，近代，现代，未来..）、atmosphere:氛围）。
 storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
 
@@ -186,9 +186,11 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
      - 要描述场景的时间、地点、景色、光线、氛围等，不要出现角色。
      - 聚焦视觉细节（光线、空间关系，质感、外观）。`,
       'GENERATE_CHARACTER_PROMPT': `为 {genre} 类视频中的角色生成高还原度的角色设计。
-    角色的描述信息如下，包含年龄，性别，性格: {desc}
+角色的描述信息如下，包含姓名,年龄,性别,角色特征: {desc}
 
-## 要求
+发挥你的技术特长，发挥想象，输出完整描述
+
+## 附加要求
   - 图像风格必须为：{visualStyle}。
   - 要着重描写角色的年龄、性别、性格、外貌、动作、衣着、神态等。
   - 聚焦视觉细节（光线、材质、质感、外观），突出人物性格。

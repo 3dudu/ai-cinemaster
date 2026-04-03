@@ -87,6 +87,9 @@ export const parseScriptToData = async (
     const text = cleanJsonString(content);
     //console.log("Parsed JSON:", text);
     parsed = JSON.parse(text);
+    if(Array.isArray(parsed)){
+      parsed = parsed[0];
+    }
   } catch (e) {
     console.error("Failed to parse script data JSON:", e);
     parsed = {};

@@ -140,7 +140,7 @@ const SegmentPreviewModal: React.FC<SegmentPreviewModalProps> = ({
         <div className="min-h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-700/50">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
             <ListVideo className="w-5 h-5 text-slate-500" />
-            {projectTitle ? `${projectTitle} - 片段预览` : '片段预览'}
+            {projectTitle ? `${projectTitle} - ` : ' - '}{videoSegments[currentVideoIndex]?.name}
           </h3>
           <button
             onClick={handleClose}

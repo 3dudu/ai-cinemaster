@@ -61,11 +61,28 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [transitionToDraft, setTransitionToDraft] = useState('');
   const [editingScript, setEditingScript] = useState(isMobile?false:true);  // 控制描述编辑区显示
   const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);  // 视频生成状态
+  const [videoGenerateStartTime, setVideoGenerateStartTime] = useState<number | null>(null);  // 视频生成开始时间
+  const [videoElapsedSeconds, setVideoElapsedSeconds] = useState<number>(0);  // 已耗时秒数
   const [batchGeneratingVideos, setBatchGeneratingVideos] = useState(false);  // 批量生成视频状态
   const [insertIndex, setInsertIndex] = useState<number | null>(null);  // 新片段插入位置
   const [previewModalOpen, setPreviewModalOpen] = useState(false);  // 预览模态框状态
   const [aiSplitting, setAiSplitting] = useState(false);  // AI 分镜等待遮罩
   const [curProjectid, setCurProjectid] = useState<string | null>(null);
+
+  // 实时更新视频生成耗时
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (generatingVideo && videoGenerateStartTime) {
+      interval = setInterval(() => {
+        setVideoElapsedSeconds(Math.floor((Date.now() - videoGenerateStartTime) / 1000));
+      }, 1000);
+    } else {
+      setVideoElapsedSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [generatingVideo, videoGenerateStartTime]);
 
   // @ Mention Picker States
   const [mentionPickerOpen, setMentionPickerOpen] = useState(false);
@@ -652,6 +669,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const handleGenerateSegmentVideo = useCallback(async () => {
     if (!selectedSegment) return;
     setGeneratingVideo(selectedSegment.id);
+    setVideoGenerateStartTime(Date.now());
     try {
       // 如果 description 为空，先生成 description
       let currentDescription = selectedSegment.description;
@@ -771,6 +789,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       dialog.toast({ message: '视频生成失败', type: 'error' });
     } finally {
       setGeneratingVideo(null);
+      setVideoGenerateStartTime(null);
     }
   }, [selectedSegment, dialog, updateProject, project.segments, activeScenes, activeCharacters, project.imageCount, project.modelProviders, project.id, project.imageSize, project.visualStyle, project.seed, project.shots, project.visualStyle, project.genre, project.rawScript, project.scriptData?.storyParagraphs]);
 
@@ -1311,11 +1330,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {generatingVideo === selectedSegment.id ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      {!isMobile && `生成中 ${videoElapsedSeconds}s`}
+                    </>
                   ) : (
-                    <Video className="w-3 h-3" />
+                    <>
+                      <Video className="w-3 h-3" />
+                      {!isMobile && (selectedSegment.videoUrl ? '重新生成视频' : '生成视频')}
+                    </>
                   )}
-                  {!isMobile && (selectedSegment.videoUrl ? '重新生成视频' : '生成视频')}
                 </button>
               </div>
               </div>
@@ -1326,25 +1350,25 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             <div className={`${isMobile ? 'w-full' : 'md:w-[55%] lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 3xl:w-[720px]'} bg-slate-700/50 flex flex-col h-full relative z-20`}>
 
             <div className="md:p-4 p-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
-                                   <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
               <h3 className="text-sm font-bold text-slate-50 flex items-center gap-2">
                 <NotebookPen className="w-4 h-4 text-slate-500" />
                 描述提示词编辑
               </h3>
               </div>
 
-                                     <div className="flex items-center gap-1">
-                                         <button onClick={goToPrevSegment} disabled={activeSegmentIndex <= 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
-                                             <ChevronLeft className="w-4 h-4" />
-                                         </button>
-                                         <button onClick={goToNextSegment} disabled={activeSegmentIndex < 0 || activeSegmentIndex >= (project.segments || []).length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
-                                             <ChevronRight className="w-4 h-4" />
-                                         </button>
-                                         <div className="w-px h-4 bg-slate-700 mx-2"></div>
-                                         <button onClick={handleCloseEditScript} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer">
-                                             <X className="w-4 h-4" />
-                                         </button>
-                                     </div>
+              <div className="flex items-center gap-1">
+                  <button onClick={goToPrevSegment} disabled={activeSegmentIndex <= 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
+                      <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button onClick={goToNextSegment} disabled={activeSegmentIndex < 0 || activeSegmentIndex >= (project.segments || []).length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
+                      <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <div className="w-px h-4 bg-slate-700 mx-2"></div>
+                  <button onClick={handleCloseEditScript} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer">
+                      <X className="w-4 h-4" />
+                  </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-4 border-b border-slate-600">
               {/* Scenes Selection */}
@@ -1794,8 +1818,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                       </div>
                       {/* Bottom Actions */}
                       <div className="absolute bottom-1 w-full flex items-center justify-between px-1.5 py-0.5">
-                        <span className="text-[10px] text-slate-500 font-mono">
-                          {segment.shotIds.length} 镜
+                        <span className="text-[10px] text-slate-100 px-1 font-mono group-hover:bg-slate-700 rounded text-slate-400 group-hover:text-slate-200">
+                          {segment.name}
                         </span>
                         <div className="flex gap-1">
                           <button
