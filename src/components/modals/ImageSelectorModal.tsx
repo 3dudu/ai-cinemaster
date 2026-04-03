@@ -201,9 +201,11 @@ const ImageSelectorModal: React.FC<Props> = ({
         setAllImages([]);
         return;
       }
-  
-      const historyFiles = await getProjectMediaHistory(selectedProject.id);
-      const isSeriesMode = !!selectedProject.seriesRefId;
+      let historyFiles = await getProjectMediaHistory(selectedProject.id);
+      if(selectedSeriesId){
+        const seriesHistoryFiles = await getProjectMediaHistory(selectedSeriesId);
+        historyFiles = [...historyFiles, ...seriesHistoryFiles];
+      }
   
       // ✅ 收集所有需要计算 MD5 的图片 URL 任务
       interface ImageTask {
@@ -641,7 +643,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                   >
                     {image.mediaType === 'video' ? (
                       // 视频使用 video 标签
-                      <video crossOrigin="anonymous"
+                      <video 
                         src={image.imageUrl}
                         className="w-full h-full object-contain"
                         controls

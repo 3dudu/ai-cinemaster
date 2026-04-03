@@ -78,6 +78,7 @@ export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
   return {
     id: generateId('serie_proj'),
     title: `${series.title} - 第${series.episodeOrder.length + 1}集`,
+    seed: Math.floor(Math.random() * 1000000000),
     stage: 'script',
     shots: [],
     createdAt: Date.now(),

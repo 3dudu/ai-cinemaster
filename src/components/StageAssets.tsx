@@ -128,7 +128,7 @@ const StageAssets: React.FC<Props> = ({
         const fileName = type === 'character'
           ? `角色_${characters.find(c => String(c.id) === String(id))?.name || id}`
           : `场景_${scenes.find(s => String(s.id) === String(id))?.id || id}`;
-        await addMediaHistory(project.id, imageUrl, fileName, 'image', type, new_prompt);
+        await addMediaHistory(isSeriesMode?series.id:project.id, imageUrl, fileName, 'image', type, new_prompt);
       }
 
       // Update state - series mode: update series.library; standalone mode: update project.scriptData
@@ -554,7 +554,7 @@ const StageAssets: React.FC<Props> = ({
                   {/* Edit & Delete Buttons - Top Left */}
                   <button
                     onClick={() => handleEditCharacter(char)}
-                    disabled={!!batchProgress || !!processingState}
+                    disabled={!!batchProgress}
                     className="absolute top-2 left-2 p-2 bg-blue-600/50 text-slate-50 rounded-full hover:bg-blue-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
                     title="编辑角色"
                   >
@@ -716,7 +716,7 @@ const StageAssets: React.FC<Props> = ({
                   {/* Edit & Delete Buttons - Top Left */}
                   <button
                     onClick={() => handleEditScene(scene)}
-                    disabled={!!batchProgress || !!processingState}
+                    disabled={!!batchProgress}
                     className="absolute top-2 left-2 p-2 bg-blue-600/50 text-slate-50 rounded-full hover:bg-blue-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
                     title="编辑场景"
                   >
@@ -912,7 +912,7 @@ const StageAssets: React.FC<Props> = ({
         onClose={() => { setAddCharacterModalOpen(false); setEditingCharacter(null); }}
         onSave={handleSaveCharacter}
         character={editingCharacter}
-        genre={project.scriptData?.genre}
+        genre={project.genre}
         visualStyle={project.visualStyle}
       />
 
@@ -922,7 +922,7 @@ const StageAssets: React.FC<Props> = ({
         onClose={() => { setAddSceneModalOpen(false); setEditingScene(null); }}
         onSave={handleSaveScene}
         scene={editingScene}
-        genre={project.scriptData?.genre}
+        genre={project.genre}
         visualStyle={project.visualStyle}
       />
 

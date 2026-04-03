@@ -1,17 +1,18 @@
 import { ModelService } from '@/services/modelService';
 import { renderTemplate } from '@/services/promptTemplates';
+import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
 import { ChevronLeft, ChevronRight, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RefreshCw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Scene, Segment, SeriesRecord } from '../types';
+import CustomSelect from './common/CustomSelect';
+
 import {
   aiConvertShotsToSegments,
   convertShotsToSegments,
-  generateAllSegmentDescriptions,
   generateAllTransitionDescriptions,
   generateSegmentDescription,
-  generateTransitionDescription,
-  mergeSegments,
-  splitSegment
+  generateTransitionDescription
 } from '../utils/segmentUtils';
 import { useDialog } from './dialog';
 import SegmentEditModal from './modals/SegmentEditModal';
@@ -39,12 +40,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   
   // Memoized active characters and scenes to prevent re-calculation on every render
   const activeCharacters = useMemo(() => 
-    isSeriesMode ? series?.library?.characters : project.scriptData?.characters || [],
+    isSeriesMode ? (series?.library?.characters || []) : (project.scriptData?.characters || []),
     [isSeriesMode, series?.library?.characters, project.scriptData?.characters]
   );
   
   const activeScenes = useMemo(() => 
-    isSeriesMode ? series?.library?.scenes : project.scriptData?.scenes || [],
+    isSeriesMode ? (series?.library?.scenes || []) : (project.scriptData?.scenes || []),
     [isSeriesMode, series?.library?.scenes, project.scriptData?.scenes]
   );
 
@@ -58,10 +59,37 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [transitionFromDraft, setTransitionFromDraft] = useState('');
   const [transitionToDraft, setTransitionToDraft] = useState('');
-  const [editingScript, setEditingScript] = useState(false);  // 控制描述编辑区显示
+  const [editingScript, setEditingScript] = useState(isMobile?false:true);  // 控制描述编辑区显示
   const [generatingVideo, setGeneratingVideo] = useState<string | null>(null);  // 视频生成状态
+  const [videoGenerateStartTime, setVideoGenerateStartTime] = useState<number | null>(null);  // 视频生成开始时间
+  const [videoElapsedSeconds, setVideoElapsedSeconds] = useState<number>(0);  // 已耗时秒数
+  const [batchGeneratingVideos, setBatchGeneratingVideos] = useState(false);  // 批量生成视频状态
   const [insertIndex, setInsertIndex] = useState<number | null>(null);  // 新片段插入位置
   const [previewModalOpen, setPreviewModalOpen] = useState(false);  // 预览模态框状态
+  const [aiSplitting, setAiSplitting] = useState(false);  // AI 分镜等待遮罩
+  const [curProjectid, setCurProjectid] = useState<string | null>(null);
+
+  // 实时更新视频生成耗时
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (generatingVideo && videoGenerateStartTime) {
+      interval = setInterval(() => {
+        setVideoElapsedSeconds(Math.floor((Date.now() - videoGenerateStartTime) / 1000));
+      }, 1000);
+    } else {
+      setVideoElapsedSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [generatingVideo, videoGenerateStartTime]);
+
+  // @ Mention Picker States
+  const [mentionPickerOpen, setMentionPickerOpen] = useState(false);
+  const [mentionPickerPosition, setMentionPickerPosition] = useState({ top: 0, left: 0 });
+  const [mentionSearchText, setMentionSearchText] = useState('');
+  const [mentionStartPos, setMentionStartPos] = useState<number | null>(null);
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Refs for auto-scroll to selected segment
   const segmentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -99,10 +127,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
   // Initialize segments if empty
   useEffect(() => {
-    const segments = project.segments;
-    if (!segments && project.shots.length > 0) {
+    if (!project.initSegment && project.shots.length > 0) {
       const newSegments = convertShotsToSegments(project.shots);
-      updateProject({ segments: newSegments });
+      updateProject({ segments: newSegments,initSegment:true });
     }
   }, [project.segments, project.shots, updateProject]);
 
@@ -114,7 +141,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       if (!segment) return;
 
       setGeneratingDescription((prev) => new Set([...prev, segmentId]));
-
+      const segmentIndex = segments.findIndex((s) => s.id === segmentId);
       try {
         const description = await generateSegmentDescription(
           segment,
@@ -122,7 +149,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           activeCharacters,
           activeScenes,
           project.visualStyle,
-          project.genre
+          project.genre,
+          project.rawScript,
+          project.scriptData.storyParagraphs,
+          segmentIndex+1
         );
 
         updateProject({
@@ -156,25 +186,58 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
     setBatchGenerating(true);
 
-    try {
-      const updatedSegments = await generateAllSegmentDescriptions(
-        segments,
-        project.shots,
-        activeCharacters,
-        activeScenes,
-        project.visualStyle,
-        project.genre
-      );
+    let successCount = 0;
+    // 使用累积数组，避免每次更新后覆盖之前的修改
+    let currentSegments = [...segments];
 
-      updateProject({ segments: updatedSegments });
-      dialog.toast({ message: `成功生成 ${updatedSegments.length} 个片段描述` ,type: 'success'});
+    try {
+      // 逐个生成描述，每生成一个就保存一次
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+
+        try {
+          const description = await generateSegmentDescription(
+            segment,
+            project.shots,
+            activeCharacters,
+            activeScenes,
+            project.visualStyle,
+            project.genre,
+            project.rawScript,
+            project.scriptData?.storyParagraphs || [],
+            i+1
+          );
+          
+          
+          // 更新当前 segment 并保存
+          /*
+          segments[i].description=description;
+          updateProject({ segments: [...segments] });
+          successCount++;
+          */
+          const segmentIndex = currentSegments.findIndex(s => s.id === segment.id);
+          if (segmentIndex >= 0) {
+            currentSegments[segmentIndex] = {
+              ...currentSegments[segmentIndex],
+              description,
+              lastModified: Date.now(),
+            };
+            updateProject({ segments: [...currentSegments] });
+            successCount++;
+          }
+          dialog.toast({ message: `成功生成 ${successCount} / ${segments.length} 个片段描述`, type: 'success' });
+        } catch (err) {
+          console.error(`生成片段 ${segment.name || segment.id} 描述失败:`, err);
+          // 继续生成下一个
+        }
+      }
     } catch (error) {
       console.error('批量生成描述失败:', error);
-      dialog.toast({ message: '批量生成描述失败，请重试',type: 'error' });
+      dialog.toast({ message: '批量生成描述失败，请重试', type: 'error' });
     } finally {
       setBatchGenerating(false);
     }
-  }, [project.segments, project.shots, activeCharacters, activeScenes, updateProject, dialog]);
+  }, [project.segments, project.shots, activeCharacters, activeScenes, project.visualStyle, project.genre, project.rawScript, project.scriptData?.storyParagraphs, updateProject, dialog]);
 
   // Generate all transition descriptions
   const handleBatchGenerateTransitions = useCallback(async () => {
@@ -219,41 +282,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     [project.segments, updateProject, dialog],
   );
 
-  // Merge adjacent segments
-  const handleMergeSegments = useCallback(
-    async (index1: number, index2: number) => {
-      const confirmed = await dialog.confirm({
-        message: '确定要合并这两个片段吗？'
-      });
-      if (!confirmed) return;
-
-      const segments = project.segments || [];
-      const newSegments = mergeSegments(segments, index1, index2);
-      updateProject({ segments: newSegments });
-      dialog.toast({ message: '片段已合并' ,type: 'success'});
-    },
-    [project.segments, updateProject, dialog],
-  );
-
-  // Split segment
-  const handleSplitSegment = useCallback(
-    async (segmentId: string, shotId: string) => {
-      const segments = project.segments || [];
-      const segment = segments.find((s) => s.id === segmentId);
-      if (!segment) return;
-
-      const newSegments = splitSegment(segment, shotId);
-      if (newSegments.length === 1) {
-        dialog.toast({ message: '无法在此位置拆分片段' ,type: 'error'});
-        return;
-      }
-
-      updateProject({ segments: newSegments });
-      dialog.toast({ message: '片段已拆分' ,type: 'success'});
-    },
-    [project.segments, updateProject, dialog],
-  );
-
   // Open edit modal
   const handleEditSegment = useCallback((segment: Segment) => {
     setEditingSegment(segment);
@@ -264,6 +292,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const handleAddSegmentAfter = useCallback((index: number) => {
     const newSegment: Segment = {
       id: `segment-${Date.now()}`,
+      name: `片段 ${(project.segments || []).length + 1}`,
       shotIds: [],
       sceneIds: [],
       characterIds: [],
@@ -271,25 +300,29 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       transitionFrom: '',
       transitionTo: '',
       estimatedDuration: 0,
+      motionIntensity: 5,
+      emotionCurve: '',
+      dialogueRhythm: '',
       createdAt: Date.now(),
       lastModified: Date.now(),
     };
     setEditingSegment(newSegment);
     setInsertIndex(index + 1);
     setSegmentEditModalOpen(true);
-  }, []);
+  }, [project.segments]);
 
   // Save segment from edit modal
   const handleSaveSegment = useCallback(
     (updatedSegment: Segment) => {
       const segments = project.segments || [];
-      if (editingSegment && segments.find(s => s.id === editingSegment.id)) {
+      if (editingSegment || selectedSegment) {
         // Update existing segment
         updateProject({
           segments: segments.map((s) =>
             s.id === updatedSegment.id ? updatedSegment : s,
           ),
         });
+        setEditingSegment(null);
       } else {
         // Insert new segment at specified position
         const newSegments = [...segments];
@@ -298,7 +331,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         updateProject({ segments: newSegments });
       }
       setSegmentEditModalOpen(false);
-      setEditingSegment(null);
       setInsertIndex(null);
     },
     [project.segments, updateProject, editingSegment, insertIndex],
@@ -338,6 +370,17 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     project.shots.length,
     [project.shots]
   );
+  // Auto-select first segment when segments are available
+  useEffect(() => {
+    if(curProjectid!=project.id){
+      setCurProjectid(project.id);
+      setSelectedSegmentId(null);
+    }
+    const segments = project.segments || [];
+    if (segments.length > 0 && !selectedSegmentId) {
+      setSelectedSegmentId(segments[0].id);
+    }
+  }, [project,project.segments, selectedSegmentId]);
 
   // 当前选中 segment 的索引
   const activeSegmentIndex = useMemo(() => {
@@ -350,14 +393,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     if (activeSegmentIndex < 0) return null;
     return (project.segments || [])?.[activeSegmentIndex] || null;
   }, [activeSegmentIndex, project.segments]);
-
-  // Auto-select first segment when segments are available
-  useEffect(() => {
-    const segments = project.segments || [];
-    if (segments.length > 0 && !selectedSegmentId) {
-      setSelectedSegmentId(segments[0].id);
-    }
-  }, [project.segments, selectedSegmentId]);
 
   // Auto-scroll selected segment into view
   useEffect(() => {
@@ -409,12 +444,90 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
   // Reconvert shots to segments
   const handleReconvertSegments = useCallback(async () => {
+    // shots 为空时，从 rawScript 直接生成片段
     if (project.shots.length === 0) {
-      dialog.toast({ message: '没有分镜数据', type: 'warning' });
+      if (!project.rawScript?.trim()) {
+        dialog.toast({ message: '没有剧本内容，请先在剧本阶段输入内容', type: 'warning' });
+        return;
+      }
+
+      const confirmed = await dialog.confirm({
+        title: '生成片段',
+        message: '当前没有分镜数据，是否从剧本直接生成片段？',
+        confirmText: '生成片段',
+        cancelText: '取消',
+      });
+      if (!confirmed) return;
+
+      setAiSplitting(true);
+      try {
+        // 1. 解析剧本获取角色和场景
+        let scriptData = project.scriptData;
+        
+        // 如果没有 scriptData，先解析剧本
+        if (!scriptData || !scriptData.scenes || scriptData.scenes.length === 0) {
+          ModelService.setCurrentProjectProviders(project.modelProviders);
+          scriptData = await ModelService.parseScriptToData(
+            project.rawScript, 
+            project.language || '中文', 
+            project.genre || '剧情片'
+          );
+          
+          if (!scriptData || scriptData.scenes.length === 0) {
+            dialog.toast({ message: '解析剧本失败', type: 'error' });
+            return;
+          }
+          
+          scriptData.targetDuration = project.targetDuration;
+          scriptData.language = project.language;
+          scriptData.title = project.title;
+          scriptData.genre = project.genre;
+        }
+
+        // 2. Series 模式：合并到 library
+        if (series && updateSeries) {
+          const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
+            mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+          
+          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+          scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
+          scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+          updateSeries(updatedSeries);
+        }
+
+        // 3. 从剧本直接生成片段
+        const segments = await ModelService.generateSegmentsFromScript(
+          project.rawScript,
+          scriptData,
+          project.visualStyle,
+          project.genre,
+          project.language,
+          project.targetDuration
+        );
+
+        if (segments.length === 0) {
+          dialog.toast({ message: '生成片段失败', type: 'error' });
+          return;
+        }
+
+        updateProject({ 
+          scriptData,
+          segments, 
+          isSegmentMode: true,
+          initSegment: true 
+        });
+        setSelectedSegmentId(segments[0].id);
+        dialog.toast({ message: `已生成 ${segments.length} 个片段`, type: 'success' });
+      } catch (error) {
+        console.error('生成片段失败:', error);
+        dialog.toast({ message: '生成片段失败，请重试', type: 'error' });
+      } finally {
+        setAiSplitting(false);
+      }
       return;
     }
 
-    const confirmed = await dialog.confirm({
+    const confirmed = project.segments.length ==0 || await dialog.confirm({
       title: '重新拆分片段',
       message: '这将根据当前分镜重新生成片段，现有片段的描述和转场设置将被重置。是否继续？',
       confirmText: '重新拆分',
@@ -433,14 +546,19 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     let newSegments: Segment[];
     if (useAi) {
       // AI 拆分（失败返回 null）
-      const characters = isSeriesMode ? series?.library?.characters : project.scriptData.characters;
-      const scenes = isSeriesMode ? series?.library?.scenes : project.scriptData.scenes;
-      newSegments = await aiConvertShotsToSegments(
-        project.shots, characters, scenes, project.visualStyle, project.genre
-      ) ?? [];
-      if (newSegments.length === 0) {
-        dialog.toast({ message: 'AI 拆分失败', type: 'error' });
-        return;
+      setAiSplitting(true);
+      try {
+        const characters = isSeriesMode ? series?.library?.characters : project.scriptData.characters;
+        const scenes = isSeriesMode ? series?.library?.scenes : project.scriptData.scenes;
+        newSegments = await aiConvertShotsToSegments(
+          project.shots, characters, scenes, project.visualStyle, project.genre
+        ) ?? [];
+        if (newSegments.length === 0) {
+          dialog.toast({ message: 'AI 拆分失败', type: 'error' });
+          return;
+        }
+      } finally {
+        setAiSplitting(false);
       }
     } else {
       // 规则拆分（默认）
@@ -451,7 +569,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     setSelectedSegmentId(null);
     dialog.toast({ message: `已重新拆分为 ${newSegments.length} 个片段`, type: 'success' });
     }
-  }, [project.shots, updateProject, dialog]);
+  }, [project.shots, project.rawScript, project.scriptData, project.modelProviders, project.visualStyle, project.genre, project.language, project.targetDuration, updateProject, dialog, series, updateSeries, isSeriesMode]);
 
   // Generate single transition (from)
   const handleGenerateTransitionFrom = useCallback(async () => {
@@ -551,7 +669,39 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const handleGenerateSegmentVideo = useCallback(async () => {
     if (!selectedSegment) return;
     setGeneratingVideo(selectedSegment.id);
+    setVideoGenerateStartTime(Date.now());
     try {
+      // 如果 description 为空，先生成 description
+      let currentDescription = selectedSegment.description;
+      if (!currentDescription?.trim()) {
+        const segments = project.segments || [];
+        const segmentIndex = segments.findIndex((s) => s.id === selectedSegment.id);
+
+        try {
+          currentDescription = await generateSegmentDescription(
+            selectedSegment,
+            project.shots,
+            activeCharacters,
+            activeScenes,
+            project.visualStyle,
+            project.genre,
+            project.rawScript,
+            project.scriptData?.storyParagraphs || [],
+            segmentIndex+1
+          );
+          // 更新 segment 的 description
+          const updatedSegments = (project.segments || []).map((seg) =>
+            seg.id === selectedSegment.id ? { ...seg, description: currentDescription, lastModified: Date.now() } : seg
+          );
+          updateProject({ segments: updatedSegments });
+        } catch (err) {
+          console.error('生成描述失败:', err);
+          dialog.toast({ message: '生成描述失败，无法继续生成视频', type: 'error' });
+          setGeneratingVideo(null);
+          return;
+        }
+      }
+
       // Collect reference images from scenes and characters
       const referenceImages: string[] = [];
       const imageLabels: string[] = [];
@@ -578,15 +728,29 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         if(!character && getCharacterWithAssets){
           character = getCharacterWithAssets(charId);
         }
-        if (character && character?.referenceImage) {
-          referenceImages.push(character.referenceImage);
-          imageLabels.push(`图${imageIndex}: ${character.name}`);
-          imageIndex++;
+        if(character){
+          if(selectedSegment.characterVariations && selectedSegment.characterVariations[charId]){
+            const variation = selectedSegment.characterVariations[charId];
+            const selectedVar = character.variations.find(v => v.id === variation);
+            if(selectedVar?.referenceImage){
+              referenceImages.push(selectedVar.referenceImage);
+              imageLabels.push(`图${imageIndex}: ${character.name}`);
+              imageIndex++;
+            }else if(character?.referenceImage){
+              referenceImages.push(character.referenceImage);
+              imageLabels.push(`图${imageIndex}: ${character.name}`);
+              imageIndex++;
+            }
+          }else if(character?.referenceImage){
+            referenceImages.push(character.referenceImage);
+            imageLabels.push(`图${imageIndex}: ${character.name}`);
+            imageIndex++;
+          }
         }
       });
 
-      // 这里需要根据 segment 生成视频，可能需要整合 segment 中所有 shot 的视频
-      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),selectedSegment.description,selectedSegment.shotIds.length,
+      // 使用 currentDescription（可能刚生成）
+      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),currentDescription,selectedSegment.shotIds.length,
         selectedSegment.transitionFrom,selectedSegment.transitionTo
       );
 
@@ -607,7 +771,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.seed
       );
 
+      
       if (videoUrl) {
+        // Save to media history
+        const fileName = `Segment_${selectedSegment.name||selectedSegment.id}_video`;
+        await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video',prompt);
         // Update segment with videoUrl
         const updatedSegments = (project.segments || []).map((seg) =>
           seg.id === selectedSegment.id ? { ...seg, videoUrl } : seg
@@ -621,8 +789,161 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       dialog.toast({ message: '视频生成失败', type: 'error' });
     } finally {
       setGeneratingVideo(null);
+      setVideoGenerateStartTime(null);
     }
-  }, [selectedSegment, dialog, updateProject, project.segments, activeScenes, activeCharacters, project.imageCount, project.modelProviders, project.id, project.imageSize, project.visualStyle, project.seed]);
+  }, [selectedSegment, dialog, updateProject, project.segments, activeScenes, activeCharacters, project.imageCount, project.modelProviders, project.id, project.imageSize, project.visualStyle, project.seed, project.shots, project.visualStyle, project.genre, project.rawScript, project.scriptData?.storyParagraphs]);
+
+  // Batch generate videos for all segments
+  const handleBatchGenerateVideos = useCallback(async () => {
+    const segments = project.segments || [];
+    if (segments.length === 0) {
+      dialog.toast({ message: '没有片段需要生成视频', type: 'warning' });
+      return;
+    }
+
+    setBatchGeneratingVideos(true);
+    let successCount = 0;
+    // 使用累积数组
+    let currentSegments = [...segments];
+
+    try {
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+
+        try {
+          setGeneratingVideo(segment.id);
+
+          // 如果 description 为空，先生成 description
+          let currentDescription = segment.description;
+          if (!currentDescription?.trim()) {
+            currentDescription = await generateSegmentDescription(
+              segment,
+              project.shots,
+              activeCharacters,
+              activeScenes,
+              project.visualStyle,
+              project.genre,
+              project.rawScript,
+              project.scriptData?.storyParagraphs || [],
+              i+1
+            );
+            // 更新 description
+            const segIndex = currentSegments.findIndex(s => s.id === segment.id);
+            if (segIndex >= 0) {
+              currentSegments[segIndex] = {
+                ...currentSegments[segIndex],
+                description: currentDescription,
+                lastModified: Date.now(),
+              };
+            }
+          }
+
+          // Collect reference images
+          const referenceImages: string[] = [];
+          const imageLabels: string[] = [];
+          const scenes: string[] = [];
+          let imageIndex = 1;
+
+          segment.sceneIds?.forEach((sceneId) => {
+            let scene = activeScenes.find((s) => s.id === sceneId);
+            if (!scene && getSceneWithAssets) {
+              scene = getSceneWithAssets(sceneId);
+            }
+            if (scene?.referenceImage) {
+              referenceImages.push(scene.referenceImage);
+              imageLabels.push(`图${imageIndex}: ${scene.location}`);
+              scenes.push(scene.location);
+              imageIndex++;
+            }
+          });
+
+          segment.characterIds?.forEach((charId) => {
+            let character = activeCharacters.find((c) => c.id === charId);
+            if (!character && getCharacterWithAssets) {
+              character = getCharacterWithAssets(charId);
+            }
+            if (character) {
+              if (segment.characterVariations?.[charId]) {
+                const variation = segment.characterVariations[charId];
+                const selectedVar = character.variations?.find(v => v.id === variation);
+                if (selectedVar?.referenceImage) {
+                  referenceImages.push(selectedVar.referenceImage);
+                  imageLabels.push(`图${imageIndex}: ${character.name}`);
+                  imageIndex++;
+                } else if (character.referenceImage) {
+                  referenceImages.push(character.referenceImage);
+                  imageLabels.push(`图${imageIndex}: ${character.name}`);
+                  imageIndex++;
+                }
+              } else if (character.referenceImage) {
+                referenceImages.push(character.referenceImage);
+                imageLabels.push(`图${imageIndex}: ${character.name}`);
+                imageIndex++;
+              }
+            }
+          });
+
+          const videoPrompt = renderTemplate(
+            'GENERATE_SEGMENT_VIDEO_PROMPT',
+            scenes.join(','),
+            currentDescription,
+            segment.shotIds.length,
+            segment.transitionFrom,
+            segment.transitionTo
+          );
+
+          const prompt = '## 参考图说明：\n' + imageLabels.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n\n' + videoPrompt;
+
+          const videoUrl = await ModelService.generateVideo(
+            prompt,
+            null,
+            null,
+            segment.estimatedDuration || 15,
+            project.imageCount > 2,
+            project.modelProviders,
+            project.id,
+            project.imageSize,
+            project.visualStyle,
+            segment.id,
+            referenceImages,
+            project.seed
+          );
+
+          if (videoUrl) {
+            // Save to media history
+            const fileName = `Segment_${segment.name || segment.id}_video`;
+            await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video', prompt);
+
+            // Update segment with videoUrl
+            const segIndex = currentSegments.findIndex(s => s.id === segment.id);
+            if (segIndex >= 0) {
+              currentSegments[segIndex] = {
+                ...currentSegments[segIndex],
+                videoUrl,
+              };
+              updateProject({ segments: [...currentSegments] });
+              successCount++;
+            }
+          }
+        } catch (err) {
+          console.error(`生成片段 ${segment.name || segment.id} 视频失败:`, err);
+        } finally {
+          setGeneratingVideo(null);
+        }
+      }
+
+      if (successCount > 0) {
+        dialog.toast({ message: `成功生成 ${successCount} / ${segments.length} 个视频`, type: 'success' });
+      } else {
+        dialog.toast({ message: '所有视频生成失败', type: 'error' });
+      }
+    } catch (error) {
+      console.error('批量生成视频失败:', error);
+      dialog.toast({ message: '批量生成视频失败', type: 'error' });
+    } finally {
+      setBatchGeneratingVideos(false);
+    }
+  }, [project.segments, project.shots, activeCharacters, activeScenes, project.visualStyle, project.genre, project.rawScript, project.scriptData?.storyParagraphs, project.imageCount, project.modelProviders, project.id, project.imageSize, project.seed, updateProject, dialog, getSceneWithAssets, getCharacterWithAssets]);
 
   // Open edit script panel
   const handleOpenEditScript = useCallback(() => {
@@ -638,6 +959,222 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     setEditingScript(false);
   }, []);
 
+  // @ Mention: Calculate cursor position for floating picker
+  const getCaretCoordinates = useCallback((element: HTMLTextAreaElement) => {
+    const rect = element.getBoundingClientRect();
+    const text = element.value.substring(0, element.selectionStart);
+    
+    // Create a mirror div to measure text position
+    const mirror = document.createElement('div');
+    const computed = window.getComputedStyle(element);
+    
+    mirror.style.position = 'absolute';
+    mirror.style.visibility = 'hidden';
+    mirror.style.whiteSpace = 'pre-wrap';
+    mirror.style.wordWrap = 'break-word';
+    mirror.style.width = computed.width;
+    mirror.style.font = computed.font;
+    mirror.style.padding = computed.padding;
+    mirror.style.border = computed.border;
+    mirror.style.boxSizing = computed.boxSizing;
+    
+    mirror.textContent = text;
+    document.body.appendChild(mirror);
+    
+    const span = document.createElement('span');
+    span.textContent = '|';
+    mirror.appendChild(span);
+    
+    const coordinates = {
+      top: rect.top + span.offsetTop + parseInt(computed.lineHeight) - element.scrollTop,
+      left: rect.left + span.offsetLeft
+    };
+    
+    document.body.removeChild(mirror);
+    return coordinates;
+  }, []);
+
+  // @ Mention: Handle textarea input for @ detection
+  const handleDescriptionInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    setDescriptionDraft(value);
+
+    // Check if user is typing @
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex !== -1) {
+      // Check if there's a space or newline between @ and cursor (which would close the picker)
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+      if (!textAfterAt.includes(' ') && !textAfterAt.includes('\n')) {
+        // Open mention picker
+        const searchText = textAfterAt.toLowerCase();
+        setMentionSearchText(searchText);
+        setMentionStartPos(lastAtIndex);
+        
+        // Calculate position
+        const coords = getCaretCoordinates(e.target);
+        setMentionPickerPosition({ top: coords.top, left: coords.left });
+        setMentionPickerOpen(true);
+      } else {
+        setMentionPickerOpen(false);
+      }
+    } else {
+      setMentionPickerOpen(false);
+    }
+  }, [getCaretCoordinates]);
+
+  // @ Mention: Handle selection from picker
+  const handleSelectMention = useCallback((type: 'character' | 'scene', item: { id: string; name: string }, variationId?: string) => {
+    if (descriptionTextareaRef.current === null || mentionStartPos === null) return;
+    
+    const textarea = descriptionTextareaRef.current;
+    
+    // Calculate the end position of the @ mention search text
+    const mentionEndPos = mentionStartPos + 1 + mentionSearchText.length;
+    
+    // Replace the @ and search text with the selected name (without @ symbol)
+    const beforeAt = descriptionDraft.substring(0, mentionStartPos);
+    const afterMention = descriptionDraft.substring(mentionEndPos);
+    const newText = beforeAt + item.name + ' ' + afterMention;
+    
+    // Update local state first
+    setDescriptionDraft(newText);
+    setMentionPickerOpen(false);
+    
+    // Update segment's characterIds or sceneIds AND description (to prevent reset)
+    if (selectedSegment) {
+      const field = type === 'character' ? 'characterIds' : 'sceneIds';
+      const currentIds = selectedSegment[field] || [];
+      if (!currentIds.includes(item.id)) {
+        const updatedSegment: Segment = {
+          ...selectedSegment,
+          description: newText,  // Include updated description to prevent reset
+          [field]: [...currentIds, item.id],
+          lastModified: Date.now()
+        };
+        // If character with variation, update characterVariations
+        if (type === 'character' && variationId) {
+          updatedSegment.characterVariations = {
+            ...selectedSegment.characterVariations,
+            [item.id]: variationId
+          };
+        }
+        handleSaveSegment(updatedSegment);
+      } else if (type === 'character' && variationId) {
+        // Character already in list, but update variation
+        const updatedSegment: Segment = {
+          ...selectedSegment,
+          description: newText,  // Include updated description to prevent reset
+          characterVariations: {
+            ...selectedSegment.characterVariations,
+            [item.id]: variationId
+          },
+          lastModified: Date.now()
+        };
+        handleSaveSegment(updatedSegment);
+      }
+    }
+    
+    // Set cursor position after inserted text (use requestAnimationFrame for reliability)
+    const newCursorPos = beforeAt.length + item.name.length + 1; // +1 for space
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    });
+  }, [descriptionDraft, mentionStartPos, mentionSearchText, selectedSegment, handleSaveSegment]);
+
+  // @ Mention: Close picker on click outside
+  const handleDescriptionKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Escape') {
+      setMentionPickerOpen(false);
+    }
+  }, []);
+
+  // @ Mention: Filtered items for picker
+  const filteredCharacters = useMemo(() => {
+    const chars = activeCharacters || [];
+    if (!mentionSearchText) return chars;
+    return chars.filter(c => 
+      c.name.toLowerCase().includes(mentionSearchText)
+    );
+  }, [activeCharacters, mentionSearchText]);
+
+  const filteredScenes = useMemo(() => {
+    const scenes = activeScenes || [];
+    if (!mentionSearchText) return scenes;
+    return scenes.filter(s => 
+      s.location.toLowerCase().includes(mentionSearchText)
+    );
+  }, [activeScenes, mentionSearchText]);
+
+  // @ Mention: Expanded character for variations
+  const [expandedCharId, setExpandedCharId] = useState<string | null>(null);
+
+  // Preview image state
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Handle toggle scene
+  const handleToggleSceneInline = useCallback((sceneId: string) => {
+    if (!selectedSegment) return;
+    const currentIds = selectedSegment.sceneIds || [];
+    const newIds = currentIds.includes(sceneId)
+      ? currentIds.filter(id => id !== sceneId)
+      : [...currentIds, sceneId];
+    const updatedSegment: Segment = {
+      ...selectedSegment,
+      sceneIds: newIds,
+      lastModified: Date.now()
+    };
+    handleSaveSegment(updatedSegment);
+  }, [selectedSegment, handleSaveSegment]);
+
+  // Handle toggle character
+  const handleToggleCharacterInline = useCallback((charId: string) => {
+    if (!selectedSegment) return;
+    const currentIds = selectedSegment.characterIds || [];
+    const newIds = currentIds.includes(charId)
+      ? currentIds.filter(id => id !== charId)
+      : [...currentIds, charId];
+    const updatedSegment: Segment = {
+      ...selectedSegment,
+      characterIds: newIds,
+      lastModified: Date.now()
+    };
+    // Remove variation if character removed
+    if (!newIds.includes(charId) && selectedSegment.characterVariations?.[charId]) {
+      const newVariations = { ...selectedSegment.characterVariations };
+      delete newVariations[charId];
+      updatedSegment.characterVariations = newVariations;
+    }
+    handleSaveSegment(updatedSegment);
+  }, [selectedSegment, handleSaveSegment]);
+
+  // Handle select variation
+  const handleSelectVariationInline = useCallback((charId: string, variationId: string) => {
+    if (!selectedSegment) return;
+    const updatedSegment: Segment = {
+      ...selectedSegment,
+      characterVariations: {
+        ...selectedSegment.characterVariations,
+        [charId]: variationId
+      },
+      lastModified: Date.now()
+    };
+    handleSaveSegment(updatedSegment);
+  }, [selectedSegment, handleSaveSegment]);
+
+  // Available scenes/characters for selection
+  const availableScenesInline = useMemo(() => 
+    (activeScenes || []).filter(s => !(selectedSegment?.sceneIds || []).includes(s.id)),
+    [activeScenes, selectedSegment?.sceneIds]
+  );
+  const availableCharactersInline = useMemo(() => 
+    (activeCharacters || []).filter(c => !(selectedSegment?.characterIds || []).includes(c.id)),
+    [activeCharacters, selectedSegment?.characterIds]
+  );
+
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-hidden">
       {/* Header */}
@@ -649,6 +1186,18 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {project.shots.length > 0 && (
+            <button
+              onClick={() => {
+                updateProject({ stage: 'director', isSegmentMode: false });
+              }}
+              className="px-4 py-2 rounded-lg border border-indigo-600 bg-indigo-700/20 text-indigo-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-600/30 hover:border-indigo-500 cursor-pointer"
+              title="切换到分镜模式"
+            >
+              <ListVideo className="w-3 h-3" />
+              <span className='hidden lg:inline'>{!isMobile && '分镜模式'}</span>
+            </button>
+          )}
           <button
             onClick={() => setPreviewModalOpen(true)}
             disabled={(project.segments || []).filter(s => s.videoUrl).length === 0}
@@ -660,15 +1209,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           </button>
           <button
             onClick={handleReconvertSegments}
-            disabled={project.shots.length === 0}
+            disabled={project.shots.length === 0 && !project.rawScript?.trim()}
             className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <ListVideo className="w-3 h-3" />
-            {!isMobile && '重新拆分片段'}
+            {!isMobile && (project.shots.length === 0 ? '生成片段' : '重新拆分片段')}
           </button>
           <button
             onClick={handleBatchGenerateDescriptions}
-            disabled={batchGenerating || (project.segments || []).length === 0}
+            disabled={batchGenerating || batchGeneratingVideos || (project.segments || []).length === 0}
             className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {batchGenerating ? (
@@ -680,7 +1229,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           </button>
           <button
             onClick={handleBatchGenerateTransitions}
-            disabled={generatingTransition || (project.segments || []).length < 2}
+            disabled={generatingTransition || batchGeneratingVideos || (project.segments || []).length < 2}
             className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {generatingTransition ? (
@@ -689,6 +1238,18 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               <RefreshCw className="w-3 h-3" />
             )}
             {!isMobile && '批量生成转场'}
+          </button>
+          <button
+            onClick={handleBatchGenerateVideos}
+            disabled={batchGeneratingVideos || (project.segments || []).length === 0}
+            className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {batchGeneratingVideos ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Video className="w-3 h-3" />
+            )}
+            {!isMobile && '批量生成视频'}
           </button>
         </div>
       </div>
@@ -711,7 +1272,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600 p-2 md:p-4">
                 <div className="w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg overflow-hidden border border-slate-600 relative shadow-lg">
                 {selectedSegment.videoUrl ? (
-                  <video crossOrigin="anonymous"
+                  <video
                     src={selectedSegment.videoUrl}
                     controls
                     className="w-full h-full object-contain"
@@ -728,7 +1289,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               </div>
               {/* Shot Thumbnails */}
               <div className="relative">
-                <div className="pt-4 flex gap-2 overflow-x-auto pb-0">
+                <div className="pt-4 h-16 flex gap-2 overflow-x-auto pb-0">
                 {selectedSegment.shotIds.map((shotId, idx) => {
                   const shot = project.shots.find((s) => s.id === shotId);
                   const thumbnail = shot?.keyframes?.find((k) => k.type === 'start')?.imageUrl;
@@ -754,24 +1315,31 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 </div>
               {/* Action Buttons */}
               <div className="absolute top-5.5 right-2 flex items-center gap-2 justify-end">
+                {!editingScript && (
                 <button
                   onClick={handleOpenEditScript}
                   className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs border border-slate-500 font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 cursor-pointer"
                 >
                   <NotebookPen className="w-3 h-3" />
-                  编辑提示词
+                  {!isMobile && '编辑提示词'}
                 </button>
+                )}
                 <button
                   onClick={handleGenerateSegmentVideo}
-                  disabled={generatingVideo === selectedSegment.id}
+                  disabled={generatingVideo === selectedSegment.id || batchGeneratingVideos}
                   className="px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600 border border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {generatingVideo === selectedSegment.id ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      {!isMobile && `生成中 ${videoElapsedSeconds}s`}
+                    </>
                   ) : (
-                    <Video className="w-3 h-3" />
+                    <>
+                      <Video className="w-3 h-3" />
+                      {!isMobile && (selectedSegment.videoUrl ? '重新生成视频' : '生成视频')}
+                    </>
                   )}
-                  {selectedSegment.videoUrl ? '重新生成视频' : '生成视频'}
                 </button>
               </div>
               </div>
@@ -782,37 +1350,268 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             <div className={`${isMobile ? 'w-full' : 'md:w-[55%] lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 3xl:w-[720px]'} bg-slate-700/50 flex flex-col h-full relative z-20`}>
 
             <div className="md:p-4 p-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
-                                   <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
               <h3 className="text-sm font-bold text-slate-50 flex items-center gap-2">
                 <NotebookPen className="w-4 h-4 text-slate-500" />
                 描述提示词编辑
               </h3>
               </div>
 
-                                     <div className="flex items-center gap-1">
-                                         <button onClick={goToPrevSegment} disabled={activeSegmentIndex <= 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
-                                             <ChevronLeft className="w-4 h-4" />
-                                         </button>
-                                         <button onClick={goToNextSegment} disabled={activeSegmentIndex < 0 || activeSegmentIndex >= (project.segments || []).length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
-                                             <ChevronRight className="w-4 h-4" />
-                                         </button>
-                                         <div className="w-px h-4 bg-slate-700 mx-2"></div>
-                                         <button onClick={handleCloseEditScript} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer">
-                                             <X className="w-4 h-4" />
-                                         </button>
-                                     </div>
+              <div className="flex items-center gap-1">
+                  <button onClick={goToPrevSegment} disabled={activeSegmentIndex <= 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
+                      <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button onClick={goToNextSegment} disabled={activeSegmentIndex < 0 || activeSegmentIndex >= (project.segments || []).length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
+                      <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <div className="w-px h-4 bg-slate-700 mx-2"></div>
+                  <button onClick={handleCloseEditScript} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer">
+                      <X className="w-4 h-4" />
+                  </button>
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-6 border-b border-slate-600">
+            <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-4 border-b border-slate-600">
+              {/* Scenes Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-500 tracking-wide">
+                    场景 ({(selectedSegment?.sceneIds || []).length})
+                  </label>
+                  {availableScenesInline.length > 0 && (
+                    <CustomSelect
+                      value=""
+                      onChange={(val) => { if (val) handleToggleSceneInline(val); }}
+                      options={availableScenesInline.map(s => ({ value: s.id, label: s.location }))}
+                      placeholder="+ 添加场景"
+                      className="w-64" size='sm'
+                    />
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedSegment?.sceneIds || []).map(sceneId => {
+                    const scene = getSceneWithAssets(sceneId) || activeScenes.find(s => s.id === sceneId);
+                    if (!scene) return null;
+                    return (
+                      <div key={sceneId} className="relative group flex items-center gap-1.5 px-2 py-1 bg-slate-700 border border-slate-600 rounded-lg">
+                        {scene.referenceImage ? (
+                          <img
+                            src={scene.referenceImage}
+                            alt={scene.location}
+                            className="w-12 h-9 rounded object-cover cursor-pointer hover:ring-1 ring-indigo-400"
+                            onClick={() => setPreviewImage(scene.referenceImage)}
+                          />
+                        ) : (
+                          <div className="w-8 h-6 rounded bg-slate-600 flex items-center justify-center">
+                            <Film className="w-3 h-3 text-slate-400" />
+                          </div>
+                        )}
+                        <span className="text-xs text-slate-300 max-w-[80px] truncate">{scene.location}</span>
+                        <button
+                          onClick={() => handleToggleSceneInline(sceneId)}
+                          className="opacity-100 group-hover:opacity-100 p-0.5 hover:bg-red-900/30 hover:text-red-400 rounded transition-all cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {(selectedSegment?.sceneIds || []).length === 0 && (
+                    <span className="text-xs text-slate-500">未选择场景</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Characters Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-500 tracking-wide">
+                    角色 ({(selectedSegment?.characterIds || []).length})
+                  </label>
+                  {availableCharactersInline.length > 0 && (
+                    <CustomSelect
+                      value=""
+                      onChange={(val) => { if (val) handleToggleCharacterInline(val); }}
+                      options={availableCharactersInline.map(c => ({ value: c.id, label: c.name }))}
+                      placeholder="+ 添加角色"
+                      className="w-64" size='sm'
+                    />
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedSegment?.characterIds || []).map(charId => {
+                    const character = getCharacterWithAssets(charId) || activeCharacters.find(c => c.id === charId);
+                    if (!character) return null;
+                    
+                    // Get available looks
+                    const availableLooks: { id: string; name: string; image?: string }[] = [];
+                    if (character.referenceImage) {
+                      availableLooks.push({ id: 'base', name: '默认', image: character.referenceImage });
+                    }
+                    character.variations?.forEach(v => {
+                      if (v.referenceImage) {
+                        availableLooks.push({ id: v.id, name: v.name, image: v.referenceImage });
+                      }
+                    });
+                    
+                    const selectedVarId = selectedSegment?.characterVariations?.[charId];
+                    const currentLook = selectedVarId
+                      ? availableLooks.find(l => l.id === selectedVarId) || availableLooks[0]
+                      : availableLooks[0];
+                    
+                    return (
+                      <div key={charId} className="relative group flex items-center gap-1.5 px-2 py-1 bg-slate-700 border border-slate-600 rounded-lg">
+                        {currentLook?.image ? (
+                          <img
+                            src={currentLook.image}
+                            alt={character.name}
+                            className="w-10 h-10 rounded-full object-cover cursor-pointer hover:ring-1 ring-indigo-400"
+                            onClick={() => setPreviewImage(currentLook.image!)}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-400">
+                            {character.name.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                        <div className="flex items-center gap-1 justify-between pb-1">
+                        <div className="flex-1 text-xs text-slate-300 max-w-[60px] truncate text-left">{character.name}</div>
+                        <button
+                          onClick={() => handleToggleCharacterInline(charId)}
+                          className="opacity-100 group-hover:opacity-100 p-0.5 hover:bg-red-900/30 hover:text-red-400 rounded transition-all cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        </div>
+                        {availableLooks.length > 1 && (
+                          <CustomSelect
+                            value={currentLook?.id || 'base'}
+                            onChange={(val) => handleSelectVariationInline(charId, val)}
+                            options={availableLooks.map(look => ({ value: look.id, label: look.name }))}
+                            className="w-24 text-[9px]"
+                            size='sm'
+                          />
+                        )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(selectedSegment?.characterIds || []).length === 0 && (
+                    <span className="text-xs text-slate-500">未选择角色</span>
+                  )}
+                </div>
+              </div>
+
               {/* Description */}
               <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
                 <div className="relative h-[35vh]">
                   <textarea
+                    ref={descriptionTextareaRef}
                     value={descriptionDraft}
-                    onChange={(e) => setDescriptionDraft(e.target.value)}
-                    placeholder="输入片段描述..."
+                    onChange={handleDescriptionInput}
+                    onKeyDown={handleDescriptionKeyDown}
+                    placeholder="输入片段描述... 使用 @ 提及角色或场景"
                     className="w-full h-full p-3 pb-14 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
                   />
+                  {/* @ Mention Picker */}
+                  {mentionPickerOpen && (
+                    <div
+                      className="fixed z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-80 overflow-y-auto w-64"
+                      style={{ 
+                        top: mentionPickerPosition.top, 
+                        left: Math.max(8, mentionPickerPosition.left - 256) // 左下角，确保不超出左边界
+                      }}
+                    >
+                      {/* Characters Section */}
+                      {filteredCharacters.length > 0 && (
+                        <div className="p-1">
+                          <div className="text-[10px] text-slate-500 px-2 py-1 font-bold tracking-wide">角色</div>
+                          {filteredCharacters.slice(0, 5).map(char => {
+                            const isExpanded = expandedCharId === char.id;
+                            const charWithAssets = getCharacterWithAssets(char.id) || char;
+                            const variations = charWithAssets.variations || [];
+                            
+                            return (
+                              <div key={char.id}>
+                                <button
+                                  onClick={() => {
+                                    if (variations.length > 0) {
+                                      setExpandedCharId(isExpanded ? null : char.id);
+                                    } else {
+                                      handleSelectMention('character', { id: char.id, name: char.name });
+                                    }
+                                  }}
+                                  className="w-full text-left px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
+                                >
+                                  {charWithAssets.referenceImage ? (
+                                    <img src={charWithAssets.referenceImage} alt={char.name} className="w-8 h-8 rounded-full object-cover" />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-slate-600 flex items-center justify-center text-[10px] text-slate-400">
+                                      {char.name.charAt(0)}
+                                    </div>
+                                  )}
+                                  <span className="flex-1">{char.name}</span>
+                                  {variations.length > 0 && (
+                                    <ChevronRight className={`w-3 h-3 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                  )}
+                                </button>
+                                {/* Variations */}
+                                {isExpanded && variations.length > 0 && (
+                                  <div className="ml-4 border-l border-slate-700 pl-1">
+                                    {variations.map(variation => (
+                                      <button
+                                        key={variation.id}
+                                        onClick={() => handleSelectMention('character', { id: char.id, name: `${char.name}(${variation.name})` }, variation.id)}
+                                        className="w-full text-left px-2 py-1 text-xs text-slate-400 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
+                                      >
+                                        {variation.referenceImage ? (
+                                          <img src={variation.referenceImage} alt={variation.name} className="w-8 h-8 rounded-full object-cover" />
+                                        ) : (
+                                          <div className="w-4 h-4 rounded bg-slate-700" />
+                                        )}
+                                        <span>{variation.name}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Scenes Section */}
+                      {filteredScenes.length > 0 && (
+                        <div className="p-1 border-t border-slate-700">
+                          <div className="text-[10px] text-slate-500 px-2 py-1 font-bold tracking-wide">场景</div>
+                          {filteredScenes.slice(0, 5).map(scene => {
+                            const sceneWithAssets = getSceneWithAssets(scene.id) || scene;
+                            return (
+                              <button
+                                key={scene.id}
+                                onClick={() => handleSelectMention('scene', { id: scene.id, name: scene.location })}
+                                className="w-full text-left px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
+                              >
+                                {sceneWithAssets.referenceImage ? (
+                                  <img src={sceneWithAssets.referenceImage} alt={scene.location} className="w-8 h-8 rounded object-cover" />
+                                ) : (
+                                  <div className="w-5 h-5 rounded bg-slate-700 flex items-center justify-center">
+                                    <Film className="w-3 h-3 text-slate-500" />
+                                  </div>
+                                )}
+                                <span>{scene.location}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* No results */}
+                      {filteredCharacters.length === 0 && filteredScenes.length === 0 && (
+                        <div className="p-3 text-sm text-slate-500 text-center">
+                          未找到匹配的角色或场景
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {/* 底部悬浮按钮层 */}
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border border-slate-600 border-t-slate-600/50 rounded-b-lg flex items-center justify-between">
                     {/* 左边占位 */}
@@ -832,7 +1631,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                       {/* AI生成按钮 */}
                       <button
                         onClick={() => handleGenerateDescription(selectedSegment.id)}
-                        disabled={generatingDescription.has(selectedSegment.id)}
+                        disabled={generatingDescription.has(selectedSegment.id) || batchGeneratingVideos}
                         className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                         title="AI生成描述"
                       >
@@ -997,12 +1796,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     onMouseLeave={() => setHoveredSegmentId(null)}
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-full h-26 bg-slate-800 group">
+                    <div className="relative w-full h-26 bg-slate-800 group p-1">
                       {thumbnail ? (
                         <img
                           src={thumbnail}
                           alt={`片段 ${index + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200"
+                          className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200 rounded-lg"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-600">
@@ -1019,8 +1818,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                       </div>
                       {/* Bottom Actions */}
                       <div className="absolute bottom-1 w-full flex items-center justify-between px-1.5 py-0.5">
-                        <span className="text-[10px] text-slate-500 font-mono">
-                          {segment.shotIds.length} 镜
+                        <span className="text-[10px] text-slate-100 px-1 font-mono group-hover:bg-slate-700 rounded text-slate-400 group-hover:text-slate-200">
+                          {segment.name}
                         </span>
                         <div className="flex gap-1">
                           <button
@@ -1085,6 +1884,35 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         onClose={() => setPreviewModalOpen(false)}
         getSegmentThumbnail={getSegmentThumbnail}
       />
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setPreviewImage(null)}
+        >
+          <img
+            src={previewImage}
+            alt="Preview"
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+          />
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 p-2 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-slate-50 transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* AI 分镜等待遮罩 */}
+      {aiSplitting && (
+        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+          <Loader2 className="w-12 h-12 text-slate-50 animate-spin mb-6" />
+          <h3 className="text-xl font-bold text-slate-50 mb-2">AI 智能分镜中...</h3>
+          <p className="text-slate-400">请稍候，正在分析分镜数据</p>
+        </div>
+      )}
     </div>
   );
 };

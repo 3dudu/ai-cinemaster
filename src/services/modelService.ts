@@ -1,12 +1,12 @@
 // services/modelService.ts
 // 模型调用包装类，根据启用的配置动态选择模型提供商
 
-import { AIModelConfig, Scene, ScriptData, Shot } from "../types";
+import { AIModelConfig, Scene, ScriptData, Segment, Shot } from "../types";
 import { cleanJsonString } from "../utils/apiHelper";
 import { uploadFileToService } from "../utils/fileUploadUtils";
 import { imageUrlToBase64 } from "../utils/imageUtils";
 import { getEnabledConfigByType } from "./modelConfigService";
-import { renderTemplate } from "./promptTemplates";
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "./promptTemplates";
 import { getAllModelConfigs } from "./storageService";
 
 const loadDeepseekModule = () => import("./modelproviders/deepseekService");
@@ -1046,7 +1046,6 @@ export class ModelService {
     seed: number = 0,
   ): Promise<string> {
     const provider = await this.getEnabledVideoProvider(shotprovider || this.currentProjectModelProviders);
-    //console.log(`使用 ${provider} 生成视频`);
 
     // 如果没有提供 seed，根据 projectid 计算
     let finalSeed = seed;
@@ -1263,32 +1262,119 @@ export class ModelService {
    * @param genre - 题材类型
    */
   static async generateSegmentPropmt(
-    prompt: string
+    prompt: string,
+    sysctemPrompt:string
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
   
     let visualPrompt = "";
-    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
     switch (provider.provider) {
       case 'deepseek':
-        visualPrompt = await (await this.getProviderModule('deepseek')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('deepseek')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       case 'doubao':
-        visualPrompt = await (await this.getProviderModule('doubao')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('doubao')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       case 'gemini':
-        visualPrompt = await (await this.getProviderModule('gemini')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('gemini')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       case 'yunwu':
-        visualPrompt = await (await this.getProviderModule('yunwu')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('yunwu')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       case 'openai':
-        visualPrompt = await (await this.getProviderModule('openai')).generateCommonPrompts(prompt,sysctemPrompt);
+        visualPrompt = await (await this.getProviderModule('openai')).generateCommonPrompts(prompt,sysctemPrompt,MODEL_GENERATION_CONFIG.AI_SPLIT_SEGMENTS);
         break;
       default:
         throw new Error(`暂不支持 ${provider} 提供商的视觉提示词生成`);
     }
     return cleanJsonString(visualPrompt);
+  }
+
+  /**
+   * 从剧本直接生成片段（片段模式）
+   * @param rawScript - 剧本原文
+   * @param scriptData - 剧本数据（角色、场景）
+   * @param visualStyle - 视觉风格
+   * @param genre - 题材类型
+   * @param language - 输出语言
+   * @param targetDuration - 目标时长
+   */
+  static async generateSegmentsFromScript(
+    rawScript: string,
+    scriptData: ScriptData,
+    visualStyle: string = "真人写实",
+    genre: string = "剧情片",
+    language: string = "中文",
+    targetDuration: string = "60s"
+  ): Promise<Segment[]> {
+    const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
+    
+    // 构建角色和场景信息
+    const characters = scriptData.characters?.map(c => `${c.id}: ${c.name}`).join('\n') || '';
+    const scenes = scriptData.scenes?.map(s => `${s.id}: ${s.location}`).join('\n') || '';
+    
+    const prompt = renderTemplate('GENERATE_SEGMENTS_FROM_SCRIPT',
+      rawScript,
+      characters,
+      scenes,
+      visualStyle,
+      genre,
+      language,
+      targetDuration
+    );
+    
+    const systemPrompt = renderTemplate('SYSTEM_SEGMENT_SPLIT');
+    
+    let response = '';
+    switch (provider.provider) {
+      case 'deepseek':
+        response = await (await this.getProviderModule('deepseek')).generateCommonPrompts(prompt, systemPrompt, MODEL_GENERATION_CONFIG.GENERATE_SEGMENTS_FROM_SCRIPT);
+        break;
+      case 'doubao':
+        response = await (await this.getProviderModule('doubao')).generateCommonPrompts(prompt, systemPrompt, MODEL_GENERATION_CONFIG.GENERATE_SEGMENTS_FROM_SCRIPT);
+        break;
+      case 'gemini':
+        response = await (await this.getProviderModule('gemini')).generateCommonPrompts(prompt, systemPrompt, MODEL_GENERATION_CONFIG.GENERATE_SEGMENTS_FROM_SCRIPT);
+        break;
+      case 'yunwu':
+        response = await (await this.getProviderModule('yunwu')).generateCommonPrompts(prompt, systemPrompt, MODEL_GENERATION_CONFIG.GENERATE_SEGMENTS_FROM_SCRIPT);
+        break;
+      case 'openai':
+        response = await (await this.getProviderModule('openai')).generateCommonPrompts(prompt, systemPrompt, MODEL_GENERATION_CONFIG.GENERATE_SEGMENTS_FROM_SCRIPT);
+        break;
+      default:
+        throw new Error(`暂不支持 ${provider} 提供商的片段生成`);
+    }
+    
+    const cleanedResponse = cleanJsonString(response);
+    
+    try {
+      const parsed = JSON.parse(cleanedResponse);
+      const segments = parsed.segments || [];
+      
+      // 为每个片段添加必要字段
+      const now = Date.now();
+      return segments.map((seg: any, index: number) => (
+      {
+        id: `segment-${now}-${index}`,
+        name: seg.name || `片段 ${index + 1}`,
+        shotIds: [],
+        sceneIds: seg.sceneIds || [],
+        characterIds: seg.characterIds || [],
+        description: `时长：${seg.estimatedDuration||15}\n运动强度：${seg.motionIntensity||5}\n情绪曲线：${seg.emotionCurve || ''}\n台词与节奏： ${seg.dialogueRhythm || ''}\n\n${seg.description||''}`,
+        transitionFrom: '',
+        transitionTo: '',
+        estimatedDuration: seg.estimatedDuration || 10,
+        motionIntensity: seg.motionIntensity || 5,
+        emotionCurve: seg.emotionCurve || '',
+        dialogueRhythm: seg.dialogueRhythm || '',
+        createdAt: now,
+        lastModified: now,
+      }));
+    } catch (error) {
+      console.error('解析片段数据失败:', error);
+      throw new Error('片段生成失败，请重试');
+    }
   }
 }
 

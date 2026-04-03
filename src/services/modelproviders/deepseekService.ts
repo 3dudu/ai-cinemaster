@@ -2,7 +2,6 @@
 
 import { Scene, ScriptData, Shot } from "../../types";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
-import { getEnabledConfigByType } from "../modelConfigService";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // DeepSeek 配置
@@ -28,24 +27,6 @@ export const setApiUrl = (url: string) => {
 
 export const setModel = (modelName: string) => {
   runtimeTextModel = modelName || DEEPSEEK_CONFIG.TEXT_MODEL;
-};
-
-// 从配置服务加载启用的配置
-export const initializeDeepseekConfig = async () => {
-  try {
-    const enabledConfig = await getEnabledConfigByType('llm');
-    if (enabledConfig && enabledConfig.provider === 'deepseek') {
-      runtimeApiKey = enabledConfig.apiKey;
-      runtimeApiUrl = enabledConfig.apiUrl || DEEPSEEK_CONFIG.API_ENDPOINT;
-      if (enabledConfig.model) {
-        runtimeTextModel = enabledConfig.model;
-        //console.log('DeepSeek 模型已加载:', runtimeTextModel);
-      }
-      //console.log('DeepSeek 配置已加载');
-    }
-  } catch (error) {
-    console.error('加载 DeepSeek 配置失败:', error);
-  }
 };
 
 // Helper for authentication headers
@@ -106,6 +87,9 @@ export const parseScriptToData = async (
     const text = cleanJsonString(content);
     //console.log("Parsed JSON:", text);
     parsed = JSON.parse(text);
+    if(Array.isArray(parsed)){
+      parsed = parsed[0];
+    }
   } catch (e) {
     console.error("Failed to parse script data JSON:", e);
     parsed = {};
@@ -227,6 +211,7 @@ export const generateScript = async (
 export const generateCommonPrompts = async (
   prompt: string,
   systemPrompt: string = "视觉设计师",
+  modelconfig:any=MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
@@ -243,7 +228,7 @@ export const generateCommonPrompts = async (
           content: prompt,
         },
       ],
-      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+      ...modelconfig,
     }),
   });
 

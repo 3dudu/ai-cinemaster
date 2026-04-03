@@ -61,6 +61,8 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
   const [processingState, setProcessingState] = useState<{id: string, type: 'kf_start'|'kf_end'|'kf_full'|'video'|'character'}|null>(null);
+  const [videoGenerateStartTime, setVideoGenerateStartTime] = useState<number | null>(null);  // 视频生成开始时间
+  const [videoElapsedSeconds, setVideoElapsedSeconds] = useState<number>(0);  // 已耗时秒数
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number, message: string} | null>(null);
   const [localStyle, setLocalStyle] = useState(project.visualStyle || '真人写实');
   const [imageSize, setImageSize] = useState(project.imageSize || '2560x1440');
@@ -89,6 +91,22 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     setImageSize(project.imageSize || '2560x1440');
     setImageCount(project.imageCount || 0);
   }, [project.visualStyle, project.imageSize, project.imageCount]);
+
+  // 实时更新视频生成耗时
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (processingState?.type === 'video' && videoGenerateStartTime) {
+      interval = setInterval(() => {
+        setVideoElapsedSeconds(Math.floor((Date.now() - videoGenerateStartTime) / 1000));
+      }, 1000);
+    } else {
+      setVideoElapsedSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [processingState?.type, videoGenerateStartTime]);
+
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const [oneClickProcessing, setOneClickProcessing] = useState<{shotId: string, step: 'images'|'video'}|null>(null);
   const [batchVideoProgress, setBatchVideoProgress] = useState<{current: number, total: number, currentShotName: string} | null>(null);
@@ -426,6 +444,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       if (!confirmed) return;
     }
     setProcessingState({ id: shot.interval.id, type: 'video' });
+    setVideoGenerateStartTime(Date.now());
     // 生成视频拍摄提示词（如果还没有）
     if (!shot.interval.videoPrompt && project.scriptData) {
       try {
@@ -470,9 +489,14 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             prompt = prompt+"\n2. **画面结束**:"+eKf?.visualPrompt+"；";
           }
       }
+    }else{
+      const referencePrompt = getRefImagesDescForShot(shot);
+      prompt = prompt+"\n"+referencePrompt;
     }
     prompt = prompt + (dialogueText?"\n###对白\n "+dialogueText:"");
     prompt = prompt+"\n\n##按照上面描述生成 "+localStyle+" 风格的视频！";
+
+    const referenceImages = getRefImagesForShot(shot);
 
     try {
       const videoUrl = await ModelService.generateVideo(
@@ -486,7 +510,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           project.imageSize,
           localStyle,
           shot.id,
-          [],
+          referenceImages,
           project.seed
       );
 
@@ -502,6 +526,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       }));
     } catch (e: any) {
       setProcessingState(null);
+      setVideoGenerateStartTime(null);
       if(e.message?.includes("enough")){
         await dialog.toast({ message: '镜头 '+shot.id+' 余额不足，请充值', type: 'error' });
       }else{
@@ -509,6 +534,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       }
     } finally {
       setProcessingState(null);
+      setVideoGenerateStartTime(null);
     }
   };
 
@@ -1399,7 +1425,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                   }}
                                 >
                                     {videoReadyShots.has(shot.id) && hasVideo && videoPlayingShots.has(shot.id) ? (
-                                        <video crossOrigin="anonymous"
+                                        <video 
                                           data-shot-id={shot.id}
                                           src={shot.interval?.videoUrl}
                                           className="w-full h-full object-contain"
@@ -1416,7 +1442,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                           <img src={sKf!.imageUrl || fKf!.imageUrl} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105" />
                                           {/* Preload video in background after 2 seconds hover */}
                                           {hasVideo && !videoReadyShots.has(shot.id) && hoveredShotId === shot.id && (
-                                            <video crossOrigin="anonymous"
+                                            <video 
                                               src={shot.interval?.videoUrl}
                                               className="hidden"
                                               onCanPlay={() => {
@@ -1428,7 +1454,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                           )}
                                         </>
                                     ) : hasVideo ? (
-                                        <video crossOrigin="anonymous"
+                                        <video 
                                           data-shot-id={shot.id}
                                           className="w-full h-full object-contain"
                                           src={shot.interval?.videoUrl}
@@ -1913,7 +1939,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
                            {(activeShot.interval?.videoUrl || activeShot.transitionUrl) ? (
                                <div className="w-full aspect-video bg-slate-800/50 rounded-lg overflow-hidden border border-slate-600 relative shadow-lg">
-                                   <video crossOrigin="anonymous"
+                                   <video 
                                        src={activeShot.transitionUrl && playingTransition[activeShot.id] ? activeShot.transitionUrl : activeShot.interval?.videoUrl}
                                        controls
                                        className="w-full h-full object-contain"
@@ -2036,7 +2062,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                              {processingState?.type === 'video' ? (
                                 <>
                                   <Loader2 className="w-4 h-4 animate-spin" />
-                                  生成视频中...
+                                  生成视频中 {videoElapsedSeconds}s
                                 </>
                              ) : (
                                 <>

@@ -559,7 +559,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                    )}
                  </div>
                  <div className="w-full bg-slate-700 rounded-lg aspect-video bg-slate-700 rounded-lg overflow-hidden border border-slate-600 relative">
-                   <video crossOrigin="anonymous"
+                   <video 
                      ref={videoRef}
                      controls
                      autoPlay

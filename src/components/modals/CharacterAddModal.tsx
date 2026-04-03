@@ -62,7 +62,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
       id: character?.id || generateId('char'),
       name: formData.name.trim(),
       gender: formData.gender,
-      age: formData.age.trim() || '未指定',
+      age: formData.age || '未指定',
       personality: formData.personality.trim(),
       visualPrompt: formData.visualPrompt.trim(),
       referenceImage: character?.referenceImage || '',
@@ -100,7 +100,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
         id: character?.id || generateId('char'),
         name: formData.name.trim(),
         gender: formData.gender,
-        age: formData.age.trim() || '未指定',
+        age: formData.age || '未指定',
         personality: formData.personality.trim(),
         visualPrompt: '',
         variations: []

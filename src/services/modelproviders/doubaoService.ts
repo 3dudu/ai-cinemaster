@@ -2,7 +2,6 @@
 
 import { Scene, ScriptData, Shot } from "../../types";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
-import { getEnabledConfigByType } from "../modelConfigService";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // 火山引擎配置
@@ -58,34 +57,6 @@ export const setModel = (modelType: 'text' | 'image' | 'video', modelName: strin
     case 'video':
       runtimeVideoModel = modelName || DOUBAO_CONFIG.VIDEO_MODEL;
       break;
-  }
-};
-
-// 从配置服务加载启用的配置
-export const initializeDoubaoConfig = async () => {
-  try {
-    // 加载 LLM 配置
-    const llmConfig = await getEnabledConfigByType('llm');
-    if (llmConfig && llmConfig.provider === 'doubao' && llmConfig.model) {
-      runtimeTextModel = llmConfig.model;
-      //console.log('Doubao LLM 模型已加载:', runtimeTextModel);
-    }
-
-    // 加载图片生成配置
-    const imageConfig = await getEnabledConfigByType('text2image');
-    if (imageConfig && imageConfig.provider === 'doubao' && imageConfig.model) {
-      runtimeImageModel = imageConfig.model;
-      //console.log('Doubao Image 模型已加载:', runtimeImageModel);
-    }
-
-    // 加载视频生成配置
-    const videoConfig = await getEnabledConfigByType('image2video');
-    if (videoConfig && videoConfig.provider === 'doubao' && videoConfig.model) {
-      runtimeVideoModel = videoConfig.model;
-      //console.log('Doubao Video 模型已加载:', runtimeVideoModel);
-    }
-  } catch (error) {
-    console.error('加载 Doubao 配置失败:', error);
   }
 };
 
@@ -151,6 +122,9 @@ export const parseScriptToData = async (
     const text = cleanJsonString(content);
     //console.log("Parsed JSON:", text);
     parsed = JSON.parse(text);
+    if(Array.isArray(parsed)){
+      parsed = parsed[0];
+    }
   } catch (e) {
     console.error("Failed to parse script data JSON:", e);
     parsed = {};
@@ -269,6 +243,7 @@ export const generateScript = async (
 export const generateCommonPrompts = async (
   prompt: string,
   systemPrompt: string = "视觉设计师",
+  modelconfig:any=MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/chat/completions`;
   const response = await fetchWithRetry(endpoint, {
@@ -285,7 +260,7 @@ export const generateCommonPrompts = async (
           content: prompt,
         },
       ],
-      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+      ...modelconfig,
     }),
   });
 
@@ -434,8 +409,8 @@ export const generateVideo = async (
   let p_duration = duration;
   if(duration<4){
     p_duration = 4;
-  }else if(duration>12){
-    p_duration = 12;
+  }else if(duration>15){
+    p_duration = 15;
   }
   const requestBody: any = {
     model: runtimeVideoModel,
@@ -513,7 +488,7 @@ const pollVideoTask = async (taskId: string): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks/${taskId}`;
 
   let attempts = 0;
-  const maxAttempts = 60; // 最多轮询 5 分钟
+  const maxAttempts = 240; // 最多轮询 5 分钟
 
   while (attempts < maxAttempts) {
     const response = await fetchWithRetry(endpoint, {

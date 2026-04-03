@@ -52,6 +52,49 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
     segment.characterVariations || {},
   );
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  // Collect all previewable images from scenes and characters
+  const collectPreviewImages = (): string[] => {
+    const images: string[] = [];
+    // Scene images
+    selectedSceneIds.forEach(sceneId => {
+      let scene = allScenes.find(s => s.id === sceneId);
+      if (!scene && getSceneWithAssets) {
+        scene = getSceneWithAssets(sceneId);
+      }
+      if (scene?.referenceImage) {
+        images.push(scene.referenceImage);
+      }
+    });
+    // Character images (including variations)
+    selectedCharacterIds.forEach(charId => {
+      let character = allCharacters.find(c => c.id === charId);
+      if (!character && getCharacterWithAssets) {
+        character = getCharacterWithAssets(charId);
+      }
+      if (character) {
+        if (character.referenceImage) {
+          images.push(character.referenceImage);
+        }
+        character.variations?.forEach(v => {
+          if (v.referenceImage) {
+            images.push(v.referenceImage);
+          }
+        });
+      }
+    });
+    return images;
+  };
+
+  const handlePreviewImage = (imageUrl: string) => {
+    const images = collectPreviewImages();
+    const index = images.indexOf(imageUrl);
+    setPreviewImages(images);
+    setPreviewIndex(index >= 0 ? index : 0);
+    setPreviewImage(imageUrl);
+  };
 
   if (!isOpen) return null;
 
@@ -143,11 +186,16 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">预估时长</label>
             <div className="flex items-center gap-2">
-              <div className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-sm text-slate-50 font-mono">
-                {editedSegment.estimatedDuration.toFixed(1)} 秒
-              </div>
+              <CustomSelect
+                value={editedSegment.estimatedDuration.toString()}
+                onChange={(val) => setEditedSegment({ ...editedSegment, estimatedDuration: parseInt(val) || 4 })}
+                options={Array.from({ length: 12 }, (_, i) => ({
+                  value: (i + 4).toString(),
+                  label: `${i + 4} 秒`,
+                }))}
+              />
               <span className="text-xs text-slate-500">
-                基于选中的分镜数量自动计算
+                建议时长 4-15 秒
               </span>
             </div>
           </div>
@@ -255,7 +303,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                     {scene.referenceImage ? (
                       <div
                         className="relative w-full aspect-video rounded border border-slate-500 overflow-hidden cursor-pointer group"
-                        onClick={() => setPreviewImage(scene.referenceImage!)}
+                        onClick={() => handlePreviewImage(scene.referenceImage!)}
                       >
                         <img
                           src={scene.referenceImage}
@@ -342,7 +390,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                     {currentLook?.image ? (
                       <div
                         className="relative w-full aspect-video rounded border border-slate-500 overflow-hidden cursor-pointer group"
-                        onClick={() => setPreviewImage(currentLook.image)}
+                        onClick={() => handlePreviewImage(currentLook.image)}
                       >
                         <img
                           src={currentLook.image}
@@ -361,20 +409,12 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                     <span className="text-xs text-center truncate w-full px-1">{character.name}</span>
                     {/* Variation Selector */}
                     {availableLooks.length > 1 && (
-                      <div className="w-full relative">
-                        <select
-                          value={currentLook?.id || 'base'}
-                          onChange={(e) => handleSelectVariation(charId, e.target.value)}
-                          className="w-full px-2 py-1 text-[10px] bg-slate-800 border border-slate-600 rounded text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer appearance-none"
-                        >
-                          {availableLooks.map((look) => (
-                            <option key={look.id} value={look.id}>
-                              {look.name}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500 pointer-events-none" />
-                      </div>
+                      <CustomSelect
+                        value={currentLook?.id || 'base'}
+                        onChange={(val) => handleSelectVariation(charId, val)}
+                        options={availableLooks.map(look => ({ value: look.id, label: look.name }))}
+                        className="w-full"
+                      />
                     )}
                   </div>
                 );
@@ -408,20 +448,62 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
       {previewImage && (
         <div
           className="fixed inset-0 z-[60] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center"
-          onClick={() => setPreviewImage(null)}
+          onClick={() => { setPreviewImage(null); setPreviewImages([]); }}
         >
-          <button
-            onClick={() => setPreviewImage(null)}
-            className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          {/* 左导航按钮 */}
+          {previewImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const newIndex = previewIndex > 0 ? previewIndex - 1 : previewImages.length - 1;
+                setPreviewIndex(newIndex);
+                setPreviewImage(previewImages[newIndex]);
+              }}
+              className="absolute left-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
           <img
             src={previewImage}
             alt="Full screen preview"
             className="max-w-[95vw] max-h-[95vh] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
+
+          {/* 右导航按钮 */}
+          {previewImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const newIndex = previewIndex < previewImages.length - 1 ? previewIndex + 1 : 0;
+                setPreviewIndex(newIndex);
+                setPreviewImage(previewImages[newIndex]);
+              }}
+              className="absolute right-16 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          <button
+            onClick={() => { setPreviewImage(null); setPreviewImages([]); }}
+            className="absolute top-6 right-6 p-3 bg-slate-900/80 hover:bg-slate-800 text-slate-50 rounded-full transition-colors cursor-pointer"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {/* 图片信息 */}
+          {previewImages.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900/80 text-slate-50 rounded-full text-sm">
+              {previewIndex + 1} / {previewImages.length}
+            </div>
+          )}
         </div>
       )}
     </div>

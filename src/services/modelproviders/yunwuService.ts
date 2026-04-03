@@ -120,6 +120,9 @@ export const parseScriptToData = async (
     const text = cleanJsonString(content);
     //console.log("Parsed JSON:", text);
     parsed = JSON.parse(text);
+    if(Array.isArray(parsed)){
+      parsed = parsed[0];
+    }
   } catch (e) {
     console.error("Failed to parse script data JSON:", e);
     parsed = {};
@@ -381,6 +384,7 @@ export const generateScript = async (
 export const generateCommonPrompts = async (
   prompt: string,
   systemPrompt: string = "视觉设计师",
+  modelconfig:any=MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
   const requestBody = {
@@ -402,7 +406,7 @@ export const generateCommonPrompts = async (
       },
     ],
     generationConfig: {
-      ...MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+      ...modelconfig,
     },
   };
 
