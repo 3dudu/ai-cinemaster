@@ -193,7 +193,11 @@ const StageImage: React.FC<Props> = ({ project }) => {
       }
 
       // 添加 MediaHistory 中的文件
-      const historyFiles = await getProjectMediaHistory(selectedProject.id);
+      let historyFiles = await getProjectMediaHistory(selectedProject.id);
+      if(selectedSeriesId){
+        const seriesHistoryFiles = await getProjectMediaHistory(selectedSeriesId);
+        historyFiles = [...historyFiles, ...seriesHistoryFiles];
+      }
 
       // ✅ 收集所有需要计算 MD5 的图片 URL 任务
       interface ImageTask {
