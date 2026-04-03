@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { triggerModelConfigChanged } from '../../services/modelConfigEvents';
 import { createDefaultModelConfigs, saveModelConfigWithExclusiveEnabled, toggleConfigEnabled } from '../../services/modelConfigService';
 import { deleteModelConfig, getAllModelConfigs, saveModelConfig } from '../../services/storageService';
-import { AIModelConfig } from '../../types';
+import { AIModelConfig, ProjectState } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 import { useDialog } from '../dialog';
 import LLMLogsModal from './LLMLogsModal';
@@ -12,6 +12,8 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   isMobile?: boolean;
+  project?: ProjectState;
+  updateProject?: (updates: Partial<ProjectState>) => void;
 }
 
 const PROVIDER_OPTIONS = [
@@ -101,7 +103,7 @@ const getModelTypeColorStyles = (modelType: AIModelConfig['modelType']) => {
   return colorMap[modelType] || colorMap.llm;
 };
 
-const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false }) => {
+const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false, project, updateProject }) => {
   const dialog = useDialog();
   const [configs, setConfigs] = useState<AIModelConfig[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -686,10 +688,12 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false 
       </div>
       
       {/* LLM Logs Modal */}
-      <LLMLogsModal 
-        isOpen={showLogsModal} 
-        onClose={() => setShowLogsModal(false)} 
+      <LLMLogsModal
+        isOpen={showLogsModal}
+        onClose={() => setShowLogsModal(false)}
         isMobile={isMobile}
+        project={project}
+        updateProject={updateProject}
       />
     </div>
   );

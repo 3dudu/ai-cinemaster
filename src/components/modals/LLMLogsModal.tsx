@@ -1,8 +1,9 @@
 import { ModelService } from '@/services/modelService';
-import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Clock, Database, Eye, Film, Image, Loader2, MessageSquare, Mic, RefreshCw, Search, Trash2, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, ChevronLeft, ChevronRight, Clock, Copy, Database, Eye, Film, Image, Link, Loader2, MessageSquare, Mic, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { clearOldLLMLogs, countLLMLogs, deleteLLMLog, getLLMLog, getLLMLogStats, LLMLogStats, queryLLMLogs } from '../../services/storageService';
-import { LLMCallLog } from '../../types';
+import { addMediaHistory, clearOldLLMLogs, countLLMLogs, deleteLLMLog, getLLMLog, getLLMLogStats, LLMLogStats, loadProjectFromDB, queryLLMLogs, saveProjectToDB } from '../../services/storageService';
+import { LLMCallLog, ProjectState } from '../../types';
+import { uploadFileToService } from '../../utils/fileUploadUtils';
 import CustomSelect from '../common/CustomSelect';
 import { useDialog } from '../dialog';
 
@@ -11,6 +12,8 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   isMobile?: boolean;
+  project?: ProjectState;
+  updateProject?: (updates: Partial<ProjectState>) => void;
 }
 
 const MODEL_TYPE_OPTIONS = [
@@ -100,7 +103,7 @@ const JsonDisplay: React.FC<{ data: any; maxHeight?: string }> = ({ data, maxHei
   );
 };
 
-const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false }) => {
+const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, project, updateProject }) => {
   const dialog = useDialog();
   const [logs, setLogs] = useState<LLMCallLog[]>([]);
   const [stats, setStats] = useState<LLMLogStats | null>(null);
@@ -123,6 +126,111 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false }) =>
 
   // 刷新任务状态
   const [refreshingTaskId, setRefreshingTaskId] = useState<string | null>(null);
+  const [associatingUrl, setAssociatingUrl] = useState<string | null>(null);
+
+  // 将结果URL关联到Shot或Segment
+  const handleAssociateUrl = async (log: LLMCallLog) => {
+    if (!log.resultUrl || !log.projectId) {
+      dialog.toast({ message: '缺少必要信息：结果URL或项目ID', type: 'error' });
+      return;
+    }
+
+    const confirmed = await dialog.confirm({
+      title: '关联视频URL',
+      message: `确定要将此视频URL关联到项目中的${log.shotId ? '镜头' : '片段'}吗？这将覆盖现有视频。`,
+      type: 'warning'
+    });
+    if (!confirmed) return;
+
+    setAssociatingUrl(log.id);
+    try {
+      // 先将外部 URL 转换成本地服务器文件
+      let finalUrl = log.resultUrl;
+      const fileType = `${log.projectId}/video/${log.shotId || 'unknown'}`
+
+      try {
+        const uploadResponse = await uploadFileToService({
+          fileType,
+          fileUrl: log.resultUrl
+        });
+
+        if (uploadResponse.success && uploadResponse.data?.fileUrl) {
+          finalUrl = uploadResponse.data.fileUrl;
+          console.log(`文件已上传到本地服务器: ${finalUrl}`);
+        } else {
+          console.warn(`文件上传失败: ${uploadResponse.error}，使用原始URL`);
+        }
+      } catch (uploadError) {
+        console.warn(`文件上传出错:`, uploadError, '，使用原始URL');
+      }
+
+      // 判断是否更新当前打开的项目
+      const isCurrentProject = project && project.id === log.projectId;
+      const targetProject = isCurrentProject ? project : await loadProjectFromDB(log.projectId);
+
+      if (!targetProject) {
+        dialog.toast({ message: '未找到项目', type: 'error' });
+        return;
+      }
+
+      let updated = false;
+      const segments = targetProject.segments || [];
+
+      // 先尝试从 segments 中查找匹配的 segment（shotId 可能是 segmentId）
+      const matchingSegment = segments.find(seg => seg.id === log.shotId);
+      if (matchingSegment) {
+        const updatedSegments = segments.map((seg) =>
+          seg.id === log.shotId ? { ...seg, videoUrl: finalUrl } : seg
+        );
+        await saveProjectToDB({ ...targetProject, segments: updatedSegments });
+
+        // 通知其他组件刷新
+        if (isCurrentProject && updateProject) {
+          updateProject({ segments: updatedSegments });
+        }
+
+        updated = true;
+        const fileName = `Segment_${log.shotId}_video`;
+        await addMediaHistory(targetProject.id, finalUrl, fileName, 'video', 'video',log.requestParams.content[0].text);
+        dialog.toast({ message: `已关联到片段 ${matchingSegment.name || matchingSegment.id}`, type: 'success' });
+      } else {
+        // 如果在 segments 中没找到，再尝试关联到 Shot.interval.videoUrl
+        const updatedShots = targetProject.shots.map((shot) => {
+          if (shot.id === log.shotId) {
+            updated = true;
+            return {
+              ...shot,
+              interval: {
+                ...shot.interval,
+                videoUrl: finalUrl
+              }
+            };
+          }
+          return shot;
+        });
+
+        if (updated) {
+          await saveProjectToDB({ ...targetProject, shots: updatedShots });
+
+          // 通知其他组件刷新
+          if (isCurrentProject && updateProject) {
+            updateProject({ shots: updatedShots });
+          }
+
+          const fileName = `Shot_${log.shotId}_video`;
+          await addMediaHistory(targetProject.id, finalUrl, fileName, 'video', 'video',log.requestParams.content[0].text);
+          dialog.toast({ message: `已关联到镜头 ${log.shotId}`, type: 'success' });
+        } else {
+          dialog.toast({ message: '未找到对应镜头', type: 'warning' });
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to associate URL:', error);
+      dialog.toast({ message: `关联失败: ${error.message}`, type: 'error' });
+    } finally {
+      setAssociatingUrl(null);
+    }
+  };
 
   // 手动刷新异步任务状态
   const handleRefreshTaskStatus = async (log: LLMCallLog) => {
@@ -669,10 +777,23 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false }) =>
                       className="p-1 hover:bg-slate-600 text-slate-400 hover:text-slate-200 rounded transition-colors cursor-pointer shrink-0"
                       title="复制URL"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
+                      <Copy className="w-4 h-4" />
                     </button>
+                    {/* 关联按钮 - 仅限有projectId且为视频/图片任务 */}
+                    {selectedLog.projectId && selectedLog.shotId && selectedLog.modelType === 'image2video' && (
+                      <button
+                        onClick={() => handleAssociateUrl(selectedLog)}
+                        disabled={associatingUrl === selectedLog.id}
+                        className="p-1 hover:bg-green-900/50 text-green-400 hover:text-green-300 rounded transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                        title="关联到项目"
+                      >
+                        {associatingUrl === selectedLog.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Link className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
                   </div>
                   {/* 视频预览 */}
                   {selectedLog.modelType === 'image2video' && selectedLog.resultUrl && (
