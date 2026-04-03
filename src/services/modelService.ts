@@ -1078,13 +1078,29 @@ export class ModelService {
       }
     }
 
+    // 处理参考图片：将HTTP/HTTPS URL转换为Base64
+    let processedReferenceImages = [];
+    if (referenceImages && referenceImages.length > 0) {
+      for(let i=0;i<referenceImages.length;i++){
+        try{
+          const baseurl = await imageUrlToBase64(referenceImages[i]);
+          processedReferenceImages.push(baseurl);
+        }catch(error){
+          console.error('转换参考图片为Base64失败:', error);
+          processedReferenceImages.push(referenceImages[i]);
+        }
+      }
+    }else{
+      processedReferenceImages = referenceImages;
+    }
+
     let videoUrl: string;
 
     // 调用各个模型服务生成视频
     switch (provider.provider) {
       case 'doubao':
         const generate_audio = provider.description.indexOf("sound")>-1;
-        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio,imageSize, finalSeed,referenceImages);
+        videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64, duration,full_frame,generate_audio,imageSize, finalSeed,processedReferenceImages);
         break;
       case 'gemini':
         videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);
