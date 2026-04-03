@@ -1078,6 +1078,17 @@ export class ModelService {
       }
     }
 
+    if(referenceImages && referenceImages.length>0){
+      referenceImages.map(async (imageUrl) => {
+        try {
+          const base64 = await imageUrlToBase64(imageUrl);
+          return base64;
+        } catch (error) {
+          return imageUrl;
+        }
+      });
+    }
+
     let videoUrl: string;
 
     // 调用各个模型服务生成视频

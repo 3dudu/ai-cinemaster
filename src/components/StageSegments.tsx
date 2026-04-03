@@ -786,7 +786,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         dialog.toast({ message: '视频生成失败，请重试', type: 'error' });
       }
     } catch (error) {
-      dialog.toast({ message: '视频生成失败', type: 'error' });
+      dialog.toast({ message: `视频生成失败，${error}`, type: 'error' });
     } finally {
       setGeneratingVideo(null);
       setVideoGenerateStartTime(null);
@@ -926,7 +926,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             }
           }
         } catch (err) {
-          console.error(`生成片段 ${segment.name || segment.id} 视频失败:`, err);
+          dialog.toast({ message: `生成 ${i+1} 视频失败，${err}`, type: 'error' });
         } finally {
           setGeneratingVideo(null);
         }
@@ -938,7 +938,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         dialog.toast({ message: '所有视频生成失败', type: 'error' });
       }
     } catch (error) {
-      console.error('批量生成视频失败:', error);
       dialog.toast({ message: '批量生成视频失败', type: 'error' });
     } finally {
       setBatchGeneratingVideos(false);
