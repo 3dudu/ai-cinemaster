@@ -559,7 +559,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             {seriesList.map((series) => (
                 <div 
                   key={series.id}
-                  className="group bg-slate-800 border border-slate-600 hover:border-yellow-600 hover:border-2 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
+                  className="group bg-slate-800 border border-pink-800 hover:border-yellow-600 hover:border-2 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
                   onClick={() => {
                     if (series.currentEpisodeId) {
                       const episode = projects.find(p => p.id === series.currentEpisodeId);
@@ -713,7 +713,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
               <div 
                 key={proj.id}
                 onClick={() => onOpenProject(proj)}
-                className="group bg-slate-800 border border-slate-600 hover:border-green-600 hover:border-2 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
+                className="group bg-slate-800 border border-blue-800 hover:border-green-600 hover:border-2 p-0 flex flex-col cursor-pointer transition-all relative overflow-hidden h-[280px]"
               >
                   {/* Delete Confirmation Overlay */}
                   {deleteConfirmId === proj.id && (

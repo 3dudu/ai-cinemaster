@@ -1169,7 +1169,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               onClick={() => {
                 updateProject({ stage: 'director', isSegmentMode: false });
               }}
-              className="px-4 py-2 rounded-lg border border-indigo-600 bg-indigo-700/20 text-indigo-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-600/30 hover:border-indigo-500 cursor-pointer"
+              className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-700/20 text-slate-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600/30 hover:border-slate-500 cursor-pointer"
               title="切换到分镜模式"
             >
               <ListVideo className="w-3 h-3" />
@@ -1247,13 +1247,14 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   片段 {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
                 </span>
               </div>
-              <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600 p-2 md:p-4">
-                <div className="w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg overflow-hidden border border-slate-600 relative shadow-lg">
+              <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600">
+                <div className={`w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg border border-slate-600 relative shadow-lg
+                   ${(generatingVideo === selectedSegment.id || batchGeneratingVideos)&&'ai-generating-border'}`}>
                 {selectedSegment.videoUrl ? (
                   <video
                     src={selectedSegment.videoUrl}
                     controls
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain rounded-lg"
                   />
                 ) : (
                   <div className="flex w-full h-full flex-col items-center justify-center text-slate-500 aspect-video bg-slate-800/50">
@@ -1265,7 +1266,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 </div>
               </div>
               {/* Shot Thumbnails */}
-              <div className="relative">
+              <div className="relative md:h-16 h-14">
                 <div className="md:pt-4 pt-2 flex gap-2 overflow-x-auto pb-">
                 {selectedSegment.shotIds.map((shotId, idx) => {
                   const shot = project.shots.find((s) => s.id === shotId);
@@ -1781,22 +1782,22 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         segmentRefs.current.delete(segment.id);
                       }
                     }}
-                    className={`flex-shrink-0 w-48 h-27 bg-slate-900 border rounded-lg overflow-hidden cursor-pointer transition-all ${
+                    className={`p-0.5 flex-shrink-0 w-48 h-27 bg-slate-900 border rounded-lg cursor-pointer transition-all ${
                       isSelected
                         ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-700/40'
                         : 'border-slate-600 hover:border-slate-400 hover:shadow-lg shadow-indigo-800/60'
-                    }`}
+                    } ${generatingVideo === segment.id&&'ai-generating-border'}`}
                     onClick={() => setSelectedSegmentId(segment.id)}
                     onMouseEnter={() => setHoveredSegmentId(segment.id)}
                     onMouseLeave={() => setHoveredSegmentId(null)}
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-full h-full bg-slate-800 group p-1">
+                    <div className={`relative w-full h-full bg-slate-800 group overflow-hidden rounded`}>
                       {thumbnail ? (
                         <img
                           src={thumbnail}
                           alt={`片段 ${index + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-200 rounded-lg"
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-600">
@@ -1848,7 +1849,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     >
                       <Plus className="w-2.5 h-2.5" />
                     </button>
-                  </div>
+                 </div>
                 </React.Fragment>
               )})}
             </div>

@@ -40,20 +40,20 @@
 
 @layer base {
 
-  /* 浅色主题下调整gray颜色 */
+  /* 浅色主题下调整olive颜色 */
   :root[data-theme="light"] {
 
-    --color-slate-50: var(--color-gray-950);
-    --color-slate-100: var(--color-gray-900);
-    --color-slate-200: var(--color-gray-800);
-    --color-slate-300: var(--color-gray-700);
-    --color-slate-400: var(--color-gray-600);
-    --color-slate-500: var(--color-gray-500);
-    --color-slate-600: var(--color-gray-300);
-    --color-slate-700: var(--color-gray-200);
-    --color-slate-800: var(--color-gray-100);
-    --color-slate-900: var(--color-gray-100);
-    --color-slate-950: var(--color-gray-50);
+    --color-slate-50: var(--color-olive-950);
+    --color-slate-100: var(--color-olive-900);
+    --color-slate-200: var(--color-olive-800);
+    --color-slate-300: var(--color-olive-700);
+    --color-slate-400: var(--color-olive-600);
+    --color-slate-500: var(--color-olive-500);
+    --color-slate-600: var(--color-olive-300);
+    --color-slate-700: var(--color-olive-200);
+    --color-slate-800: var(--color-olive-100);
+    --color-slate-900: var(--color-olive-100);
+    --color-slate-950: var(--color-olive-50);
 
     --bg-primary: var(--color-light-bg-primary);
     --bg-secondary: var(--color-light-bg-secondary);
@@ -89,17 +89,17 @@
   @media (prefers-color-scheme: light) {
     :root[data-theme="system"] {
       /* 调整slate颜色 */
-      --color-slate-50: var(--color-gray-950);
-      --color-slate-100: var(--color-gray-900);
-      --color-slate-200: var(--color-gray-800);
-      --color-slate-300: var(--color-gray-700);
-      --color-slate-400: var(--color-gray-600);
-      --color-slate-500: var(--color-gray-500);
-      --color-slate-600: var(--color-gray-300);
-      --color-slate-700: var(--color-gray-200);
-      --color-slate-800: var(--color-gray-100);
-      --color-slate-900: var(--color-gray-100);
-      --color-slate-950: var(--color-gray-50);
+      --color-slate-50: var(--color-olive-950);
+      --color-slate-100: var(--color-olive-900);
+      --color-slate-200: var(--color-olive-800);
+      --color-slate-300: var(--color-olive-700);
+      --color-slate-400: var(--color-olive-600);
+      --color-slate-500: var(--color-olive-500);
+      --color-slate-600: var(--color-olive-300);
+      --color-slate-700: var(--color-olive-200);
+      --color-slate-800: var(--color-olive-100);
+      --color-slate-900: var(--color-olive-100);
+      --color-slate-950: var(--color-olive-50);
 
       --bg-primary: var(--color-light-bg-primary);
       --bg-secondary: var(--color-light-bg-secondary);
