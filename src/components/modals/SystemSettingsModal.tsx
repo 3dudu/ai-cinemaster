@@ -352,7 +352,7 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-60 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl overflow-hidden w-full max-w-3xl h-[80vh] flex flex-col">
         {/* Header */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">

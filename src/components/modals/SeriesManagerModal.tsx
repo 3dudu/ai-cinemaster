@@ -1,5 +1,5 @@
 import { Calendar, ChevronLeft, ChevronRight, Download, Edit3, Film, Loader2, Play, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createSeriesEpisode, getEffectiveScriptData, importProjectAsEpisode } from '../../services/seriesService';
 import { deleteProjectFromDB, exportProjectToFile, getEpisodesBySeriesId, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
 import { ProjectState, Segment, SeriesRecord } from '../../types';
@@ -303,18 +303,18 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   }, [editingEpisode, dialog]);
 
   const getSegmentThumbnail = useCallback(
-      (segment: Segment): string | undefined => {
-        const sceneid = segment.sceneIds[0];
-        if (sceneid) {
-          // In series mode, get scene from library for full assets
-          if(series?.library?.scenes) {
-          const libraryScene = series.library.scenes.find((s) => s.id === sceneid);
-          if (libraryScene?.referenceImage) {
-            return libraryScene.referenceImage;
-          }
-        }
-      }},
-      [series?.library?.scenes],
+    (segment: Segment): string | undefined => {
+      const allcenes = series.library.scenes
+      const sceneids = segment.sceneIds.find(sceneid=>{
+        const scene = allcenes.find((s) => String(s.id) === String(sceneid));
+        return scene && scene.referenceImage;
+      });
+      if(sceneids){
+        const scene = allcenes.find((s) => String(s.id) === String(sceneids));
+        return scene.referenceImage;
+      }
+    },
+    [series?.library?.scenes],
   );
 
   if (!isOpen) return null;

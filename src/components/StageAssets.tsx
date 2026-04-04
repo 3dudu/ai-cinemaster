@@ -116,7 +116,7 @@ const StageAssets: React.FC<Props> = ({
         new_prompt = prompt;
         if (scene) {
           prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle);
-          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt, scene.atmosphere);
+          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt, scene.location,scene.time,scene.atmosphere);
         }
       }
 

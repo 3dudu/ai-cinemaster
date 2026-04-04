@@ -193,7 +193,11 @@ const StageImage: React.FC<Props> = ({ project }) => {
       }
 
       // 添加 MediaHistory 中的文件
-      const historyFiles = await getProjectMediaHistory(selectedProject.id);
+      let historyFiles = await getProjectMediaHistory(selectedProject.id);
+      if(selectedSeriesId){
+        const seriesHistoryFiles = await getProjectMediaHistory(selectedSeriesId);
+        historyFiles = [...historyFiles, ...seriesHistoryFiles];
+      }
 
       // ✅ 收集所有需要计算 MD5 的图片 URL 任务
       interface ImageTask {
@@ -330,6 +334,25 @@ const StageImage: React.FC<Props> = ({ project }) => {
               mediaType: 'video'
             });
           }
+        }
+      }
+
+      // 添加segment视频
+      if (selectedProject.segments && showVideo) {
+        for (let segmentIdx = 0; segmentIdx < selectedProject.segments.length; segmentIdx++) {
+          const segment = selectedProject.segments[segmentIdx];
+          const segmentLabel = `片段 ${segmentIdx + 1}`;
+  
+          // 添加视频
+          imageTasks.push({
+            url: segment.videoUrl,
+            id: `segment-video-${selectedProject.id}-${segment.id}`,
+            type: 'video',
+            title: segmentLabel,
+            subtitle: `片段视频 - ${segment.name||segment.description.substring(0, 30)}...`,
+            downname: `${selectedProject.scriptData?.title || ''}-片段-${segment.name||segment.id}`,
+            mediaType: 'video'
+          });
         }
       }
 
