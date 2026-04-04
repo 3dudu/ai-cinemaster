@@ -233,5 +233,57 @@
   background: #1e293b;
   z-index: -1;
 }
+@keyframes glowWave {
+  0% {
+    background-position: 0% 0%;
+    filter: blur(10px) brightness(1);
+    opacity: 0.85;
+  }
+  50% {
+    background-position: 50% 50%;
+    filter: blur(10px) brightness(1);
+    opacity: 0.96;
+  }
+  100% {
+    background-position: 0% 0%; /* ✅ 修复：回到起点！不跳变 */
+    filter: blur(10px) brightness(1);
+    opacity: 0.85; /* ✅ 修复：和 0% 完全一致 */
+  }
+}
+
+.ai-generating-overlay {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.ai-generating-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  
+  /* 颜色更密！分段更短 → 小容器也色彩丰富 */
+  background: linear-gradient(-45deg,
+    #7e22ce,
+    #4f46e5,
+    #06b6d4,
+    #10b981,
+    #06b6d4,
+    #4f46e5,
+    #7e22ce
+  );
+  
+  background-size: 200% 200%; /* 小容器最佳尺寸 */
+  opacity: 0.
+  filter: blur(10px); /* 小容器不要太大 blur */
+  animation: glowWave 6s linear infinite;
+}
+
 
 

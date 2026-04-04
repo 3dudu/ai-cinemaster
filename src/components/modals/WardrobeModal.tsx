@@ -431,9 +431,9 @@ const WardrobeModal: React.FC<Props> = ({
                             {/* List */}
                             {(character.variations || []).map((variation) => (
                                 <div key={variation.id} className="flex aspect-square overflow-hidden flex-col gap-4 p-4 bg-slate-800 border border-slate-600 rounded-xl group hover:border-slate-300 transition-colors">
-                                    <div className={`aspect-[16/9] bg-slate-900 rounded-lg flex-shrink-0 overflow-hidden relative border border-slate-600 ${variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? 'cursor-pointer' : ''}`} onClick={variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? () => setPreviewImage(variation.referenceImage) : undefined}>
+                                    <div className={`aspect-[16/9] bg-slate-900 rounded-lg overflow-hidden relative border border-slate-600 ${variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? 'cursor-pointer' : ''}`} onClick={variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? () => setPreviewImage(variation.referenceImage) : undefined}>
                                         {variation.referenceImage ? (
-                                            <img src={variation.referenceImage} className="w-full h-full object-contain hover:scale-105 transition-transform duration-200" />
+                                            <img src={variation.referenceImage} className="object-contain hover:scale-105 transition-transform duration-200" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
                                                 <Shirt className="w-6 h-6 text-slate-600" />
@@ -445,9 +445,8 @@ const WardrobeModal: React.FC<Props> = ({
                                             </div>
                                         )}
                                         {processingState?.type === 'character' && processingState?.id === variation.id && (
-                                            <div className="absolute inset-0 bg-slate-700/60 flex items-center justify-center">
-                                                <Loader2 className="w-4 h-4 text-slate-50 animate-spin" />
-                                            </div>
+                                        <div className="ai-generating-overlay">
+                                        </div>
                                         )}
 <div className="absolute bottom-0 right-0 flex items-center justify-center gap-1 p-1">
                                         {variation.referenceImage && (
