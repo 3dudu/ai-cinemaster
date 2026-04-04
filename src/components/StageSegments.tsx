@@ -303,7 +303,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const handleSaveSegment = useCallback(
     (updatedSegment: Segment) => {
       const segments = project.segments || [];
-      if (editingSegment || selectedSegment) {
+      if ((editingSegment|| selectedSegment) && !insertIndex){
         // Update existing segment
         updateProject({
           segments: segments.map((s) =>
@@ -1160,7 +1160,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         <div className="flex items-center gap-3">
           <ListVideo className="w-5 h-5 text-slate-500" />
           <div>
-            <h2 className="text-lg font-bold text-slate-50">片段编辑</h2>
+            <h2 className="text-lg font-bold text-slate-50">片段{isMobile?'':`编辑`}</h2>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -1238,10 +1238,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           <>
             {/* Left: Video Preview (2/3) */}
             <div className={`${editingScript && isMobile?'hidden':''} ${editingScript ? 'border-r' : ''} border-slate-600 p-2 md:p-4 flex flex-col flex-1 overflow-y-auto transition-all duration-500 ease-in-out`}>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-bold text-slate-50 flex items-center gap-2">
                   <Play className="w-4 h-4 text-slate-500" />
-                  片段预览
+                  {`${selectedSegment.name||`片段 ${activeSegmentIndex+1}`}`}
                 </h3>
                 <span className="text-xs text-slate-400 font-mono">
                   片段 {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
@@ -1263,11 +1263,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   </div>
                 )}
                 </div>
-
               </div>
               {/* Shot Thumbnails */}
               <div className="relative">
-                <div className="pt-4 h-16 flex gap-2 overflow-x-auto pb-0">
+                <div className="md:pt-4 pt-2 flex gap-2 overflow-x-auto pb-">
                 {selectedSegment.shotIds.map((shotId, idx) => {
                   const shot = project.shots.find((s) => s.id === shotId);
                   const thumbnail = shot?.keyframes?.find((k) => k.type === 'start')?.imageUrl;
@@ -1292,7 +1291,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 })}
                 </div>
               {/* Action Buttons */}
-              <div className="absolute top-5.5 right-2 flex items-center gap-2 justify-end">
+              <div className="absolute top-4 md:top-6 right-2 flex items-center gap-2 justify-end">
                 {!editingScript && (
                 <button
                   onClick={handleOpenEditScript}
@@ -1748,10 +1747,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
       {/* Bottom: Segments List - Horizontal Scroll */}
       <div className="pb-1 border-t border-slate-600 bg-slate-700/50">
-        <p className="text-xs text-slate-400 font-mono px-4 py-3">
+        <p className="text-xs text-slate-400 font-mono px-3 py-2">
           {(project.segments || []).length} 个片段 · {totalShots} 个分镜 · 总时长 {totalDuration.toFixed(1)} 秒
         </p>
-        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="pb-2 mx-2 md:mx-4 overflow-x-auto overflow-y-hidden custom-scrollbar">
+        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="pb-1 mx-2 px-1 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
               <p className="text-xs">暂无片段，请先在导演工作台创建分镜</p>
@@ -1782,7 +1781,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         segmentRefs.current.delete(segment.id);
                       }
                     }}
-                    className={`flex-shrink-0 w-48 bg-slate-900 border rounded-lg overflow-hidden cursor-pointer transition-all ${
+                    className={`flex-shrink-0 w-48 h-27 bg-slate-900 border rounded-lg overflow-hidden cursor-pointer transition-all ${
                       isSelected
                         ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-700/40'
                         : 'border-slate-600 hover:border-slate-400 hover:shadow-lg shadow-indigo-800/60'
@@ -1792,7 +1791,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     onMouseLeave={() => setHoveredSegmentId(null)}
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-full h-26 bg-slate-800 group p-1">
+                    <div className="relative w-full h-full bg-slate-800 group p-1">
                       {thumbnail ? (
                         <img
                           src={thumbnail}
@@ -1841,13 +1840,13 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </div>
                   </div>
                   {/* Add Segment Button - Invisible by default, visible on hover */}
-                  <div className="flex items-center h-26 justify-center w-0.5 mx-1 hover:bg-indigo-500 z-10 opacity-100 md:opacity-0 hover:opacity-100 transition-opacity duration-200">
+                  <div className="flex items-center justify-center w-0.5 mx-1 hover:bg-indigo-500 z-10 opacity-100 md:opacity-0 hover:opacity-100 transition-opacity duration-200">
                     <button
                       onClick={() => handleAddSegmentAfter(index)}
                       className="p-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-all hover:scale-110 cursor-pointer"
                       title="在此后添加片段"
                     >
-                      <Plus className="w-3 h-3" />
+                      <Plus className="w-2.5 h-2.5" />
                     </button>
                   </div>
                 </React.Fragment>
