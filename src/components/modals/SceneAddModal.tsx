@@ -1,9 +1,9 @@
-import { useDialog } from '../dialog';
 import { Copy, Loader2, MapPin, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { generateId } from '../../services/seriesService';
 import { Scene } from '../../types';
+import { useDialog } from '../dialog';
 
 interface Props {
   isOpen: boolean;

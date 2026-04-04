@@ -395,8 +395,8 @@ const StageAssets: React.FC<Props> = ({
         dialog.toast({ message: '角色已添加', type: 'success' });
       }
     }
-    setAddCharacterModalOpen(false);
-    setEditingCharacter(null);
+    //setAddCharacterModalOpen(false);
+    //setEditingCharacter(null);
   }, [isSeriesMode, series, updateSeries, project, updateProject, dialog, editingCharacter]);
 
   const handleSaveScene = useCallback((scene: Scene) => {
@@ -435,8 +435,8 @@ const StageAssets: React.FC<Props> = ({
         dialog.toast({ message: '场景已添加', type: 'success' });
       }
     }
-    setAddSceneModalOpen(false);
-    setEditingScene(null);
+    //setAddSceneModalOpen(false);
+    //setEditingScene(null);
   }, [isSeriesMode, series, updateSeries, project, updateProject, dialog, editingScene]);
 
   if (!project.scriptData&&!isSeriesMode || (displayCharacters.length === 0 && displayScenes.length === 0)) return (
