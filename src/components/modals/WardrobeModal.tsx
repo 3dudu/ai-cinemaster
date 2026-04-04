@@ -325,12 +325,14 @@ const WardrobeModal: React.FC<Props> = ({
                                             onChange={e => setEditVarName(e.target.value)}
                                             className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all"
                                         />
-                                        <div className="relative">
+                                        <div className={`relative ${isGeneratingPrompt ? 'ai-generating-border' : ''}`}>
                                             <textarea
                                                 placeholder="服饰 / 状态的视觉描述……"
                                                 value={editVarPrompt}
                                                 onChange={e => setEditVarPrompt(e.target.value)}
-                                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 pb-10 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all resize-none h-49"
+                                                className={`w-full bg-slate-800 border rounded px-3 py-2 pb-10 text-xs text-slate-50 placeholder:text-slate-600 focus:outline-none transition-all resize-none h-49 ${
+                                                  isGeneratingPrompt ? 'border-transparent' : 'border-slate-600 focus:border-slate-500'
+                                                }`}
                                             />
                                             {/* 底部浮动按钮 */}
                                             <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-slate-800/80 backdrop-blur-sm border border-slate-600 rounded-b flex items-center justify-between">
@@ -372,12 +374,14 @@ const WardrobeModal: React.FC<Props> = ({
                                             onChange={e => setNewVarName(e.target.value)}
                                             className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all"
                                         />
-                                                                                <div className="relative">
+                                                                                <div className={`relative ${isGeneratingPrompt ? 'ai-generating-border' : ''}`}>
                                         <textarea
                                             placeholder="服饰 / 状态的视觉描述……"
                                             value={newVarPrompt}
                                             onChange={e => setNewVarPrompt(e.target.value)}
-                                            className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:border-slate-500 focus:outline-none transition-all resize-none h-56"
+                                            className={`w-full bg-slate-800 border rounded px-3 py-2 text-xs text-slate-50 placeholder:text-slate-600 focus:outline-none transition-all resize-none h-56 ${
+                                              isGeneratingPrompt ? 'border-transparent' : 'border-slate-600 focus:border-slate-500'
+                                            }`}
                                         />
                                                                                     {/* 底部浮动按钮 */}
                                             <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-slate-800/80 backdrop-blur-sm border border-slate-600 rounded-b flex items-center justify-between">

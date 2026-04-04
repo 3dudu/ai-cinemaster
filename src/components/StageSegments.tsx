@@ -1482,14 +1482,24 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               {/* Description */}
               <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
-                <div className="relative h-[35vh]">
+                <div 
+                  className={`relative h-[35vh] ${
+                    selectedSegment && generatingDescription.has(selectedSegment.id) 
+                      ? 'ai-generating-border' 
+                      : ''
+                  }`}
+                >
                   <textarea
                     ref={descriptionTextareaRef}
                     value={descriptionDraft}
                     onChange={handleDescriptionInput}
                     onKeyDown={handleDescriptionKeyDown}
                     placeholder="输入片段描述... 使用 @ 提及角色或场景"
-                    className="w-full h-full p-3 pb-14 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
+                    className={`w-full h-full p-3 pb-14 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
+                      selectedSegment && generatingDescription.has(selectedSegment.id)
+                        ? 'border-transparent'
+                        : 'border-slate-600 focus:border-slate-500'
+                    }`}
                   />
                   {/* @ Mention Picker */}
                   {mentionPickerOpen && (
@@ -1661,12 +1671,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </button>
                   </div>
                 </div>
-                <textarea
-                  value={transitionFromDraft}
-                  onChange={(e) => setTransitionFromDraft(e.target.value)}
-                  placeholder="描述从上一个片段的转场效果..."
-                  className="w-full h-20 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
-                />
+                <div className={`relative ${generatingTransition ? 'ai-generating-border' : ''}`}>
+                  <textarea
+                    value={transitionFromDraft}
+                    onChange={(e) => setTransitionFromDraft(e.target.value)}
+                    placeholder="描述从上一个片段的转场效果..."
+                    className={`w-full h-20 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
+                      generatingTransition ? 'border-transparent' : 'border-slate-600 focus:border-slate-500'
+                    }`}
+                  />
+                </div>
               </div>
 
               {/* Transition To */}
@@ -1700,12 +1714,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </button>
                   </div>
                 </div>
-                <textarea
-                  value={transitionToDraft}
-                  onChange={(e) => setTransitionToDraft(e.target.value)}
-                  placeholder="描述到下一个片段的转场效果..."
-                  className="w-full h-20 p-3 text-sm bg-slate-800 border border-slate-600 rounded-lg resize-none focus:outline-none focus:border-slate-500 text-slate-50 placeholder:text-slate-600"
-                />
+                <div className={`relative ${generatingTransition ? 'ai-generating-border' : ''}`}>
+                  <textarea
+                    value={transitionToDraft}
+                    onChange={(e) => setTransitionToDraft(e.target.value)}
+                    placeholder="描述到下一个片段的转场效果..."
+                    className={`w-full h-20 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
+                      generatingTransition ? 'border-transparent' : 'border-slate-600 focus:border-slate-500'
+                    }`}
+                  />
+                </div>
               </div>
 
             </div>

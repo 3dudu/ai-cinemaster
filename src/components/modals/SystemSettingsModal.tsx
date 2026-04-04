@@ -653,14 +653,14 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false,
                 className="flex-1 py-3 bg-slate-700 text-slate-400 hover:bg-slate-800 hover:text-text-primary text-[11px] font-bold tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                导出配置
+                {isMobile?'':'导出配置'}
               </button>
               <div className="relative flex-1 group">
                 <button
                   className="w-full py-3 bg-slate-700 text-slate-400 group-hover:bg-slate-800 group-hover:text-text-primary text-[11px] font-bold tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 relative cursor-pointer"
                 >
                   <Upload className="w-4 h-4" />
-                  导入配置
+                  {isMobile?'':'导入配置'}
                 </button>
                 <input
                   type="file"
@@ -674,14 +674,14 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false,
                 className="flex-1 py-3 bg-slate-700 text-slate-400 hover:bg-slate-800 hover:text-text-primary text-[11px] font-bold tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Database className="w-4 h-4" />
-                查看日志
+                {isMobile?'':'查看日志'}
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
                 className="flex-1 py-3 bg-slate-800 text-slate-300 hover:bg-slate-700 text-[11px] font-bold tracking-wider rounded-lg transition-colors shadow-lg shadow-white/5 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                添加新配置
+                {isMobile?'':'添加新配置'}
               </button>
           </div>
         )}
