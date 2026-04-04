@@ -1253,7 +1253,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                 onClick={() => {
                   updateProject({ stage: 'segments', isSegmentMode: true });
                 }}
-                className="px-4 py-2 rounded-lg border border-indigo-600 bg-indigo-700/20 text-indigo-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-600/30 hover:border-indigo-500 cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-700/20 text-slate-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600/30 hover:border-slate-500 cursor-pointer"
                 title="切换到片段模式"
               >
                 <ListVideo className="w-3 h-3" />

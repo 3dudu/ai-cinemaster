@@ -1169,7 +1169,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               onClick={() => {
                 updateProject({ stage: 'director', isSegmentMode: false });
               }}
-              className="px-4 py-2 rounded-lg border border-indigo-600 bg-indigo-700/20 text-indigo-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-indigo-600/30 hover:border-indigo-500 cursor-pointer"
+              className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-700/20 text-slate-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600/30 hover:border-slate-500 cursor-pointer"
               title="切换到分镜模式"
             >
               <ListVideo className="w-3 h-3" />
