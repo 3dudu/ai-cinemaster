@@ -1,10 +1,10 @@
-import { useDialog } from '../dialog';
 import { Copy, Loader2, Sparkles, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { generateId } from '../../services/seriesService';
 import { Character } from '../../types';
 import CustomSelect from '../common/CustomSelect';
+import { useDialog } from '../dialog';
 
 interface Props {
   isOpen: boolean;

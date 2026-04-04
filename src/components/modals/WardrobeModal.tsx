@@ -1,4 +1,4 @@
-import { Download, Edit2, Loader2, Plus, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
+import { Copy, Download, Edit2, Loader2, Plus, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { renderTemplate } from '../../services/promptTemplates';
@@ -341,19 +341,29 @@ const WardrobeModal: React.FC<Props> = ({
                                                     {editVarPrompt.length} 字
                                                 </span>
                                                 {/* AI生成按钮 */}
-                                                <button
-                                                    onClick={handleGenerateEditPrompt}
-                                                    disabled={isGeneratingPrompt || !editVarName.trim()}
-                                                    className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[10px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
-                                                    title="AI生成视觉提示"
-                                                >
-                                                    {isGeneratingPrompt ? (
-                                                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                                                    ) : (
-                                                        <Sparkles className="w-2.5 h-2.5" />
-                                                    )}
-                                                    {isGeneratingPrompt ? '生成中...' : 'AI补齐'}
-                                                </button>
+                                                <div className="flex items-center gap-1.5">
+                                                    <button
+                                                        onClick={() => navigator.clipboard.writeText(editVarPrompt)}
+                                                        disabled={!editVarPrompt.trim()}
+                                                        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-slate-200 text-[10px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+                                                        title="复制提示词"
+                                                    >
+                                                        <Copy className="w-2.5 h-2.5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={handleGenerateEditPrompt}
+                                                        disabled={isGeneratingPrompt || !editVarName.trim()}
+                                                        className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[10px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+                                                        title="AI生成视觉提示"
+                                                    >
+                                                        {isGeneratingPrompt ? (
+                                                            <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                                        ) : (
+                                                            <Sparkles className="w-2.5 h-2.5" />
+                                                        )}
+                                                        {isGeneratingPrompt ? '生成中...' : 'AI补齐'}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                         <button
@@ -390,19 +400,29 @@ const WardrobeModal: React.FC<Props> = ({
                                                     {editVarPrompt.length} 字
                                                 </span>
                                                 {/* AI生成按钮 */}
-                                                <button
-                                                    onClick={handleGenerateEditPrompt}
-                                                    disabled={isGeneratingPrompt || !newVarPrompt.trim()}
-                                                    className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[10px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
-                                                    title="AI生成视觉提示"
-                                                >
-                                                    {isGeneratingPrompt ? (
-                                                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                                                    ) : (
-                                                        <Sparkles className="w-2.5 h-2.5" />
-                                                    )}
-                                                    {isGeneratingPrompt ? '生成中...' : 'AI补齐'}
-                                                </button>
+                                                <div className="flex items-center gap-1.5">
+                                                    <button
+                                                        onClick={() => navigator.clipboard.writeText(newVarPrompt)}
+                                                        disabled={!newVarPrompt.trim()}
+                                                        className="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-slate-200 text-[10px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+                                                        title="复制提示词"
+                                                    >
+                                                        <Copy className="w-2.5 h-2.5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={handleGenerateEditPrompt}
+                                                        disabled={isGeneratingPrompt || !newVarPrompt.trim()}
+                                                        className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[10px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+                                                        title="AI生成视觉提示"
+                                                    >
+                                                        {isGeneratingPrompt ? (
+                                                            <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                                        ) : (
+                                                            <Sparkles className="w-2.5 h-2.5" />
+                                                        )}
+                                                        {isGeneratingPrompt ? '生成中...' : 'AI补齐'}
+                                                    </button>
+                                                </div>
                                             </div>
                                             </div>
                                         <button
