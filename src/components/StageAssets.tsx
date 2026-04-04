@@ -572,8 +572,7 @@ const StageAssets: React.FC<Props> = ({
                     <>
                       <img src={char.referenceImage} alt={char.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                       {processingState?.type === 'character' && processingState?.id === char.id ? (
-                        <div className="absolute inset-0 bg-slate-700/80 flex items-center justify-center backdrop-blur-sm">
-                          <Loader2 className="w-8 h-8 text-slate-50 animate-spin" />
+                        <div className="ai-generating-overlay">
                         </div>
                       ) : (
                         <div className={`absolute inset-0 bg-slate-700/60 opacity-0 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm ${batchProgress || processingState ? 'pointer-events-none opacity-50' : 'group-hover:opacity-80'}`}>
@@ -734,8 +733,7 @@ const StageAssets: React.FC<Props> = ({
                     <>
                       <img src={scene.referenceImage} alt={scene.location} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                       {processingState?.type === 'scene' && processingState?.id === scene.id ? (
-                        <div className="absolute inset-0 bg-slate-700/80 flex items-center justify-center backdrop-blur-sm">
-                          <Loader2 className="w-8 h-8 text-slate-50 animate-spin" />
+                        <div className="ai-generating-overlay">
                         </div>
                       ) : (
                         <div className={`absolute inset-0 bg-slate-700/60 opacity-0 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm ${batchProgress || processingState ? 'pointer-events-none opacity-50' : 'group-hover:opacity-80'}`}>

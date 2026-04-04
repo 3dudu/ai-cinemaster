@@ -1,3 +1,4 @@
+import { useDialog } from '../dialog';
 import { Copy, Loader2, Sparkles, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
@@ -16,6 +17,7 @@ interface Props {
 
 const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character, genre = '剧情片', visualStyle = '真人写实' }) => {
   const isEditMode = !!character;
+  const dialog = useDialog();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -123,6 +125,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
     }
     try {
       await navigator.clipboard.writeText(formData.visualPrompt);
+      dialog.toast({ message: '提示词已复制', type: 'success' });
     } catch (e) {
       console.error('复制失败', e);
       setError('复制失败');
@@ -149,7 +152,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
         </div>
 
         {/* 主内容区域 */}
-        <div className="flex-1 overflow-y-auto p-2 md:p-6 space-y-5 bg-slate-700">
+        <div className="flex-1 overflow-y-auto p-2 md:p-6 space-y-2 bg-slate-700">
           {error && (
             <div className="p-3 bg-red-900/30 border border-red-600/50 rounded-lg text-red-400 text-sm">
               {error}
@@ -204,7 +207,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
               value={formData.personality}
               onChange={(e) => setFormData({ ...formData, personality: e.target.value })}
               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none"
-              rows={3}
+              rows={2}
               placeholder="请输入角色性格特点"
             />
           </div>
@@ -212,12 +215,14 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
           {/* 视觉提示 */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">视觉提示</label>
-            <div className="relative">
+            <div className={`relative ${isGeneratingPrompt ? 'ai-generating-border' : ''}`}>
               <textarea
                 value={formData.visualPrompt}
                 onChange={(e) => setFormData({ ...formData, visualPrompt: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 pb-12 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none"
-                rows={4}
+                className={`w-full bg-slate-800 border text-slate-50 px-4 py-2 pb-12 text-sm rounded-md focus:outline-none transition-all resize-none ${
+                  isGeneratingPrompt ? 'border-transparent' : 'border-slate-600 focus:border-slate-500'
+                }`}
+                rows={6}
                 placeholder="请输入视觉生成提示词"
               />
               {/* 底部覆盖层 */}
