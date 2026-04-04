@@ -181,52 +181,53 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
 请以Markdown格式输出剧本结构，不要使用 JSON 格式，直接输出可阅读的剧本文本。`,
       'GENERATE_SCENE_PROMPT': `为 {genre} 类视频中的场景生成高还原度的场景设计，
-    场景的描述信息如下: {desc}
-     - 图像风格必须为：{visualStyle}。
-     - 要描述场景的时间、地点、景色、光线、氛围等，不要出现角色。
-     - 聚焦视觉细节（光线、空间关系，质感、外观）。`,
-      'GENERATE_CHARACTER_PROMPT': `为 {genre} 类视频中的角色生成高还原度的角色设计。
+场景的描述信息如下: {desc}
+
+## 特别要求
+- 图像风格必须为：{visualStyle}。
+- 要描述场景的时间、地点、景色、光线、氛围等，不要出现角色。
+- 聚焦视觉细节（光线、空间关系，质感、外观）。`,
+      'GENERATE_CHARACTER_PROMPT': `为 {genre} 类视频中的角色生成高还原度的角色设计。画面风格为 {visualStyle}
 角色的描述信息如下，包含姓名,年龄,性别,角色特征: {desc}
 
-发挥你的技术特长，发挥想象，输出完整描述
+按照你的专业知识，发挥想象，直接输出完整的角色描述
 
 ## 附加要求
-  - 图像风格必须为：{visualStyle}。
-  - 要着重描写角色的年龄、性别、性格、外貌、动作、衣着、神态等。
-  - 聚焦视觉细节（光线、材质、质感、外观），突出人物性格。
-  - 不要出现场景`,
-      'GENERATE_VARIATION_PROMPT': `    为 {genre} 类视频中的角色设计造型: {variation} ，结合角色基本信息和造型描述，扩展完善新的造型描述。
-    - 角色的基本信息: {desc}
-    - 角色的造型描述: {variationDesc}
 
-    核心主题: 在原有基本形象的基础上，为角色设计造型: {variation} ，着重描述新造型的变化，特征。
-     - 图像风格必须为：{visualStyle}
-     - 人物五官特征要与基本形象一致，或具有延续性
-     - 为新造型设计新的服装，饰品，动作，表情等
-     - 重点描述新造型的变化和特征，角色的基本信息不要过多描述
-     - 要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
-     - 聚焦视觉细节（光线、材质、质感、外观）。`,
+  - 不要出现场景
+  - 不要有交互性交流式语句`,
+      'GENERATE_VARIATION_PROMPT': `为 {genre} 类视频中的角色设计造型: {variation} ，结合角色基本信息和造型描述，扩展完善新的造型描述。
+- 角色的基本信息: {desc}
+- 当前的造型描述: {variationDesc}
+
+核心主题: 在原有基本形象的基础上，为角色设计造型: {variation} ，着重描述新造型的变化，特征。
+- 图像风格必须为：{visualStyle}
+- 人物五官特征要与基本形象一致，或具有延续性
+- 为新造型设计新的服装，饰品，动作，表情等
+- 重点描述新造型的变化和特征，角色的基本信息不要过多描述
+- 要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
+- 聚焦视觉细节（光线、材质、质感、外观）。`,
       'JOIN_IMAGES': `请将这些图片拼成一张{imageCount}宫格图片，图片之间留有1个像素的间隔，最终图片大小为{imageSize}。`,
-      'IMAGE_GENERATION_WITH_REFERENCE': `生成符合下面描述的图画，画面风格必须为：{visualStyle}。
+      'IMAGE_GENERATION_WITH_REFERENCE': `生成符合下面描述的影视级图画，画面风格必须为：{visualStyle}。
 图像描述：
   {prompt}
 
 如果有参考图像：
 - 所提供的第一张图片为场景 / 环境参考图。
-- 后续所有图片均为角色参考图（例如：基础形象，或特定变体造型）。
+- 后续所有图片均为角色参考图（例如：基础形象，或特定服饰造型、形态）。
 
 要求：
-- 画面风格必须为：{visualStyle}。
+- 画面风格必须为：{visualStyle}，媲美影视作品的画面截图。
 - 严格保持与场景参考图一致的视觉风格、光影效果和环境氛围。
 - 若画面中出现角色，必须与所提供的角色参考图高度相似。`,
       'GENERATE_CHARACTER_VARIATION': `核心主题: 根据参考图生成角色：{character} 的新造型图，为：{visualStyle} 风格的角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集，专业游戏 / 影视角色设计规范
 
 【造型描述】
-        {variationPrompt}
+ {variationPrompt}
+
 【角色基础形象】
  - 有参考图，必须保持面部特征与参考图一致。
  - 没有参考图，角色按如下描述设定：{baseCharacterPrompt}
-
 
 【画面布局与构图】
 整体为角色设定表版式，分模块排版：
@@ -234,11 +235,11 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
 - 右上：完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
 - 左下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
-所有模块均为白底，黑色细框分隔，文字标注清晰（中文）
+所有模块均为白底，黑色细框分隔
 【光影与渲染】
 冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
 写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
-无环境干扰，纯展示向，根据 {visualStyle} 风格适合作为游戏 / 动画角色原画，或者作为影视角色参定妆照
+无环境干扰，纯展示向，符合 {visualStyle} 风格设定，适合作为游戏 / 动画角色原画 / 影视角色定妆照
 【负面提示词】
 模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
       'GENERATE_VIDEO_PROMPT': `为单个镜头创作详细的视频拍摄提示词。
@@ -277,16 +278,18 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
 - 右上：完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
 - 左下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
-所有模块均为白底，黑色细框分隔，文字标注清晰（中文）
+所有模块均为白底，黑色细框分隔
 【光影与渲染】
 冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
 写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
-无环境干扰，纯展示向，根据 {visualStyle} 风格适合作为游戏 / 动画角色原画，或者作为影视角色参定妆照
+无环境干扰，纯展示向，符合 {visualStyle} 风格设定，适合作为游戏 / 动画角色原画 / 影视角色定妆照
 【负面提示词】
 模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
       'GENERATE_SCENE_IMAGE': `生成符合下面要求的场景图片
 
 - 场景名称：{name}
+- 场景时间：{time}
+- 场景氛围：{atmosphere}
 - 画风风格：{visualStyle}
 - 场景详细描述：{prompt}
 ---
@@ -443,20 +446,23 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
 `,
 'GENERATE_SEGMENT_VIDEO_PROMPT':
-`生成一个由以下拍摄方案设计的视频片段:
-## 场景:
+`** 提供的参考图均由AI生成 **
+
+## 任务
+根据下面以下拍摄方案和时间轴的描述，生成一个高度还原的视频片段:
+### 片段场景:
 {scenes}
 
-## 片段拍摄方案和时间轴：
+### 片段拍摄方案和时间轴：
 {segment}
 
-## 片段过度：
+### 片段过度：
 - 入场: {transitionFrom}
 - 出场: {transitionTo}
 
-## 禁止内容（不允许出现）
-禁止出现字幕，禁止对话文字
-
+## 绝对禁止的内容
+- 字幕 
+- 对话文字
 `,
 'AI_SPLIT_SEGMENTS':`
 ## 任务
@@ -632,7 +638,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'GENERATE_CHARACTER_VARIATION': ['{character}', '{visualStyle}', '{variationPrompt}', '{baseCharacterPrompt}'],
     'GENERATE_KEYFRAME_PROMPT': ['{imageGridSpec}', '{imageCount}', '{imageRate}'],
     'GENERATE_CHARACTER_IMAGE': ['{prompt}', '{visualStyle}','{name}'],
-    'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}','{name}'],
+    'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}','{location}','{time}','{atmosphere}'],
     'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}'],
     'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
     'GENERATE_SEGMENT_PROMPT': ['{scriptText}','{storyParagraphs}','{shotDescriptions}', '{visualstyle}','{genre}','{segmentName}','{segmentIndex}'],

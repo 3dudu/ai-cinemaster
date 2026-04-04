@@ -99,12 +99,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const getCharacterWithAssets = useCallback(
     (charId: string): Character | null => {
       const char = activeCharacters.find((c) => String(c.id) === String(charId));
-      if (!char) return null;
-      if (!isSeriesMode || !char.refId) return char;
-      if (series?.library?.characters) {
-        const libraryChar = series.library.characters.find((c) => c.id === char.refId);
-        if (libraryChar) return libraryChar;
-      }
       return char;
     },
     [activeCharacters, isSeriesMode, series?.library?.characters],
@@ -114,12 +108,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const getSceneWithAssets = useCallback(
     (sceneId: string): Scene | null => {
       const scene = activeScenes.find((s) => String(s.id) === String(sceneId));
-      if (!scene) return null;
-      if (!isSeriesMode || !scene.refId) return scene;
-      if (series?.library?.scenes) {
-        const libraryScene = series.library.scenes.find((s) => s.id === scene.refId);
-        if (libraryScene) return libraryScene;
-      }
       return scene;
     },
     [activeScenes, isSeriesMode, series?.library?.scenes],
@@ -339,24 +327,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   // Get thumbnail image for segment (first shot's scene image, fallback to start keyframe)
   const getSegmentThumbnail = useCallback(
     (segment: Segment): string | undefined => {
-      const sceneid = segment.sceneIds[0];
-      if (sceneid) {
-        // In series mode, get scene from library for full assets
-        if (isSeriesMode){
-          if(series?.library?.scenes) {
-          const libraryScene = series.library.scenes.find((s) => s.id === sceneid);
-          if (libraryScene?.referenceImage) {
-            return libraryScene.referenceImage;
-          }
-        }else{
-          const scene = project.scriptData.scenes.find((s) => s.id === sceneid);
-          if (scene?.referenceImage) {
-            return scene.referenceImage;
-          }
-        }
+      const sceneids = segment.sceneIds.find(sceneid=>{
+        const scene = activeScenes.find((s) => String(s.id) === String(sceneid));
+        return scene && scene.referenceImage;
+      });
+      if(sceneids){
+        const scene = activeScenes.find((s) => String(s.id) === String(sceneids));
+        return scene.referenceImage;
       }
-    }},
-    [project, isSeriesMode, series?.library?.scenes],
+    },
+    [activeScenes],
   );
 
   // Calculate total duration - memoized to prevent re-calculation
@@ -722,9 +702,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       // Add scene images
       selectedSegment.sceneIds?.forEach((sceneId) => {
         let scene = activeScenes.find((s) => s.id === sceneId);
-        if(!scene && getSceneWithAssets){
-          scene = getSceneWithAssets(sceneId);
-        }
         if (scene && scene?.referenceImage) {
           referenceImages.push(scene.referenceImage);
           imageLabels.push(`图${imageIndex}: ${scene.location}`);
@@ -736,9 +713,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       // Add character images
       selectedSegment.characterIds?.forEach((charId) => {
         let character = activeCharacters.find((c) => c.id === charId);
-        if(!character && getCharacterWithAssets){
-          character = getCharacterWithAssets(charId);
-        }
         if(character){
           if(selectedSegment.characterVariations && selectedSegment.characterVariations[charId]){
             const variation = selectedSegment.characterVariations[charId];
@@ -857,9 +831,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
           segment.sceneIds?.forEach((sceneId) => {
             let scene = activeScenes.find((s) => s.id === sceneId);
-            if (!scene && getSceneWithAssets) {
-              scene = getSceneWithAssets(sceneId);
-            }
             if (scene?.referenceImage) {
               referenceImages.push(scene.referenceImage);
               imageLabels.push(`图${imageIndex}: ${scene.location}`);
@@ -870,9 +841,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
           segment.characterIds?.forEach((charId) => {
             let character = activeCharacters.find((c) => c.id === charId);
-            if (!character && getCharacterWithAssets) {
-              character = getCharacterWithAssets(charId);
-            }
             if (character) {
               if (segment.characterVariations?.[charId]) {
                 const variation = segment.characterVariations[charId];

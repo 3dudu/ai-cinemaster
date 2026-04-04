@@ -337,6 +337,25 @@ const StageImage: React.FC<Props> = ({ project }) => {
         }
       }
 
+      // 添加segment视频
+      if (selectedProject.segments && showVideo) {
+        for (let segmentIdx = 0; segmentIdx < selectedProject.segments.length; segmentIdx++) {
+          const segment = selectedProject.segments[segmentIdx];
+          const segmentLabel = `片段 ${segmentIdx + 1}`;
+  
+          // 添加视频
+          imageTasks.push({
+            url: segment.videoUrl,
+            id: `segment-video-${selectedProject.id}-${segment.id}`,
+            type: 'video',
+            title: segmentLabel,
+            subtitle: `片段视频 - ${segment.name||segment.description.substring(0, 30)}...`,
+            downname: `${selectedProject.scriptData?.title || ''}-片段-${segment.name||segment.id}`,
+            mediaType: 'video'
+          });
+        }
+      }
+
       // ✅ 批量并行计算 MD5（限制并发数为 10）
       const BATCH_SIZE = 10;
       const md5Results: Array<{ task: ImageTask; hash: string }> = [];
