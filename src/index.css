@@ -186,3 +186,52 @@
     background: var(--bg-progress);
   }
 }
+
+/* 流动光环效果 - AI生成时使用 */
+@keyframes border-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.ai-generating-border {
+  position: relative;
+  border-radius: 0.5rem;
+  isolation: isolate;
+}
+
+.ai-generating-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 0.625rem;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #f87171 25%,
+    #fde047 50%,
+    #60a5fa 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: border-flow 2s linear infinite;
+  z-index: -1;
+  opacity: 0.9;
+}
+
+.ai-generating-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 0.5rem;
+  background: #1e293b;
+  z-index: -1;
+}
+
+
