@@ -599,7 +599,7 @@ const StageAssets: React.FC<Props> = ({
                       </div>
                     </>
                   ) : (
-                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-700/50 text-slate-500 p-4 text-center">
+                     <div className={`w-full h-full flex flex-col items-center justify-center bg-slate-700/50 text-slate-500 p-4 text-center ${processingState?.type === 'character' && processingState?.id === char.id ?'ai-generating-overlay':''}`}>
                        <User className="w-10 h-10 mb-3 opacity-10" />
                         <button
                           onClick={() => handleGenerateAsset('character', char.id)}
@@ -760,7 +760,7 @@ const StageAssets: React.FC<Props> = ({
                       </div>
                     </>
                   ) : (
-                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-700/50 text-slate-500 p-4 text-center">
+                     <div className={`w-full h-full flex flex-col items-center justify-center bg-slate-700/50 text-slate-500 p-4 text-center ${processingState?.type === 'scene' && processingState?.id === scene.id ?'ai-generating-overlay':''}`}>
                        <MapPin className="w-10 h-10 mb-3 opacity-10" />
                        <button
                           onClick={() => { handleGenerateAsset('scene', scene.id); }}
