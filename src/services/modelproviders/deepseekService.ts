@@ -55,7 +55,7 @@ const fetchWithRetry = async (
   // 构建完整的日志上下文
   const fullLogContext: LogContext | undefined = logContext ? {
     modelType: logContext.modelType || 'llm',
-    provider: logContext.provider || 'doubao',
+    provider: logContext.provider || 'deepseek',
     apiUrl: endpoint,
     modelId: logContext.modelId || runtimeTextModel,
     seriesId: logContext.seriesId,

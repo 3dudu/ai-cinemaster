@@ -1,7 +1,7 @@
 // services/modelproviders/yunwuService.ts
 
 import { Scene, ScriptData, Shot } from "../../types";
-import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString, createAsyncTaskLog, fetchTaskStatus, LogContext, pollTask } from "../../utils/apiHelper";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // 云雾API配置
@@ -62,7 +62,8 @@ const getAuthHeaders = () => {
 const fetchWithRetry = async (
   endpoint: string,
   options: RequestInit,
-  retries: number = 1
+  retries: number = 1,
+  logContext?: Partial<LogContext>
 ): Promise<any> => {
   const requestOptions: RequestInit = {
     ...options,
@@ -71,7 +72,20 @@ const fetchWithRetry = async (
       ...options.headers,
     },
   };
-  return apiFetchWithRetry(endpoint, requestOptions, retries, true);
+  // 构建完整的日志上下文
+  const fullLogContext: LogContext | undefined = logContext ? {
+    modelType: logContext.modelType || 'llm',
+    provider: logContext.provider || 'yunwu',
+    apiUrl: endpoint,
+    modelId: logContext.modelId || runtimeTextModel,
+    seriesId: logContext.seriesId,
+    projectId: logContext.projectId,
+    shotId: logContext.shotId,
+    isAsyncTask: logContext.isAsyncTask,
+    taskId: logContext.taskId
+  } : undefined;
+  
+  return apiFetchWithRetry(endpoint, requestOptions, retries, true, fullLogContext);
 };
 
 /**
@@ -80,7 +94,9 @@ const fetchWithRetry = async (
  */
 export const parseScriptToData = async (
   rawText: string,
-  language: string = "中文"
+  language: string = "中文",
+  projectId?: string,
+  seriesId?: string
 ): Promise<ScriptData> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
   const requestBody = {
@@ -109,6 +125,11 @@ export const parseScriptToData = async (
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify(requestBody),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   // 从云雾API的响应格式中提取内容
@@ -169,6 +190,9 @@ export const generateVideo = async (
   duration: number = 5,
   full_frame: boolean = false,
   imageSize: string = '720x1280',
+  projectId?: string,
+  seriesId?: string,
+  shotId?: string,
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1/video/create`;
 
@@ -224,8 +248,90 @@ export const generateVideo = async (
   //console.log(`视频任务已创建: ${taskId}, 状态: ${response.status}`);
 
   // 轮询任务状态直到完成
-  const videoUrl = await pollVideoTask(taskId);
-  return videoUrl;
+  //const videoUrl = await pollVideoTask(taskId);
+  //return videoUrl;
+
+   // 2. 创建异步任务日志
+    const taskendpoint = `${runtimeApiUrl}/v1/video/query?id=${taskId}`;
+    const logId = await createAsyncTaskLog({
+      modelType: 'image2video',
+      provider: 'yunwu',
+      apiUrl: taskendpoint,
+      modelId: runtimeVideoModel,
+      taskId,
+      projectId,
+      seriesId,
+      shotId
+    },  requestBody , response);
+  
+      // 3. 使用 pollTask 轮询任务状态
+    const videoUrl = await pollTask(
+      // taskFetcher: 获取任务状态的函数
+      () => fetchWithRetry(taskendpoint, { method: 'GET' }),
+      // statusGetter: 从响应中提取状态
+      (data) => data.status,
+      // resultGetter: 从响应中提取视频URL
+      (data) => data.video_url || data.content?.video_url || data.detail?.video_url,
+      // errorGetter: 从响应中提取错误信息
+      (data) => data.error?.message,
+      // config: 轮询配置（可选）
+      {
+        maxAttempts: 240,    // 最多轮询 240 次
+        pollInterval: 5000,  // 每 5 秒轮询一次
+        successStatuses: ['completed', 'succeeded','video_upsampling','video_generation_completed'],
+        failedStatuses: ['failed', 'error']
+      },
+      
+      // logContext: 日志上下文（传入 logId 用于更新日志）
+      {
+        modelType: 'image2video',
+        provider: 'yunwu',
+        apiUrl: taskendpoint,
+        modelId: runtimeVideoModel,
+        logId  // 传入 logId 以便更新日志状态
+      }
+    );
+    return videoUrl;
+};
+
+export const fetchVideoTaskStatus = async (
+  taskId: string,
+  logId?: string
+): Promise<{
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  videoUrl?: string;
+  error?: string;
+}> => {
+  const endpoint = `${runtimeApiUrl}/v1/video/query?id=${taskId}`;
+
+  const logContext: LogContext & { logId?: string } = {
+    modelType: 'image2video',
+    modelId: runtimeVideoModel,
+    provider: 'yunwu',
+    apiUrl: endpoint,
+    taskId,
+    isAsyncTask: false,  // 这是查询请求，不是新的异步任务
+    logId
+  };
+
+  const result = await fetchTaskStatus(
+    // taskFetcher: 获取任务状态的函数
+    () => fetchWithRetry(endpoint, { method: 'GET' }),
+    // statusGetter: 从响应中提取状态
+    (data) => data.status,
+    // resultGetter: 从响应中提取视频URL
+    (data) => data.content?.video_url,
+    // errorGetter: 从响应中提取错误信息
+    (data) => data.error?.message,
+    // logContext
+    logContext
+  );
+
+  return {
+    status: result.status,
+    videoUrl: result.result,
+    error: result.error
+  };
 };
 
 /**
@@ -273,7 +379,10 @@ export const generateImage = async (
   ischaracter: string = "character",
   localStyle: string = "真人写实",
   imageSize: string = "2560x1440",
-  imageCount: number = 1
+  imageCount: number = 1,
+  projectId?: string,
+  seriesId?: string,
+  shotId?: string,
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeImageModel}:generateContent`;
 
@@ -318,6 +427,12 @@ export const generateImage = async (
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify(requestBody),
+  }, 1, {
+    modelType: 'text2image',
+    modelId: runtimeImageModel,
+    projectId,
+    seriesId,
+    shotId
   });
 
   // 提取图片 base64 数据
@@ -342,7 +457,9 @@ export const generateScript = async (
   prompt: string,
   genre: string = "剧情片",
   targetDuration: string = "60s",
-  language: string = "中文"
+  language: string = "中文",
+  projectId?: string,
+  seriesId?: string
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
 
@@ -372,6 +489,11 @@ export const generateScript = async (
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify(requestBody),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   const content = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -384,7 +506,9 @@ export const generateScript = async (
 export const generateCommonPrompts = async (
   prompt: string,
   systemPrompt: string = "视觉设计师",
-  modelconfig:any=MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT
+  modelconfig:any=MODEL_GENERATION_CONFIG.GENERATE_VISUAL_PROMPT,
+  projectId?: string,
+  seriesId?: string
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
   const requestBody = {
@@ -413,6 +537,11 @@ export const generateCommonPrompts = async (
   const response =  await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify(requestBody),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   return response.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -426,7 +555,9 @@ export const generateCommonPrompts = async (
  */
 export const generateShotListForScene = async (
   scene: any,
-  prompt: string
+  prompt: string,
+  projectId?: string,
+  seriesId?: string
 ): Promise<Shot[]> => {
   try {
     const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
@@ -456,7 +587,12 @@ export const generateShotListForScene = async (
     const response =  await fetchWithRetry(endpoint, {
       method: "POST",
       body: JSON.stringify(requestBody),
-    });
+    }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
+  });
 
     const content = response.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
     const shots = JSON.parse(cleanJsonString(content));
@@ -479,7 +615,9 @@ export const generateShotListForScene = async (
  */
 export const importScriptToData = async (
   prompt: string,
-  language: string = "中文"
+  language: string = "中文",
+  projectId?: string,
+  seriesId?: string
 ): Promise<ScriptData> => {
   const endpoint = `${runtimeApiUrl}/v1beta/models/${runtimeTextModel}:generateContent`;
   const response = await fetchWithRetry(endpoint, {
@@ -498,6 +636,11 @@ export const importScriptToData = async (
       ],
       ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
     }),
+  }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
   });
 
   const content = response.choices?.[0]?.message?.content || "{}";
@@ -542,7 +685,9 @@ export const importScriptToData = async (
 };
 
 export const importShotList = async (
-  prompt: string
+  prompt: string,
+  projectId?: string,
+  seriesId?: string
 ): Promise<Shot[]> => {
 
   try {
@@ -563,7 +708,12 @@ export const importShotList = async (
         ],
         ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
       }),
-    });
+    }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
+  });
 
     const content = response.choices?.[0]?.message?.content || "[]";
     const shots = JSON.parse(cleanJsonString(content));
@@ -577,7 +727,9 @@ export const importShotList = async (
 
 export const importShotListForScene = async (
   scene:Scene,
-  prompt: string
+  prompt: string,
+  projectId?: string,
+  seriesId?: string
 ): Promise<Shot[]> => {
 
   try {
@@ -598,7 +750,12 @@ export const importShotListForScene = async (
         ],
         ...MODEL_GENERATION_CONFIG.IMPORT_SCRIPT,
       }),
-    });
+    }, 1, {
+    modelType: 'llm',
+    modelId: runtimeTextModel,
+    projectId,
+    seriesId
+  });
 
     const content = response.choices?.[0]?.message?.content || "[]";
     const shots = JSON.parse(cleanJsonString(content));

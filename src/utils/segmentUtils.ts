@@ -93,6 +93,7 @@ export async function generateSegmentDescription(
   scriptText: string,
   storyParagraphs: any[],
   segmentIndex:number,
+  segmentDuration:number
 ): Promise<string> {
   const segmentShots = allShots.filter(s => segment.shotIds.includes(s.id));
 
@@ -111,7 +112,7 @@ export async function generateSegmentDescription(
     return stories.map(s => s.text).join('\n');
   }).join('\n');
 
-  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,storyLine,shotDescriptions, visualstyle, genre,segment.name,segmentIndex);
+  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,storyLine,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration);
 
   try {
     const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
@@ -166,7 +167,8 @@ export async function generateAllSegmentDescriptions(
   visualstyle:string,
   genre:string,
   scriptText:string,
-  storyParagraphs:any[]
+  storyParagraphs:any[],
+  segmentDuration:number
 ): Promise<Segment[]> {
   const updatedSegments = [...segments];
 
@@ -180,8 +182,8 @@ export async function generateAllSegmentDescriptions(
       genre,
       scriptText,
       storyParagraphs,
-      
-      i+1
+      i+1,
+      segmentDuration
     );
     updatedSegments[i] = {
       ...updatedSegments[i],

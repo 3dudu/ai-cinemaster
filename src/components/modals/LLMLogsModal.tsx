@@ -239,9 +239,9 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
     setRefreshingTaskId(log.id);
     try {
       // 目前只支持 doubao provider
-      if (log.provider === 'doubao') {
-        const provider = await ModelService.getEnabledVideoProvider();
-
+      if (log.provider === 'doubao' || log.provider === 'yunwu') {
+        
+        const provider = await ModelService.getImage2VideoConfigByProvider(log.provider);
         const result = (await ModelService.getProviderModule('doubao')).fetchVideoTaskStatus(log.taskId, log.id);
 
         if (result.status === 'complesucceededted' && result.content?.videoUrl) {

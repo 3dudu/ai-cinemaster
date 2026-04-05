@@ -117,6 +117,7 @@ export interface ProjectState {
   genre: string;
   imageSize: string;
   imageCount: number; // 组图数量：文生图一次生成的画面数 (0-9)
+  segmentDuration: number; // 片段时长（秒）
 
   scriptData: ScriptData | null;
   shots: Shot[];

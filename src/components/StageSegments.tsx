@@ -140,7 +140,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.genre,
           project.rawScript,
           project.scriptData.storyParagraphs,
-          segmentIndex+1
+          segmentIndex+1,
+          project.segmentDuration
         );
 
         updateProject({
@@ -193,7 +194,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.genre,
             project.rawScript,
             project.scriptData?.storyParagraphs || [],
-            i+1
+            i+1,
+            project.segmentDuration
           );
           
           
@@ -678,7 +680,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.genre,
             project.rawScript,
             project.scriptData?.storyParagraphs || [],
-            segmentIndex+1
+            segmentIndex+1,
+            project.segmentDuration
           );
           // 更新 segment 的 description
           const updatedSegments = (project.segments || []).map((seg) =>
@@ -810,7 +813,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               project.genre,
               project.rawScript,
               project.scriptData?.storyParagraphs || [],
-              i+1
+              i+1,
+              project.segmentDuration
             );
             // 更新 description
             const segIndex = currentSegments.findIndex(s => s.id === segment.id);

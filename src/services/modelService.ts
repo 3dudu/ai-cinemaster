@@ -387,6 +387,32 @@ export class ModelService {
   }
 
   /**
+   * 根据 provider 名获取 image2video 类型模型配置
+   * @param provider - 提供商名称，支持 'doubao' 或 'yunwu'
+   * @returns 匹配的模型配置，未找到返回 null
+   */
+  public static async getImage2VideoConfigByProvider(provider: 'doubao' | 'yunwu'): Promise<AIModelConfig | null> {
+    const allConfigs = await getAllModelConfigs();
+    
+    // 查找指定 provider 且 modelType 为 image2video 的配置
+    const config = allConfigs.find(c => 
+      c.provider === provider && 
+      c.modelType === 'image2video' && 
+      c.apiKey
+    );
+    
+    if (!config) {
+      console.warn(`未找到 ${provider} 的 image2video 配置`);
+      return null;
+    }
+    
+    // 更新服务配置
+    await this.updateServiceConfig(config);
+    
+    return config;
+  }
+
+  /**
    * 获取当前启用的文生图提供商
    * @param projectModelProviders - 项目级别的模型供应商配置
    */
@@ -530,7 +556,8 @@ export class ModelService {
     scriptData: ScriptData,
     scene: any,
     sceneIndex: number,
-    imageCount:number
+    imageCount:number,
+    segmentDuration:number
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
@@ -558,7 +585,8 @@ export class ModelService {
       scriptData.targetDuration || "30s",
       characters,
       lang,
-      imageCount
+      imageCount,
+      segmentDuration
     );
     let shots: Shot[] = [];
     switch (provider.provider) {
@@ -1100,8 +1128,12 @@ export class ModelService {
     switch (provider.provider) {
       case 'doubao':
         const generate_audio = provider.description.indexOf("sound")>-1;
+        let finalDuration = duration;
+        if(provider.description.indexOf("short")>-1){
+          finalDuration = finalDuration>12?12:finalDuration;
+        }
         videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, 
-          processedEndImageBase64, duration,full_frame,generate_audio,imageSize, finalSeed,processedReferenceImages,projectid,'',shotid);
+          processedEndImageBase64, finalDuration,full_frame,generate_audio,imageSize, finalSeed,processedReferenceImages,projectid,'',shotid);
         break;
       case 'gemini':
         videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);
@@ -1194,7 +1226,8 @@ export class ModelService {
     scene:Scene,
     scriptData: ScriptData,
     imageCount:number,
-    scriptText:string
+    scriptText:string,
+    segmentDuration:number,
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
@@ -1205,7 +1238,8 @@ export class ModelService {
       scenes,
       characters,
       imageCount,
-      scriptText
+      scriptText,
+      segmentDuration
     );
     let shots: Shot[] = [];
     switch (provider.provider) {
@@ -1234,7 +1268,8 @@ export class ModelService {
   static async importShotList(
     scriptData: ScriptData,
     imageCount:number,
-    scriptText:string
+    scriptText:string,
+    segmentDuration:number
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
@@ -1245,7 +1280,8 @@ export class ModelService {
       scenes,
       characters,
       imageCount,
-      scriptText
+      scriptText,
+      segmentDuration
     );
     let shots: Shot[] = [];
     switch (provider.provider) {

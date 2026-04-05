@@ -81,10 +81,11 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         lang: args[2] || '中文',
         imageCount: args[3] || 1,
         scriptText: args[4] || '',
-        duration: args[5] || '30s'
+        duration: args[5] || '30s',
+        segmentDuration: args[6] || 15
       };
     case 'GENERATE_SHOTS':
-      const [, location, time, atmosphere, paragraphs, genre, duration, characters, lang,imageCount] = args;
+      const [, location, time, atmosphere, paragraphs, genre, duration, characters, lang,imageCount,segmentDuration] = args;
       return {
         sceneIndex: args[0] || 0,
         location: location || '',
@@ -95,7 +96,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         duration: duration || '30s',
         characters: characters || '',
         lang: lang || '中文',
-        imageCount: imageCount || 1
+        imageCount: imageCount || 1,
+        segmentDuration:segmentDuration || 15
       };
     case 'GENERATE_SCRIPT':
       return {
@@ -190,7 +192,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         shotDescriptions: args[2] || '',
         visualstyle: args[3] || '真人写实',
         genre: args[4] || '剧情片',
-        segmentName: args[5] || ''
+        segmentName: args[5] || '',
+        segmentDuration: args[6] || 15
       };
     case 'GENERATE_SEGMENT_VIDEO_PROMPT':
       return {
@@ -771,7 +774,8 @@ ${text}
     duration: string,
     characters: string,
     lang: string,
-    imageCount: number
+    imageCount: number,
+    segmentDuration:number
   ) => `
     现在，为第${sceneindex}场戏制作一份详尽的镜头清单（镜头调度设计）。
 
@@ -796,7 +800,7 @@ ${text}
 
     ## 说明：
     1. 设计一组覆盖全部情节动作的镜头序列。
-    2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-15 秒，避免出现 JSON 截断错误。
+    2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-${segmentDuration} 秒，避免出现 JSON 截断错误。
     3. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
     4. 景别：明确取景范围（如：大特写、中景、全景）。
     5. 镜头情节概述：详细描述该镜头内发生的情节（使用 ${lang} 语言描述），遵循下面表述方式：主体+运动+环境（非必须）+运镜/切镜（非必须）+美学描述（非必须）+声音（非必须）。
@@ -815,7 +819,7 @@ ${text}
     - shotSize（字符串类型）
     - characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
     - keyframes（对象数组类型，每个对象定义不同的帧，对象包含如下属性： id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 ${lang} 语言描述） 字段）
-    - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+    - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过${segmentDuration}s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   `,
   // ============ 镜头清单生成 ============
   IMPORT_SHOTS: (
@@ -824,7 +828,8 @@ ${text}
     lang: string,
     imageCount: number,
     duration: string,
-    scriptText: string
+    scriptText: string,
+    segmentDuration: number
   ) => `担任专业摄影师，从分镜脚本原文中读取分镜头清单。
 
 ## 场景列表:
@@ -842,7 +847,7 @@ ${characters}
 5. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-15 秒，使整部剧的时长控制在 ${duration} 左右。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-${segmentDuration} 秒，使整部剧的时长控制在 ${duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
@@ -859,7 +864,7 @@ ${characters}
 - shotSize（字符串类型）
 - characters（字符串数组类型，角色id）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过${segmentDuration}s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
 ## 脚本原文：
     ${scriptText}`,
@@ -870,7 +875,8 @@ ${characters}
     lang: string,
     imageCount: number,
     scriptText: string,
-    duration: string
+    duration: string,
+    segmentDuration: number
   ) => `担任专业摄影师，从分镜脚本原文中读取特定场景的分镜头清单。
 
 ## 提取场景:
@@ -887,7 +893,7 @@ ${characters}
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-15 秒，使整部剧的时长控制在 ${duration} 左右。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-${segmentDuration} 秒，使整部剧的时长控制在 ${duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
@@ -904,7 +910,7 @@ ${characters}
 - shotSize（字符串类型）
 - characters（字符串数组类型，角色id）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过${segmentDuration}s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
 ## 脚本原文：
     ${scriptText}`,
@@ -1300,7 +1306,7 @@ ${scenes}
 |  | 过肩镜头 / Over-the-Shoulder Shot (OTS) | 基于对话场景的经典构图，通过前景后肩营造深度 | 固定 | 后肩距镜头1-2米<br>主体距镜头3-5米 | 商务谈判中，通过前景人物后肩暗示被动方<br>悬疑片中，侦探与嫌疑人对话的过肩镜头 |
 |  | 建立镜头 / Establishing Shot | 场景开场镜头，交代地点、时间与空间关系 | 固定 | 相机距主体10-100米 | 城市夜景的全景，确立故事发生在纽约<br>宫殿外景，确立故事发生在古代皇宫 |`,
   SYSTEM_SEGMENT_TRANSLATE: `你是一个专业的影视导演，擅长处理镜头片段间的过渡，入场出场，生成摄影能理解的分镜描述 。`,
-  GENERATE_SEGMENT_PROMPT: (scriptText,storyParagraphs,shotDescriptions: string, visualstyle: string, genres:string,segmentName: string,segmentIndex: number) => `任务设定：
+  GENERATE_SEGMENT_PROMPT: (scriptText,storyParagraphs,shotDescriptions: string, visualstyle: string, genres:string,segmentName: string,segmentIndex: number,segmentDuration: number) => `任务设定：
 根据提供的剧本原文和故事段落，设计一个不超过 15s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
 根据片段名和序号，确定片段是剧本和故事中的那场戏。
 以时间轴的方式叙事故事的发展，保留剧本里的场景，角色，台词。如果有分镜表，可参考分镜表。
@@ -1331,8 +1337,8 @@ ${segmentName}
 4  设计高超的构图，不同分镜的构图可以保持一致，也可进行变化，可选构图类型：中心构图，对称构图，三分线构图，框构框架，引导线构图，三角线构图，黄金螺旋构图，水平构图，对角构图。
 5. 自动识别：人物、场景、关键物品、情绪、动作节奏，输出为 "片段要素"。
 6. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
-7. 台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
-8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过15s。
+7. 台词与节奏：台词数量与语速需适配${segmentDuration}秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
+8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过${segmentDuration}s。
 9. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
 10. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。
 

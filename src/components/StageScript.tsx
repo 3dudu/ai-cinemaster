@@ -72,6 +72,7 @@ const StageScript: React.FC<Props> = ({
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project.modelProviders?.text2image || '');
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project.modelProviders?.image2video || '');
   const [scriptSourceMode, setScriptSourceMode] = useState<'generate' | 'import' | 'segment'>(project.scriptSourceMode || 'generate');
+  const [localSegmentDuration, setLocalSegmentDuration] = useState(project.segmentDuration || 15);
 
   // 当 project.scriptSourceMode 变化时同步更新本地状态
   useEffect(() => {
@@ -79,6 +80,13 @@ const StageScript: React.FC<Props> = ({
       setScriptSourceMode(project.scriptSourceMode);
     }
   }, [project.scriptSourceMode]);
+
+  // 当 project.segmentDuration 变化时同步更新本地状态
+  useEffect(() => {
+    if (project.segmentDuration) {
+      setLocalSegmentDuration(project.segmentDuration);
+    }
+  }, [project.segmentDuration]);
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -442,7 +450,7 @@ const StageScript: React.FC<Props> = ({
 
     setRegeneratingSceneId(sceneId);
     try {
-      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex ,project.imageCount);
+      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex ,project.imageCount,project.segmentDuration);
       if(newShots && newShots.length > 0){
         // 删除该场景的旧分镜
         const otherShots = project.shots.filter(s => s.sceneId !== sceneId);
@@ -605,7 +613,7 @@ const StageScript: React.FC<Props> = ({
           const scene = scriptData.scenes[i];
           setProcessingStep(`正在生成第 ${i + 1}/${totalScenes} 场的分镜...`);
   
-          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i,project.imageCount);
+          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i,project.imageCount,project.segmentDuration);
           allShots.push(...sceneShots);
   
           // 短暂延迟，避免请求过快
@@ -729,7 +737,7 @@ const StageScript: React.FC<Props> = ({
         // 逐场景生成分镜
         const allShots: any[] = [];
   
-        const sceneShots = await ModelService.importShotList(scriptData,project.imageCount,localScript);
+        const sceneShots = await ModelService.importShotList(scriptData,project.imageCount,localScript,project.segmentDuration);
         allShots.push(...sceneShots);
   
         // 重新索引 shots
@@ -1182,6 +1190,34 @@ const StageScript: React.FC<Props> = ({
                   : scriptSourceMode === 'segment'
                     ? '片段模式：直接分析剧本生成片段，无需分镜'
                     : '导入已有的分镜脚本，系统将解析并应用'}
+              </p>
+            </div>
+
+            {/* Segment Duration Selection */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                <Clock className="w-3 h-3" />
+                片段时长（秒）
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min="4"
+                  max="15"
+                  value={localSegmentDuration}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    setLocalSegmentDuration(value);
+                    updateProject({ segmentDuration: value });
+                  }}
+                  className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-gold-500"
+                />
+                <span className="text-sm font-mono text-slate-300 min-w-[3rem] text-right">
+                  {localSegmentDuration}s
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                设置每个片段的最大时长，范围 4-15 秒，默认 15 秒
               </p>
             </div>
 

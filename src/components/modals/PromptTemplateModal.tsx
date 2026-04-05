@@ -146,7 +146,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 
 ## 详细说明：
 1. 设计一组覆盖全部情节动作的镜头序列。
-2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-15 秒，避免出现 JSON 截断错误。
+2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-{segmentDuration} 秒，避免出现 JSON 截断错误。
 3. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 4. 景别：明确取景范围（如：大特写、中景、全景）。
 5. 镜头情节概述：详细描述该镜头内发生的情节（使用 {lang} 语言描述）。
@@ -165,7 +165,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - shotSize（字符串类型）
 - characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）`,
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过{segmentDuration}s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）`,
       'GENERATE_SCRIPT': `你是一名专业的编剧。请根据以下提示词创作一个完整的影视剧本。
 
 ## 创作要求：
@@ -329,7 +329,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-15 秒，使整部剧的时长控制在 {duration} 左右。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-{segmentDuration} 秒，使整部剧的时长控制在 {duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
@@ -346,7 +346,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - shotSize（字符串类型）
 - characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过{segmentDuration}s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
 ## 脚本原文：
     {scriptText}`,
@@ -367,7 +367,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-15 秒，使整部剧的时长控制在 {duration} 左右。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-{segmentDuration} 秒，使整部剧的时长控制在 {duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
@@ -384,12 +384,12 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 - shotSize（字符串类型）
 - characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过{segmentDuration}s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
 ## 脚本原文：
     {scriptText}`,
     'GENERATE_SEGMENT_PROMPT':`任务设定：
-根据提供的剧本原文和故事段落，设计一个不超过 15s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
+根据提供的剧本原文和故事段落，设计一个不超过 {segmentDuration}s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
 根据片段名和序号，确定片段是剧本和故事中的那场戏。
 以时间轴的方式叙事故事的发展，保留剧本里的场景，角色，台词。如果有分镜表，可参考分镜表。
 时间轴的描述必须使用自然语言，以连贯讲故事的方式描述这个时段内：场景的氛围，角色的神态、动作、对话，镜头运动等
@@ -417,8 +417,8 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
 4  设计高超的构图，不同分镜的构图可以保持一致，也可进行变化，可选构图类型：中心构图，对称构图，三分线构图，框构框架，引导线构图，三角线构图，黄金螺旋构图，水平构图，对角构图。
 5. 自动识别：人物、场景、关键物品、情绪、动作节奏，输出为 "片段要素"。
 6. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
-7. 台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
-8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过15s。
+7. 台词与节奏：台词数量与语速需适配{segmentDuration}s时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
+8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过{segmentDuration}s。
 9. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
 10. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。
 
@@ -614,9 +614,9 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
   const variables: Record<string, string[]> = {
     'PARSE_SCRIPT': ['{text}', '{lang}', '{genre}'],
     'IMPORT_SCRIPT': ['{text}', '{lang}'],
-    'GENERATE_SHOTS': ['{sceneindex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}', '{imageCount}'],
-    'IMPORT_SHOTS': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{duration}'],
-    'IMPORT_SHOTS_FOR_SCENE': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{duration}'],
+    'GENERATE_SHOTS': ['{sceneindex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}', '{imageCount}','{segmentDuration}'],
+    'IMPORT_SHOTS': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{duration}','{segmentDuration}'],
+    'IMPORT_SHOTS_FOR_SCENE': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{duration}','{segmentDuration}'],
     'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}'],
     'GENERATE_CHARACTER_PROMPT': ['{desc}', '{genre}', '{visualStyle}'],
     'GENERATE_VARIATION_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
@@ -629,7 +629,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
     'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}','{location}','{time}','{atmosphere}'],
     'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}'],
     'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
-    'GENERATE_SEGMENT_PROMPT': ['{scriptText}','{storyParagraphs}','{shotDescriptions}', '{visualstyle}','{genre}','{segmentName}','{segmentIndex}'],
+    'GENERATE_SEGMENT_PROMPT': ['{scriptText}','{storyParagraphs}','{shotDescriptions}', '{visualstyle}','{genre}','{segmentName}','{segmentIndex}','{segmentDuration}'],
     'GENERATE_SEGMENT_VIDEO_PROMPT': ['{scenes}', '{segment}','{shotnum}','{transitionFrom}','{transitionTo}'],
     'AI_SPLIT_SEGMENTS': ['{shotsJson}', '{charactersMap}','{scenesMap}','{visualStyle}','{genre}'],
     'GENERATE_SEGMENTS_FROM_SCRIPT': ['{rawScript}', '{characters}','{scenes}','{visualStyle}','{genre}','language','targetDuration'],
