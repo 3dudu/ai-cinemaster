@@ -143,7 +143,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           segmentIndex+1,
           project.segmentDuration
         );
-
+        if(!description){
+          dialog.toast({ message: '生成分片描述失败，请重试',type: 'error' });
+          return;
+        }
         updateProject({
           segments: segments.map((s) =>
             s.id === segmentId
@@ -152,7 +155,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           ),
         });
       } catch (error) {
-        console.error('生成分片描述失败:', error);
         dialog.toast({ message: '生成分片描述失败，请重试',type: 'error' });
       } finally {
         setGeneratingDescription((prev) => {
@@ -183,7 +185,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       // 逐个生成描述，每生成一个就保存一次
       for (let i = 0; i < segments.length; i++) {
         const segment = segments[i];
-
         try {
           const description = await generateSegmentDescription(
             segment,
@@ -197,8 +198,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             i+1,
             project.segmentDuration
           );
-          
-          
+          if(!description){
+            dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败`, type: 'error' });
+            continue;
+          }
           // 更新当前 segment 并保存
           /*
           segments[i].description=description;
@@ -217,12 +220,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           }
           dialog.toast({ message: `成功生成 ${successCount} / ${segments.length} 个片段描述`, type: 'success' });
         } catch (err) {
-          console.error(`生成片段 ${segment.name || segment.id} 描述失败:`, err);
+          dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败: ${err.message}`, type: 'error' });
           // 继续生成下一个
         }
       }
     } catch (error) {
-      console.error('批量生成描述失败:', error);
       dialog.toast({ message: '批量生成描述失败，请重试', type: 'error' });
     } finally {
       setBatchGenerating(false);
@@ -683,13 +685,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             segmentIndex+1,
             project.segmentDuration
           );
+          if(!currentDescription){
+            dialog.toast({ message: `生成片段描述失败`, type: 'error' });
+            return;
+          }
           // 更新 segment 的 description
           const updatedSegments = (project.segments || []).map((seg) =>
             seg.id === selectedSegment.id ? { ...seg, description: currentDescription, lastModified: Date.now() } : seg
           );
           updateProject({ segments: updatedSegments });
         } catch (err) {
-          console.error('生成描述失败:', err);
           dialog.toast({ message: '生成描述失败，无法继续生成视频', type: 'error' });
           setGeneratingVideo(null);
           return;
@@ -816,6 +821,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               i+1,
               project.segmentDuration
             );
+            if(!currentDescription){
+              continue;
+            }
             // 更新 description
             const segIndex = currentSegments.findIndex(s => s.id === segment.id);
             if (segIndex >= 0) {

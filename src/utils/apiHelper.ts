@@ -327,7 +327,7 @@ export const pollTask = async <T>(
         }
         throw error;
       }
-      console.warn(`查询任务状态失败 (尝试 ${i + 1}/${finalConfig.maxAttempts}):`, error);
+      //console.warn(`查询任务状态失败 (尝试 ${i + 1}/${finalConfig.maxAttempts}):`, error);
       await new Promise((resolve) => setTimeout(resolve, finalConfig.pollInterval));
     }
   }

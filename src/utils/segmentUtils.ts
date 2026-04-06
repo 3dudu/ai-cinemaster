@@ -121,7 +121,7 @@ export async function generateSegmentDescription(
     return response || '';
   } catch (error) {
     console.error('生成片段描述失败:', error);
-    return '';
+    throw error;
   }
 }
 

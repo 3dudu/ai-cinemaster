@@ -1,8 +1,7 @@
 // services/modelproviders/doubaoService.ts
 
 import { Scene, ScriptData, Shot } from "../../types";
-import { fetchWithRetry as apiFetchWithRetry, cleanJsonString, createAsyncTaskLog, LogContext, pollTask, fetchTaskStatus } from "../../utils/apiHelper";
-import { getLLMLog, saveLLMLog } from "../storageService";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString, createAsyncTaskLog, fetchTaskStatus, LogContext, pollTask } from "../../utils/apiHelper";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // 火山引擎配置
