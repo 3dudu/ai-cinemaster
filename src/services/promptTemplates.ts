@@ -193,7 +193,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         visualstyle: args[3] || '真人写实',
         genre: args[4] || '剧情片',
         segmentName: args[5] || '',
-        segmentDuration: args[6] || 15
+        segmentIndex: args[6] || 1,
+        segmentDuration: args[7] || 15
       };
     case 'GENERATE_SEGMENT_VIDEO_PROMPT':
       return {
@@ -1307,7 +1308,7 @@ ${scenes}
 |  | 建立镜头 / Establishing Shot | 场景开场镜头，交代地点、时间与空间关系 | 固定 | 相机距主体10-100米 | 城市夜景的全景，确立故事发生在纽约<br>宫殿外景，确立故事发生在古代皇宫 |`,
   SYSTEM_SEGMENT_TRANSLATE: `你是一个专业的影视导演，擅长处理镜头片段间的过渡，入场出场，生成摄影能理解的分镜描述 。`,
   GENERATE_SEGMENT_PROMPT: (scriptText,storyParagraphs,shotDescriptions: string, visualstyle: string, genres:string,segmentName: string,segmentIndex: number,segmentDuration: number) => `任务设定：
-根据提供的剧本原文和故事段落，设计一个不超过 15s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
+根据提供的剧本原文和故事段落，设计一个不超过 ${segmentDuration}s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
 根据片段名和序号，确定片段是剧本和故事中的那场戏。
 以时间轴的方式叙事故事的发展，保留剧本里的场景，角色，台词。如果有分镜表，可参考分镜表。
 时间轴的描述必须使用自然语言，以连贯讲故事的方式描述这个时段内：场景的氛围，角色的神态、动作、对话，镜头运动等
