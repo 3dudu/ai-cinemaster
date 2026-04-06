@@ -374,7 +374,7 @@ const updatePollLog = async (logId: string, update: PollLogUpdate): Promise<void
     errorMessage: update.errorMessage,
     pollEndTime: update.pollEndTime,
     responseTime: update.pollEndTime,
-    duration: existingLog.duration ? (update.duration + existingLog.duration) : update.duration,
+    duration: update.duration,
     resultUrl: update.resultUrl ?? existingLog.resultUrl
   };
   
