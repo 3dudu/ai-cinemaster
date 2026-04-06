@@ -247,7 +247,7 @@
   }
   50% {
     background-position: 50% 50%;
-    filter: blur(10px) brightness(1);
+    filter: blur(1px) brightness(1);
     opacity: 0.96;
   }
   100% {
@@ -261,7 +261,7 @@
   position: absolute;
   inset: 0;
   background: transparent;
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -275,21 +275,36 @@
   inset: 0;
   
   /* 颜色更密！分段更短 → 小容器也色彩丰富 */
-  background: linear-gradient(-45deg,
+  background: radial-gradient(circle,
+    #08106c,
+    #04bcdd,
     #7e0de2,
-    #2920cf,
-    #068399,
     #05e256,
-    #04adca,
-    #190ee3,
-    #7a0bdb
+    #8b35d6
   );
   
   background-size: 200% 200%; /* 小容器最佳尺寸 */
-  opacity: 0.
-  filter: blur(10px); /* 小容器不要太大 blur */
-  animation: glowWave 6s linear infinite;
+  filter: blur(5px); /* 小容器不要太大 blur */
+  animation: glowWave 3s linear infinite;
 }
 
+.ai-generating-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  
+  /* 颜色更密！分段更短 → 小容器也色彩丰富 */
+  background: linear-gradient(90deg,
+    #7e0de2,
+    #05e256,
+    #262093,
+    #04adca,
+    #7e0de2
+  );
+  
+  background-size: 150% 200%; /* 小容器最佳尺寸 */
+  filter: blur(5px); /* 小容器不要太大 blur */
+  animation: glowWave 8s linear infinite;
+}
 
 

@@ -903,8 +903,6 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
           series={managingSeries}
           onSeriesUpdate={handleSeriesUpdateFromManager}
           onSwitchEpisode={handleSwitchEpisode}
-          allProjects={projects}
-          onProjectsUpdate={setProjects}
           isMobile={isMobile}
         />
       )}
