@@ -1,4 +1,4 @@
-import { Film, Image as ImageIcon, RefreshCw, Settings, Sparkles, X } from 'lucide-react';
+import { Clock, Film, Image as ImageIcon, RefreshCw, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getEnabledConfigByType } from '../../services/modelConfigService';
 import { ModelService } from '../../services/modelService';
@@ -91,6 +91,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
   const [localLlmProvider, setLocalLlmProvider] = useState(project?.modelProviders?.llm || '');
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project?.modelProviders?.text2image || '');
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project?.modelProviders?.image2video || '');
+  const [localSegmentDuration, setLocalSegmentDuration] = useState(project?.segmentDuration || 15);
 
   // Load model configs when modal opens
   useEffect(() => {
@@ -119,6 +120,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       setLocalDuration(isCustomDuration?'custom':currentDuration);
       setCustomDurationInput(isCustomDuration ? currentDuration : '');
 
+      setLocalSegmentDuration(project.segmentDuration || 15);
     }
   }, [isOpen, project]);
 
@@ -164,6 +166,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       genre: finalGenre,
       imageSize: localImageSize,
       imageCount: localImageCount,
+      segmentDuration: localSegmentDuration,
       modelProviders: newModelProviders
     });
 
@@ -325,6 +328,30 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 className="w-full"
               />
             </div>
+          </div>
+
+          {/* Segment Duration Selection */}
+          <div className="space-y-2">
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+              <Clock className="w-3 h-3" />
+              片段时长（秒）
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="4"
+                max="15"
+                value={localSegmentDuration}
+                onChange={(e) => setLocalSegmentDuration(parseInt(e.target.value, 10))}
+                  className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-950"
+              />
+              <span className="text-sm font-mono text-slate-300 min-w-[3rem] text-right">
+                {localSegmentDuration}s
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              设置每个片段的最大时长，范围 4-15 秒，默认 15 秒
+            </p>
           </div>
           {/* Divider */}
           <div className="border-t border-slate-600 pt-4">

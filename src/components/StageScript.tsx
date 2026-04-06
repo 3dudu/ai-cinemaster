@@ -1210,7 +1210,7 @@ const StageScript: React.FC<Props> = ({
                     setLocalSegmentDuration(value);
                     updateProject({ segmentDuration: value });
                   }}
-                  className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-gold-500"
+                  className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-950"
                 />
                 <span className="text-sm font-mono text-slate-300 min-w-[3rem] text-right">
                   {localSegmentDuration}s
