@@ -1755,7 +1755,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         <p className="text-xs text-slate-400 font-mono px-3 py-2">
           {(project.segments || []).length} 个片段 · {totalShots} 个分镜 · 总时长 {totalDuration.toFixed(1)} 秒
         </p>
-        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="pb-1 mx-2 px-1 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
+        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="px-2 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
               <p className="text-xs">暂无片段，请先在导演工作台创建分镜</p>
@@ -1771,7 +1771,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               </div>
             </div>
           ) : (
-            <div className="flex h-full">
+            <div className="flex h-full p-1">
               {(project.segments || []).map((segment, index) => {
                 const thumbnail = getSegmentThumbnail(segment);
                 const isSelected = selectedSegmentId === segment.id;

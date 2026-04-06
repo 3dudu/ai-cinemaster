@@ -610,15 +610,7 @@ export const createNewProjectState = (seriesDefaults?: {
     visualStyle: seriesDefaults?.visualStyle || '真人写实',
     imageSize: seriesDefaults?.imageSize || '2560x1440', // Default image size (vertical)
     imageCount: seriesDefaults?.imageCount ?? 1, // Default image count (1 image per generation)
-    rawScript: seriesDefaults?.rawScript || `标题：示例剧本
-
-场景 1
-外景。夜晚街道 - 雨夜
-霓虹灯在水坑中反射出破碎的光芒。
-侦探（30岁，穿着风衣）站在街角，点燃了一支烟。
-
-侦探
-这雨什么时候才会停？`,
+    rawScript: seriesDefaults?.rawScript || `标题：示例剧本`,
     scriptData: null,
     shots: [],
     isParsingScript: false,
@@ -631,6 +623,7 @@ export const createNewProjectState = (seriesDefaults?: {
       text2image: undefined,
       image2video: undefined,
     },
+    segmentDuration: 15,
   };
 };
 

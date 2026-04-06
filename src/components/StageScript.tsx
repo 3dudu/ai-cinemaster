@@ -1158,7 +1158,7 @@ const StageScript: React.FC<Props> = ({
                 <button
                   onClick={() => {
                     setScriptSourceMode('segment');
-                    updateProject({ scriptSourceMode: 'segment' });
+                    updateProject({ scriptSourceMode: 'segment',isSegmentMode:true });
                   }}
                   className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-2 ${
                     scriptSourceMode === 'segment'

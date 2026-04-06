@@ -1,4 +1,4 @@
-import { Character, ProjectState, Scene, ScriptData, SeriesRecord, Shot } from '../types';
+import { Character, ProjectState, Scene, ScriptData, Segment, SeriesRecord, Shot } from '../types';
 
 // ==================== ID Generation Utilities ====================
 
@@ -95,7 +95,8 @@ export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
     isParsingScript: false,
     rawScript: series.rawScript || `标题：示例剧本`,
     isSegmentMode: false,
-    segments: []
+    segments: [],
+    segmentDuration: 15
   };
 };
 
@@ -744,6 +745,59 @@ export const remapShotsSceneRefs = (
   }));
 };
 
+/**
+ * Remap character references in segments after merging to library
+ * 
+ * @param segments - Array of segments to remap
+ * @param charIdMapping - Character ID mapping
+ * @returns New array with remapped references (deep copy)
+ */
+export const remapSegmentsCharRefs = (
+  segments: Segment[],
+  charIdMapping: Map<string, string>
+): Segment[] => {
+  // ✅ Parameter validation
+  if (!segments || !charIdMapping) {
+    console.error('Invalid parameters for remapSegmentsCharRefs');
+    return segments;
+  }
+  
+  return segments.map(segment => ({
+    ...segment,
+    characterIds: segment.characterIds.map(id => charIdMapping.get(id) || id),
+    characterVariations: segment.characterVariations
+      ? Object.fromEntries(
+          Object.entries(segment.characterVariations).map(([k, v]) => [
+            charIdMapping.get(k) || k, v
+          ])
+        )
+      : undefined
+  }));
+};
+
+/**
+ * Remap scene references in segments after merging to library
+ * 
+ * @param segments - Array of segments to remap
+ * @param sceneIdMapping - Scene ID mapping
+ * @returns New array with remapped references (deep copy)
+ */
+export const remapSegmentsSceneRefs = (
+  segments: Segment[],
+  sceneIdMapping: Map<string, string>
+): Segment[] => {
+  // ✅ Parameter validation
+  if (!segments || !sceneIdMapping) {
+    console.error('Invalid parameters for remapSegmentsSceneRefs');
+    return segments;
+  }
+  
+  return segments.map(segment => ({
+    ...segment,
+    sceneIds: segment.sceneIds.map(id => sceneIdMapping.get(id) || id)
+  }));
+};
+
 // ==================== Import Functions ====================
 
 /**
@@ -796,6 +850,12 @@ export const importProjectAsEpisode = (
         if (updatedProject.shots && updatedProject.shots.length > 0) {
           updatedProject.shots = remapShotsCharRefs(updatedProject.shots, mergeResult.charIdMapping);
           updatedProject.shots = remapShotsSceneRefs(updatedProject.shots, mergeResult.sceneIdMapping);
+        }
+
+        // Remap segments character and scene references
+        if (updatedProject.segments && updatedProject.segments.length > 0) {
+          updatedProject.segments = remapSegmentsCharRefs(updatedProject.segments, mergeResult.charIdMapping);
+          updatedProject.segments = remapSegmentsSceneRefs(updatedProject.segments, mergeResult.sceneIdMapping);
         }
 
         // Create lightweight references for episode storage
