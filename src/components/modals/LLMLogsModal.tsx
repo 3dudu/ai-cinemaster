@@ -18,7 +18,7 @@ interface Props {
 
 const MODEL_TYPE_OPTIONS = [
   { value: '', label: '全部类型' },
-  { value: 'llm', label: '大语言模型' },
+  { value: 'llm', label: '大语言' },
   { value: 'text2image', label: '文生图' },
   { value: 'image2video', label: '图生视频' },
   { value: 'tts', label: '语音合成' },
@@ -93,6 +93,13 @@ const JsonDisplay: React.FC<{ data: any; maxHeight?: string }> = ({ data, maxHei
       >
         {jsonStr}
       </pre>
+      
+      <button
+        onClick={() => navigator.clipboard.writeText(jsonStr)}
+        className="absolute bottom-2 right-12 text-xs text-indigo-400 hover:text-indigo-300"
+      >
+        复制
+      </button>
       <button
         onClick={() => setExpanded(!expanded)}
         className="absolute bottom-2 right-2 text-xs text-indigo-400 hover:text-indigo-300"
@@ -413,10 +420,10 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
         </div>
 
         {/* Filters */}
-        <div className="p-4 border-b border-slate-700 bg-slate-800/50 shrink-0">
+        <div className="p-2 md:p-4 border-b border-slate-700 bg-slate-800/50 shrink-0">
           <div className="flex flex-wrap gap-3 items-center">
             {/* 时间范围 */}
-            <div className="w-32">
+            <div className="w-28">
               <CustomSelect
                 options={TIME_RANGE_OPTIONS}
                 value={timeRange}
@@ -426,7 +433,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
             </div>
             
             {/* 模型类型 */}
-            <div className="w-32">
+            <div className="w-28">
               <CustomSelect
                 options={MODEL_TYPE_OPTIONS}
                 value={modelType}
@@ -516,7 +523,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
                 return (
                   <div 
                     key={log.id} 
-                    className="p-4 hover:bg-slate-700/50 transition-colors"
+                    className="p-2 md:p-4 hover:bg-slate-700/50 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">
                       {/* 左侧信息 */}
