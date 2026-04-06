@@ -241,11 +241,11 @@ export const MODEL_GENERATION_CONFIG = {
   },
   GENERATE_VISUAL_PROMPT: {
     temperature: 0.8,
-    max_tokens: 4096
+    max_tokens: 8192
   },
   GENERATE_VIDEO_PROMPT: {
     temperature: 0.7,
-    max_tokens: 4096
+    max_tokens: 8192
   },
   IMPORT_SCRIPT: {
     temperature: 0.4,

@@ -1614,8 +1614,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   )}
                   {/* 底部悬浮按钮层 */}
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border border-slate-600 border-t-slate-600/50 rounded-b-lg flex items-center justify-between">
-                    {/* 左边占位 */}
-                    <div />
+                    {/* 左边字数统计 */}
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {descriptionDraft.length} 字
+                    </span>
                     {/* 右边按钮组 */}
                     <div className="flex items-center gap-2">
                       {/* 复制按钮 */}
