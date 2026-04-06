@@ -1252,7 +1252,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 </span>
               </div>
               <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600">
-                <div className={`w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg border border-slate-600 relative shadow-lg
+                <div className={`w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg border-2 border-slate-600 relative shadow-lg
                    ${(generatingVideo === selectedSegment.id || batchGeneratingVideos)&&'ai-generating-border'}`}>
                 {selectedSegment.videoUrl ? (
                   <video

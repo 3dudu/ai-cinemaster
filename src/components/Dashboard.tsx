@@ -546,12 +546,12 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             {(!isMobile || (standaloneProjects.length + seriesList.length) === 0) && (
               <div
                 onClick={handleCreate}
-                className="group cursor-pointer border border-slate-600/50 hover:border-slate-400 bg-slate-800 flex flex-col items-center justify-center min-h-[280px] transition-all"
+                className="group cursor-pointer border border-slate-600/50 hover:border-yellow-600 bg-slate-800 flex flex-col items-center justify-center min-h-[280px] transition-all"
               >
-                <div className="w-12 h-12 border border-slate-600/50 flex items-center justify-center mb-6 group-hover:bg-slate-900/20 transition-colors">
-                  <Plus className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+                <div className="w-16 h-16 flex items-center justify-center mb-2 group-hover:bg-slate-900/20 transition-colors">
+                  <Film className="w-16 h-16 text-slate-400 group-hover:text-yellow-600 group-hover:scale-110 transition-all group-hover:rotate-6 duration-500 cine-glow" />
                 </div>
-                <span className="text-slate-400 font-mono text-[12px] tracking-widest group-hover:text-slate-300">新建</span>
+                <span className="text-slate-400 font-mono text-[12px] tracking-widest group-hover:text-yellow-600">新建</span>
               </div>
             )}
 

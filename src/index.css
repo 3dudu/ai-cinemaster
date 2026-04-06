@@ -210,19 +210,25 @@
   content: '';
   position: absolute;
   inset: -2px;
-  border-radius: 0.625rem;
+  border-radius: 0.5rem;
   background: linear-gradient(
     90deg,
-    transparent 0%,
-    #f87171 25%,
-    #fde047 50%,
-    #60a5fa 75%,
-    transparent 100%
+    #0000ff 0%,
+    #ff0000 25%,
+    #00ff00 50%,
+    #0000ff 75%,
+    #ff0000 100%
   );
   background-size: 200% 100%;
-  animation: border-flow 2s linear infinite;
+  animation: border-flow 6s linear infinite;
   z-index: -1;
-  opacity: 0.9;
+  opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ai-generating-border::after {
+    background: #1e293b;
+  }
 }
 
 .ai-generating-border::after {
@@ -230,7 +236,7 @@
   position: absolute;
   inset: 0;
   border-radius: 0.5rem;
-  background: #1e293b;
+  background: #dddddd;
   z-index: -1;
 }
 @keyframes glowWave {
@@ -270,13 +276,13 @@
   
   /* 颜色更密！分段更短 → 小容器也色彩丰富 */
   background: linear-gradient(-45deg,
-    #7e22ce,
-    #4f46e5,
-    #06b6d4,
-    #10b981,
-    #06b6d4,
-    #4f46e5,
-    #7e22ce
+    #7e0de2,
+    #2920cf,
+    #068399,
+    #05e256,
+    #04adca,
+    #190ee3,
+    #7a0bdb
   );
   
   background-size: 200% 200%; /* 小容器最佳尺寸 */
