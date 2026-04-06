@@ -290,7 +290,6 @@ export const pollTask = async <T>(
       );
       if (isFailed) {
         const errorMsg = errorGetter ? errorGetter(data) : "任务失败";
-        
         // 更新日志为失败状态
         if (logContext && logContext.logId) {
           const endTime = Date.now();
@@ -303,13 +302,13 @@ export const pollTask = async <T>(
             pollEndTime: endTime,
             duration: endTime - startTime
           }).catch(err => console.warn('Failed to update poll log:', err));
+          return null;
         }
         throw new Error(errorMsg || "任务失败");
+      }else{
+        // 继续等待
+        await new Promise((resolve) => setTimeout(resolve, finalConfig.pollInterval));
       }
-
-      // 继续等待
-      await new Promise((resolve) => setTimeout(resolve, finalConfig.pollInterval));
-
     } catch (error: any) {
       if (i === finalConfig.maxAttempts - 1) {
         // 更新日志为超时/失败状态
@@ -325,6 +324,7 @@ export const pollTask = async <T>(
             duration: endTime - startTime
           }).catch(err => console.warn('Failed to update poll log:', err));
         }
+        i=i+10;
         throw error;
       }
       //console.warn(`查询任务状态失败 (尝试 ${i + 1}/${finalConfig.maxAttempts}):`, error);
@@ -441,7 +441,7 @@ export const fetchTaskStatus = async <T>(
   }
 
   // 判断状态
-  const successStatuses = ["completed", "succeeded", "Success", "SUCCEEDED", "SUCCESS"];
+  const successStatuses = ["completed", "succeeded", "Success", "SUCCEEDED", "SUCCESS","video_generation_completed"];
   const failedStatuses = ["failed", "error", "Error", "FAILED"];
 
   const isSuccess = successStatuses.some(s => status.toLowerCase().includes(s.toLowerCase()));

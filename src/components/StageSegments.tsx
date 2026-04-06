@@ -185,6 +185,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       // 逐个生成描述，每生成一个就保存一次
       for (let i = 0; i < segments.length; i++) {
         const segment = segments[i];
+        setSelectedSegmentId(segment.id);
         try {
           const description = await generateSegmentDescription(
             segment,
@@ -238,9 +239,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       dialog.alert({ message: '至少需要2个片段才能生成转场描述' });
       return;
     }
-
     setGeneratingTransition(true);
-
     try {
       const updatedSegments = await generateAllTransitionDescriptions(segments);
       updateProject({ segments: updatedSegments });
@@ -486,7 +485,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.visualStyle,
           project.genre,
           project.language,
-          project.targetDuration
+          project.targetDuration,
+          project.segmentDuration
         );
 
         if (segments.length === 0) {
@@ -535,7 +535,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         const characters = isSeriesMode ? series?.library?.characters : project.scriptData.characters;
         const scenes = isSeriesMode ? series?.library?.scenes : project.scriptData.scenes;
         newSegments = await aiConvertShotsToSegments(
-          project.shots, characters, scenes, project.visualStyle, project.genre
+          project.shots, characters, scenes, project.visualStyle, project.genre,project.segmentDuration
         ) ?? [];
         if (newSegments.length === 0) {
           dialog.toast({ message: 'AI 拆分失败', type: 'error' });
@@ -802,7 +802,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     try {
       for (let i = 0; i < segments.length; i++) {
         const segment = segments[i];
-
+        setSelectedSegmentId(segment.id);
         try {
           setGeneratingVideo(segment.id);
 
@@ -1765,7 +1765,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         <p className="text-xs text-slate-400 font-mono px-3 py-2">
           {(project.segments || []).length} 个片段 · {totalShots} 个分镜 · 总时长 {totalDuration.toFixed(1)} 秒
         </p>
-        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="px-2 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
+        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="mx-2 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
               <p className="text-xs">暂无片段，请先在导演工作台创建分镜</p>
@@ -1785,7 +1785,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               {(project.segments || []).map((segment, index) => {
                 const thumbnail = getSegmentThumbnail(segment);
                 const isSelected = selectedSegmentId === segment.id;
-
                 return (
                   <React.Fragment key={segment.id}>
                   <div
@@ -1796,7 +1795,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         segmentRefs.current.delete(segment.id);
                       }
                     }}
-                    className={`p-0.5 flex-shrink-0 w-48 h-27 bg-slate-900 border rounded-lg cursor-pointer transition-all ${
+                    className={`p-0.5 flex-shrink-0 w-48 h-27 bg-slate-900 border-2 rounded-lg cursor-pointer transition-all ${
                       isSelected
                         ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-700/40'
                         : 'border-slate-600 hover:border-slate-400 hover:shadow-lg shadow-indigo-800/60'

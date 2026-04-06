@@ -1167,23 +1167,27 @@ export class ModelService {
     }
 
     // 将模型返回的视频 URL 转换成本地服务器文件
-    try {
-      const uploadResponse = await uploadFileToService({
-        fileType: projectid+'/video/'+shotid,
-        fileUrl: videoUrl
-      });
-
-      if (uploadResponse.success && uploadResponse.data?.fileUrl) {
-        //console.log(`视频已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
-        return uploadResponse.data.fileUrl;
-      } else {
-        console.error(`视频上传失败: ${uploadResponse.error}`);
-        // 上传失败时返回原始 URL
+    if(videoUrl){
+      try {
+        const uploadResponse = await uploadFileToService({
+          fileType: projectid+'/video/'+shotid,
+          fileUrl: videoUrl
+        });
+  
+        if (uploadResponse.success && uploadResponse.data?.fileUrl) {
+          //console.log(`视频已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
+          return uploadResponse.data.fileUrl;
+        } else {
+          console.error(`视频上传失败: ${uploadResponse.error}`);
+          // 上传失败时返回原始 URL
+          return videoUrl;
+        }
+      } catch (error) {
+        console.error(`处理生成视频时出错:`, error);
+        // 出错时返回原始 URL
         return videoUrl;
       }
-    } catch (error) {
-      console.error(`处理生成视频时出错:`, error);
-      // 出错时返回原始 URL
+    }else{
       return videoUrl;
     }
   }
@@ -1358,7 +1362,8 @@ export class ModelService {
     visualStyle: string = "真人写实",
     genre: string = "剧情片",
     language: string = "中文",
-    targetDuration: string = "60s"
+    targetDuration: string = "60s",
+    segmentDuration:number = 15
   ): Promise<Segment[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     
@@ -1376,7 +1381,7 @@ export class ModelService {
       targetDuration
     );
     
-    const systemPrompt = renderTemplate('SYSTEM_SEGMENT_SPLIT');
+    const systemPrompt = renderTemplate('SYSTEM_SEGMENT_SPLIT',segmentDuration);
     
     let response = '';
     switch (provider.provider) {

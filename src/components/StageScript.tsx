@@ -868,7 +868,8 @@ const StageScript: React.FC<Props> = ({
         getFinalStyle(),
         finalGenre || '剧情片',
         localLanguage,
-        finalDuration
+        finalDuration,
+        localSegmentDuration,
       );
 
       if (segments.length === 0) {

@@ -298,7 +298,8 @@ export async function aiConvertShotsToSegments(
   characters: Character[],
   scenes: Scene[],
   visualStyle: string = "真人写实",
-  genre: string = "剧情片"
+  genre: string = "剧情片",
+  segmentDuration:number=15
 ): Promise<Segment[] | null> {
   if (!shots || shots.length === 0) {
     return [];
@@ -333,7 +334,7 @@ export async function aiConvertShotsToSegments(
   );
 
   try {
-    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_SPLIT');
+    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_SPLIT',segmentDuration);
 
     // 5. 调用 LLM
     const response = await ModelService.generateSegmentPropmt(prompt,sysctemPrompt);

@@ -271,9 +271,9 @@ export const generateVideo = async (
       // statusGetter: 从响应中提取状态
       (data) => data.status,
       // resultGetter: 从响应中提取视频URL
-      (data) => data.video_url || data.content?.video_url || data.detail?.video_url,
+      (data) => data.detail?.video_url || data.content?.video_url || data.video_url,
       // errorGetter: 从响应中提取错误信息
-      (data) => data.error?.message,
+      (data) => data.error,
       // config: 轮询配置（可选）
       {
         maxAttempts: 240,    // 最多轮询 240 次
@@ -320,9 +320,9 @@ export const fetchVideoTaskStatus = async (
     // statusGetter: 从响应中提取状态
     (data) => data.status,
     // resultGetter: 从响应中提取视频URL
-    (data) => data.content?.video_url,
+    (data) => data.detail?.video_url || data.content?.video_url || data.video_url,
     // errorGetter: 从响应中提取错误信息
-    (data) => data.error?.message,
+    (data) => data.error,
     // logContext
     logContext
   );

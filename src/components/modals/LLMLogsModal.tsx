@@ -421,7 +421,18 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
 
         {/* Filters */}
         <div className="p-2 md:p-4 border-b border-slate-700 bg-slate-800/50 shrink-0">
-          <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* 搜索 */}
+            <div className="relative flex-1 min-w-[150px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="搜索供应商/模型/任务ID..."
+                className="w-full bg-slate-700 border border-slate-600 text-slate-200 pl-9 pr-3 py-2 text-sm rounded-lg focus:border-indigo-500 focus:outline-none"
+              />
+            </div>
             {/* 时间范围 */}
             <div className="w-28">
               <CustomSelect
@@ -452,18 +463,6 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
               />
             </div>
             
-            {/* 搜索 */}
-            <div className="relative flex-1 min-w-[150px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="搜索供应商/模型/任务ID..."
-                className="w-full bg-slate-700 border border-slate-600 text-slate-200 pl-9 pr-3 py-2 text-sm rounded-lg focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-            
             {/* 刷新 */}
             <button
               onClick={loadLogs}
@@ -471,15 +470,15 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
               className="p-2 bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-slate-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
               title="刷新"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             </button>
             
             {/* 清理 */}
             <button
               onClick={() => setShowClearConfirm(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 hover:text-red-300 text-sm rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-2 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 hover:text-red-300 text-sm rounded-lg transition-colors cursor-pointer"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-5 h-5" />
               清理
             </button>
           </div>
