@@ -525,6 +525,12 @@ export const generateVideo = async (
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify(requestBody),
+  }, 1, {
+    modelType: 'image2video',
+    modelId: runtimeImageModel,
+    projectId,
+    seriesId,
+    shotId
   });
 
   // 火山引擎可能返回异步任务 ID，需要轮询获取结果

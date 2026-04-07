@@ -105,6 +105,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
         variations: []
       };
 
+      console.log(project.globalSettings);
       const prompt = await ModelService.generateVisualPrompts('character', tempChar, genre, visualStyle,project.globalSettings);
       setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {

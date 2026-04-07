@@ -237,6 +237,12 @@ export const generateVideo = async (
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify(requestBody),
+  }, 1, {
+    modelType: 'image2video',
+    modelId: runtimeImageModel,
+    projectId,
+    seriesId,
+    shotId
   });
 
   // 获取任务ID
