@@ -214,7 +214,7 @@ function App() {
       case 'export':
         return <StageExport project={project} updateProject={updateProject} />;
       case 'images':
-        return <StageImage project={project} />;
+        return <StageImage project={project} updateProject={updateProject} />;
       default:
         return <div className="text-slate-50">未知阶段</div>;
     }

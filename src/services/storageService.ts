@@ -1040,3 +1040,47 @@ export const getLLMLogStats = async (filter: LLMLogFilter = {}): Promise<LLMLogS
     request.onerror = () => reject(request.error);
   });
 };
+
+/**
+ * 更新媒体历史记录中的文件 URL
+ */
+export const updateMediaHistoryFileUrl = async (
+  projectId: string,
+  oldUrl: string,
+  newUrl: string
+): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_HISTORY_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(MEDIA_HISTORY_STORE_NAME);
+    const getRequest = store.get(projectId);
+    
+    getRequest.onsuccess = () => {
+      const projectHistory = getRequest.result as MediaHistoryItem | undefined;
+      if (!projectHistory) {
+        resolve();
+        return;
+      }
+      
+      const updateCategory = (items: MediaFile[]) => {
+        for (const item of items) {
+          if (item.fileUrl === oldUrl) {
+            item.fileUrl = newUrl;
+          }
+        }
+      };
+      
+      updateCategory(projectHistory.character || []);
+      updateCategory(projectHistory.scene || []);
+      updateCategory(projectHistory.keyframe || []);
+      updateCategory(projectHistory.video || []);
+      updateCategory(projectHistory.audio || []);
+      
+      const putRequest = store.put(projectHistory);
+      putRequest.onsuccess = () => resolve();
+      putRequest.onerror = () => reject(putRequest.error);
+    };
+    
+    getRequest.onerror = () => reject(getRequest.error);
+  });
+};
