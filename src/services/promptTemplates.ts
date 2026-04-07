@@ -1311,7 +1311,7 @@ ${scenes}
 |  | 过肩镜头 / Over-the-Shoulder Shot (OTS) | 基于对话场景的经典构图，通过前景后肩营造深度 | 固定 | 后肩距镜头1-2米<br>主体距镜头3-5米 | 商务谈判中，通过前景人物后肩暗示被动方<br>悬疑片中，侦探与嫌疑人对话的过肩镜头 |
 |  | 建立镜头 / Establishing Shot | 场景开场镜头，交代地点、时间与空间关系 | 固定 | 相机距主体10-100米 | 城市夜景的全景，确立故事发生在纽约<br>宫殿外景，确立故事发生在古代皇宫 |`,
   SYSTEM_SEGMENT_TRANSLATE: `你是一个专业的影视导演，擅长处理镜头片段间的过渡，入场出场，生成摄影能理解的分镜描述 。`,
-  GENERATE_SEGMENT_PROMPT: (scriptText,storyParagraphs,shotDescriptions: string, visualstyle: string, genres:string,segmentName: string,segmentIndex: number,segmentDuration: number) => `任务设定：
+  GENERATE_SEGMENT_PROMPT: (scriptText:string,storyParagraphs:string,shotDescriptions: string, visualstyle: string, genres:string,segmentName: string,segmentIndex: number,segmentDuration: number) => `任务设定：
 根据提供的剧本原文和故事段落，设计一个不超过 ${segmentDuration}s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
 根据片段名和序号，确定片段是剧本和故事中的那场戏。
 以时间轴的方式叙事故事的发展，保留剧本里的场景，角色，台词。如果有分镜表，可参考分镜表。

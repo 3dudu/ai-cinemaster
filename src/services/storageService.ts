@@ -311,6 +311,60 @@ export interface MediaFile {
   prompt: string;
 }
 
+/**
+ * 截短数据中的大 base64 字段，减少存储空间
+ * @param data - 要处理的数据对象
+ * @param maxLength - base64 字符串最大长度，默认 1000 字符
+ * @returns 处理后的数据（新对象，不修改原对象）
+ */
+const truncateBase64InData = <T extends any>(data: T, maxLength: number = 1000): T => {
+  // 基本类型直接返回
+  if (data === null || data === undefined || typeof data !== 'object') {
+    return data;
+  }
+
+  // 处理数组
+  if (Array.isArray(data)) {
+    return data.map(item => truncateBase64InData(item, maxLength)) as any;
+  }
+
+  // 处理对象
+  const result: any = {};
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      const value = data[key];
+
+      // 检查是否为 base64 字符串（data:image 或 data:video 或 data:audio）
+      if (typeof value === 'string' && value.length > maxLength) {
+        if (value.startsWith('data:image/') || 
+            value.startsWith('data:video/') || 
+            value.startsWith('data:audio/')) {
+          // 截断 base64 数据，保留头部信息和部分内容
+          const commaIndex = value.indexOf(',');
+          if (commaIndex > 0) {
+            const header = value.substring(0, commaIndex);
+            const preview = value.substring(commaIndex + 1, Math.min(commaIndex + 1 + 100, value.length));
+            result[key] = `${header},${preview}...[TRUNCATED: ${value.length - commaIndex - 1} chars]`;
+          } else {
+            result[key] = value.substring(0, maxLength) + '...[TRUNCATED]';
+          }
+        } else {
+          // 非 base64 的大字符串也截断
+          result[key] = value.substring(0, maxLength) + '...[TRUNCATED]';
+        }
+      } else if (typeof value === 'object' && value !== null) {
+        // 递归处理嵌套对象
+        result[key] = truncateBase64InData(value, maxLength);
+      } else {
+        // 其他类型直接复制
+        result[key] = value;
+      }
+    }
+  }
+
+  return result;
+};
+
 // SHA-256 hash function compatible with all contexts
 export async function md5Hash(str: string): Promise<string> {
   // 优先使用 crypto.subtle（安全上下文）
@@ -755,11 +809,17 @@ export const importProjectFromFile = (): Promise<ProjectState> => {
 // ==================== LLM Call Log Functions ====================
 
 export const saveLLMLog = async (log: LLMCallLog): Promise<void> => {
+  // 截短 requestParams 和 response 中的 base64 数据
+  const truncatedLog: LLMCallLog = {
+    ...log,
+    requestParams: truncateBase64InData(log.requestParams, 8192),
+    response: truncateBase64InData(log.response, 8192)
+  };
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(LLM_LOG_STORE_NAME, 'readwrite');
     const store = tx.objectStore(LLM_LOG_STORE_NAME);
-    const request = store.put(log);
+    const request = store.put(truncatedLog);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });

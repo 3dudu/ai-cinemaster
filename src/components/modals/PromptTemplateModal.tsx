@@ -753,7 +753,7 @@ storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:
             <textarea
               value={currentContent}
               onChange={(e) => setCurrentContent(e.target.value)}
-              className="w-full h-full bg-slate-800 text-slate-100 p-2 md:p-6 font-mono text-sm resize-none  focus:border-slate-500 focus:outline-none transition-all"
+              className="select-text w-full h-full bg-slate-800 text-slate-100 p-2 md:p-6 font-mono text-sm resize-none focus:border-slate-500 focus:outline-none transition-all"
               placeholder="在此编辑提示词模板..."
               spellCheck={false}
             />

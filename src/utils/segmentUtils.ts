@@ -112,7 +112,7 @@ export async function generateSegmentDescription(
     return stories.map(s => s.text).join('\n');
   }).join('\n');
 
-  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,storyLine,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration);
+  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,storyLine,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15);
 
   try {
     const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
