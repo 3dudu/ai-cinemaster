@@ -476,7 +476,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
             {/* 清理 */}
             <button
               onClick={() => setShowClearConfirm(true)}
-              className="flex items-center gap-1 px-2 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 hover:text-red-300 text-sm rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-2 bg-slate-700 hover:bg-red-200 text-red-400 hover:text-red-800 text-[10px] rounded-lg transition-colors cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               清理
