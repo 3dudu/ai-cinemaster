@@ -470,15 +470,15 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
               className="p-2 bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-slate-200 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
               title="刷新"
             >
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             
             {/* 清理 */}
             <button
               onClick={() => setShowClearConfirm(true)}
-              className="flex items-center gap-1.5 px-2 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 hover:text-red-300 text-sm rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 hover:text-red-300 text-sm rounded-lg transition-colors cursor-pointer"
             >
-              <Trash2 className="w-5 h-5" />
+              <Trash2 className="w-4 h-4" />
               清理
             </button>
           </div>

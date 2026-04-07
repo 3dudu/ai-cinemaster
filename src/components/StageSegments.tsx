@@ -1,7 +1,7 @@
 import { ModelService } from '@/services/modelService';
 import { renderTemplate } from '@/services/promptTemplates';
 import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
-import { ChevronLeft, ChevronRight, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RefreshCw, Sparkles, Trash, Video, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Scene, Segment, SeriesRecord } from '../types';
@@ -915,9 +915,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               updateProject({ segments: [...currentSegments] });
               successCount++;
             }
+          }else{
+            dialog.toast({ message: `生成片段 ${i+1} 视频失败`, type: 'error' });
           }
         } catch (err) {
-          dialog.toast({ message: `生成 ${i+1} 视频失败，${err}`, type: 'error' });
+          dialog.toast({ message: `生成片段 ${i+1} 视频失败，${err}`, type: 'error' });
         } finally {
           setGeneratingVideo(null);
         }
@@ -1184,7 +1186,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-700/20 text-slate-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600/30 hover:border-slate-500 cursor-pointer"
               title="切换到分镜模式"
             >
-              <ListVideo className="w-3 h-3" />
+              <Clapperboard className="w-3 h-3" />
               <span className='hidden lg:inline'>{!isMobile && '分镜模式'}</span>
             </button>
           )}
@@ -1217,6 +1219,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             )}
             {!isMobile && '批量生成描述'}
           </button>
+          {/**
+           * 
           <button
             onClick={handleBatchGenerateTransitions}
             disabled={generatingTransition || batchGeneratingVideos || (project.segments || []).length < 2}
@@ -1229,6 +1233,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             )}
             {!isMobile && '批量生成转场'}
           </button>
+           */}
           <button
             onClick={handleBatchGenerateVideos}
             disabled={batchGeneratingVideos || (project.segments || []).length === 0}
@@ -1260,7 +1265,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 </span>
               </div>
               <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600">
-                <div className={`w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg border-2 border-slate-600 relative shadow-lg
+                <div className={`w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg border-1 border-slate-600 relative shadow-lg
                    ${(generatingVideo === selectedSegment.id || batchGeneratingVideos)&&'ai-generating-border'}`}>
                 {selectedSegment.videoUrl ? (
                   <video
@@ -1272,7 +1277,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   <div className="flex w-full h-full flex-col items-center justify-center text-slate-500 aspect-video bg-slate-800/50">
                     <ListVideo className="w-16 h-16 mb-4 opacity-50" />
                     <p className="text-sm">暂无视频预览</p>
-                    <p className="text-xs text-slate-600">请先在导演工作台生成视频</p>
+                    <p className="text-xs text-slate-600">请先生成视频</p>
                   </div>
                 )}
                 </div>
@@ -1768,7 +1773,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="mx-2 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
-              <p className="text-xs">暂无片段，请先在导演工作台创建分镜</p>
+              <p className="text-xs">暂无片段，请先创建片段</p>
               <div className="flex items-center h-26 justify-center z-10 opacity-80 hover:opacity-100 transition-opacity duration-200">
                 <button
                   onClick={() => handleAddSegmentAfter(0)}
@@ -1776,8 +1781,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   title="在此后添加片段"
                 >
                   <Plus className="rounded-full bg-indigo-600 hover:bg-indigo-500 w-6 h-6" />
-               <p className="text-xs">添加第一个片段</p>
                 </button>
+                  <p className="text-xs">添加第一个片段</p>
               </div>
             </div>
           ) : (
@@ -1795,7 +1800,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         segmentRefs.current.delete(segment.id);
                       }
                     }}
-                    className={`p-0.5 flex-shrink-0 w-48 h-27 bg-slate-900 border-2 rounded-lg cursor-pointer transition-all ${
+                    className={`p-0.5 flex-shrink-0 w-48 h-27 bg-slate-900 border-1 rounded-lg cursor-pointer transition-all ${
                       isSelected
                         ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-700/40'
                         : 'border-slate-600 hover:border-slate-400 hover:shadow-lg shadow-indigo-800/60'
@@ -1805,7 +1810,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     onMouseLeave={() => setHoveredSegmentId(null)}
                   >
                     {/* Thumbnail */}
-                    <div className={`relative w-full h-full bg-slate-800 group overflow-hidden rounded`}>
+                    <div className={`relative w-full h-full bg-slate-800 group overflow-hidden rounded-md`}>
                       {thumbnail ? (
                         <img
                           src={thumbnail}
