@@ -1800,7 +1800,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         segmentRefs.current.delete(segment.id);
                       }
                     }}
-                    className={`p-0.5 flex-shrink-0 w-48 h-27 bg-slate-900 border-1 rounded-lg cursor-pointer transition-all ${
+                    className={`p-0.5 flex-shrink-0 w-47 h-27 bg-slate-900 border-1 rounded-lg cursor-pointer transition-all ${
                       isSelected
                         ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-700/40'
                         : 'border-slate-600 hover:border-slate-400 hover:shadow-lg shadow-indigo-800/60'
