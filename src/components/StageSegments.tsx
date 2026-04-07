@@ -1031,6 +1031,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     const afterMention = descriptionDraft.substring(mentionEndPos);
     const newText = beforeAt + item.name + ' ' + afterMention;
     
+    const savedScrollTop = textarea.scrollTop;
+
     // Update local state first
     setDescriptionDraft(newText);
     setMentionPickerOpen(false);
@@ -1074,6 +1076,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     requestAnimationFrame(() => {
       textarea.focus();
       textarea.setSelectionRange(newCursorPos, newCursorPos);
+      textarea.scrollTop = savedScrollTop;
     });
   }, [descriptionDraft, mentionStartPos, mentionSearchText, selectedSegment, handleSaveSegment]);
 
@@ -1695,7 +1698,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     value={transitionFromDraft}
                     onChange={(e) => setTransitionFromDraft(e.target.value)}
                     placeholder="描述从上一个片段的转场效果..."
-                    className={`w-full h-20 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
+                    className={`w-full h-16 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
                       generatingTransition ? 'border-transparent' : 'border-slate-600 focus:border-slate-500'
                     }`}
                   />
@@ -1738,7 +1741,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     value={transitionToDraft}
                     onChange={(e) => setTransitionToDraft(e.target.value)}
                     placeholder="描述到下一个片段的转场效果..."
-                    className={`w-full h-20 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
+                    className={`w-full h-16 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
                       generatingTransition ? 'border-transparent' : 'border-slate-600 focus:border-slate-500'
                     }`}
                   />
