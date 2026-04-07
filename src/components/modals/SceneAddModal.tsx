@@ -49,10 +49,9 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
 
     if (!formData.location.trim()) {
-      setError('请输入场景地点');
+      dialog.toast({ message: '请输入场景地点', type: 'error'});
       return;
     }
 
@@ -70,7 +69,6 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
   };
 
   const handleClose = () => {
-    setError('');
     setFormData({
       location: '',
       time: '',
@@ -83,12 +81,11 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
 
   const handleGenerateVisualPrompt = async () => {
     if (!formData.location.trim()) {
-      setError('请先输入场景地点');
+      dialog.toast({ message: '请先输入场景地点', type: 'error'});
       return;
     }
 
     setIsGeneratingPrompt(true);
-    setError('');
 
     try {
       const tempScene: Scene = {
@@ -102,8 +99,7 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
       const prompt = await ModelService.generateVisualPrompts('scene', tempScene, genre, visualStyle);
       setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
-      console.error(e);
-      setError('生成视觉提示失败，请重试');
+      dialog.toast({ message: `生成视觉提示失败，请重试.${e}`, type: 'error'});
     } finally {
       setIsGeneratingPrompt(false);
     }
@@ -111,15 +107,14 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
 
   const handleCopyPrompt = async () => {
     if (!formData.visualPrompt.trim()) {
-      setError('没有可复制的提示词');
+      dialog.toast({ message: '没有可复制的提示词', type: 'error'});
       return;
     }
     try {
       await navigator.clipboard.writeText(formData.visualPrompt);
       dialog.toast({ message: '提示词已复制', type: 'success' });
     } catch (e) {
-      console.error('复制失败', e);
-      setError('复制失败');
+      dialog.toast({ message: '复制失败', type: 'error'});
     }
   };
 

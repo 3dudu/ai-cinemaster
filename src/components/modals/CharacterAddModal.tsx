@@ -53,10 +53,8 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
     if (!formData.name.trim()) {
-      setError('请输入角色名称');
+      dialog.toast({ message: '请输入角色名称', type: 'error'});
       return;
     }
 
@@ -76,7 +74,6 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
   };
 
   const handleClose = () => {
-    setError('');
     setFormData({
       name: '',
       gender: '男',
@@ -90,12 +87,11 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
   const handleGenerateVisualPrompt = async () => {
     if (!formData.name.trim()) {
-      setError('请先输入角色名称');
+      dialog.toast({ message: '请先输入角色名称', type: 'error'});
       return;
     }
 
     setIsGeneratingPrompt(true);
-    setError('');
 
     try {
       const tempChar: Character = {
@@ -111,8 +107,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
       const prompt = await ModelService.generateVisualPrompts('character', tempChar, genre, visualStyle);
       setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
-      console.error(e);
-      setError('生成视觉提示失败，请重试');
+      dialog.toast({ message: `生成视觉提示失败，请重试。${e}`, type: 'error'});
     } finally {
       setIsGeneratingPrompt(false);
     }
@@ -120,15 +115,14 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
   const handleCopyPrompt = async () => {
     if (!formData.visualPrompt.trim()) {
-      setError('没有可复制的提示词');
+      dialog.toast({ message: '没有可复制的提示词', type: 'error'});
       return;
     }
     try {
       await navigator.clipboard.writeText(formData.visualPrompt);
       dialog.toast({ message: '提示词已复制', type: 'success' });
     } catch (e) {
-      console.error('复制失败', e);
-      setError('复制失败');
+      dialog.toast({ message: '复制失败', type: 'error'});
     }
   };
 
