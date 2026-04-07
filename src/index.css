@@ -18,7 +18,7 @@
   --color-dark-bg-header: var(--color-slate-900);
   --color-dark-bg-card: var(--color-slate-900);
 
-  --color-dark-bg-selected: var(--color-slate-600);
+  --color-dark-bg-selected: var(--color-slate-800);
   --color-dark-bg-button: var(--color-slate-900);
   --color-dark-bg-progress: var(--color-slate-900);
 
@@ -32,12 +32,11 @@
   --color-light-bg-header: var(--color-slate-900);
   --color-light-bg-card: var(--color-slate-900);
   
-  --color-light-bg-selected: var(--color-slate-600);
+  --color-light-bg-selected: var(--color-slate-800);
   --color-light-bg-button: var(--color-slate-900);
   --color-light-bg-progress: var(--color-slate-900);
   
 }
-
 @layer base {
 
   /* 浅色主题下调整olive颜色 */
@@ -107,7 +106,7 @@
       --bg-input: var(--color-light-bg-input);
       --bg-footer: var(--color-light-bg-footer);
       --bg-modal: var(--color-light-bg-modal);
-      --bg-selected: var(--color-light-bg-selected);
+      --color-bg-selected: var(--color-light-bg-selected);
       --bg-sidebar: var(--color-light-bg-sidebar);
       --bg-header: var(--color-light-bg-header);
       --bg-card: var(--color-light-bg-card);
