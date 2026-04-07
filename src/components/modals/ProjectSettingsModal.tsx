@@ -1,4 +1,4 @@
-import { Clock, Film, Image as ImageIcon, RefreshCw, Settings, Sparkles, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Clock, Film, Image as ImageIcon, RefreshCw, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getEnabledConfigByType } from '../../services/modelConfigService';
 import { ModelService } from '../../services/modelService';
@@ -92,6 +92,8 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project?.modelProviders?.text2image || '');
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project?.modelProviders?.image2video || '');
   const [localSegmentDuration, setLocalSegmentDuration] = useState(project?.segmentDuration || 15);
+  const [localGlobalSettings, setLocalGlobalSettings] = useState(project?.globalSettings || '');
+  const [showModelProviders, setShowModelProviders] = useState(false);
 
   // Load model configs when modal opens
   useEffect(() => {
@@ -121,6 +123,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       setCustomDurationInput(isCustomDuration ? currentDuration : '');
 
       setLocalSegmentDuration(project.segmentDuration || 15);
+      setLocalGlobalSettings(project.globalSettings || '');
     }
   }, [isOpen, project]);
 
@@ -167,6 +170,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       imageSize: localImageSize,
       imageCount: localImageCount,
       segmentDuration: localSegmentDuration,
+      globalSettings: localGlobalSettings,
       modelProviders: newModelProviders
     });
 
@@ -220,6 +224,20 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
             </div>
           </div>
 
+          {/* Global Settings */}
+          <div className="space-y-2">
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">补充信息</label>
+            <textarea
+              value={localGlobalSettings}
+              onChange={(e) => setLocalGlobalSettings(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+              placeholder="画面风格、历史年代等，如：赛博朋克，2077年"
+              rows={2}
+            />
+            <p className="text-[10px] text-slate-500">
+              设置整个剧的画面风格、历史年代等全局统一设定
+            </p>
+          </div>
           {/* Language and Visual Style in one row */}
           <div className="grid grid-cols-2 gap-3">
             {/* Language Selection */}
@@ -235,7 +253,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
             {/* Image Size Selection */}
             <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest">图片尺寸</label>
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">画面尺寸</label>
               <CustomSelect
                 options={IMAGE_SIZE_OPTIONS}
                 value={localImageSize}
@@ -353,73 +371,84 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               设置每个片段的最大时长，范围 4-15 秒，默认 15 秒
             </p>
           </div>
+
           {/* Divider */}
           <div className="border-t border-slate-600 pt-4">
-            <p className="text-[12px] font-bold text-slate-500 tracking-widest mb-4">模型供应商</p>
+            <button
+              onClick={() => setShowModelProviders(!showModelProviders)}
+              className="flex items-center justify-between w-full cursor-pointer"
+            >
+              <p className="text-[12px] font-bold text-slate-500 tracking-widest">模型供应商</p>
+              {showModelProviders ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+            </button>
           </div>
 
-          {/* LLM Provider Selection */}
-          <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
-              <Sparkles className="w-3 h-3" />
-              大语言模型 (LLM)
-            </label>
-            <CustomSelect
-              options={modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => ({
-                value: config.id,
-                label: `${config.provider} - ${config.description || config.model}`,
-                suffix: config.enabled ? ' ✅' : ''
-              }))}
-              value={localLlmProvider}
-              onChange={setLocalLlmProvider}
-              className="w-full"
-              allowEmpty
-              emptyLabel="系统默认模型"
-              dropdownPosition="top"
-            />
-          </div>
+          {showModelProviders && (
+            <>
+              {/* LLM Provider Selection */}
+              <div className="space-y-2">
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                  <Sparkles className="w-3 h-3" />
+                  大语言模型 (LLM)
+                </label>
+                <CustomSelect
+                  options={modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => ({
+                    value: config.id,
+                    label: `${config.provider} - ${config.description || config.model}`,
+                    suffix: config.enabled ? ' ✅' : ''
+                  }))}
+                  value={localLlmProvider}
+                  onChange={setLocalLlmProvider}
+                  className="w-full"
+                  allowEmpty
+                  emptyLabel="系统默认模型"
+                  dropdownPosition="top"
+                />
+              </div>
 
-          {/* Text2Image Provider Selection */}
-          <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
-              <ImageIcon className="w-3 h-3" />
-              文生图模型
-            </label>
-            <CustomSelect
-              options={modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => ({
-                value: config.id,
-                label: `${config.provider} - ${config.description || config.model}`,
-                suffix: config.enabled ? ' ✅' : ''
-              }))}
-              value={localText2imageProvider}
-              onChange={setLocalText2imageProvider}
-              className="w-full"
-              allowEmpty
-              emptyLabel="系统默认模型"
-              dropdownPosition="top"
-            />
-          </div>
+              {/* Text2Image Provider Selection */}
+              <div className="space-y-2">
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                  <ImageIcon className="w-3 h-3" />
+                  文生图模型
+                </label>
+                <CustomSelect
+                  options={modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => ({
+                    value: config.id,
+                    label: `${config.provider} - ${config.description || config.model}`,
+                    suffix: config.enabled ? ' ✅' : ''
+                  }))}
+                  value={localText2imageProvider}
+                  onChange={setLocalText2imageProvider}
+                  className="w-full"
+                  allowEmpty
+                  emptyLabel="系统默认模型"
+                  dropdownPosition="top"
+                />
+              </div>
 
-          {/* Image2Video Provider Selection */}
-          <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
-              <Film className="w-3 h-3" />
-              图生视频模型
-            </label>
-            <CustomSelect
-              options={modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => ({
-                value: config.id,
-                label: `${config.provider} - ${config.description || config.model}`,
-                suffix: config.enabled ? ' ✅' : ''
-              }))}
-              value={localImage2videoProvider}
-              onChange={setLocalImage2videoProvider}
-              className="w-full"
-              allowEmpty
-              emptyLabel="系统默认模型"
-              dropdownPosition="top"
-            />
-          </div>
+              {/* Image2Video Provider Selection */}
+              <div className="space-y-2">
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                  <Film className="w-3 h-3" />
+                  图生视频模型
+                </label>
+                <CustomSelect
+                  options={modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => ({
+                    value: config.id,
+                    label: `${config.provider} - ${config.description || config.model}`,
+                    suffix: config.enabled ? ' ✅' : ''
+                  }))}
+                  value={localImage2videoProvider}
+                  onChange={setLocalImage2videoProvider}
+                  className="w-full"
+                  allowEmpty
+                  emptyLabel="系统默认模型"
+                  dropdownPosition="top"
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="p-6 border-t border-slate-600 flex gap-3 shrink-0 bg-slate-600/80">

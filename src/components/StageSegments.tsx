@@ -453,7 +453,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           scriptData = await ModelService.parseScriptToData(
             project.rawScript, 
             project.language || '中文', 
-            project.genre || '剧情片'
+            project.genre || '剧情片',
+            project.globalSettings || ''
           );
           
           if (!scriptData || scriptData.scenes.length === 0) {

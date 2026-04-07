@@ -2,7 +2,7 @@ import { Copy, Loader2, Sparkles, User, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { generateId } from '../../services/seriesService';
-import { Character } from '../../types';
+import { Character, ProjectState } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 import { useDialog } from '../dialog';
 
@@ -13,9 +13,10 @@ interface Props {
   character?: Character | null;
   genre?: string;
   visualStyle?: string;
+  project?:ProjectState
 }
 
-const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character, genre = '剧情片', visualStyle = '真人写实' }) => {
+const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character, genre = '剧情片', visualStyle = '真人写实',project }) => {
   const isEditMode = !!character;
   const dialog = useDialog();
   
@@ -104,7 +105,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
         variations: []
       };
 
-      const prompt = await ModelService.generateVisualPrompts('character', tempChar, genre, visualStyle);
+      const prompt = await ModelService.generateVisualPrompts('character', tempChar, genre, visualStyle,project.globalSettings);
       setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
       dialog.toast({ message: `生成视觉提示失败，请重试。${e}`, type: 'error'});

@@ -106,7 +106,7 @@ const StageAssets: React.FC<Props> = ({
         prompt = char?.visualPrompt;
         new_prompt = prompt;
         if (char) {
-          prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, genre || '剧情片', project.visualStyle);
+          prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, genre || '剧情片', project.visualStyle,project.globalSettings);
           new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', localStyle, prompt, char.name);
         }
       } else {
@@ -115,7 +115,7 @@ const StageAssets: React.FC<Props> = ({
         prompt = scene?.visualPrompt;
         new_prompt = prompt;
         if (scene) {
-          prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle);
+          prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle,project.globalSettings);
           new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt, scene.location,scene.time,scene.atmosphere);
         }
       }
@@ -912,6 +912,7 @@ const StageAssets: React.FC<Props> = ({
         character={editingCharacter}
         genre={project.genre}
         visualStyle={project.visualStyle}
+        project={project}
       />
 
       {/* Add/Edit Scene Modal */}
@@ -922,6 +923,7 @@ const StageAssets: React.FC<Props> = ({
         scene={editingScene}
         genre={project.genre}
         visualStyle={project.visualStyle}
+        project={project}
       />
 
     </div>

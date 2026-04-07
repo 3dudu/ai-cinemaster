@@ -1,4 +1,4 @@
-import { AlertCircle, Aperture, BookOpen, BrainCircuit, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
+import { AlertCircle, Aperture, BookOpen, BrainCircuit, ChevronDown, ChevronUp, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
@@ -73,6 +73,8 @@ const StageScript: React.FC<Props> = ({
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project.modelProviders?.image2video || '');
   const [scriptSourceMode, setScriptSourceMode] = useState<'generate' | 'import' | 'segment'>(project.scriptSourceMode || 'generate');
   const [localSegmentDuration, setLocalSegmentDuration] = useState(project.segmentDuration || 15);
+  const [localGlobalSettings, setLocalGlobalSettings] = useState(project.globalSettings || '');
+  const [showModelProviders, setShowModelProviders] = useState(false);
 
   // 当 project.scriptSourceMode 变化时同步更新本地状态
   useEffect(() => {
@@ -117,10 +119,12 @@ const StageScript: React.FC<Props> = ({
     setLocalImageSize(project.imageSize || '2560x1440');
     setLocalImageCount(project.imageCount || 0);
 
+    setLocalGlobalSettings(project.globalSettings || '');
+
     // 加载模型配置
     loadModelConfigs();
     // initSystemModelProviders();
-  }, [project.id, project.title, project.targetDuration, project.language, project.visualStyle, project.imageSize, project.imageCount]);
+  }, [project.id, project.title, project.targetDuration, project.language, project.visualStyle, project.imageSize, project.imageCount, project.globalSettings]);
 
   const initSystemModelProviders = async () => {
       const llm = await getEnabledConfigByType('llm');
@@ -515,7 +519,8 @@ const StageScript: React.FC<Props> = ({
         scriptPrompt,
         finalGenre || project.scriptData?.genre || '剧情片',
         getFinalDuration(),
-        localLanguage
+        localLanguage,
+        localGlobalSettings
       );
       if(generatedScript){
         setLocalScript(generatedScript);
@@ -575,7 +580,7 @@ const StageScript: React.FC<Props> = ({
         genre: finalGenre || project.scriptData?.genre || '剧情片',
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
-      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage,localGenre);
+      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage,localGenre,localGlobalSettings);
       console.log('scriptData', scriptData);
       if(scriptData.scenes.length > 0){
         updateProject({ isParsingScript: true });
@@ -823,7 +828,7 @@ const StageScript: React.FC<Props> = ({
       ModelService.setCurrentProjectProviders(project.modelProviders);
       
       // 1. 解析剧本获取角色和场景
-      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage, localGenre);
+      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage, localGenre,localGlobalSettings);
       
       if (scriptData.scenes.length === 0) {
         setProcessingStep('');
@@ -1028,6 +1033,21 @@ const StageScript: React.FC<Props> = ({
               />
             </div>
 
+            {/* Global Settings */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">补充信息</label>
+              <textarea
+                value={localGlobalSettings}
+                onChange={(e) => setLocalGlobalSettings(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+                placeholder="画面风格、历史年代等，如：赛博朋克，2077年"
+                rows={2}
+              />
+              <p className="text-[10px] text-slate-500">
+                设置整个剧的画面风格、历史年代等全局统一设定
+              </p>
+            </div>
+
             {/* Visual Style Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
@@ -1224,83 +1244,93 @@ const StageScript: React.FC<Props> = ({
 
             {/* Divider */}
             <div className="border-t border-slate-600 pt-4">
-              <p className="text-[12px] font-bold text-slate-500 tracking-widest mb-4">模型供应商</p>
+              <button
+                onClick={() => setShowModelProviders(!showModelProviders)}
+                className="flex items-center justify-between w-full cursor-pointer"
+              >
+                <p className="text-[12px] font-bold text-slate-500 tracking-widest">模型供应商</p>
+                {showModelProviders ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+              </button>
             </div>
 
-            {/* LLM Provider Selection */}
-            <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
-                <Sparkles className="w-3 h-3" />
-                大语言模型 (LLM)
-              </label>
-              <CustomSelect
-                options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => ({
-                  value: config.id,
-                  label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
-                }))]}
-                value={project.modelProviders?.llm || localLlmProvider}
-                onChange={(value) => {
-                  const currentProviders = project.modelProviders || {};
-                  updateProject({
-                    modelProviders: {
-                      ...currentProviders,
-                      llm: value || undefined
-                    }
-                  });
-                }}
-                className="w-full"
-              />
-            </div>
+            {showModelProviders && (
+              <>
+                {/* LLM Provider Selection */}
+                <div className="space-y-2">
+                  <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                    <Sparkles className="w-3 h-3" />
+                    大语言模型 (LLM)
+                  </label>
+                  <CustomSelect
+                    options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => ({
+                      value: config.id,
+                      label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                    }))]}
+                    value={project.modelProviders?.llm || localLlmProvider}
+                    onChange={(value) => {
+                      const currentProviders = project.modelProviders || {};
+                      updateProject({
+                        modelProviders: {
+                          ...currentProviders,
+                          llm: value || undefined
+                        }
+                      });
+                    }}
+                    className="w-full"
+                  />
+                </div>
 
-            {/* Text2Image Provider Selection */}
-            <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
-                <Image className="w-3 h-3" />
-                文生图模型
-              </label>
-              <CustomSelect
-                options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => ({
-                  value: config.id,
-                  label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
-                }))]}
-                value={project.modelProviders?.text2image || localText2imageProvider}
-                onChange={(value) => {
-                  const currentProviders = project.modelProviders || {};
-                  updateProject({
-                    modelProviders: {
-                      ...currentProviders,
-                      text2image: value || undefined
-                    }
-                  });
-                }}
-                className="w-full"
-              />
-            </div>
+                {/* Text2Image Provider Selection */}
+                <div className="space-y-2">
+                  <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                    <Image className="w-3 h-3" />
+                    文生图模型
+                  </label>
+                  <CustomSelect
+                    options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => ({
+                      value: config.id,
+                      label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                    }))]}
+                    value={project.modelProviders?.text2image || localText2imageProvider}
+                    onChange={(value) => {
+                      const currentProviders = project.modelProviders || {};
+                      updateProject({
+                        modelProviders: {
+                          ...currentProviders,
+                          text2image: value || undefined
+                        }
+                      });
+                    }}
+                    className="w-full"
+                  />
+                </div>
 
-            {/* Image2Video Provider Selection */}
-            <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
-                <Film className="w-3 h-3" />
-                图生视频模型
-              </label>
-              <CustomSelect
-                options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => ({
-                  value: config.id,
-                  label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
-                }))]}
-                value={project.modelProviders?.image2video || localImage2videoProvider}
-                onChange={(value) => {
-                  const currentProviders = project.modelProviders || {};
-                  updateProject({
-                    modelProviders: {
-                      ...currentProviders,
-                      image2video: value || undefined
-                    }
-                  });
-                }}
-                className="w-full"
-              />
-            </div>
+                {/* Image2Video Provider Selection */}
+                <div className="space-y-2">
+                  <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                    <Film className="w-3 h-3" />
+                    图生视频模型
+                  </label>
+                  <CustomSelect
+                    options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => ({
+                      value: config.id,
+                      label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                    }))]}
+                    value={project.modelProviders?.image2video || localImage2videoProvider}
+                    onChange={(value) => {
+                      const currentProviders = project.modelProviders || {};
+                      updateProject({
+                        modelProviders: {
+                          ...currentProviders,
+                          image2video: value || undefined
+                        }
+                      });
+                    }}
+                    className="w-full"
+                  />
+                </div>
+              </>
+            )}
 
         </div>
 

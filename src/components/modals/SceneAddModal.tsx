@@ -2,7 +2,7 @@ import { Copy, Loader2, MapPin, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { generateId } from '../../services/seriesService';
-import { Scene } from '../../types';
+import { ProjectState, Scene } from '../../types';
 import { useDialog } from '../dialog';
 
 interface Props {
@@ -12,9 +12,10 @@ interface Props {
   scene?: Scene | null;
   genre?: string;
   visualStyle?: string;
+  project?:ProjectState
 }
 
-const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre = '剧情片', visualStyle = '真人写实' }) => {
+const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre = '剧情片', visualStyle = '真人写实',project }) => {
   const isEditMode = !!scene;
   const dialog = useDialog();
   
@@ -96,7 +97,7 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
         visualPrompt: ''
       };
 
-      const prompt = await ModelService.generateVisualPrompts('scene', tempScene, genre, visualStyle);
+      const prompt = await ModelService.generateVisualPrompts('scene', tempScene, genre, visualStyle,project.globalSettings);
       setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
       dialog.toast({ message: `生成视觉提示失败，请重试.${e}`, type: 'error'});

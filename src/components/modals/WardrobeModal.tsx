@@ -150,7 +150,8 @@ const WardrobeModal: React.FC<Props> = ({
               project.scriptData?.genre || '剧情片',
               localStyle,
               editingVariationId?editVarName:newVarName,
-              editingVariationId?editVarPrompt:newVarPrompt
+              editingVariationId?editVarPrompt:newVarPrompt,
+              project.globalSettings
           );
           if (prompt) {
               editingVariationId?setEditVarPrompt(prompt):setNewVarPrompt(prompt);
@@ -173,7 +174,7 @@ const WardrobeModal: React.FC<Props> = ({
       try {
           // IMPORTANT: Use Base Look as reference to maintain facial consistency
           const refImages = character.referenceImage ? [character.referenceImage] : [];
-          const prompt = character.visualPrompt || await ModelService.generateVisualPrompts('character', character, project.scriptData?.genre || '剧情片',project.visualStyle);
+          const prompt = character.visualPrompt || await ModelService.generateVisualPrompts('character', character, project.scriptData?.genre || '剧情片',project.visualStyle,project.globalSettings);
 
           // Enhance prompt to emphasize character consistency
           const enhancedPrompt = renderTemplate('GENERATE_CHARACTER_VARIATION',

@@ -71,7 +71,7 @@ export const renderTemplate = (key: string, ...args: any[]): string => {
 const extractVariablesForTemplate = (key: string, args: any[]): Record<string, any> => {
   switch (key) {
     case 'PARSE_SCRIPT':
-      return { text: args[0] || '', lang: args[1] || '中文', genre: args[2] || '剧情片' };
+      return { text: args[0] || '', lang: args[1] || '中文', genre: args[2] || '剧情片',story:args[3] || ''};
 
     case 'IMPORT_SHOTS':
     case 'IMPORT_SHOTS_FOR_SCENE':
@@ -104,13 +104,15 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         prompt: args[0] || '',
         duration: args[1] || '30s',
         genre: args[2] || '剧情片',
-        lang: args[3] || '中文'
+        lang: args[3] || '中文',
+        story: args[4] || ''
       };
     case 'GENERATE_CHARACTER_PROMPT':
       return {
         genre: args[0] || '剧情片',
         desc: args[1] || {},
-        visualStyle: args[2] || '真人写实'
+        visualStyle: args[2] || '真人写实',
+        story: args[3] || ''
       };
     case 'GENERATE_VARIATION_PROMPT':
       return {
@@ -124,7 +126,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
       return {
         genre: args[0] || '剧情片',
         desc: args[1] || {},
-        visualStyle: args[2] || '真人写实'
+        visualStyle: args[2] || '真人写实',
+        story: args[3] || ''
       };
     case 'JOIN_IMAGES':
       return {
@@ -731,15 +734,23 @@ export const PROMPT_TEMPLATES = {
 5. 片段数量适中，不宜过多或过少`,
 
   // ============ 剧本解析 ============
-  PARSE_SCRIPT: (text: string, lang: string,genre: string) => `
-现在，分析输入的故事或剧本，构思制作一部 ${genre} 类型的视频，并输出一个 JSON 对象，字段值以 ${lang} 语言呈现。
+  PARSE_SCRIPT: (text: string, lang: string,genre: string,story:string) => `
+分析输入的故事或剧本，构思制作一部 ${genre} 类型的视频，并输出一个 JSON 对象，字段值以 ${lang} 语言呈现。
+故事设定：${story}
+## 准备工作
+### 分析剧本中的角色，确定下列信息
+- 角色的年龄、性别、职业、教育背景、地域/阶层
+- 角色当前情绪状态（愤怒/压抑/讨好/撒谎/调情）
+- 这场戏的权力关系（谁占上风？谁在试探？）
+- 角色时代/地域风格（如：唐代时期、明末、1990年代北京、1940年代上海、赛博朋克东京、中世纪欧洲）
 
-## 注意，结合你的专业知识，使用JSON格式输出镜头清单。
+### 分析剧本中的场景，确定下列信息
+- 场景时代/地域风格（如：唐代时期、明末、1990年代北京、1940年代上海、赛博朋克东京、中世纪欧洲）
 
 ## 任务：
 提取title:标题、genre:类型、logline:故事梗概（以 ${lang} 语言呈现）。
-提取characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:包含外貌特征,性格,身份,地位,职业）。
-提取scenes:场景信息（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬，远古，古代，近代，现代，未来..）、atmosphere:氛围）。
+提取characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:包含：角色时代/地域风格,外貌特征,性格,身份,地位,职业）。
+提取scenes:场景信息（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬）、atmosphere:氛围和时代/地域风格）。
 storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
 
 ## 任务约束
@@ -925,7 +936,8 @@ ${characters}
     prompt: string,
     duration: string,
     genre: string,
-    lang: string
+    lang: string,
+    story: string
   ) => `
     你是一名专业的编剧。请根据以下提示词创作一个完整的影视剧本。
 
@@ -933,9 +945,10 @@ ${characters}
     1. 剧本时长：${duration}
     2. 题材类型：${genre}
     3. 输出语言：${lang}
-    4. 剧本结构清晰，包含剧本标题、场景标题、时间（大的时间，如：上午、下午、清晨、夜晚，或者某年某月，某个年代等）、地点、天气、角色、动作描述、对白
-    5. 情节紧凑，画面感强
-    6. 角色性格鲜明，对话自然
+    4. 故事设定：${story}
+    5. 剧本结构清晰，包含剧本标题、场景标题、时间（大的时间，如：上午、下午、清晨、夜晚，或者某年某月，某个年代等）、地点、天气、角色、动作描述、对白
+    6. 情节紧凑，画面感强
+    7. 角色性格鲜明，对话自然
 
     ## 用户提示词：
     "${prompt}"
@@ -944,9 +957,10 @@ ${characters}
   `,
 
   // ============ 视觉提示词生成 ============
-  GENERATE_SCENE_PROMPT: (genre: string,desc: string,visualStyle:string) => `
+  GENERATE_SCENE_PROMPT: (genre: string,desc: string,visualStyle:string,story: string) => `
 为 ${genre} 类视频中的场景生成高还原度的场景设计，
-场景的描述信息如下: ${desc}
+故事设定: ${story}
+场景信息: ${desc}
 
 ## 特别要求
 - 图像风格必须为：${visualStyle}。
@@ -954,11 +968,12 @@ ${characters}
 - 聚焦视觉细节（光线、空间关系，质感、外观）。  `,
 
   // ============ 视觉提示词生成 ============
-  GENERATE_CHARACTER_PROMPT: (genre: string,desc: string,visualStyle:string) => `
+  GENERATE_CHARACTER_PROMPT: (genre: string,desc: string,visualStyle:string,story: string) => `
 为 ${genre} 类视频中的角色生成高还原度的角色设计。画面风格为 ${visualStyle}
-角色的描述信息如下，包含姓名,年龄,性别,角色特征: ${desc}
+故事设定: ${story}
+角色信息，包含姓名,年龄,性别,角色特征: ${desc}
 
-按照你的专业知识，发挥想象，直接输出完整的角色描述
+使用你的专业知识，发挥想象，直接输出完整的角色描述
 
 ## 附加要求
 
@@ -968,8 +983,8 @@ ${characters}
   // ============ 视觉提示词生成 ============
   GENERATE_VARIATION_PROMPT: (genre: string,desc: string,visualStyle:string,variation:string,variationDesc:string) => `
 为 ${genre} 类视频中的角色设计造型: ${variation} ，结合角色基本信息和造型描述，扩展完善新的造型描述。
-- 角色的基本信息: ${desc}
-- 当前的造型描述: ${variationDesc}
+- 角色基本信息: ${desc}
+- 当前造型描述: ${variationDesc}
 
 核心主题: 在原有基本形象的基础上，为角色设计造型: ${variation} ，着重描述新造型的变化，特征。
 - 图像风格必须为：${visualStyle}
@@ -1020,18 +1035,16 @@ ${characters}
 
 【画面布局与构图】
 整体为角色设定表版式，分模块排版：
-- 左侧: 完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
-- 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
-- 中下：角色正面半身图（面部，头部，发型，饰品细节）
-- 右上: 三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
-- 右下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
+- 左1/4上: 角色正面半身图（面部，头部，发型，饰品细节）
+- 左1/4下: 服装拆分 + 饰品拆分
+- 右3/4上: 三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
 所有模块均为白底，黑色细框分隔
 【光影与渲染】
 冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
 写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
 无环境干扰，纯展示向，符合 ${visualStyle} 风格设定，适合作为游戏 / 动画角色原画 / 影视角色定妆照
 【负面提示词】
-模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰
+文字标注、模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰
   `,
 
   // ============ 关键帧提示词生成 ============
@@ -1045,21 +1058,19 @@ ${characters}
 角色描述：
 ${prompt}
 
-核心主题: ${visualStyle} 风格角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集，专业游戏 / 影视角色设计规范
+核心主题: ${visualStyle} 风格的角色完整设定图，包含 正面半身图、三视图、服装拆分、饰品拆分，适用专业游戏 / 影视角色设计规范
 【画面布局与构图】
 整体为角色设定表版式，分模块排版：
-- 左侧: 完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
-- 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
-- 中下：角色正面半身图（面部，头部，发型，饰品细节）
-- 右上: 三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
-- 右下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
+- 左1/4上: 角色正面半身图（面部，头部，发型，饰品细节）
+- 左1/4下: 服装拆分 + 饰品拆分
+- 右3/4上: 三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
 所有模块均为白底，黑色细框分隔
 【光影与渲染】
 冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
 写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
 无环境干扰，纯展示向，符合 ${visualStyle} 风格设定，适合作为游戏 / 动画角色原画 / 影视角色定妆照
 【负面提示词】
-模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
+文字标注、模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
 
   // ============ 场景图片提示词生成 ============
   GENERATE_SCENE_IMAGE: (visualStyle: string, prompt: string,location: string,time: string,atmosphere: string) => `

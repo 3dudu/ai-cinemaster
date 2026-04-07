@@ -527,9 +527,9 @@ export class ModelService {
    * @param rawText - 剧本文本
    * @param language - 输出语言
    */
-  static async parseScriptToData(text: string, language: string = "中文",genre:string="剧情片"): Promise<ScriptData> {
+  static async parseScriptToData(text: string, language: string = "中文",genre:string="剧情片",story:string=""): Promise<ScriptData> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    const prompt = renderTemplate('PARSE_SCRIPT', text, language,genre);
+    const prompt = renderTemplate('PARSE_SCRIPT', text, language,genre,story);
     switch (provider.provider) {
       case 'deepseek':
         return await (await this.getProviderModule('deepseek')).parseScriptToData(prompt, language);
@@ -623,11 +623,12 @@ export class ModelService {
     prompt: string,
     genre: string = "剧情片",
     targetDuration: string = "60s",
-    language: string = "中文"
+    language: string = "中文",
+    story: string = ''
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成剧本`);
-    const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language);
+    const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language,story);
 
     let script = '';
     switch (provider.provider) {
@@ -664,7 +665,8 @@ export class ModelService {
     genre: string,
     visualStyle: string,
     variationName?: string,
-    variationPrompt?: string
+    variationPrompt?: string,
+    story?:string
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成视觉提示词`);
@@ -686,7 +688,7 @@ export class ModelService {
     if(type=='variation'){
       prompt = renderTemplate('GENERATE_VARIATION_PROMPT', genre,desc,visualStyle,variationName,variationPrompt);
     }else{
-      prompt = renderTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', genre,desc,visualStyle);
+      prompt = renderTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', genre,desc,visualStyle,story);
     }
     let visualPrompt = renderTemplate('SYSTEM_CHARA_DESIGNER');
     if(type=='scene'){
