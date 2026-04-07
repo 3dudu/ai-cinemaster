@@ -290,7 +290,7 @@ const WardrobeModal: React.FC<Props> = ({
                         <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
                             <div className="aspect-[16/9] bg-slate-900 rounded-lg overflow-hidden mb-4 relative cursor-pointer" onClick={() =>  setPreviewImage(character.referenceImage)}>
                                 {character.referenceImage ? (
-                                    <img src={character.referenceImage} className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
+                                    <img src={character.referenceImage} className="w-full h-full object-contain hover:scale-105 transition-transform duration-200" />
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-slate-600">无图像</div>
                                 )}

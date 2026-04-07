@@ -242,7 +242,7 @@ const EpisodePreviewModal: React.FC<EpisodePreviewModalProps> = ({
                   <img
                     src={shot.keyframes[0]?.imageUrl}
                     alt={`镜头 ${idx + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 ) : (
                   <div className="w-full h-full bg-slate-800 flex items-center justify-center">

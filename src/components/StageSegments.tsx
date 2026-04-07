@@ -1815,7 +1815,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         <img
                           src={thumbnail}
                           alt={`片段 ${index + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                          className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-200"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-600">

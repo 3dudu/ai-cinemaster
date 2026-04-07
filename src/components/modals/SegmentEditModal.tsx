@@ -1,4 +1,4 @@
-import { ChevronDown, Expand, Film, Save, X } from 'lucide-react';
+import { Expand, Film, Save, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { Character, Scene, Segment, Shot } from '../../types';
 import CustomSelect from '../common/CustomSelect';
@@ -21,7 +21,7 @@ const ShotThumbnail: React.FC<{ shot: Shot; isSelected?: boolean }> = ({ shot, i
   return (
     <div className={`w-12 h-8 rounded overflow-hidden flex-shrink-0 ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}>
       {thumbnail ? (
-        <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+        <img src={thumbnail} alt="" className="w-full h-full object-contain" />
       ) : (
         <div className="w-full h-full bg-slate-700 flex items-center justify-center">
           <Film className="w-3 h-3 text-slate-600" />
@@ -308,7 +308,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                         <img
                           src={scene.referenceImage}
                           alt={scene.location}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-slate-700/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <Expand className="w-5 h-5 text-slate-50" />
@@ -395,7 +395,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                         <img
                           src={currentLook.image}
                           alt={character.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-slate-700/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <Expand className="w-5 h-5 text-slate-50" />

@@ -570,7 +570,7 @@ const StageAssets: React.FC<Props> = ({
                   </button>
                   {char.referenceImage ? (
                     <>
-                      <img src={char.referenceImage} alt={char.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <img src={char.referenceImage} alt={char.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" />
                       {processingState?.type === 'character' && processingState?.id === char.id ? (
                         <div className="ai-generating-overlay">
                         </div>
@@ -731,7 +731,7 @@ const StageAssets: React.FC<Props> = ({
                   </button>
                   {scene.referenceImage ? (
                     <>
-                      <img src={scene.referenceImage} alt={scene.location} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <img src={scene.referenceImage} alt={scene.location} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" />
                       {processingState?.type === 'scene' && processingState?.id === scene.id ? (
                         <div className="ai-generating-overlay">
                         </div>
