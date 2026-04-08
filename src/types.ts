@@ -149,6 +149,7 @@ export interface Segment {
   characterIds: string[]; // 涉及的角色ID列表（去重）
   characterVariations?: { [characterId: string]: string }; // Added: Map char ID to variation ID for this shot
   description?: string; // 片段描述（由LLM生成）
+  videoPrompt?: string;  // 视频提示词
   transitionFrom?: string; // 转场描述：从上一个片段到此片段（由LLM生成）
   transitionTo?: string; // 转场描述：从此片段到下一个片段（由LLM生成）
   estimatedDuration: number; // 预估时长（秒），不超过15秒

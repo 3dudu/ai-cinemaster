@@ -1,7 +1,7 @@
 import { ModelService } from '@/services/modelService';
 import { renderTemplate } from '@/services/promptTemplates';
 import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
-import { ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, Sparkles, Trash, Video, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RotateCcw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Scene, Segment, SeriesRecord } from '../types';
@@ -151,7 +151,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         updateProject({
           segments: segments.map((s) =>
             s.id === segmentId
-              ? { ...s, description, lastModified: Date.now() }
+              ? { ...s, videoPrompt: description, lastModified: Date.now() }
               : s,
           ),
         });
@@ -215,7 +215,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           if (segmentIndex >= 0) {
             currentSegments[segmentIndex] = {
               ...currentSegments[segmentIndex],
-              description,
+              videoPrompt: description,
               lastModified: Date.now(),
             };
             updateProject({ segments: [...currentSegments] });
@@ -290,6 +290,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       sceneIds: [],
       characterIds: [],
       description: '',
+      videoPrompt: '',
       transitionFrom: '',
       transitionTo: '',
       estimatedDuration: 0,
@@ -403,7 +404,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   // Update draft when selected segment changes
   useEffect(() => {
     if (selectedSegment) {
-      setDescriptionDraft(selectedSegment.description || '');
+      // videoPrompt 优先，无值时回退到 description
+      setDescriptionDraft(selectedSegment.videoPrompt || selectedSegment.description || '');
       setTransitionFromDraft(selectedSegment.transitionFrom || '');
       setTransitionToDraft(selectedSegment.transitionTo || '');
     } else {
@@ -418,7 +420,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     if (!selectedSegment) return;
     const updatedSegment: Segment = {
       ...selectedSegment,
-      description: descriptionDraft,
+      videoPrompt: descriptionDraft,
       transitionFrom: transitionFromDraft,
       transitionTo: transitionToDraft,
       lastModified: Date.now(),
@@ -669,8 +671,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     setGeneratingVideo(selectedSegment.id);
     setVideoGenerateStartTime(Date.now());
     try {
-      // 如果 description 为空，先生成 description
-      let currentDescription = selectedSegment.description;
+      // 如果 videoPrompt 为空，先生成 videoPrompt
+      let currentDescription = selectedSegment.videoPrompt || selectedSegment.description;
       if (!currentDescription?.trim()) {
         const segments = project.segments || [];
         const segmentIndex = segments.findIndex((s) => s.id === selectedSegment.id);
@@ -684,7 +686,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.visualStyle,
             project.genre,
             project.rawScript,
-            currentDescription||'',
+            selectedSegment.description||'',
             segmentIndex+1,
             selectedSegment.estimatedDuration||project.segmentDuration,
             project.imageSize
@@ -693,9 +695,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             dialog.toast({ message: `生成片段描述失败`, type: 'error' });
             return;
           }
-          // 更新 segment 的 description
+          // 更新 segment 的 videoPrompt
           const updatedSegments = (project.segments || []).map((seg) =>
-            seg.id === selectedSegment.id ? { ...seg, description: currentDescription, lastModified: Date.now() } : seg
+            seg.id === selectedSegment.id ? { ...seg, videoPrompt: currentDescription, lastModified: Date.now() } : seg
           );
           updateProject({ segments: updatedSegments });
         } catch (err) {
@@ -810,8 +812,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         try {
           setGeneratingVideo(segment.id);
 
-          // 如果 description 为空，先生成 description
-          let currentDescription = segment.description;
+          // 如果 videoPrompt 为空，先生成 videoPrompt
+          let currentDescription = segment.videoPrompt || segment.description;
           if (!currentDescription?.trim()) {
             currentDescription = await generateSegmentDescription(
               segment,
@@ -823,18 +825,18 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               project.rawScript,
               segment.description || '',
               i+1,
-              selectedSegment.estimatedDuration||project.segmentDuration,
+              segment.estimatedDuration||project.segmentDuration,
               project.imageSize
             );
             if(!currentDescription){
               continue;
             }
-            // 更新 description
+            // 更新 videoPrompt
             const segIndex = currentSegments.findIndex(s => s.id === segment.id);
             if (segIndex >= 0) {
               currentSegments[segIndex] = {
                 ...currentSegments[segIndex],
-                description: currentDescription,
+                videoPrompt: currentDescription,
                 lastModified: Date.now(),
               };
             }
@@ -1042,26 +1044,26 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     setDescriptionDraft(newText);
     setMentionPickerOpen(false);
     
-    // Update segment's characterIds or sceneIds AND description (to prevent reset)
-    if (selectedSegment) {
-      const field = type === 'character' ? 'characterIds' : 'sceneIds';
-      const currentIds = selectedSegment[field] || [];
-      if (!currentIds.includes(item.id)) {
-        const updatedSegment: Segment = {
-          ...selectedSegment,
-          description: newText,  // Include updated description to prevent reset
-          [field]: [...currentIds, item.id],
-          lastModified: Date.now()
-        };
-        // If character with variation, update characterVariations
-        if (type === 'character' && variationId) {
-          updatedSegment.characterVariations = {
-            ...selectedSegment.characterVariations,
-            [item.id]: variationId
-          };
-        }
-        handleSaveSegment(updatedSegment);
-      } else if (type === 'character' && variationId) {
+        // Update segment's characterIds or sceneIds AND videoPrompt (to prevent reset)
+        if (selectedSegment) {
+          const field = type === 'character' ? 'characterIds' : 'sceneIds';
+          const currentIds = selectedSegment[field] || [];
+          if (!currentIds.includes(item.id)) {
+            const updatedSegment: Segment = {
+              ...selectedSegment,
+              videoPrompt: newText,  // Include updated description to prevent reset
+              [field]: [...currentIds, item.id],
+              lastModified: Date.now()
+            };
+            // If character with variation, update characterVariations
+            if (type === 'character' && variationId) {
+              updatedSegment.characterVariations = {
+                ...selectedSegment.characterVariations,
+                [item.id]: variationId
+              };
+            }
+            handleSaveSegment(updatedSegment);
+          } else if (type === 'character' && variationId) {
         // Character already in list, but update variation
         const updatedSegment: Segment = {
           ...selectedSegment,
@@ -1643,6 +1645,17 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         <Copy className="w-3 h-3" />
                         复制
                       </button>
+                      {/* 重置按钮：当 videoPrompt 和 description 不同时显示 */}
+                      {selectedSegment.videoPrompt !== selectedSegment.description && selectedSegment.description && (
+                        <button
+                          onClick={() => setDescriptionDraft(selectedSegment.description || '')}
+                          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[11px] font-bold tracking-wider rounded transition-colors flex items-center gap-1.5 cursor-pointer"
+                          title="重置为原始描述"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          重置
+                        </button>
+                      )}
                       {/* AI生成按钮 */}
                       <button
                         onClick={() => handleGenerateDescription(selectedSegment.id)}

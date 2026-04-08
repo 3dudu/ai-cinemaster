@@ -69,6 +69,7 @@ function createSegmentFromShots(shotIds: string[], shots: Shot[], index: number)
     sceneIds,
     characterIds,
     description: '', // 待LLM生成
+    videoPrompt: '', // AI生成的视频提示词
     transitionFrom: '',
     transitionTo: '',
     estimatedDuration,
@@ -192,7 +193,7 @@ export async function generateAllSegmentDescriptions(
     );
     updatedSegments[i] = {
       ...updatedSegments[i],
-      description,
+      videoPrompt: description,
       lastModified: Date.now(),
     };
   }
@@ -419,6 +420,7 @@ function parseAiSegmentResponse(response: string, originalShots: Shot[]): Segmen
         sceneIds,
         characterIds,
         description: seg.description || '',
+        videoPrompt: seg.description || '',
         transitionFrom: '',
         transitionTo: '',
         estimatedDuration: seg.estimatedDuration || calculatedDuration,
