@@ -488,7 +488,9 @@ const StageImage: React.FC<Props> = ({ project, updateProject }) => {
 
     setUploadingStatus(`上传中 0/${remoteImages.length}`);
     let failCount = 0;
-    const updatedProject = { ...project };
+    const selectedProject = allProjects.find(p => p.id === selectedProjectId);
+
+    const updatedProject = project.id==selectedProjectId?{ ...project }:{...selectedProject};
 
     for (let i = 0; i < remoteImages.length; i++) {
       const img = remoteImages[i];
@@ -547,9 +549,9 @@ const StageImage: React.FC<Props> = ({ project, updateProject }) => {
           }
 
           // 更新连续剧 SeriesLibrary
-          if (project.seriesRefId) {
+          if (updatedProject.seriesRefId) {
             try {
-              const series = await loadSeriesFromDB(project.seriesRefId);
+              const series = await loadSeriesFromDB(updatedProject.seriesRefId);
               let seriesUpdated = false;
               for (const char of series.library.characters) {
                 if (char.referenceImage === img.imageUrl) {
@@ -588,7 +590,7 @@ const StageImage: React.FC<Props> = ({ project, updateProject }) => {
     }
 
     try {
-      if (updateProject) {
+      if (project.id==selectedProjectId) {
         updateProject(updatedProject);
       }
       await saveProjectToDB(updatedProject);
