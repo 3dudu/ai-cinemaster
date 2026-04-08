@@ -141,7 +141,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.rawScript,
           segment.description||'',
           segmentIndex+1,
-          segment.estimatedDuration||project.segmentDuration
+          segment.estimatedDuration||project.segmentDuration,
+          project.imageSize
         );
         if(!description){
           dialog.toast({ message: '生成分片描述失败，请重试',type: 'error' });
@@ -197,7 +198,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.rawScript,
             segment.description||'',
             i+1,
-            segment.estimatedDuration||project.segmentDuration
+            segment.estimatedDuration||project.segmentDuration,
+            project.imageSize
           );
           if(!description){
             dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败`, type: 'error' });
@@ -684,7 +686,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.rawScript,
             currentDescription||'',
             segmentIndex+1,
-            selectedSegment.estimatedDuration||project.segmentDuration
+            selectedSegment.estimatedDuration||project.segmentDuration,
+            project.imageSize
           );
           if(!currentDescription){
             dialog.toast({ message: `生成片段描述失败`, type: 'error' });
@@ -745,7 +748,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
       // 使用 currentDescription（可能刚生成）
       const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),currentDescription,selectedSegment.shotIds.length,
-        selectedSegment.transitionFrom,selectedSegment.transitionTo
+        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.visualStyle
       );
 
       const prompt = '## 参考图说明：\n'+imageLabels.map((l,i)=>`${i+1}. ${l}`).join('\n')+'\n\n'+videoPrompt;
@@ -820,7 +823,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               project.rawScript,
               segment.description || '',
               i+1,
-              selectedSegment.estimatedDuration||project.segmentDuration
+              selectedSegment.estimatedDuration||project.segmentDuration,
+              project.imageSize
             );
             if(!currentDescription){
               continue;
@@ -881,7 +885,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             currentDescription,
             segment.shotIds.length,
             segment.transitionFrom,
-            segment.transitionTo
+            segment.transitionTo,project.visualStyle
           );
 
           const prompt = '## 参考图说明：\n' + imageLabels.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n\n' + videoPrompt;

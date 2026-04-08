@@ -93,7 +93,8 @@ export async function generateSegmentDescription(
   scriptText: string,
   description: string,
   segmentIndex:number,
-  segmentDuration:number
+  segmentDuration:number,
+  imageSize:string,
 ): Promise<string> {
   const segmentShots = allShots.filter(s => segment.shotIds.includes(s.id));
 
@@ -113,7 +114,8 @@ export async function generateSegmentDescription(
     return stories.map(s => s.text).join('\n');
   }).join('\n');
   */
-  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15);
+  const videoRatio = imageSize=="2560x1440" ? "16:9" : "9:16";
+  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio);
 
   try {
     const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
@@ -168,7 +170,8 @@ export async function generateAllSegmentDescriptions(
   visualstyle:string,
   genre:string,
   scriptText:string,
-  segmentDuration:number
+  segmentDuration:number,
+  imageSize:string
 ): Promise<Segment[]> {
   const updatedSegments = [...segments];
 
@@ -184,7 +187,8 @@ export async function generateAllSegmentDescriptions(
       scriptText,
       odescription,
       i+1,
-      segmentDuration
+      segmentDuration,
+      imageSize
     );
     updatedSegments[i] = {
       ...updatedSegments[i],
