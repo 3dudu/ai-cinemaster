@@ -173,6 +173,7 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         startFrameVisualPrompt: args[6] || '',
         endFrameVisualPrompt: args[7] || '',
         dialogues: args[8] || '无',
+        story: args[9] || ''
       };
     case 'GENERATE_TRANSITION_VIDEO':
       return {
@@ -194,7 +195,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         segmentName: args[5] || '',
         segmentIndex: args[6] || 1,
         segmentDuration: args[7] || 15,
-        videoRatio: args[8] || '16:9'
+        videoRatio: args[8] || '16:9',
+        story: args[9] || ''
       };
     case 'GENERATE_SEGMENT_VIDEO_PROMPT':
       return {
@@ -733,8 +735,6 @@ export const PROMPT_TEMPLATES = {
 
   // ============ 剧本解析 ============
   PARSE_SCRIPT: `分析输入的故事或剧本，构思制作一部 {genre} 类型的视频，并输出一个 JSON 对象，字段值以 {lang} 语言呈现。
-故事设定：{story}
-
 ## 任务
 **生成一个json对象，提取下列属性：**
 1. 提取title:标题、genre:类型、logline:故事梗概（以 {lang} 语言呈现）。
@@ -753,7 +753,9 @@ export const PROMPT_TEMPLATES = {
 - 故事或剧本背景、简介，作为理解分析当前剧本的依据，不要直接作为当前故事段落内容
 
 ## 输入：
-{text}`,
+{text}
+
+## 通用基底：{story}`,
 
   IMPORT_SCRIPT: `读取输入的剧本大纲/分镜脚本，提取关键信息，并输出一个 JSON 对象。
 
@@ -900,20 +902,21 @@ export const PROMPT_TEMPLATES = {
 1. 剧本时长：{duration}
 2. 题材类型：{genre}
 3. 输出语言：{lang}
-4. 故事设定：{story}
-5. 剧本结构清晰，包含剧本标题、场景标题、时间（大的时间，如：上午、下午、清晨、夜晚，或者某年某月，某个年代等）、地点、天气、角色、动作描述、对白
-6. 情节紧凑，画面感强
-7. 角色性格鲜明，对话自然
+4. 剧本结构清晰，包含剧本标题、场景标题、时间（大的时间，如：上午、下午、清晨、夜晚，或者某年某月，某个年代等）、地点、天气、角色、动作描述、对白
+5. 情节紧凑，画面感强
+6. 角色性格鲜明，对话自然
 
 ## 用户提示词：
 "{prompt}"
+
+## 通用基底：{story}
 
 请以Markdown格式输出剧本结构，不要使用 JSON 格式，直接输出可阅读的剧本文本。`,
 
   // ============ 视觉提示词生成 ============
   GENERATE_SCENE_PROMPT: `为 {genre} 类视频中的场景生成高还原度的场景设计，
-故事设定: {story}
 场景信息: {desc}
+通用基底：{story}
 
 ## 特别要求
 - 图像风格必须为：{visualStyle}。
@@ -922,8 +925,8 @@ export const PROMPT_TEMPLATES = {
 
   // ============ 视觉提示词生成 ============
   GENERATE_CHARACTER_PROMPT: `为 {genre} 类视频中的角色生成高还原度的角色设计。画面风格为 {visualStyle}
-故事设定: {story}
 角色信息，包含姓名,年龄,性别,角色特征: {desc}
+通用基底：{story}
 
 使用你的专业知识，发挥想象，直接输出完整的角色描述
 
@@ -1054,6 +1057,7 @@ export const PROMPT_TEMPLATES = {
 4. 可以按秒级时长分别描述画面的变化
 5. 提示词长度控制在200-300字以内
 6. 输出纯文本提示词，无任何解释或注释
+7. 最后保留："通用基底：{story}"
 
 请输出视频拍摄提示词：`,
 
@@ -1259,6 +1263,7 @@ export const PROMPT_TEMPLATES = {
 10. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
 11. 所有描述文字不得出现敏感词、暴力、血腥、政治、色情等内容。
 12. 直接按要求输出内容，不要有解释性说明性的文字。
+13. 保留"通用基底：{story}"
 
 ## 正确示例：
 
@@ -1269,6 +1274,8 @@ export const PROMPT_TEMPLATES = {
 运动强度：7
 分镜1: 时长 3s 时间：日，**林尘** 衣衫褴褛，正用尽全力将一块沉重的生锈废铁拖向近处的简易掩体，动作吃力，步履蹒跚。林尘 的面部朝向掩体方向，视线也聚焦于此。镜头静止。
 分镜2: 时长 4s 时间：日，**林尘** 林尘缓缓起身，摊开的掌心中，一枚丹药正散发着柔和金光。满堂的讥笑声瞬间凝固。林尘 仰头服下丹药，一股金色气浪猛然自体内爆发，衣发狂舞。镜头从他光芒四射的背影拉远，映出赵灵儿惊惶后退的身影。
+
+通用基底：{story}
 `,
   GENERATE_SEGMENT_VIDEO_PROMPT: `** 提供的参考图均由AI生成 **
 

@@ -1903,6 +1903,7 @@ const StageScript: React.FC<Props> = ({
             setEditingShotId(null);
           }}
           imageCount={project.imageCount}
+          story={project.globalSettings}
         />
       );
     }
@@ -1931,6 +1932,7 @@ const StageScript: React.FC<Props> = ({
             setAddingShotForSceneId(null);
           }}
           imageCount={project.imageCount}
+          story={project.globalSettings}
         />
       );
     }

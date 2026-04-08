@@ -96,6 +96,7 @@ export async function generateSegmentDescription(
   segmentIndex:number,
   segmentDuration:number,
   imageSize:string,
+  story?:string
 ): Promise<string> {
   const segmentShots = allShots.filter(s => segment.shotIds.includes(s.id));
 
@@ -116,7 +117,7 @@ export async function generateSegmentDescription(
   }).join('\n');
   */
   const videoRatio = imageSize=="2560x1440" ? "16:9" : "9:16";
-  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio);
+  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story);
 
   try {
     const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
@@ -172,7 +173,8 @@ export async function generateAllSegmentDescriptions(
   genre:string,
   scriptText:string,
   segmentDuration:number,
-  imageSize:string
+  imageSize:string,
+  globalSettings:string
 ): Promise<Segment[]> {
   const updatedSegments = [...segments];
 
@@ -189,7 +191,8 @@ export async function generateAllSegmentDescriptions(
       odescription,
       i+1,
       segmentDuration,
-      imageSize
+      imageSize,
+      globalSettings
     );
     updatedSegments[i] = {
       ...updatedSegments[i],

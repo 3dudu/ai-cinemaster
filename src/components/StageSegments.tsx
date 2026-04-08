@@ -142,7 +142,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           segment.description||'',
           segmentIndex+1,
           segment.estimatedDuration||project.segmentDuration,
-          project.imageSize
+          project.imageSize,
+          project.globalSettings
         );
         if(!description){
           dialog.toast({ message: '生成分片描述失败，请重试',type: 'error' });
@@ -199,7 +200,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             segment.description||'',
             i+1,
             segment.estimatedDuration||project.segmentDuration,
-            project.imageSize
+            project.imageSize,
+            project.globalSettings
           );
           if(!description){
             dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败`, type: 'error' });
@@ -689,7 +691,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             selectedSegment.description||'',
             segmentIndex+1,
             selectedSegment.estimatedDuration||project.segmentDuration,
-            project.imageSize
+            project.imageSize,
+            project.globalSettings
           );
           if(!currentDescription){
             dialog.toast({ message: `生成片段描述失败`, type: 'error' });
@@ -712,7 +715,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       const imageLabels: string[] = [];
       const scenes: string[] = [];
       let imageIndex = 1;
-
+      
       // Add scene images
       selectedSegment.sceneIds?.forEach((sceneId) => {
         let scene = activeScenes.find((s) => s.id === sceneId);
@@ -723,8 +726,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           imageIndex++;
         }
       });
-
+      
       // Add character images
+      const voices: string[] = [];
+      let voiceIndex = 1;
       selectedSegment.characterIds?.forEach((charId) => {
         let character = activeCharacters.find((c) => c.id === charId);
         if(character){
@@ -744,6 +749,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             referenceImages.push(character.referenceImage);
             imageLabels.push(`图${imageIndex}: ${character.name}`);
             imageIndex++;
+          }
+          if(character?.voiceUrl){
+            voices.push(character.voiceUrl);
+            imageLabels.push(`音频${voiceIndex}: ${character.name}`);
+            voiceIndex++;
           }
         }
       });
@@ -767,7 +777,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.visualStyle,
           selectedSegment.id,
           referenceImages,
-          project.seed
+          project.seed,
+          voices
       );
 
       
@@ -826,7 +837,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               segment.description || '',
               i+1,
               segment.estimatedDuration||project.segmentDuration,
-              project.imageSize
+              project.imageSize,
+              project.globalSettings
             );
             if(!currentDescription){
               continue;
@@ -858,6 +870,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             }
           });
 
+          const voices: string[] = [];
+          let voiceIndex = 1;
           segment.characterIds?.forEach((charId) => {
             let character = activeCharacters.find((c) => c.id === charId);
             if (character) {
@@ -877,6 +891,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 referenceImages.push(character.referenceImage);
                 imageLabels.push(`图${imageIndex}: ${character.name}`);
                 imageIndex++;
+              }
+              if(character?.voiceUrl){
+                voices.push(character.voiceUrl);
+                imageLabels.push(`音频${voiceIndex}: ${character.name}`);
+                voiceIndex++;
               }
             }
           });
@@ -904,7 +923,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.visualStyle,
             segment.id,
             referenceImages,
-            project.seed
+            project.seed,
+            voices
           );
 
           if (videoUrl) {

@@ -44,6 +44,7 @@ export const createNewSeries = (title: string, options?: {
   genre?: string;
   imageSize?: string;
   imageCount?: number;
+  globalSettings?: string;
 }): SeriesRecord => {
   return {
     id: generateId('series'),
@@ -68,7 +69,8 @@ export const createNewSeries = (title: string, options?: {
       scenes: []
     },
     episodeOrder: [],
-    version: 1
+    version: 1,
+    globalSettings: options?.globalSettings || ''
   };
 };
 /**
@@ -91,6 +93,7 @@ export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
     visualStyle: series.visualStyle || '真人写实',
     imageSize: series.imageSize || '2560x1440',
     imageCount: series.imageCount ?? 1,
+    globalSettings: series.globalSettings || '',
     scriptData: null,
     isParsingScript: false,
     rawScript: series.rawScript || `标题：示例剧本`,

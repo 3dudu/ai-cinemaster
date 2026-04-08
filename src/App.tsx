@@ -79,7 +79,8 @@ function App() {
 
   // Auto-save logic
   useEffect(() => {
-    if (!project) return;
+    if (!project || !(project.scriptData || project.seriesRefId)) return;
+
 
     setSaveStatus('unsaved');
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -150,7 +151,7 @@ function App() {
 
   const handleExitProject = async () => {
     // Force save before exiting
-    if (project) {
+    if (project && (project.scriptData || project.seriesRefId)) {
         await saveProjectToDB(project);
     }
     // Save series if in series mode

@@ -4,7 +4,7 @@
 import { AIModelConfig, Scene, ScriptData, Segment, Shot } from "../types";
 import { cleanJsonString } from "../utils/apiHelper";
 import { uploadFileToService } from "../utils/fileUploadUtils";
-import { imageUrlToBase64 } from "../utils/imageUtils";
+import { audioUrlToBase64, imageUrlToBase64 } from "../utils/imageUtils";
 import { getEnabledConfigByType } from "./modelConfigService";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "./promptTemplates";
 import { getAllModelConfigs } from "./storageService";
@@ -725,7 +725,8 @@ export class ModelService {
   static async generateVideoPrompt(
     shot: Shot,
     scriptData: ScriptData,
-    visualStyle: string = "真人写实"
+    visualStyle: string = "真人写实",
+    story?:string
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成视频拍摄提示词`);
@@ -761,7 +762,8 @@ export class ModelService {
       characterNames,
       startKeyframe?.visualPrompt || '',
       endKeyframe?.visualPrompt || '',
-      dialogues.join('\n')
+      dialogues.join('\n'),
+      story
     );
 
     let videoPrompt = '';
@@ -1074,6 +1076,7 @@ export class ModelService {
     shotid: string = "0",
     referenceImages: string[] = [],
     seed: number = 0,
+    voiceUrls: string[] = [],
   ): Promise<string> {
     const provider = await this.getEnabledVideoProvider(shotprovider || this.currentProjectModelProviders);
 
@@ -1109,6 +1112,20 @@ export class ModelService {
     }
 
     // 处理参考图片：将HTTP/HTTPS URL转换为Base64
+    let processedVoiceUrls = [];
+    if (voiceUrls && voiceUrls.length > 0) {
+      for(let i=0;i<voiceUrls.length;i++){
+        try{
+          const baseurl = await audioUrlToBase64(voiceUrls[i]);
+          processedVoiceUrls.push(baseurl);
+        }catch(error){
+          console.error('转换参考图片为Base64失败:', error);
+          processedVoiceUrls.push(voiceUrls[i]);
+        }
+      }
+    }else{
+      processedVoiceUrls = voiceUrls;
+    }
     let processedReferenceImages = [];
     if (referenceImages && referenceImages.length > 0) {
       for(let i=0;i<referenceImages.length;i++){
@@ -1135,7 +1152,7 @@ export class ModelService {
           finalDuration = finalDuration>12?12:finalDuration;
         }
         videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, 
-          processedEndImageBase64, finalDuration,full_frame,generate_audio,imageSize, finalSeed,processedReferenceImages,projectid,'',shotid);
+          processedEndImageBase64, finalDuration,full_frame,generate_audio,imageSize, finalSeed,processedReferenceImages,projectid,'',shotid,processedVoiceUrls);
         break;
       case 'gemini':
         videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);

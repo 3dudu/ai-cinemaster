@@ -458,6 +458,7 @@ export const generateVideo = async (
   projectId?: string,
   seriesId?: string,
   shotId?: string,
+  processedVoiceUrls: string[] = [],
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks`;
 
@@ -518,6 +519,17 @@ export const generateVideo = async (
           "url": imageUrl
         },
         "role": "reference_image"
+      });
+    });
+  }
+  if(processedVoiceUrls && processedVoiceUrls.length>0){
+    processedVoiceUrls.forEach((voiceUrl) => {
+      requestBody.content.push({
+        "type": "audio_url",
+        "audio_url": {
+          "url": voiceUrl
+        },
+        "role": "reference_audio"
       });
     });
   }

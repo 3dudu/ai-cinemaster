@@ -200,6 +200,7 @@ export interface SeriesRecord {
   episodeOrder: string[]; // Array of ProjectState.id in order
   currentEpisodeId: string;
   version: 1;
+  globalSettings?: string; // 全局设定（画面风格、历史年代等）
 }
 
 // Unified export bundle format (v2)

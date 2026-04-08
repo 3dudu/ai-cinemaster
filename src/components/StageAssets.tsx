@@ -901,6 +901,8 @@ const StageAssets: React.FC<Props> = ({
           character={displayCharacters.find(c => c.id === selectedVoiceCharId)!}
           project={project}
           updateProject={updateProject}
+          series={series}
+          updateSeries={updateSeries}
         />
       )}
 

@@ -448,7 +448,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     // 生成视频拍摄提示词（如果还没有）
     if (!shot.interval.videoPrompt && project.scriptData) {
       try {
-        const videoPrompt = await ModelService.generateVideoPrompt(shot, project.scriptData, localStyle);
+        const videoPrompt = await ModelService.generateVideoPrompt(shot, project.scriptData, localStyle,project.globalSettings);
         updateShot(shot.id, (s) => ({
           ...s,
           interval: s.interval ? { ...s.interval, videoPrompt } : undefined
@@ -2105,6 +2105,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               imageCount={project.imageCount}
               scriptData={project.scriptData}
               visualStyle={project.visualStyle}
+              story={project.globalSettings}
             />
           )}
 
@@ -2159,6 +2160,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               interval: s.interval ? { ...s.interval, videoPrompt } : undefined
             }));
           }}
+          story={project.globalSettings}
         />
       )}
     </div>

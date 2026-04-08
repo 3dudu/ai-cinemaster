@@ -15,9 +15,10 @@ interface ShotEditModalProps {
   imageCount: number;
   scriptData?: any;
   visualStyle?: string;
+  story?: string;
 }
 
-const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes = [], onSave, onClose, imageCount, scriptData, visualStyle = '真人写实' }) => {
+const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes = [], onSave, onClose, imageCount, scriptData, visualStyle = '真人写实',story='' }) => {
   const [tempShot, setTempShot] = useState<Partial<Shot>>({ ...shot });
   const [modelConfigs, setModelConfigs] = useState<AIModelConfig[]>([]);
   const [isVideoPromptModalOpen, setIsVideoPromptModalOpen] = useState(false);
@@ -548,6 +549,7 @@ const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes 
             interval: shot.interval ? { ...shot.interval, videoPrompt } : undefined
           });
         }}
+        story={story}
       />
 
       {/* Fullscreen Image Preview Modal */}

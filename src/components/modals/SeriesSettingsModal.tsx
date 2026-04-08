@@ -33,6 +33,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
   const [customDurationInput, setCustomDurationInput] = useState('');
   const [customStyleInput, setCustomStyleInput] = useState('');
   const [customGenreInput, setCustomGenreInput] = useState('');
+  const [localGlobalSettings, setLocalGlobalSettings] = useState('');
   const [modelConfigs, setModelConfigs] = useState<any[]>([]);
   const [localLlmProvider, setLocalLlmProvider] = useState('');
   const [localText2imageProvider, setLocalText2imageProvider] = useState('');
@@ -95,6 +96,8 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         setLocalDuration(isCustomDuration ? 'custom' : currentDuration);
         setCustomDurationInput(isCustomDuration ? currentDuration : '');
 
+        setLocalGlobalSettings(series.globalSettings || '');
+
         // Set model providers
         setLocalLlmProvider(series.modelProviders?.llm || '');
         setLocalText2imageProvider(series.modelProviders?.text2image || '');
@@ -111,6 +114,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         setLocalImageCount(1);
         setLocalDuration('60s');
         setCustomDurationInput('');
+        setLocalGlobalSettings('');
         setLocalLlmProvider('');
         setLocalText2imageProvider('');
         setLocalImage2videoProvider('');
@@ -139,6 +143,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         genre: finalGenre,
         imageSize: localImageSize,
         imageCount: localImageCount,
+        globalSettings: localGlobalSettings,
         modelProviders: newModelProviders,
         updatedAt: Date.now()
       });
@@ -150,7 +155,8 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         visualStyle: finalStyle,
         genre: finalGenre,
         imageSize: localImageSize,
-        imageCount: localImageCount
+        imageCount: localImageCount,
+        globalSettings: localGlobalSettings
       });
       newSeries.modelProviders = newModelProviders;
       onSave(newSeries);
@@ -191,6 +197,21 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
               placeholder="输入剧集名称..."
             />
+          </div>
+
+          {/* Global Settings */}
+          <div className="space-y-2">
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">补充信息</label>
+            <textarea
+              value={localGlobalSettings}
+              onChange={(e) => setLocalGlobalSettings(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+              placeholder="画面风格、历史年代等，如：赛博朋克，2077年"
+              rows={2}
+            />
+            <p className="text-[10px] text-slate-500">
+              设置整个剧的画面风格、历史年代等全局统一设定，新分集将继承此设置
+            </p>
           </div>
 
           {/* Language and Visual Style in one row */}
