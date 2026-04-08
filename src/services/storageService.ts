@@ -1062,10 +1062,11 @@ export const updateMediaHistoryFileUrl = async (
         return;
       }
       
-      const updateCategory = (items: MediaFile[]) => {
+      const updateCategory = async (items: MediaFile[]) => {
         for (const item of items) {
           if (item.fileUrl === oldUrl) {
             item.fileUrl = newUrl;
+            item.id = await md5Hash(newUrl);
           }
         }
       };
