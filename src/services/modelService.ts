@@ -1422,6 +1422,7 @@ export class ModelService {
         sceneIds: seg.sceneIds || [],
         characterIds: seg.characterIds || [],
         description: `时长：${seg.estimatedDuration||15}\n运动强度：${seg.motionIntensity||5}\n情绪曲线：${seg.emotionCurve || ''}\n台词与节奏： ${seg.dialogueRhythm || ''}\n\n${seg.description||''}`,
+        videoPrompt: `时长：${seg.estimatedDuration||15}\n运动强度：${seg.motionIntensity||5}\n情绪曲线：${seg.emotionCurve || ''}\n台词与节奏： ${seg.dialogueRhythm || ''}\n\n${seg.description||''}`,
         transitionFrom: '',
         transitionTo: '',
         estimatedDuration: seg.estimatedDuration || 10,
