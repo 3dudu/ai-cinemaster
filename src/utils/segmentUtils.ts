@@ -91,7 +91,7 @@ export async function generateSegmentDescription(
   visualstyle: string,
   genre: string,
   scriptText: string,
-  storyParagraphs: any[],
+  description: string,
   segmentIndex:number,
   segmentDuration:number
 ): Promise<string> {
@@ -107,12 +107,13 @@ export async function generateSegmentDescription(
     return `分镜${idx + 1}：${shot.actionSummary} 场景：${scene?.location || '未知'} 角色：${shotChars}。`;
   }).join('\n');
 
+  /*
   const storyLine = segment.sceneIds.map(sceneId => {
     const stories = storyParagraphs.filter(p => String(p.sceneRefId) == String(sceneId));
     return stories.map(s => s.text).join('\n');
   }).join('\n');
-
-  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,storyLine,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15);
+  */
+  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15);
 
   try {
     const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
@@ -167,12 +168,12 @@ export async function generateAllSegmentDescriptions(
   visualstyle:string,
   genre:string,
   scriptText:string,
-  storyParagraphs:any[],
   segmentDuration:number
 ): Promise<Segment[]> {
   const updatedSegments = [...segments];
 
   for (let i = 0; i < updatedSegments.length; i++) {
+    const odescription = updatedSegments[i].description||'';
     const description = await generateSegmentDescription(
       updatedSegments[i],
       allShots,
@@ -181,7 +182,7 @@ export async function generateAllSegmentDescriptions(
       visualstyle,
       genre,
       scriptText,
-      storyParagraphs,
+      odescription,
       i+1,
       segmentDuration
     );
