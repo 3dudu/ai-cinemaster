@@ -582,7 +582,6 @@ const StageScript: React.FC<Props> = ({
       ModelService.setCurrentProjectProviders(project.modelProviders);
       let scriptData = await ModelService.parseScriptToData(localScript, localLanguage,localGenre,localGlobalSettings);
       console.log('scriptData', scriptData);
-      if(scriptData.scenes.length > 0){
         updateProject({ isParsingScript: true });
   
         scriptData.targetDuration = finalDuration;
@@ -650,16 +649,6 @@ const StageScript: React.FC<Props> = ({
   
         setActiveTab('script');
         setProcessingStep('');
-      }else{
-        setProcessingStep('');
-        await dialog.alert({
-          title: '错误',
-          message: `分析剧本失败`,
-          type: 'error',
-        });
-        return;
-      }
-
     } catch (err: any) {
       console.error(err);
       dialog.alert({
@@ -830,16 +819,6 @@ const StageScript: React.FC<Props> = ({
       // 1. 解析剧本获取角色和场景
       let scriptData = await ModelService.parseScriptToData(localScript, localLanguage, localGenre,localGlobalSettings);
       
-      if (scriptData.scenes.length === 0) {
-        setProcessingStep('');
-        await dialog.alert({
-          title: '错误',
-          message: '分析剧本失败，未找到场景信息',
-          type: 'error',
-        });
-        return;
-      }
-
       scriptData.targetDuration = finalDuration;
       scriptData.language = localLanguage;
       if (localTitle && localTitle !== "未命名项目") {

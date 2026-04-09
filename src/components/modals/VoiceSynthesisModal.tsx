@@ -1,8 +1,9 @@
-import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, Speech, X } from 'lucide-react';
+import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, Speech, Upload, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { VOICE_LIBRARY, VOICE_LIBRARY_TYPE_NAMES } from '../../config/voiceLibrary';
 import { ModelService } from '../../services/modelService';
 import { addMediaHistory } from '../../services/storageService';
+import { uploadBase64File } from '../../utils/fileUploadUtils';
 import { Character, ProjectState, SeriesRecord, Shot, TtsParams } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 import { useDialog } from '../dialog';
@@ -35,9 +36,11 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
   });
   const [selectedVoiceLibrary, setSelectedVoiceLibrary] = useState<string>('all');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [previewAudio, setPreviewAudio] = useState<string | null>(null);
   const [generatedVoiceUrl, setGeneratedVoiceUrl] = useState<string | null>(null);
   const [dialogueText, setDialogueText] = useState<string>('');
+  const audioFileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Check if in series mode
   const isSeriesMode = !!series && !!updateSeries;
@@ -145,6 +148,66 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleUploadAudio = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/mp3', 'audio/webm'];
+    if (!validTypes.includes(file.type)) {
+      dialog.toast({ message: '请选择 MP3、WAV、OGG 等音频格式文件', type: 'error' });
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      dialog.toast({ message: '音频文件大小不能超过 50MB', type: 'error' });
+      return;
+    }
+
+    if (generatedVoiceUrl) {
+      const confirmed = await dialog.confirm({
+        title: '确认替换',
+        message: '将覆盖当前已合成的语音，是否继续？',
+        type: 'warning'
+      });
+      if (!confirmed) return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const result = await uploadBase64File(
+        base64,
+        `${project.id}/audio`,
+        `${character.name}_语音.${file.name.split('.').pop()}`
+      );
+
+      if (result.success && result.data?.url) {
+        const voiceUrl = result.data.url;
+        setGeneratedVoiceUrl(voiceUrl);
+        updateCharacterVoice(voiceUrl, ttsParams);
+        await addMediaHistory(project.id, voiceUrl, `${character.name}_语音`, 'audio', 'character', '');
+        dialog.toast({ message: '音频上传成功', type: 'success' });
+      } else {
+        dialog.toast({ message: result.error || '上传失败，请重试', type: 'error' });
+      }
+    } catch (error: any) {
+      console.error('Audio upload failed:', error);
+      dialog.toast({ message: `上传失败: ${error?.message || '未知错误'}`, type: 'error' });
+    } finally {
+      setIsUploading(false);
+      if (audioFileInputRef.current) {
+        audioFileInputRef.current.value = '';
+      }
     }
   };
 
@@ -283,7 +346,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                   </div>
                   <button
                     onClick={handleGenerateVoice}
-                    disabled={isGenerating}
+                    disabled={isGenerating || isUploading}
                     className="px-2 py-2 bg-slate-600 hover:bg-slate-400 text-slate-50 hover:text-slate-900 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
                     title={generatedVoiceUrl ? "重新合成" : "合成语音"}
                   >
@@ -293,6 +356,25 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                       <AudioLines className="w-4 h-4" />
                     )}
                   </button>
+                  <button
+                    onClick={() => audioFileInputRef.current?.click()}
+                    disabled={isGenerating || isUploading}
+                    className="px-2 py-2 bg-slate-600 hover:bg-slate-400 text-slate-50 hover:text-slate-900 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+                    title="上传音频文件"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                  </button>
+                  <input
+                    ref={audioFileInputRef}
+                    type="file"
+                    accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/x-m4a,audio/mp3,audio/webm"
+                    onChange={handleUploadAudio}
+                    className="hidden"
+                  />
                 </div>
               </div>
             </div>
