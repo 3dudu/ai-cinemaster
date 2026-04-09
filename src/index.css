@@ -295,11 +295,11 @@
   
   /* 颜色更密！分段更短 → 小容器也色彩丰富 */
   background: linear-gradient(90deg,
-    #7e0de2,
-    #05e256,
-    #262093,
-    #04adca,
-    #7e0de2
+    #9c6dc4,
+    #469964,
+    #4f4aac,
+    #4abcd0,
+    #9352cc
   );
   
   background-size: 150% 200%; /* 小容器最佳尺寸 */

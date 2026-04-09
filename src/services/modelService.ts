@@ -1446,7 +1446,6 @@ export class ModelService {
       {
         id: `segment-${now}-${index}`,
         name: seg.name || `片段 ${index + 1}`,
-        shotIds: [],
         sceneIds: seg.sceneIds || [],
         characterIds: seg.characterIds || [],
         description: `时长：${seg.estimatedDuration||15}\n运动强度：${seg.motionIntensity||5}\n情绪曲线：${seg.emotionCurve || ''}\n台词与节奏： ${seg.dialogueRhythm || ''}\n\n${seg.description||''}`,
@@ -1459,6 +1458,8 @@ export class ModelService {
         dialogueRhythm: seg.dialogueRhythm || '',
         createdAt: now,
         lastModified: now,
+        propIds: seg.propIds || [],
+        shotIds: seg.shotIds || [],
       }));
     } catch (error) {
       console.error('解析片段数据失败:', error);

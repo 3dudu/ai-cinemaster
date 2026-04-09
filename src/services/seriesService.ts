@@ -93,14 +93,15 @@ export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
     genre: series.genre || '剧情片',
     visualStyle: series.visualStyle || '真人写实',
     imageSize: series.imageSize || '2560x1440',
-    imageCount: series.imageCount ?? 1,
+    imageCount: series.imageCount ?? 0,
     globalSettings: series.globalSettings || '',
     scriptData: null,
     isParsingScript: false,
     rawScript: series.rawScript || `标题：示例剧本`,
     isSegmentMode: false,
     segments: [],
-    segmentDuration: 15
+    segmentDuration: 15,
+    modelProviders: series.modelProviders||{},
   };
 };
 

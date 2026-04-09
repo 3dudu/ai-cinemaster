@@ -128,7 +128,7 @@ const StageAssets: React.FC<Props> = ({
         new_prompt = prompt;
         if (char) {
           prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, genre || '剧情片', project.visualStyle, project.globalSettings);
-          new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', localStyle, prompt, char.name);
+          new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', localStyle, prompt, char.name, project.globalSettings);
         }
       } else if (type === 'scene') {
         const scene = scenes.find(s => String(s.id) === String(id));
@@ -137,7 +137,7 @@ const StageAssets: React.FC<Props> = ({
         new_prompt = prompt;
         if (scene) {
           prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle, project.globalSettings);
-          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt, scene.location, scene.time, scene.atmosphere);
+          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt, scene.location, scene.time, scene.atmosphere, project.globalSettings);
         }
       } else {
         // prop
@@ -147,7 +147,7 @@ const StageAssets: React.FC<Props> = ({
         new_prompt = prompt;
         if (prop) {
           prompt = prop.visualPrompt || await ModelService.generateVisualPrompts('prop', prop, genre || '剧情片', project.visualStyle, project.globalSettings);
-          new_prompt = renderTemplate('GENERATE_PROP_IMAGE', localStyle, prompt, prop.name);
+          new_prompt = renderTemplate('GENERATE_PROP_IMAGE', localStyle, prompt, prop.name, project.globalSettings);
         }
       }
 
@@ -999,11 +999,11 @@ const StageAssets: React.FC<Props> = ({
               <button
                 onClick={() => handleBatchGenerate('prop')}
                 disabled={!!batchProgress}
-                className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
-                    allPropsReady
-                      ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
-                      : 'bg-purple-800 text-slate-50 hover:bg-purple-600 shadow-lg shadow-white/5 border border-slate-600'
-                }`}
+              className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
+                  allPropsReady
+                    ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
+                    : 'bg-slate-800 text-slate-50 hover:bg-slate-400 shadow-lg shadow-white/5 border border-slate-600'
+              }`}
               >
                 {allPropsReady ? <RefreshCw className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
                 {allPropsReady ? '重新批量生成' : '生成所有道具'}

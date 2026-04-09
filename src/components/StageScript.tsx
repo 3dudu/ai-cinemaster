@@ -804,6 +804,7 @@ const StageScript: React.FC<Props> = ({
         imageSize: localImageSize,
         imageCount: localImageCount,
         genre: finalGenre || project.scriptData?.genre || '剧情片',
+        globalSettings: localGlobalSettings,
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
       

@@ -663,7 +663,7 @@ export const createNewProjectState = (seriesDefaults?: {
     genre: seriesDefaults?.genre || '剧情片',
     visualStyle: seriesDefaults?.visualStyle || '真人写实',
     imageSize: seriesDefaults?.imageSize || '2560x1440', // Default image size (vertical)
-    imageCount: seriesDefaults?.imageCount ?? 1, // Default image count (1 image per generation)
+    imageCount: seriesDefaults?.imageCount ?? 0, // Default image count (1 image per generation)
     rawScript: seriesDefaults?.rawScript || `标题：示例剧本`,
     scriptData: null,
     shots: [],
