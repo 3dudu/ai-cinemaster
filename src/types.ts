@@ -73,6 +73,9 @@ export interface Shot {
     text2image?: string; // Text-to-image model config ID
     image2video?: string; // Image-to-video model config ID
   };
+  //道具
+  properties: string[];  // Properties Name
+  propVariations?: { [propId: string]: string }; // Map prop name to variation ID for this shot
 }
 
 export interface Props {
@@ -99,6 +102,7 @@ export interface ScriptData {
   characters: Character[];
   scenes: Scene[];
   storyParagraphs: { id: number; text: string; sceneRefId: string }[];
+  props: Properties[];
 }
 
 export interface ProjectState {
@@ -159,6 +163,8 @@ export interface Segment {
   createdAt: number;
   lastModified: number;
   videoUrl?: string; 
+  propIds: string[];  //涉及的道具ID列表（去重）
+  propVariations?: { [propId: string]: string }; // Map prop name to variation ID for this shot
 }
 
 export interface AIModelConfig {
@@ -177,6 +183,7 @@ export interface AIModelConfig {
 export interface SeriesLibrary {
   characters: Character[];
   scenes: Scene[];
+  props: Properties[];
 }
 
 export interface SeriesRecord {
@@ -258,6 +265,31 @@ export interface LLMCallLog {
   pollStartTime?: number;       // 开始轮询时间
   pollEndTime?: number;         // 结束轮询时间
 }
+//道具
+export interface Properties {
+  id: string;
+  refId?: string; // Reference to SeriesRecord.library.props (for series episodes)
+  name: string;
+  shape: string;
+  material: string;
+  color: string;
+  size: string;
+  structural: string;
+  effects: string;
+  description: string;
+  variations: PropertieVariation[]; // Added: List of alternative looks
+  visualPrompt?: string;
+  referenceImage?: string; // Base URL
+}
+
+//道具变形
+export interface PropertieVariation {
+  id: string;
+  name: string; // e.g., "Casual", "Tactical Gear", "Injured"
+  visualPrompt: string;
+  referenceImage?: string;
+}
+
 
 // Electron API types
 declare global {

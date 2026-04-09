@@ -62,7 +62,7 @@ interface Props {
   title?: string;
   projectid?: string;
   project?: ProjectState;
-  filterType?: 'character' | 'scene' | 'keyframe' | 'all';
+  filterType?: 'character' | 'scene' | 'keyframe' | 'prop' | 'all';
 }
 
 const FileUploadModal: React.FC<Props> = ({

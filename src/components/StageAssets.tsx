@@ -1,13 +1,15 @@
-import { AlertCircle, Camera, Download, Drama, Edit2, Expand, Loader2, MapPin, Mic, Palette, Plus, RefreshCw, Shirt, Sparkles, Trash2, Upload, User, X } from 'lucide-react';
+import { AlertCircle, Box, Camera, Download, Drama, Edit2, Expand, Loader2, MapPin, Mic, Palette, Plus, RefreshCw, Shirt, Sparkles, Trash2, Upload, User, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
-import { addLibraryCharacter, addLibraryScene, deleteLibraryCharacter, deleteLibraryScene } from '../services/seriesService';
+import { addLibraryCharacter, addLibraryProp, addLibraryScene, deleteLibraryCharacter, deleteLibraryProp, deleteLibraryScene } from '../services/seriesService';
 import { addMediaHistory } from '../services/storageService';
-import { Character, ProjectState, Scene, SeriesRecord } from '../types';
+import { Character, ProjectState, Properties, Scene, SeriesRecord } from '../types';
 import { useDialog } from './dialog';
 import CharacterAddModal from './modals/CharacterAddModal';
 import FileUploadModal, { downloadImage } from './modals/FileUploadModal';
+import PropAddModal from './modals/PropAddModal';
+import PropVariationModal from './modals/PropVariationModal';
 import SceneAddModal from './modals/SceneAddModal';
 import VoiceSynthesisModal from './modals/VoiceSynthesisModal';
 import WardrobeModal from './modals/WardrobeModal';
@@ -35,24 +37,30 @@ const StageAssets: React.FC<Props> = ({
   const displayScenes = isSeriesMode
     ? series?.library?.scenes || []
     : project.scriptData?.scenes || [];
-  const [processingState, setProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
+  const displayProps = isSeriesMode
+    ? series?.library?.props || []
+    : project.scriptData?.props || [];
+  const [processingState, setProcessingState] = useState<{id: string, type: 'character'|'scene'|'prop'}|null>(null);
   const [batchProgress, setBatchProgress] = useState<{current: number, total: number} | null>(null);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+  const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
   const [localStyle, setLocalStyle] = useState(project.visualStyle || '真人写实');
   const [imageSize, setImageSize] = useState(project.imageSize || '2560x1440');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [fileUploadModalOpen, setFileUploadModalOpen] = useState(false);
-  const [uploadingItem, setUploadingItem] = useState<{id: string, type: 'character'|'scene'}|null>(null);
+  const [uploadingItem, setUploadingItem] = useState<{id: string, type: 'character'|'scene'|'prop'}|null>(null);
   const [voiceSynthesisModalOpen, setVoiceSynthesisModalOpen] = useState(false);
   const [selectedVoiceCharId, setSelectedVoiceCharId] = useState<string | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
   const [addCharacterModalOpen, setAddCharacterModalOpen] = useState(false);
   const [addSceneModalOpen, setAddSceneModalOpen] = useState(false);
+  const [addPropModalOpen, setAddPropModalOpen] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const [editingScene, setEditingScene] = useState<Scene | null>(null);
+  const [editingProp, setEditingProp] = useState<Properties | null>(null);
 
   // Sync local state with project settings
   useEffect(() => {
@@ -60,7 +68,7 @@ const StageAssets: React.FC<Props> = ({
     setImageSize(project.imageSize || '2560x1440');
   }, [project.visualStyle, project.imageSize]);
 
-  const handleGenerateAsset = useCallback(async (type: 'character' | 'scene', id: string, skipConfirm?: boolean) => {
+  const handleGenerateAsset = useCallback(async (type: 'character' | 'scene' | 'prop', id: string, skipConfirm?: boolean) => {
     // Determine data source based on mode
     const characters = isSeriesMode
       ? series?.library?.characters || []
@@ -68,20 +76,33 @@ const StageAssets: React.FC<Props> = ({
     const scenes = isSeriesMode
       ? series?.library?.scenes || []
       : project.scriptData?.scenes || [];
+    const props = isSeriesMode
+      ? series?.library?.props || []
+      : project.scriptData?.props || [];
 
     // Check if item already has a reference image (regenerate)
-    const existingImage = type === 'character'
-      ? characters.find(c => String(c.id) === String(id))?.referenceImage
-      : scenes.find(s => String(s.id) === String(id))?.referenceImage;
+    let existingImage: string | undefined;
+    if (type === 'character') {
+      existingImage = characters.find(c => String(c.id) === String(id))?.referenceImage;
+    } else if (type === 'scene') {
+      existingImage = scenes.find(s => String(s.id) === String(id))?.referenceImage;
+    } else {
+      existingImage = props.find(p => String(p.id) === String(id))?.referenceImage;
+    }
 
     if (existingImage && !skipConfirm) {
-      const itemName = type === 'character'
-        ? characters.find(c => String(c.id) === String(id))?.name
-        : scenes.find(s => String(s.id) === String(id))?.location;
+      let itemName = '';
+      if (type === 'character') {
+        itemName = characters.find(c => String(c.id) === String(id))?.name || '';
+      } else if (type === 'scene') {
+        itemName = scenes.find(s => String(s.id) === String(id))?.location || '';
+      } else {
+        itemName = props.find(p => String(p.id) === String(id))?.name || '';
+      }
 
       const confirmed = await dialog.confirm({
         title: '确认重新生成',
-        message: `确定要重新生成${type === 'character' ? '角色' : '场景'}"${itemName}"的图片吗？`,
+        message: `确定要重新生成${type === 'character' ? '角色' : type === 'scene' ? '场景' : '道具'}"${itemName}"的图片吗？`,
         type: 'warning',
       });
 
@@ -102,21 +123,31 @@ const StageAssets: React.FC<Props> = ({
       if (type === 'character') {
         imagesize = '2560x1440';
         const char = characters.find(c => String(c.id) === String(id));
-        imageUrl = char?.referenceImage;
-        prompt = char?.visualPrompt;
+        imageUrl = char?.referenceImage || null;
+        prompt = char?.visualPrompt || '';
         new_prompt = prompt;
         if (char) {
-          prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, genre || '剧情片', project.visualStyle,project.globalSettings);
+          prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, genre || '剧情片', project.visualStyle, project.globalSettings);
           new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', localStyle, prompt, char.name);
         }
-      } else {
+      } else if (type === 'scene') {
         const scene = scenes.find(s => String(s.id) === String(id));
-        imageUrl = scene?.referenceImage;
-        prompt = scene?.visualPrompt;
+        imageUrl = scene?.referenceImage || null;
+        prompt = scene?.visualPrompt || '';
         new_prompt = prompt;
         if (scene) {
-          prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle,project.globalSettings);
-          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt, scene.location,scene.time,scene.atmosphere);
+          prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle, project.globalSettings);
+          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt, scene.location, scene.time, scene.atmosphere);
+        }
+      } else {
+        // prop
+        const prop = props.find(p => String(p.id) === String(id));
+        imageUrl = prop?.referenceImage || null;
+        prompt = prop?.visualPrompt || '';
+        new_prompt = prompt;
+        if (prop) {
+          prompt = prop.visualPrompt || await ModelService.generateVisualPrompts('prop', prop, genre || '剧情片', project.visualStyle, project.globalSettings);
+          new_prompt = renderTemplate('GENERATE_PROP_IMAGE', localStyle, prompt, prop.name);
         }
       }
 
@@ -125,19 +156,19 @@ const StageAssets: React.FC<Props> = ({
 
       // Save to media history
       if (imageUrl) {
-        const fileName = type === 'character'
-          ? `角色_${characters.find(c => String(c.id) === String(id))?.name || id}`
-          : `场景_${scenes.find(s => String(s.id) === String(id))?.id || id}`;
-        await addMediaHistory(isSeriesMode?series.id:project.id, imageUrl, fileName, 'image', type, new_prompt);
+        let fileName = '';
+        if (type === 'character') {
+          fileName = `角色_${characters.find(c => String(c.id) === String(id))?.name || id}`;
+        } else if (type === 'scene') {
+          fileName = `场景_${scenes.find(s => String(s.id) === String(id))?.id || id}`;
+        } else {
+          fileName = `道具_${props.find(p => String(p.id) === String(id))?.name || id}`;
+        }
+        await addMediaHistory(isSeriesMode ? series.id : project.id, imageUrl, fileName, 'image', type, new_prompt);
       }
 
       // Update state - series mode: update series.library; standalone mode: update project.scriptData
       if (isSeriesMode && series && updateSeries) {
-        const item = type === 'character'
-          ? characters.find(c => String(c.id) === String(id))
-          : scenes.find(s => String(s.id) === String(id));
-        if (!item) return;
-
         const newSeries = { ...series };
         if (type === 'character') {
           const charIndex = newSeries.library.characters.findIndex(c => c.id === id);
@@ -148,7 +179,7 @@ const StageAssets: React.FC<Props> = ({
               visualPrompt: prompt
             };
           }
-        } else {
+        } else if (type === 'scene') {
           const sceneIndex = newSeries.library.scenes.findIndex(s => s.id === id);
           if (sceneIndex >= 0) {
             newSeries.library.scenes[sceneIndex] = {
@@ -157,16 +188,21 @@ const StageAssets: React.FC<Props> = ({
               visualPrompt: prompt
             };
           }
+        } else {
+          // prop
+          if (!newSeries.library.props) newSeries.library.props = [];
+          const propIndex = newSeries.library.props.findIndex(p => p.id === id);
+          if (propIndex >= 0) {
+            newSeries.library.props[propIndex] = {
+              ...newSeries.library.props[propIndex],
+              referenceImage: imageUrl,
+              visualPrompt: prompt
+            };
+          }
         }
         updateSeries(newSeries);
       } else if (project.scriptData) {
         // Standalone mode: update project scriptData
-        const scriptDataItem = type === 'character'
-          ? project.scriptData.characters.find(c => String(c.id) === String(id))
-          : project.scriptData.scenes.find(s => String(s.id) === String(id));
-
-        if (!scriptDataItem) return;
-
         const newData = { ...project.scriptData };
         if (type === 'character') {
           const c = newData.characters.find(c => String(c.id) === String(id));
@@ -174,31 +210,45 @@ const StageAssets: React.FC<Props> = ({
             c.referenceImage = imageUrl;
             c.visualPrompt = prompt;
           }
-        } else {
+        } else if (type === 'scene') {
           const s = newData.scenes.find(s => String(s.id) === String(id));
           if (s) {
             s.referenceImage = imageUrl;
             s.visualPrompt = prompt;
           }
+        } else {
+          // prop
+          if (!newData.props) newData.props = [];
+          const p = newData.props.find(p => String(p.id) === String(id));
+          if (p) {
+            p.referenceImage = imageUrl;
+            p.visualPrompt = prompt;
+          }
         }
         updateProject({ scriptData: newData });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       if (e.message?.includes("enough")) {
         await dialog.toast({ message: '余额不足，请充值', type: 'error' });
       } else {
-        await dialog.toast({ message: (type === 'character' ? '角色 ' : '场景 ') + id + ' 生成失败，请重试。' + e?.message, type: 'error' });
+        const typeName = type === 'character' ? '角色' : type === 'scene' ? '场景' : '道具';
+        await dialog.toast({ message: `${typeName} ${id} 生成失败，请重试。${e?.message}`, type: 'error' });
       }
     } finally {
       setProcessingState(null);
     }
   }, [project.scriptData, localStyle, isSeriesMode, series, updateSeries, updateProject, dialog]);
 
-  const handleBatchGenerate = useCallback(async (type: 'character' | 'scene') => {
-    const items = type === 'character' 
-      ? displayCharacters
-      : displayScenes;
+  const handleBatchGenerate = useCallback(async (type: 'character' | 'scene' | 'prop') => {
+    let items: any[] = [];
+    if (type === 'character') {
+      items = displayCharacters;
+    } else if (type === 'scene') {
+      items = displayScenes;
+    } else {
+      items = displayProps;
+    }
     
     if (!items || items.length === 0) return;
 
@@ -209,7 +259,7 @@ const StageAssets: React.FC<Props> = ({
     if (isRegenerate) {
        const confirmed = await dialog.confirm({
          title: '确认重新生成',
-         message: `确定要重新生成所有${type === 'character' ? '角色' : '场景'}图吗？`,
+         message: `确定要重新生成所有${type === 'character' ? '角色' : type === 'scene' ? '场景' : '道具'}图吗？`,
          type: 'warning',
        });
        if (!confirmed) return;
@@ -228,9 +278,9 @@ const StageAssets: React.FC<Props> = ({
     }
 
     setBatchProgress(null);
-  }, [displayCharacters, displayScenes, handleGenerateAsset, dialog]);
+  }, [displayCharacters, displayScenes, displayProps, handleGenerateAsset, dialog]);
 
-  const handleFileUploadClick = useCallback((itemId: string, itemType: 'character' | 'scene') => {
+  const handleFileUploadClick = useCallback((itemId: string, itemType: 'character' | 'scene' | 'prop') => {
     setUploadingItem({ id: itemId, type: itemType });
     setFileUploadModalOpen(true);
   }, []);
@@ -249,11 +299,21 @@ const StageAssets: React.FC<Props> = ({
             referenceImage: fileUrl
           };
         }
-      } else {
+      } else if (uploadingItem.type === 'scene') {
         const sceneIndex = newSeries.library.scenes.findIndex(s => s.id === uploadingItem.id);
         if (sceneIndex >= 0) {
           newSeries.library.scenes[sceneIndex] = {
             ...newSeries.library.scenes[sceneIndex],
+            referenceImage: fileUrl
+          };
+        }
+      } else {
+        // prop
+        if (!newSeries.library.props) newSeries.library.props = [];
+        const propIndex = newSeries.library.props.findIndex(p => p.id === uploadingItem.id);
+        if (propIndex >= 0) {
+          newSeries.library.props[propIndex] = {
+            ...newSeries.library.props[propIndex],
             referenceImage: fileUrl
           };
         }
@@ -267,10 +327,17 @@ const StageAssets: React.FC<Props> = ({
         if (char) {
           char.referenceImage = fileUrl;
         }
-      } else {
+      } else if (uploadingItem.type === 'scene') {
         const scene = newData.scenes.find(s => s.id === uploadingItem.id);
         if (scene) {
           scene.referenceImage = fileUrl;
+        }
+      } else {
+        // prop
+        if (!newData.props) newData.props = [];
+        const prop = newData.props.find(p => p.id === uploadingItem.id);
+        if (prop) {
+          prop.referenceImage = fileUrl;
         }
       }
       updateProject({ scriptData: newData });
@@ -439,16 +506,93 @@ const StageAssets: React.FC<Props> = ({
     //setEditingScene(null);
   }, [isSeriesMode, series, updateSeries, project, updateProject, dialog, editingScene]);
 
-  if (!project.scriptData&&!isSeriesMode || (displayCharacters.length === 0 && displayScenes.length === 0)) return (
+  const handleAddProp = useCallback(() => {
+    setEditingProp(null);
+    setAddPropModalOpen(true);
+  }, []);
+
+  const handleEditProp = useCallback((prop: Properties) => {
+    setEditingProp(prop);
+    setAddPropModalOpen(true);
+  }, []);
+
+  const handleDeleteProp = useCallback(async (propId: string) => {
+    const prop = isSeriesMode
+      ? series?.library?.props?.find(p => p.id === propId)
+      : project.scriptData?.props?.find(p => p.id === propId);
+    if (!prop) return;
+
+    const confirmed = await dialog.confirm({
+      title: '确认删除道具',
+      message: `确定要删除道具"${prop.name}"吗？此操作${isSeriesMode ? '将从全局资源库中移除该道具' : '将删除该道具'}，但不会影响已生成的图片。`,
+      type: 'warning',
+    });
+
+    if (!confirmed) return;
+
+    if (isSeriesMode && series && updateSeries) {
+      const updatedSeries = deleteLibraryProp(series, propId);
+      updateSeries(updatedSeries);
+    } else if (project.scriptData) {
+      const newData = { ...project.scriptData };
+      newData.props = (newData.props || []).filter(p => p.id !== propId);
+      updateProject({ scriptData: newData });
+    }
+    await dialog.toast({ message: '道具已删除', type: 'success' });
+  }, [isSeriesMode, series, updateSeries, project, updateProject, dialog]);
+
+  const handleSaveProp = useCallback((prop: Properties) => {
+    if (isSeriesMode && series && updateSeries) {
+      // Series mode: operate on series.library
+      if (editingProp) {
+        // Update existing prop
+        const updatedSeries = { ...series };
+        if (!updatedSeries.library.props) updatedSeries.library.props = [];
+        const propIndex = updatedSeries.library.props.findIndex(p => p.id === prop.id);
+        if (propIndex >= 0) {
+          updatedSeries.library.props[propIndex] = prop;
+          updateSeries(updatedSeries);
+          dialog.toast({ message: '道具已更新', type: 'success' });
+        }
+      } else {
+        // Add new prop
+        const updatedSeries = addLibraryProp(series, prop);
+        updateSeries(updatedSeries);
+        dialog.toast({ message: '道具已添加', type: 'success' });
+      }
+    } else if (!isSeriesMode && project.scriptData) {
+      // Standalone mode: operate on project.scriptData
+      const newData = { ...project.scriptData };
+      if (!newData.props) newData.props = [];
+      if (editingProp) {
+        // Update existing prop
+        const propIndex = newData.props.findIndex(p => p.id === prop.id);
+        if (propIndex >= 0) {
+          newData.props[propIndex] = prop;
+          updateProject({ scriptData: newData });
+          dialog.toast({ message: '道具已更新', type: 'success' });
+        }
+      } else {
+        // Add new prop
+        newData.props = [...newData.props, prop];
+        updateProject({ scriptData: newData });
+        dialog.toast({ message: '道具已添加', type: 'success' });
+      }
+    }
+  }, [isSeriesMode, series, updateSeries, project, updateProject, dialog, editingProp]);
+
+  if (!project.scriptData&&!isSeriesMode || (displayCharacters.length === 0 && displayScenes.length === 0 && displayProps.length === 0)) return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">
           <AlertCircle className="w-12 h-12 mb-4 opacity-50"/>
-          <p>暂无角色场景，请先在剧本阶段完成解析。</p>
+          <p>暂无角色场景道具，请先在剧本阶段完成解析。</p>
       </div>
   );
-  
+
   const allCharactersReady = displayCharacters.every(c => c.referenceImage);
   const allScenesReady = displayScenes.every(s => s.referenceImage);
+  const allPropsReady = displayProps.every(p => p.referenceImage);
   const selectedChar = displayCharacters.find(c => c.id === selectedCharId);
+  const selectedProp = displayProps.find(p => p.id === selectedPropId);
 
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-hidden">
@@ -488,6 +632,23 @@ const StageAssets: React.FC<Props> = ({
           setProcessingState={setProcessingState}
           updateProject={updateProject}
           onClose={() => setSelectedCharId(null)}
+          setPreviewImage={setPreviewImage}
+        />
+      )}
+
+      {/* Prop Variation Modal */}
+      {selectedProp && (
+        <PropVariationModal
+          prop={selectedProp}
+          series={series}
+          updateSeries={updateSeries}
+          project={project}
+          localStyle={localStyle}
+          imageSize={imageSize}
+          processingState={processingState}
+          setProcessingState={setProcessingState}
+          updateProject={updateProject}
+          onClose={() => setSelectedPropId(null)}
           setPreviewImage={setPreviewImage}
         />
       )}
@@ -815,6 +976,158 @@ const StageAssets: React.FC<Props> = ({
             ))}
           </div>
         </section>
+
+        {/* Props Section */}
+        <section>
+          <div className="flex items-end justify-between py-2 border-b border-slate-600 pb-4 sticky top-0 bg-slate-900 z-40">
+            <div>
+               <h3 className="text-sm font-bold text-slate-50 tracking-widest flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                 道具设计
+               </h3>
+               <p className="text-xs text-slate-500 mt-1 pl-3.5">为剧本道具生成一致参考图</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleAddProp}
+                disabled={!!batchProgress}
+                className="px-3 py-2 rounded-lg text-xs font-bold tracking-wide transition-all flex items-center gap-2 cursor-pointer bg-green-600 text-slate-50 hover:bg-green-500 shadow-lg shadow-green-500/20"
+              >
+                <Plus className="w-3 h-3" />
+                新增
+              </button>
+              <button
+                onClick={() => handleBatchGenerate('prop')}
+                disabled={!!batchProgress}
+                className={`px-4 py-2 rounded-lg text-xs font-bold tracking-wide transition-all flex items-center gap-2 cursor-pointer ${
+                    allPropsReady
+                      ? 'bg-slate-900 text-slate-400 border border-slate-600 hover:text-slate-50 hover:border-slate-300 hover:bg-slate-500'
+                      : 'bg-purple-800 text-slate-50 hover:bg-purple-600 shadow-lg shadow-white/5 border border-slate-600'
+                }`}
+              >
+                {allPropsReady ? <RefreshCw className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+                {allPropsReady ? '重新批量生成' : '生成所有道具'}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 py-4 md:grid-cols-3 xl:grid-cols-4 gap-6">
+            {displayProps.map((prop) => (
+              <div key={prop.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
+                <div className="aspect-[16/9] bg-slate-800/50 relative overflow-hidden">
+                  {/* Edit & Delete Buttons - Top Left */}
+                  <button
+                    onClick={() => handleEditProp(prop)}
+                    disabled={!!batchProgress}
+                    className="absolute top-2 left-2 p-2 bg-blue-600/50 text-slate-50 rounded-full hover:bg-blue-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
+                    title="编辑道具"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteProp(prop.id)}
+                    disabled={!!batchProgress || !!processingState}
+                    className="absolute top-10 left-2 p-2 bg-red-600/50 text-slate-50 rounded-full hover:bg-red-600 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer z-20"
+                    title="删除道具"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                  {prop.referenceImage ? (
+                    <>
+                      <img src={prop.referenceImage} alt={prop.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700" />
+                      {processingState?.type === 'prop' && processingState?.id === prop.id ? (
+                        <div className="ai-generating-overlay">
+                        </div>
+                      ) : (
+                        <div className={`absolute inset-0 bg-slate-700/60 opacity-0 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm ${batchProgress || processingState ? 'pointer-events-none opacity-50' : 'group-hover:opacity-80'}`}>
+                          <button
+                            onClick={(e) => {
+                              const propImages = displayProps
+                                .filter(p => p.referenceImage)
+                                .map(p => p.referenceImage);
+                              const idx = propImages.indexOf(prop.referenceImage);
+                              setPreviewImages(propImages as string[]);
+                              setPreviewIndex(idx >= 0 ? idx : 0);
+                              setPreviewImage(prop.referenceImage!);
+                            }}
+                            disabled={!!batchProgress || !!processingState}
+                            className="px-3 py-1.5 bg-slate-700/50 text-slate-50 text-[12px] font-bold tracking-wider rounded flex items-center gap-2 border border-white/20 hover:bg-slate-800 hover:text-slate-50 transition-colors backdrop-blur disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            <Expand className="w-3 h-3" />
+                            全屏预览
+                          </button>
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2 p-1 bg-purple-500 text-slate-50 rounded shadow-lg backdrop-blur">
+                        <Box className="w-3 h-3" />
+                      </div>
+                    </>
+                  ) : (
+                     <div className={`w-full h-full flex flex-col items-center justify-center bg-slate-700/50 text-slate-500 p-4 text-center ${processingState?.type === 'prop' && processingState?.id === prop.id ?'ai-generating-overlay':''}`}>
+                       <Box className="w-10 h-10 mb-3 opacity-10" />
+                       <button
+                          onClick={() => { handleGenerateAsset('prop', prop.id); }}
+                          disabled={processingState?.type === 'prop' && processingState?.id === prop.id || !!batchProgress || !!processingState}
+                          className="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded text-xs font-bold transition-all border border-slate-600 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                       >
+                          {processingState?.type === 'prop' && processingState?.id === prop.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Palette className="w-3 h-3" />}
+                          {processingState?.type === 'prop' && processingState?.id === prop.id ? '生成中...' : '生成'}
+                       </button>
+                     </div>
+                  )}
+                  {/* Action Buttons */}
+                  <div className="absolute bottom-0 right-0 flex items-center justify-center gap-1 p-1">
+                    {prop.referenceImage && (
+                      <>
+                        <button
+                          onClick={() => { handleGenerateAsset('prop', prop.id); }}
+                          className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                          title="重新生成"
+                        >
+                          <Palette className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => { handleDownloadImage(prop.referenceImage!, '道具-'+prop.name); }}
+                          className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                          title="下载图片"
+                        >
+                          <Download className="w-3 h-3" />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => { handleFileUploadClick(prop.id, 'prop'); }}
+                      disabled={!!batchProgress || !!processingState}
+                      className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                      title="上传图片"
+                    >
+                      <Upload className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => { setSelectedPropId(prop.id); }}
+                      disabled={!!batchProgress || !!processingState}
+                      className="p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-amber-400 transition-colors border border-white/10 backdrop-blur cursor-pointer"
+                      title="管理形态"
+                    >
+                      <Box className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-3 border-t border-slate-600 bg-slate-900">
+                  <div className="flex justify-between items-center mb-1">
+                     <h3 className="font-bold text-slate-200 text-sm truncate">{prop.name}</h3>
+                     {prop.variations && prop.variations.length > 0 && (
+                       <span className="px-1.5 py-0.5 text-[11px] rounded border border-slate-600 text-slate-400 font-mono">
+                         +{prop.variations.length} 变形
+                       </span>
+                     )}
+                  </div>
+                  <p className="text-[12px] text-slate-500 line-clamp-1 pt-2">{prop.description || `${prop.shape || ''} ${prop.material || ''} ${prop.color || ''}`.trim()}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
       {/* File Upload Modal */}
@@ -822,12 +1135,12 @@ const StageAssets: React.FC<Props> = ({
         isOpen={fileUploadModalOpen}
         onClose={() => setFileUploadModalOpen(false)}
         onUploadSuccess={handleFileUploadSuccess}
-        filePath={(uploadingItem?.type === 'scene' ? 'scene' : 'character')+'/upload'}
+        filePath={`${uploadingItem?.type || 'character'}/upload`}
         acceptTypes="image/png,image/jpeg,image/jpg"
-        title={uploadingItem?.type === 'scene' ? '上传场景图片' : '上传角色图片'}
+        title={uploadingItem?.type === 'scene' ? '上传场景图片' : uploadingItem?.type === 'prop' ? '上传道具图片' : '上传角色图片'}
         projectid={project.id}
         project={project}
-        filterType={uploadingItem?.type === 'scene' ? 'scene' : 'character'}
+        filterType={uploadingItem?.type === 'scene' ? 'scene' : uploadingItem?.type === 'prop' ? 'prop' : 'character'}
       />
 
       {/* Fullscreen Image Preview Modal */}
@@ -923,6 +1236,17 @@ const StageAssets: React.FC<Props> = ({
         onClose={() => { setAddSceneModalOpen(false); setEditingScene(null); }}
         onSave={handleSaveScene}
         scene={editingScene}
+        genre={project.genre}
+        visualStyle={project.visualStyle}
+        project={project}
+      />
+
+      {/* Add/Edit Prop Modal */}
+      <PropAddModal
+        isOpen={addPropModalOpen}
+        onClose={() => { setAddPropModalOpen(false); setEditingProp(null); }}
+        onSave={handleSaveProp}
+        prop={editingProp}
         genre={project.genre}
         visualStyle={project.visualStyle}
         project={project}

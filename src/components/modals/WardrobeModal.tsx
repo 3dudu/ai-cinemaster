@@ -14,8 +14,8 @@ interface Props {
   project: ProjectState;
   localStyle: string;
   imageSize: string;
-  processingState: {id: string, type: 'character'|'scene'}|null;
-  setProcessingState: (state: {id: string, type: 'character'|'scene'}|null) => void;
+  processingState: {id: string, type: 'character'|'scene'|'prop'}|null;
+  setProcessingState: (state: {id: string, type: 'character'|'scene'|'prop'}|null) => void;
   updateProject: (updates: Partial<ProjectState>) => void;
   onClose: () => void;
   setPreviewImage: (image:string)=>void;

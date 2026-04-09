@@ -1,6 +1,6 @@
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
-import { Character, Scene, Segment, Shot } from '../types';
+import { Character, Properties, Scene, Segment, Shot } from '../types';
 
 /**
  * 将分镜数组转换为片段数组
@@ -308,7 +308,8 @@ export async function aiConvertShotsToSegments(
   scenes: Scene[],
   visualStyle: string = "真人写实",
   genre: string = "剧情片",
-  segmentDuration:number=15
+  segmentDuration:number=15,
+  props:Properties[]
 ): Promise<Segment[] | null> {
   if (!shots || shots.length === 0) {
     return [];
@@ -323,6 +324,7 @@ export async function aiConvertShotsToSegments(
     cameraMovement: shot.cameraMovement,
     shotSize: shot.shotSize,
     characters: shot.characters,
+    properties: shot.properties,
     interval: shot.interval ? { duration: shot.interval.duration } : undefined,
   }));
 
@@ -332,6 +334,8 @@ export async function aiConvertShotsToSegments(
   // 3. 构建场景映射（id: location）
   const scenesMap = scenes.map(s => `${s.id}: ${s.location}`).join('\n');
 
+  const propsMap = props.map(s => `${s.id}: ${s.location}`).join('\n');
+
   // 4. 构建 prompt
   const prompt = renderTemplate(
     'AI_SPLIT_SEGMENTS',
@@ -339,7 +343,8 @@ export async function aiConvertShotsToSegments(
     charactersMap,
     scenesMap,
     visualStyle,
-    genre
+    genre,
+    propsMap
   );
 
   try {

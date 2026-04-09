@@ -14,7 +14,7 @@ interface ImageItem {
   imageUrl: string;
   title: string;
   subtitle: string;
-  type: 'character' | 'scene' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
+  type: 'character' | 'scene' | 'prop' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
   projectId: string;
   projectName: string;
   downname: string;
@@ -31,7 +31,7 @@ interface Props {
   project?: ProjectState;
   updateProject?: (updates: Partial<ProjectState>) => void;
   onSelectImage: (imageUrl: string, allImages?: string[]) => void;
-  filterType?: 'character' | 'scene' | 'keyframe' | 'all';
+  filterType?: 'character' | 'scene' | 'keyframe' | 'prop' | 'all';
   previewMode?: boolean;
   showVideo?: boolean;
 }
@@ -48,7 +48,7 @@ const ImageSelectorModal: React.FC<Props> = ({
 }) => {
   const dialog = useDialog();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video'>(filterType);
+  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'prop' | 'keyframe' | 'video'>(filterType);
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
   const [seriesList, setSeriesList] = useState<SeriesRecord[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -196,6 +196,20 @@ const ImageSelectorModal: React.FC<Props> = ({
     return scene;
   }, [seriesList]);
 
+  // Helper function to get prop with full library data (in series mode)
+  const getPropWithAssets = useCallback((prop: import('../../types').Properties, projectSeriesRefId?: string): import('../../types').Properties => {
+    // In standalone mode, return prop directly
+    if (!projectSeriesRefId || !prop.refId) return prop;
+
+    // In series mode, get full prop data from series library
+    const series = seriesList.find(s => s.id === projectSeriesRefId);
+    if (series?.library?.props) {
+      const libraryProp = series.library.props.find(p => p.id === prop.refId);
+      if (libraryProp) return libraryProp;
+    }
+    return prop;
+  }, [seriesList]);
+
   useEffect(() => {
     const loadAllImages = async () => {
       const images: ImageItem[] = [];
@@ -275,6 +289,42 @@ const ImageSelectorModal: React.FC<Props> = ({
               downname: `${project?.scriptData?.title || ''}-场景-${scene.id}`,
               mediaType: 'image'
             });
+          }
+        }
+      }
+
+      // 道具图片（包含所有变体）
+      if (selectedProject.scriptData?.props) {
+        for (const episodeProp of selectedProject.scriptData.props) {
+          const prop = getPropWithAssets(episodeProp, selectedProject.seriesRefId);
+          if (prop.referenceImage) {
+            imageTasks.push({
+              url: prop.referenceImage,
+              id: `prop-${selectedProject.id}-${prop.id}`,
+              type: 'prop',
+              title: prop.name,
+              subtitle: `道具 - ${prop.name}`,
+              downname: `${project?.scriptData?.title || ''}-道具-${prop.name}`,
+              mediaType: 'image'
+            });
+          }
+
+          // 添加道具的所有变体图片
+          if (prop.variations) {
+            for (let idx = 0; idx < prop.variations.length; idx++) {
+              const variation = prop.variations[idx];
+              if (variation.referenceImage) {
+                imageTasks.push({
+                  url: variation.referenceImage,
+                  id: `prop-${selectedProject.id}-${prop.id}-variation-${idx}`,
+                  type: 'prop',
+                  title: `${prop.name} - ${variation.name || `变体 ${idx + 1}`}`,
+                  subtitle: `道具变体 - ${prop.name}`,
+                  downname: `${project?.scriptData?.title || ''}-道具-${prop.name}-变体 ${idx + 1}`,
+                  mediaType: 'image'
+                });
+              }
+            }
           }
         }
       }
@@ -417,7 +467,7 @@ const ImageSelectorModal: React.FC<Props> = ({
         if (!urlHashSet.has(file.id)) {
           urlHashSet.add(file.id);
   
-          let type: 'character' | 'scene' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
+          let type: 'character' | 'scene' | 'prop' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
           let subtitle = '';
   
           if (file.mediaType === 'character') {
@@ -426,6 +476,9 @@ const ImageSelectorModal: React.FC<Props> = ({
           } else if (file.mediaType === 'scene') {
             type = 'scene';
             subtitle = `场景历史 - ${file.fileName}`;
+          } else if (file.mediaType === 'prop') {
+            type = 'prop';
+            subtitle = `道具历史 - ${file.fileName}`;
           } else if (file.fileType === 'video') {
             type = file.mediaType==='video'?'video':'video-transition';
             subtitle = `场景视频 - ${file.fileName}`;
@@ -462,7 +515,7 @@ const ImageSelectorModal: React.FC<Props> = ({
     };
   
     loadAllImages();
-  }, [allProjects, selectedProjectId, project, showVideo, getCharacterWithAssets, getSceneWithAssets]);
+  }, [allProjects, selectedProjectId, project, showVideo, getCharacterWithAssets, getSceneWithAssets, getPropWithAssets]);
 
   // 根据搜索词过滤图片
   const filteredImages = useMemo(() => {
@@ -617,6 +670,7 @@ const ImageSelectorModal: React.FC<Props> = ({
       all: 0,
       character: 0,
       scene: 0,
+      prop: 0,
       video: 0,
       keyframe: 0
     };
@@ -626,6 +680,7 @@ const ImageSelectorModal: React.FC<Props> = ({
       counts.all++;
       if (img.type === 'character') counts.character++;
       else if (img.type === 'scene') counts.scene++;
+      else if (img.type === 'prop') counts.prop++;
       else if (img.type.startsWith('video')) counts.video++;
       else if (img.type.startsWith('keyframe')) counts.keyframe++;
     }
@@ -749,13 +804,14 @@ const ImageSelectorModal: React.FC<Props> = ({
             <div className="flex gap-1 md:gap-2 py-2">
           {(
             showVideo
-              ? ['all', 'character', 'scene', 'keyframe', 'video'] as const
-              : ['all', 'character', 'scene', 'keyframe'] as const
+              ? ['all', 'character', 'scene', 'prop', 'keyframe', 'video'] as const
+              : ['all', 'character', 'scene', 'prop', 'keyframe'] as const
           ).map(tab => {
             const labels = {
               all: '全部',
               character: '角色',
               scene: '场景',
+              prop: '道具',
               keyframe: '关键帧',
               video: '视频'
             };

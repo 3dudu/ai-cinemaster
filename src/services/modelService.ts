@@ -575,6 +575,8 @@ export class ModelService {
     if (!paragraphs.trim()) return [];
     let characters = "";
     characters = scriptData.characters ? scriptData.characters.map(d =>`${d.id}: ${d.name}: ${d.personality}`).join('\n') : "";
+    let properties = "";
+    properties = scriptData.props ? scriptData.props.map(d =>`${d.id}: ${d.name}`).join('\n') : "";
     const prompt = renderTemplate('GENERATE_SHOTS',
       sceneIndex+1,
       scene.location,
@@ -586,7 +588,8 @@ export class ModelService {
       characters,
       lang,
       imageCount,
-      segmentDuration
+      segmentDuration,
+      properties
     );
     let shots: Shot[] = [];
     switch (provider.provider) {
@@ -655,12 +658,12 @@ export class ModelService {
 
   /**
    * 生成视觉提示词
-   * @param type - 角色 or 场景
-   * @param data - 角色或场景数据
+   * @param type - 角色 or 场景 or 道具
+   * @param data - 角色或场景或道具数据
    * @param genre - 题材类型
    */
   static async generateVisualPrompts(
-    type: "character" | "scene" | 'variation',
+    type: "character" | "scene" | 'variation' | 'prop',
     data: any,
     genre: string,
     visualStyle: string,
@@ -687,12 +690,16 @@ export class ModelService {
     let prompt = "";
     if(type=='variation'){
       prompt = renderTemplate('GENERATE_VARIATION_PROMPT', genre,desc,visualStyle,variationName,variationPrompt);
+    }else if(type=='prop'){
+      prompt = renderTemplate('GENERATE_PROP_PROMPT', genre,desc,visualStyle);
     }else{
       prompt = renderTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', genre,desc,visualStyle,story);
     }
     let visualPrompt = renderTemplate('SYSTEM_CHARA_DESIGNER');
     if(type=='scene'){
       visualPrompt=renderTemplate('SYSTEM_SCENE_DESIGNER');
+    }else if(type=='prop'){
+      visualPrompt=renderTemplate('SYSTEM_PROP_DESIGNER');
     }
     switch (provider.provider) {
       case 'deepseek':
@@ -1257,12 +1264,14 @@ export class ModelService {
 
     let scenes = scriptData.scenes ? scriptData.scenes.map(d =>`id:${d.id}, location:${d.location},time:${d.time}`).join('\n') : "";
     let characters = scriptData.characters ? scriptData.characters.map(d =>`${d.id}: ${d.name}: ${d.personality}`).join('\n') : "";
+    let props = scriptData.characters ? scriptData.props.map(d =>`${d.id}: ${d.name}: ${d.name}`).join('\n') : "";
     const prompt = renderTemplate('IMPORT_SHOTS_FOR_SCENE',
       scenes,
       characters,
       imageCount,
       scriptText,
-      segmentDuration
+      segmentDuration,
+      props
     );
     let shots: Shot[] = [];
     switch (provider.provider) {
@@ -1388,6 +1397,7 @@ export class ModelService {
     
     // 构建角色和场景信息
     const characters = scriptData.characters?.map(c => `${c.id}: ${c.name}`).join('\n') || '';
+    const props = scriptData.props?.map(c => `${c.id}: ${c.name}`).join('\n') || '';
     const scenes = scriptData.scenes?.map(s => `${s.id}: ${s.location}`).join('\n') || '';
     
     const prompt = renderTemplate('GENERATE_SEGMENTS_FROM_SCRIPT',
@@ -1397,7 +1407,8 @@ export class ModelService {
       visualStyle,
       genre,
       language,
-      targetDuration
+      targetDuration,
+      props
     );
     
     const systemPrompt = renderTemplate('SYSTEM_SEGMENT_SPLIT',segmentDuration);

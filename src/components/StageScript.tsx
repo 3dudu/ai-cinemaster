@@ -2,7 +2,7 @@ import { AlertCircle, Aperture, BookOpen, BrainCircuit, ChevronDown, ChevronUp, 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
-import { createCharacterRef, createLightweightCharacters, createLightweightScenes, createSceneRef, generateId, mergeCharactersToLibrary, mergeScenesToLibrary, mergeToLibrary, remapScriptDataRefs, updateLibraryCharacter } from '../services/seriesService';
+import { createCharacterRef, createLightweightCharacters, createLightweightProps, createLightweightScenes, createSceneRef, generateId, mergeCharactersToLibrary, mergeScenesToLibrary, mergeToLibrary, remapScriptDataRefs, updateLibraryCharacter } from '../services/seriesService';
 import { getAllModelConfigs } from '../services/storageService';
 import { Character, ProjectState, Scene, SeriesRecord } from '../types';
 import CustomSelect from './common/CustomSelect';
@@ -595,15 +595,16 @@ const StageScript: React.FC<Props> = ({
         // Series mode: merge to library and create lightweight refs
         if (series && updateSeries) {
           setProcessingStep('正在同步到剧集库...');
-          const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
-            mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+          const { series: updatedSeries, charIdMapping, sceneIdMapping,propIdMapping } = 
+            mergeToLibrary(series, scriptData.characters, scriptData.scenes,scriptData.props);
           
           // Remap references in scriptData
-          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping,propIdMapping);
           
           // Create lightweight characters/scenes for episode
           scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
           scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+          scriptData.props = createLightweightProps(scriptData.props, propIdMapping);
           
           // Update series
           updateSeries(updatedSeries);
@@ -700,7 +701,6 @@ const StageScript: React.FC<Props> = ({
       ModelService.setCurrentProjectProviders(project.modelProviders);
       let scriptData = await ModelService.importScriptToData(localScript, localLanguage,localGenre);
       console.log('scriptData', scriptData);
-      if(scriptData.scenes.length > 0){
         updateProject({ isParsingScript: true });
   
         scriptData.targetDuration = finalDuration;
@@ -714,15 +714,16 @@ const StageScript: React.FC<Props> = ({
         // Series mode: merge to library and create lightweight refs
         if (series && updateSeries) {
           setProcessingStep('正在同步到剧集库...');
-          const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
-            mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+          const { series: updatedSeries, charIdMapping, sceneIdMapping, propIdMapping } = 
+            mergeToLibrary(series, scriptData.characters, scriptData.scenes,scriptData.props);
           
           // Remap references in scriptData
-          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping,propIdMapping);
           
           // Create lightweight characters/scenes for episode
           scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
           scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+          scriptData.props = createLightweightProps(scriptData.props, propIdMapping);
           
           // Update series
           updateSeries(updatedSeries);
@@ -757,16 +758,6 @@ const StageScript: React.FC<Props> = ({
   
         setActiveTab('script');
         setProcessingStep('');
-      }else{
-        setProcessingStep('');
-        await dialog.alert({
-          title: '错误',
-          message: `分析剧本失败`,
-          type: 'error',
-        });
-        return;
-      }
-
     } catch (err: any) {
       console.error(err);
       dialog.alert({
@@ -829,15 +820,16 @@ const StageScript: React.FC<Props> = ({
       // 2. Series 模式：合并到 library
       if (series && updateSeries) {
         setProcessingStep('正在同步到剧集库...');
-        const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
-          mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+        const { series: updatedSeries, charIdMapping, sceneIdMapping,propIdMapping } = 
+          mergeToLibrary(series, scriptData.characters, scriptData.scenes,scriptData.props);
         
         // Remap references in scriptData
-        scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+        scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping,propIdMapping);
         
         // Create lightweight characters/scenes for episode
         scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
         scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+        scriptData.props = createLightweightProps(scriptData.props, propIdMapping);
         
         // Update series
         updateSeries(updatedSeries);
@@ -1856,6 +1848,7 @@ const StageScript: React.FC<Props> = ({
     // Series mode: use series.library for full assets
     const localCharacters = project.scriptData?.characters || [];
     const localScenes = project.scriptData?.scenes || [];
+    const localProps = project.scriptData?.props || [];
 
     // Select characters based on mode
     const charactersForSelect = isSeriesMode && series?.library?.characters
@@ -1867,6 +1860,11 @@ const StageScript: React.FC<Props> = ({
       ? series.library.scenes
       : localScenes;
 
+    // Select props based on mode
+    const propsForSelect = isSeriesMode && series?.library?.props
+      ? series.library.props
+      : localProps;
+
     // 编辑现有 shot
     if (editingShotId) {
       const shot = project.shots.find(s => s.id === editingShotId);
@@ -1877,6 +1875,7 @@ const StageScript: React.FC<Props> = ({
           shot={shot}
           characters={charactersForSelect}
           scenes={scenesForSelect}
+          props={propsForSelect}
           onSave={saveShot}
           onClose={() => {
             setEditingShotId(null);
@@ -1906,6 +1905,7 @@ const StageScript: React.FC<Props> = ({
           shot={newShot}
           characters={charactersForSelect}
           scenes={scenesForSelect}
+          props={propsForSelect}
           onSave={saveShot}
           onClose={() => {
             setAddingShotForSceneId(null);
