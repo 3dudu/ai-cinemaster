@@ -1,7 +1,7 @@
 {
   "name": "cinegen-ai-director",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.4.6",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
