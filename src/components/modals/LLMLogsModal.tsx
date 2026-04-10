@@ -163,7 +163,6 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
 
         if (uploadResponse.success && uploadResponse.data?.fileUrl) {
           finalUrl = uploadResponse.data.fileUrl;
-          console.log(`文件已上传到本地服务器: ${finalUrl}`);
         } else {
           console.warn(`文件上传失败: ${uploadResponse.error}，使用原始URL`);
         }

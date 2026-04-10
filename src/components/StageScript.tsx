@@ -83,12 +83,15 @@ const StageScript: React.FC<Props> = ({
     }
   }, [project.scriptSourceMode]);
 
-  // 当 project.segmentDuration 变化时同步更新本地状态
   useEffect(() => {
     if (project.segmentDuration) {
       setLocalSegmentDuration(project.segmentDuration);
     }
   }, [project.segmentDuration]);
+
+  useEffect(() => {
+    setActiveTab(project.scriptData ? 'script' : 'story');
+  }, [project.id]); 
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -454,7 +457,7 @@ const StageScript: React.FC<Props> = ({
 
     setRegeneratingSceneId(sceneId);
     try {
-      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex ,project.imageCount,project.segmentDuration);
+      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex ,project.imageCount,project.segmentDuration,localGlobalSettings);
       if(newShots && newShots.length > 0){
         // 删除该场景的旧分镜
         const otherShots = project.shots.filter(s => s.sceneId !== sceneId);
@@ -580,8 +583,7 @@ const StageScript: React.FC<Props> = ({
         genre: finalGenre || project.scriptData?.genre || '剧情片',
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
-      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage,localGenre,localGlobalSettings);
-      console.log('scriptData', scriptData);
+      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage,finalGenre,localGlobalSettings,getFinalDuration());
         updateProject({ isParsingScript: true });
   
         scriptData.targetDuration = finalDuration;
@@ -590,7 +592,7 @@ const StageScript: React.FC<Props> = ({
         if (localTitle && localTitle !== "未命名项目") {
           scriptData.title = localTitle;
         }
-        scriptData.genre = localGenre;
+        scriptData.genre = finalGenre;
 
         // Series mode: merge to library and create lightweight refs
         if (series && updateSeries) {
@@ -618,7 +620,7 @@ const StageScript: React.FC<Props> = ({
           const scene = scriptData.scenes[i];
           setProcessingStep(`正在生成第 ${i + 1}/${totalScenes} 场的分镜...`);
   
-          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i,project.imageCount,project.segmentDuration);
+          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i,project.imageCount,project.segmentDuration,localGlobalSettings);
           allShots.push(...sceneShots);
   
           // 短暂延迟，避免请求过快
@@ -699,8 +701,7 @@ const StageScript: React.FC<Props> = ({
         genre: finalGenre || project.scriptData?.genre || '剧情片',
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
-      let scriptData = await ModelService.importScriptToData(localScript, localLanguage,localGenre);
-      console.log('scriptData', scriptData);
+      let scriptData = await ModelService.importScriptToData(localScript, localLanguage,finalGenre);
         updateProject({ isParsingScript: true });
   
         scriptData.targetDuration = finalDuration;
@@ -709,7 +710,7 @@ const StageScript: React.FC<Props> = ({
         if (localTitle && localTitle !== "未命名项目") {
           scriptData.title = localTitle;
         }
-        scriptData.genre = localGenre;
+        scriptData.genre = finalGenre;
 
         // Series mode: merge to library and create lightweight refs
         if (series && updateSeries) {
@@ -809,18 +810,19 @@ const StageScript: React.FC<Props> = ({
       ModelService.setCurrentProjectProviders(project.modelProviders);
       
       // 1. 解析剧本获取角色和场景
-      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage, localGenre,localGlobalSettings);
+      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage, finalGenre,localGlobalSettings,getFinalDuration());
       
       scriptData.targetDuration = finalDuration;
       scriptData.language = localLanguage;
       if (localTitle && localTitle !== "未命名项目") {
         scriptData.title = localTitle;
       }
-      scriptData.genre = localGenre;
+      scriptData.genre = finalGenre;
 
       // 2. Series 模式：合并到 library
       if (series && updateSeries) {
         setProcessingStep('正在同步到剧集库...');
+        console.log('scriptData',scriptData);
         const { series: updatedSeries, charIdMapping, sceneIdMapping,propIdMapping } = 
           mergeToLibrary(series, scriptData.characters, scriptData.scenes,scriptData.props);
         
@@ -1146,7 +1148,7 @@ const StageScript: React.FC<Props> = ({
                   }`}
                 >
                   <Wand2 className="w-3.5 h-3.5" />
-                  AI生成
+                  分镜模式
                 </button>
                 <button
                   onClick={() => {
@@ -1174,7 +1176,7 @@ const StageScript: React.FC<Props> = ({
                   }`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  导入脚本
+                  导入分镜
                 </button>
               </div>
               <p className="text-[10px] text-slate-500">

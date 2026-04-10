@@ -374,7 +374,6 @@ function parseAiSegmentResponse(response: string, originalShots: Shot[]): Segmen
     if (jsonMatch) {
       jsonStr = jsonMatch[1];
     }
-    console.log('jsonStr', jsonStr);
     const parsed = JSON.parse(jsonStr);
 
     if (!parsed.segments || !Array.isArray(parsed.segments)) {

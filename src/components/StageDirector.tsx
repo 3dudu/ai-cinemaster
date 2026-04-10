@@ -2181,7 +2181,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   </div>
                            <button
                              onClick={() => handleGenerateVideo(activeShot)}
-                             disabled={!!processingState || !!batchProgress}
+                             disabled={processingState?.type === 'video' || !!batchProgress}
                              className={`mx-6 m-3 py-2 rounded-lg font-bold border border-slate-600 xt-xs tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer ${
                                activeShot.interval?.videoUrl
                                  ? 'bg-slate-600 text-slate-300 hover:bg-slate-700'

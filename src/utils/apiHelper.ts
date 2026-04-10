@@ -302,7 +302,6 @@ export const pollTask = async <T>(
             pollEndTime: endTime,
             duration: endTime - startTime
           }).catch(err => console.warn('Failed to update poll log:', err));
-          return null;
         }
         throw new Error(errorMsg || "任务失败");
       }else{
@@ -310,25 +309,17 @@ export const pollTask = async <T>(
         await new Promise((resolve) => setTimeout(resolve, finalConfig.pollInterval));
       }
     } catch (error: any) {
-      if (i === finalConfig.maxAttempts - 1) {
-        // 更新日志为超时/失败状态
-        if (logContext && logContext.logId) {
-          const endTime = Date.now();
-          updatePollLog(logContext.logId, {
-            taskStatus: 'failed',
-            pollCount,
-            response: lastData,
-            success: false,
-            errorMessage: error.message || '任务轮询超时',
-            pollEndTime: endTime,
-            duration: endTime - startTime
-          }).catch(err => console.warn('Failed to update poll log:', err));
-        }
-        i=i+10;
+        const endTime = Date.now();
+        updatePollLog(logContext.logId, {
+          taskStatus: 'failed',
+          pollCount,
+          response: lastData,
+          success: false,
+          errorMessage: error.message || '任务轮询异常',
+          pollEndTime: endTime,
+          duration: endTime - startTime
+        }).catch(err => console.warn('Failed to update poll log:', err));
         throw error;
-      }
-      //console.warn(`查询任务状态失败 (尝试 ${i + 1}/${finalConfig.maxAttempts}):`, error);
-      await new Promise((resolve) => setTimeout(resolve, finalConfig.pollInterval));
     }
   }
 

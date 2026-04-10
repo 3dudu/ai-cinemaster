@@ -120,7 +120,7 @@ function App() {
     });
   };
 
-  const setStage = (stage: 'script' | 'assets' | 'director' | 'segments' | 'export') => {
+  const setStage = (stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images') => {
     updateProject({ stage });
   };
 

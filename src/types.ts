@@ -101,7 +101,7 @@ export interface ScriptData {
   language?: string; 
   characters: Character[];
   scenes: Scene[];
-  storyParagraphs: { id: number; text: string; sceneRefId: string }[];
+  storyParagraphs: { id: number; text: string; sceneRefId: string; duration: number }[];
   props: Properties[];
 }
 

@@ -474,7 +474,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.rawScript, 
             project.language || '中文', 
             project.genre || '剧情片',
-            project.globalSettings || ''
+            project.globalSettings || '',
+            project.targetDuration || '60s'
           );
           
           if (!scriptData || scriptData.scenes.length === 0) {

@@ -86,9 +86,10 @@ export const parseScriptToData = async (prompt: string, language: string = 'ф╕нц
                properties: {
                  id: { type: Type.NUMBER },
                  text: { type: Type.STRING },
-                 sceneRefId: { type: Type.STRING }
+                 sceneRefId: { type: Type.STRING },
+                 duration: { type: Type.NUMBER }
                },
-               required: ["id", "text", "sceneRefId"]
+               required: ["id", "text", "sceneRefId","duration"]
              }
           }
         },

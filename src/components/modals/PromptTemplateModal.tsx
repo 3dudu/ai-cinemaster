@@ -160,11 +160,11 @@ const PromptTemplateModal: React.FC<{
 
   // 变量提示
   const variables: Record<string, string[]> = {
-    'PARSE_SCRIPT': ['{text}', '{lang}', '{genre}','{story}'],
+    'PARSE_SCRIPT': ['{text}', '{lang}', '{genre}','{story}','{targetDuration}'],
     'IMPORT_SCRIPT': ['{text}', '{lang}'],
-    'GENERATE_SHOTS': ['{sceneIndex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{duration}', '{characters}', '{lang}', '{imageCount}','{segmentDuration}','{properties}'],
+    'GENERATE_SHOTS': ['{sceneIndex}', '{location}','{time}','{atmosphere}', '{paragraphs}', '{genre}', '{story}', '{characters}', '{lang}', '{imageCount}','{segmentDuration}','{properties}','{totalParagraphsDuration}'],
     'IMPORT_SHOTS': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{duration}','{segmentDuration}'],
-    'IMPORT_SHOTS_FOR_SCENE': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{duration}','{segmentDuration}','{props}'],
+    'IMPORT_SHOTS_FOR_SCENE': ['{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{paragraphs}','{segmentDuration}','{props}','{totalParagraphsDuration}'],
     'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}','{story}'],
     'GENERATE_CHARACTER_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{story}'],
     'GENERATE_VARIATION_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],

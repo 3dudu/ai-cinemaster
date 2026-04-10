@@ -68,7 +68,7 @@ export const renderTemplate = (key: string, ...args: any[]): string => {
 const extractVariablesForTemplate = (key: string, args: any[]): Record<string, any> => {
   switch (key) {
     case 'PARSE_SCRIPT':
-      return { text: args[0] || '', lang: args[1] || '中文', genre: args[2] || '剧情片',story:args[3] || ''};
+      return { text: args[0] || '', lang: args[1] || '中文', genre: args[2] || '剧情片',story:args[3] || '',targetDuration:args[4] || '60s'};
 
     case 'IMPORT_SHOTS':
     case 'IMPORT_SHOTS_FOR_SCENE':
@@ -78,9 +78,10 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         lang: args[2] || '中文',
         imageCount: args[3] || 1,
         scriptText: args[4] || '',
-        duration: args[5] || '30s',
+        paragraphs: args[5] || '',
         segmentDuration: args[6] || 15,
-        props: args[7] || ''
+        props: args[7] || '',
+        totalParagraphsDuration: args[8] || 15,
       };
     case 'GENERATE_SHOTS':
       return {
@@ -90,16 +91,18 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         atmosphere: args[3] || '',
         paragraphs: args[4] || '',
         genre: args[5] || '剧情片',
-        duration: args[6] || '30s',
+        story: args[6] || '',
         characters: args[7] || '',
         lang: args[8] || '中文',
         imageCount: args[9] || 1,
-        segmentDuration: args[10] || 15
+        segmentDuration: args[10] || 15,
+        properties: args[11] || '',
+        totalParagraphsDuration: args[12] || 15
       };
     case 'GENERATE_SCRIPT':
       return {
         prompt: args[0] || '',
-        duration: args[1] || '30s',
+        duration: args[1] || '60s',
         genre: args[2] || '剧情片',
         lang: args[3] || '中文',
         story: args[4] || ''
@@ -262,7 +265,7 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
 // 模型生成参数配置
 export const MODEL_GENERATION_CONFIG = {
   PARSE_SCRIPT: {
-    temperature: 0.4,
+    temperature: 0.6,
     max_tokens: 8192
   },
   GENERATE_SHOTS: {
@@ -278,7 +281,7 @@ export const MODEL_GENERATION_CONFIG = {
     max_tokens: 8192
   },
   GENERATE_VIDEO_PROMPT: {
-    temperature: 0.7,
+    temperature: 0.8,
     max_tokens: 8192
   },
   IMPORT_SCRIPT: {
@@ -286,7 +289,7 @@ export const MODEL_GENERATION_CONFIG = {
     max_tokens: 8192
   },
   AI_SPLIT_SEGMENTS: {
-    temperature: 0.5,
+    temperature: 0.6,
     max_tokens: 8192
   },
   GENERATE_SEGMENTS_FROM_SCRIPT: {
@@ -297,58 +300,9 @@ export const MODEL_GENERATION_CONFIG = {
 
 export const PROMPT_TEMPLATES = {
   // ============ 系统提示词 ============
-  SYSTEM_SCRIPT_ANALYZER: `1. 角色定位
-你是好莱坞顶尖剧本顾问公司“节拍工厂”的首席叙事结构师，代号“脉搏”。你精通古今中外所有叙事理论——从亚里士多德的《诗学》到悉德·菲尔德的范式，从《救猫咪》的节拍表到约瑟夫·坎贝尔的《千面英雄》，从希斯菲尔德剧本解剖到诺兰式时间迷宫。你的工作不是评判故事好坏，而是确保故事的骨架健康、血脉通畅、心跳有力。
-2. 核心原则
-- 节奏是呼吸： 故事的节奏如同人的呼吸，张弛有度才能让观众沉浸。
-- 问题是答案： 从不空泛批评“这里不好”，而是精准指出“这里缺什么节拍”并提供修复选项。
-- 类型决定规则： 不同类型有不同受众预期，喜剧的高潮和恐怖片的高潮绝不相同。
-- 量化分析： 将模糊的感觉转化为可衡量的结构指标（如“第25分钟必须出现转折点”）。
-  
-3. 理论武器库
+  SYSTEM_SCRIPT_ANALYZER: `角色定位：
+你是好莱坞顶尖的剧本分析师，根据用户提供的剧本或故事，制作一部电影，你擅长分析整剧的故事线，拟定故事大纲，提取角色，场景，道具，并将它们关联到具体的分段故事中。
 
-你随时调用的核心工具包括但不限于：
-- 《救猫咪》布莱克·斯奈德节拍表： 开场画面、主题呈现、 setup、催化剂、辩论、第二幕衔接点、B故事、游戏时间、中点、坏蛋逼近、一无所有、灵魂黑夜、第三幕衔接点、 finale、终场画面。
-- 英雄之旅（坎贝尔/沃格勒）：  ordinary world, call to adventure, refusal, mentor, threshold, tests, approach, crisis, treasure, result, return, resurrection, elixir.
-- 希斯菲尔德剧本解剖： 序列法（每10-15分钟一个事件）、六大情节点、压力场景。
-- 丹·哈蒙故事圈： 角色、需求、适应、满足、付出、回归。
-- 类型片专门模板： 爱情片节拍（meet cute, 蒙太奇, 裂痕,  grand gesture）、恐怖片节拍（初始 scare, 规则建立,  false ending）、悬疑片节拍（红鲱鱼分布,  reveal timing）。
-  
-4. 职责与工作流
-
-你将按照以下流程与用户协作：
-- 第一步：项目建档
-当用户提交故事梗概、剧本片段或创意想法时，你首先进行诊断前问诊：
-  - “当前处于什么阶段？（概念、大纲、初稿、修改稿）”
-  - “目标媒介和时长？（90分钟电影、8集剧集、15分钟短片、3分钟短剧）”
-  - “核心类型是什么？（确定观众的节奏预期）”
-  - “最担心哪一部分的结构问题？（开头慢、中间塌、高潮不够？）”
-    
-- 第二步：全片扫描（宏观诊断）
-快速扫描整体结构，提供宏观评估：
-  - 骨架完整性： 是否有缺失的核心功能段落？
-  - 节奏分布： 张弛是否合理？是否某一段过于密集或过于拖沓？
-  - 高潮位置： 是否遵循了“黄金比例”（通常最后20-25分钟是 finale）？
-    
-- 第三步：节拍拆解（微观诊断）
-按照用户指定的理论模型，逐帧检查关键节拍点：
-  - 催化剂事件是否足够“迫使主角行动”？（通常发生在第12-15分钟）
-  - 中点转折是“伪胜利”还是“伪失败”？是否改变了故事的“ stakes”？
-  - 一无所有时刻是否让主角跌到“物理+心理”的双重谷底？
-  - 灵魂黑夜是否揭示了主角内心最深层的缺陷？
-  - 终场画面是否与开场画面形成“进化性对比”？
-    
-- 第四步：问题处方
-针对发现的问题，提供具体修改方案：
-  - 选项A（微调）： 移动场景位置、强化转折力度、增加铺垫。
-  - 选项B（重构）： 重新设计缺失的节拍、合并冗余段落。
-  - 选项C（颠覆）： 如果问题严重，提供全新的结构替代方案。
-    
-- 第五步：压力测试
-模拟观众在不同时间点的情绪反应，绘制“情绪曲线图”：
-  - “前10分钟观众为何要关心？”
-  - “第45分钟观众会不会想看手机？”
-  - “高潮后是否有足够的‘释放时长’？”。
  最后按照用户的要求返还需要的信息，且请始终以有效的 JSON 数组格式进行回复，无任何解释、注释、多余文字。`,
   SYSTEM_PHOTOGRAPHER: `1. 角色定位
 你是顶级视觉叙事实验室“光影工坊”的首席视觉化导演，代号“取景器”。你拥有摄影师的眼睛、剪辑师的节奏感和美术指导的审美力。你能从文字中“看见”还未拍摄的电影，并将其转化为精确的镜头语言。你的工作不是简单配图，而是用视觉强化叙事、用光影传递情绪、用构图揭示关系。
@@ -819,29 +773,80 @@ export const PROMPT_TEMPLATES = {
 
   // ============ 剧本解析 ============
   PARSE_SCRIPT: `分析输入的故事或剧本，构思制作一部 {genre} 类型的视频，并输出一个 JSON 对象，字段值以 {lang} 语言呈现。
-## 任务
-**生成一个json对象，提取下列属性：**
-1. 提取title:标题、genre:类型、logline:故事梗概（以 {lang} 语言呈现）。
-2. 提取characters,角色对象数组，角色包含id:编号、name:姓名、gender:性别、age:年龄、personality:包含：角色时代/地域风格,外貌特征,性格,身份,地位,职业。
-**personality 总结方法：**
-- 角色当前情绪状态（愤怒/压抑/讨好/撒谎/调情）
-- 角色在这场戏的权力关系（谁占上风？谁在试探？）
-- 角色所处时代/地域风格（如：唐代时期、明末、1990年代北京、1940年代上海、赛博朋克东京、中世纪欧洲）
-3. 提取scenes，场景对象数组，场景包含（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬）、atmosphere:氛围/时代/地域风格）。
-**tmosphere 总结方法：**
-- 场景时代/地域风格（如：唐代时期、明末、1990年代北京、1940年代上海、赛博朋克东京、中世纪欧洲）
-4. 提取props:道具信息（id:编号、name:名称、shape:形态、material:材质、color:颜色、size:大小、structural:结构、effects:效果、description:描述）。
-5. 提取storyParagraphs，故事段落对象数组:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
 
-## 任务约束
+## 约束要求
+- 电影时长：{targetDuration}
+- 通用基底：{story}
 - 如果故事或剧本已设定情节顺序，则不要随意改变，按照设定分镜故事段落
 - 故事或剧本背景、简介，作为理解分析当前剧本的依据，不要直接作为当前故事段落内容
+- 角色姓名，场景地点，道具名要简洁直接，不要有修饰词、定语
 
-## 输入：
+## 任务
+**始终已JSON格式返回**
+1. 提取title:标题、genre:类型、logline:故事梗概（以 {lang} 语言呈现）。
+2. 提取characters,角色信息数组，角色包含id:编号 name:姓名 gender:性别 age:年龄（数字） personality:特征，角色时代/地域风格,外貌特征,性格,身份,地位,职业。
+   **personality 特征总结方法：**
+   - 角色当前情绪状态（愤怒/压抑/讨好/撒谎/调情）
+   - 角色在这场戏的权力关系（谁占上风？谁在试探？）
+   - 角色所处时代/地域风格（如：唐代时期、明末、1990年代北京、1940年代上海、赛博朋克东京、中世纪欧洲）
+3. 提取scenes，场景信息象数组，场景包含（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬）、atmosphere:氛围/时代/地域风格）。
+  **tmosphere 总结方法：**
+   - 场景时代/地域风格（如：唐代时期、明末、1990年代北京、1940年代上海、赛博朋克东京、中世纪欧洲）
+4. 提取props,道具信息数组（id:编号、name:名称、shape:形态、material:材质、color:颜色、size:大小、structural:结构、effects:效果、description:描述）。
+5. 提取storyParagraphs，故事段落对象数组:故事段落（id:编号、sceneRefId:引用场景编号、text:内容、duration:时长）。
+
+## 剧本或故事：
 {text}
 
-## 通用基底：{story}`,
+## 输出要求
+请返回 JSON 格式：
+\`\`\`json
+{
+  "title": "标题",
+  "genre": "类型",
+  "logline": "故事梗概",
+  "characters": [
+    {
+      "id": 1,
+      "name": "角色1",
+      "gender": "男",
+      "age": 20,
+      "personality": "愤怒、压抑、讨好、撒谎、调情,1940年代上海、赛博朋克",
+    }
+  ],
+  "scenes": [
+    {
+      "id": 1,
+      "location": "地点",
+      "time": "时间",
+      "atmosphere": "氛围/时代/地域风格",
+    }
+  ],
+  "props": [
+    {
+      "id": 1,
+      "name": "道具1",
+      "shape": "形态",
+      "material": "材质",
+      "color": "颜色",
+      "size": "大小",
+      "structural": "结构",
+      "effects": "效果",
+      "description": "描述",
+    }
+  ],
+  "storyParagraphs": [
+    {
+      "id": 1,
+      "sceneRefId": 1,
+      "text": "故事段落",
+      "duration": 5,
+    }
+  ]
+}
+\`\`\`
 
+`,
   IMPORT_SCRIPT: `读取输入的剧本大纲/分镜脚本，提取关键信息，并输出一个 JSON 对象。
 
 ## 任务：
@@ -871,12 +876,14 @@ export const PROMPT_TEMPLATES = {
 时间: {time}
 氛围: {atmosphere}
 
-## 场景故事:
+## 故事大纲:
 {paragraphs}
 
 ## 创作背景:
 题材类型: {genre}
-剧本整体目标时长: {duration}
+
+## 通用基底：
+{story}
 
 ## 角色 (格式: ID: 名字: 性格描述):
 {characters}
@@ -885,8 +892,8 @@ export const PROMPT_TEMPLATES = {
 {properties}
 
 ## 说明：
-1. 设计一组覆盖全部情节动作的镜头序列。
-2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-{segmentDuration} 秒，避免出现 JSON 截断错误。
+1. 设计一组覆盖全部情节动作的镜头序列,规划好分镜数和分镜时长，每场景镜头数量上限为 2-6 个，每个镜头时长duration为 2-{segmentDuration} 秒，duration总和<={totalParagraphsDuration}。
+2. 重要提示：避免出现 JSON 截断错误。
 3. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 4. 景别：明确取景范围（如：大特写、中景、全景）。
 5. 镜头情节概述：详细描述该镜头内发生的情节（使用 {lang} 语言描述），遵循下面表述方式：主体+运动+环境（非必须）+运镜/切镜（非必须）+美学描述（非必须）+声音（非必须）。
@@ -905,8 +912,12 @@ export const PROMPT_TEMPLATES = {
 - shotSize（字符串类型）
 - characters（字符串数组类型，**必须是角色ID**，从角色列表中获取ID）
 - keyframes（对象数组类型，每个对象定义不同的帧，对象包含如下属性： id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过{segmentDuration}s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
-- properties（字符串数组类型，**必须是道具ID**，从道具列表中获取ID）`,
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(镜头时长)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+- properties（字符串数组类型，**必须是道具ID**，从道具列表中获取ID）
+
+## 特别说明
+
+`,
   // ============ 镜头清单导入 ============
   IMPORT_SHOTS: `担任专业摄影师，从分镜脚本原文中读取分镜头清单。
 
@@ -949,6 +960,9 @@ export const PROMPT_TEMPLATES = {
 
   IMPORT_SHOTS_FOR_SCENE: `担任专业摄影师，从分镜脚本原文中读取特定场景的分镜头清单。
 
+## 故事大纲:
+{paragraphs}
+
 ## 提取场景:
 {scenes}
 
@@ -966,7 +980,7 @@ export const PROMPT_TEMPLATES = {
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-{segmentDuration} 秒，使整部剧的时长控制在 {duration} 左右。
+1. 规划好分镜数和分镜时长，按照镜头的内容合理设定有效时长，每场景镜头数量上限为 2-6 个，每个镜头时长duration为 2-{segmentDuration} 秒，duration总和<={totalParagraphsDuration}。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
@@ -983,8 +997,9 @@ export const PROMPT_TEMPLATES = {
 - shotSize（字符串类型）
 - characters（字符串数组类型，角色id）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过{segmentDuration}s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
-  
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(镜头时长)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+
+
 ## 脚本原文：
 {scriptText}`,
 

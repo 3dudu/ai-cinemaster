@@ -708,7 +708,7 @@ const StageAssets: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 py-4 md:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 py-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6">
             {displayCharacters.map((char) => (
               <div key={char.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[16/9] bg-slate-900 relative overflow-hidden">
@@ -869,7 +869,7 @@ const StageAssets: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 py-4 md:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 py-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6">
             {displayScenes.map((scene) => (
               <div key={scene.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[16/9] bg-slate-800/50 relative overflow-hidden">
@@ -1011,7 +1011,7 @@ const StageAssets: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 py-4 md:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 py-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-6">
             {displayProps.map((prop) => (
               <div key={prop.id} className="bg-slate-900 border border-slate-600 rounded-xl overflow-hidden flex flex-col group hover:border-slate-300 transition-all hover:shadow-lg">
                 <div className="aspect-[16/9] bg-slate-800/50 relative overflow-hidden">

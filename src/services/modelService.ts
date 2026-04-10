@@ -527,9 +527,9 @@ export class ModelService {
    * @param rawText - 剧本文本
    * @param language - 输出语言
    */
-  static async parseScriptToData(text: string, language: string = "中文",genre:string="剧情片",story:string=""): Promise<ScriptData> {
+  static async parseScriptToData(text: string, language: string = "中文",genre:string="剧情片",story:string="",targetDuration:string='60'): Promise<ScriptData> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    const prompt = renderTemplate('PARSE_SCRIPT', text, language,genre,story);
+    const prompt = renderTemplate('PARSE_SCRIPT', text, language,genre,story,targetDuration);
     switch (provider.provider) {
       case 'deepseek':
         return await (await this.getProviderModule('deepseek')).parseScriptToData(prompt, language);
@@ -557,7 +557,8 @@ export class ModelService {
     scene: any,
     sceneIndex: number,
     imageCount:number,
-    segmentDuration:number
+    segmentDuration:number,
+    story:string=""
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
@@ -569,7 +570,7 @@ export class ModelService {
 
     const paragraphs = scriptData.storyParagraphs
       .filter((p) => String(p.sceneRefId) === String(scene.id))
-      .map((p) => p.text)
+      .map((p) => `时长：${p.duration||segmentDuration},故事：${p.text}`)
       .join("\n");
 
     if (!paragraphs.trim()) return [];
@@ -577,6 +578,10 @@ export class ModelService {
     characters = scriptData.characters ? scriptData.characters.map(d =>`${d.id}: ${d.name}: ${d.personality}`).join('\n') : "";
     let properties = "";
     properties = scriptData.props ? scriptData.props.map(d =>`${d.id}: ${d.name}`).join('\n') : "";
+    // 计算段落总时长
+    const totalParagraphsDuration = scriptData.storyParagraphs
+      .filter((p) => String(p.sceneRefId) === String(scene.id))
+      .reduce((sum, p) => sum + (p.duration || 0), 0);
     const prompt = renderTemplate('GENERATE_SHOTS',
       sceneIndex+1,
       scene.location,
@@ -584,12 +589,13 @@ export class ModelService {
       scene.atmosphere,
       paragraphs,
       scriptData.genre,
-      scriptData.targetDuration || "30s",
+      story|| "",
       characters,
       lang,
       imageCount,
       segmentDuration,
-      properties
+      properties,
+      totalParagraphsDuration||segmentDuration
     );
     let shots: Shot[] = [];
     switch (provider.provider) {
@@ -1258,6 +1264,7 @@ export class ModelService {
     imageCount:number,
     scriptText:string,
     segmentDuration:number,
+    lang:string
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
@@ -1265,13 +1272,25 @@ export class ModelService {
     let scenes = scriptData.scenes ? scriptData.scenes.map(d =>`id:${d.id}, location:${d.location},time:${d.time}`).join('\n') : "";
     let characters = scriptData.characters ? scriptData.characters.map(d =>`${d.id}: ${d.name}: ${d.personality}`).join('\n') : "";
     let props = scriptData.characters ? scriptData.props.map(d =>`${d.id}: ${d.name}: ${d.name}`).join('\n') : "";
+    //{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{segmentDuration}','{props}
+    const paragraphs = scriptData.storyParagraphs
+      .filter((p) => String(p.sceneRefId) === String(scene.id))
+      .map((p) => `时长：${p.duration||segmentDuration},故事：${p.text}`)
+      .join("\n");
+    // 计算段落总时长
+    const totalParagraphsDuration = scriptData.storyParagraphs
+      .filter((p) => String(p.sceneRefId) === String(scene.id))
+      .reduce((sum, p) => sum + (p.duration || 0), 0);
     const prompt = renderTemplate('IMPORT_SHOTS_FOR_SCENE',
       scenes,
       characters,
+      lang,
       imageCount,
       scriptText,
+      paragraphs,
       segmentDuration,
-      props
+      props,
+      totalParagraphsDuration||segmentDuration
     );
     let shots: Shot[] = [];
     switch (provider.provider) {

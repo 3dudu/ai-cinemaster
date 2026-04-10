@@ -107,7 +107,6 @@ export const parseScriptToData = async (
   let parsed: any = {};
   try {
     const text = cleanJsonString(content);
-    //console.log("Parsed JSON:", text);
     parsed = JSON.parse(text);
     if(Array.isArray(parsed)){
       parsed = parsed[0];
