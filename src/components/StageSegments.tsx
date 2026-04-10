@@ -1,10 +1,10 @@
 import { ModelService } from '@/services/modelService';
 import { renderTemplate } from '@/services/promptTemplates';
 import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
-import { ChevronLeft, ChevronRight, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RefreshCw, Sparkles, Trash, Video, X } from 'lucide-react';
+import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RotateCcw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
-import { Character, ProjectState, Scene, Segment, SeriesRecord } from '../types';
+import { Character, ProjectState, Properties, Scene, Segment, SeriesRecord } from '../types';
 import CustomSelect from './common/CustomSelect';
 
 import {
@@ -47,6 +47,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const activeScenes = useMemo(() => 
     isSeriesMode ? (series?.library?.scenes || []) : (project.scriptData?.scenes || []),
     [isSeriesMode, series?.library?.scenes, project.scriptData?.scenes]
+  );
+
+  const activeProps = useMemo(() => 
+    isSeriesMode ? (series?.library?.props || []) : (project.scriptData?.props || []),
+    [isSeriesMode, series?.library?.props, project.scriptData?.props]
   );
 
   const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
@@ -113,6 +118,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     [activeScenes, isSeriesMode, series?.library?.scenes],
   );
 
+  // Helper function to get prop with full library data (in series mode)
+  const getPropWithAssets = useCallback(
+    (propId: string): Properties | null => {
+      const prop = activeProps.find((p) => String(p.id) === String(propId));
+      return prop;
+    },
+    [activeProps, isSeriesMode, series?.library?.props],
+  );
+
   // Initialize segments if empty
   useEffect(() => {
     if (!project.initSegment && project.shots.length > 0) {
@@ -139,19 +153,24 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.visualStyle,
           project.genre,
           project.rawScript,
-          project.scriptData.storyParagraphs,
-          segmentIndex+1
+          segment.description||'',
+          segmentIndex+1,
+          segment.estimatedDuration||project.segmentDuration,
+          project.imageSize,
+          project.globalSettings
         );
-
+        if(!description){
+          dialog.toast({ message: '生成分片描述失败，请重试',type: 'error' });
+          return;
+        }
         updateProject({
           segments: segments.map((s) =>
             s.id === segmentId
-              ? { ...s, description, lastModified: Date.now() }
+              ? { ...s, videoPrompt: description, lastModified: Date.now() }
               : s,
           ),
         });
       } catch (error) {
-        console.error('生成分片描述失败:', error);
         dialog.toast({ message: '生成分片描述失败，请重试',type: 'error' });
       } finally {
         setGeneratingDescription((prev) => {
@@ -182,7 +201,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       // 逐个生成描述，每生成一个就保存一次
       for (let i = 0; i < segments.length; i++) {
         const segment = segments[i];
-
+        setSelectedSegmentId(segment.id);
         try {
           const description = await generateSegmentDescription(
             segment,
@@ -192,11 +211,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.visualStyle,
             project.genre,
             project.rawScript,
-            project.scriptData?.storyParagraphs || [],
-            i+1
+            segment.description||'',
+            i+1,
+            segment.estimatedDuration||project.segmentDuration,
+            project.imageSize,
+            project.globalSettings
           );
-          
-          
+          if(!description){
+            dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败`, type: 'error' });
+            continue;
+          }
           // 更新当前 segment 并保存
           /*
           segments[i].description=description;
@@ -207,7 +231,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           if (segmentIndex >= 0) {
             currentSegments[segmentIndex] = {
               ...currentSegments[segmentIndex],
-              description,
+              videoPrompt: description,
               lastModified: Date.now(),
             };
             updateProject({ segments: [...currentSegments] });
@@ -215,12 +239,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           }
           dialog.toast({ message: `成功生成 ${successCount} / ${segments.length} 个片段描述`, type: 'success' });
         } catch (err) {
-          console.error(`生成片段 ${segment.name || segment.id} 描述失败:`, err);
+          dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败: ${err.message}`, type: 'error' });
           // 继续生成下一个
         }
       }
     } catch (error) {
-      console.error('批量生成描述失败:', error);
       dialog.toast({ message: '批量生成描述失败，请重试', type: 'error' });
     } finally {
       setBatchGenerating(false);
@@ -234,9 +257,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       dialog.alert({ message: '至少需要2个片段才能生成转场描述' });
       return;
     }
-
     setGeneratingTransition(true);
-
     try {
       const updatedSegments = await generateAllTransitionDescriptions(segments);
       updateProject({ segments: updatedSegments });
@@ -285,6 +306,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       sceneIds: [],
       characterIds: [],
       description: '',
+      videoPrompt: '',
       transitionFrom: '',
       transitionTo: '',
       estimatedDuration: 0,
@@ -398,7 +420,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   // Update draft when selected segment changes
   useEffect(() => {
     if (selectedSegment) {
-      setDescriptionDraft(selectedSegment.description || '');
+      // videoPrompt 优先，无值时回退到 description
+      setDescriptionDraft(selectedSegment.videoPrompt || selectedSegment.description || '');
       setTransitionFromDraft(selectedSegment.transitionFrom || '');
       setTransitionToDraft(selectedSegment.transitionTo || '');
     } else {
@@ -413,7 +436,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     if (!selectedSegment) return;
     const updatedSegment: Segment = {
       ...selectedSegment,
-      description: descriptionDraft,
+      videoPrompt: descriptionDraft,
       transitionFrom: transitionFromDraft,
       transitionTo: transitionToDraft,
       lastModified: Date.now(),
@@ -450,7 +473,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           scriptData = await ModelService.parseScriptToData(
             project.rawScript, 
             project.language || '中文', 
-            project.genre || '剧情片'
+            project.genre || '剧情片',
+            project.globalSettings || '',
+            project.targetDuration || '60s'
           );
           
           if (!scriptData || scriptData.scenes.length === 0) {
@@ -466,10 +491,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
         // 2. Series 模式：合并到 library
         if (series && updateSeries) {
-          const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
-            mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+          const { series: updatedSeries, charIdMapping, sceneIdMapping,propIdMapping } = 
+            mergeToLibrary(series, scriptData.characters, scriptData.scenes,scriptData.props);
           
-          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping,propIdMapping);
           scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
           scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
           updateSeries(updatedSeries);
@@ -482,7 +507,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.visualStyle,
           project.genre,
           project.language,
-          project.targetDuration
+          project.targetDuration,
+          project.segmentDuration
         );
 
         if (segments.length === 0) {
@@ -530,8 +556,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       try {
         const characters = isSeriesMode ? series?.library?.characters : project.scriptData.characters;
         const scenes = isSeriesMode ? series?.library?.scenes : project.scriptData.scenes;
+        const props = isSeriesMode ? series?.library?.props : project.scriptData.props;
         newSegments = await aiConvertShotsToSegments(
-          project.shots, characters, scenes, project.visualStyle, project.genre
+          project.shots, characters, scenes, project.visualStyle, project.genre,project.segmentDuration,props
         ) ?? [];
         if (newSegments.length === 0) {
           dialog.toast({ message: 'AI 拆分失败', type: 'error' });
@@ -662,8 +689,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     setGeneratingVideo(selectedSegment.id);
     setVideoGenerateStartTime(Date.now());
     try {
-      // 如果 description 为空，先生成 description
-      let currentDescription = selectedSegment.description;
+      // 如果 videoPrompt 为空，先生成 videoPrompt
+      let currentDescription = selectedSegment.videoPrompt || selectedSegment.description;
       if (!currentDescription?.trim()) {
         const segments = project.segments || [];
         const segmentIndex = segments.findIndex((s) => s.id === selectedSegment.id);
@@ -677,16 +704,22 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.visualStyle,
             project.genre,
             project.rawScript,
-            project.scriptData?.storyParagraphs || [],
-            segmentIndex+1
+            selectedSegment.description||'',
+            segmentIndex+1,
+            selectedSegment.estimatedDuration||project.segmentDuration,
+            project.imageSize,
+            project.globalSettings
           );
-          // 更新 segment 的 description
+          if(!currentDescription){
+            dialog.toast({ message: `生成片段描述失败`, type: 'error' });
+            return;
+          }
+          // 更新 segment 的 videoPrompt
           const updatedSegments = (project.segments || []).map((seg) =>
-            seg.id === selectedSegment.id ? { ...seg, description: currentDescription, lastModified: Date.now() } : seg
+            seg.id === selectedSegment.id ? { ...seg, videoPrompt: currentDescription, lastModified: Date.now() } : seg
           );
           updateProject({ segments: updatedSegments });
         } catch (err) {
-          console.error('生成描述失败:', err);
           dialog.toast({ message: '生成描述失败，无法继续生成视频', type: 'error' });
           setGeneratingVideo(null);
           return;
@@ -698,7 +731,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       const imageLabels: string[] = [];
       const scenes: string[] = [];
       let imageIndex = 1;
-
+      
       // Add scene images
       selectedSegment.sceneIds?.forEach((sceneId) => {
         let scene = activeScenes.find((s) => s.id === sceneId);
@@ -709,8 +742,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           imageIndex++;
         }
       });
-
+      
       // Add character images
+      const voices: string[] = [];
+      let voiceIndex = 1;
       selectedSegment.characterIds?.forEach((charId) => {
         let character = activeCharacters.find((c) => c.id === charId);
         if(character){
@@ -731,12 +766,41 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             imageLabels.push(`图${imageIndex}: ${character.name}`);
             imageIndex++;
           }
+          if(character?.voiceUrl){
+            voices.push(character.voiceUrl);
+            imageLabels.push(`音频${voiceIndex}: ${character.name}`);
+            voiceIndex++;
+          }
+        }
+      });
+
+      // Add prop images
+      selectedSegment.propIds?.forEach((propId) => {
+        let prop = activeProps.find((p) => p.id === propId);
+        if (prop) {
+          if (selectedSegment.propVariations && selectedSegment.propVariations[propId]) {
+            const variation = selectedSegment.propVariations[propId];
+            const selectedVar = prop.variations?.find(v => v.id === variation);
+            if (selectedVar?.referenceImage) {
+              referenceImages.push(selectedVar.referenceImage);
+              imageLabels.push(`图${imageIndex}: ${prop.name}`);
+              imageIndex++;
+            } else if (prop?.referenceImage) {
+              referenceImages.push(prop.referenceImage);
+              imageLabels.push(`图${imageIndex}: ${prop.name}`);
+              imageIndex++;
+            }
+          } else if (prop?.referenceImage) {
+            referenceImages.push(prop.referenceImage);
+            imageLabels.push(`图${imageIndex}: ${prop.name}`);
+            imageIndex++;
+          }
         }
       });
 
       // 使用 currentDescription（可能刚生成）
       const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),currentDescription,selectedSegment.shotIds.length,
-        selectedSegment.transitionFrom,selectedSegment.transitionTo
+        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.visualStyle
       );
 
       const prompt = '## 参考图说明：\n'+imageLabels.map((l,i)=>`${i+1}. ${l}`).join('\n')+'\n\n'+videoPrompt;
@@ -753,7 +817,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.visualStyle,
           selectedSegment.id,
           referenceImages,
-          project.seed
+          project.seed,
+          voices
       );
 
       
@@ -776,7 +841,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       setGeneratingVideo(null);
       setVideoGenerateStartTime(null);
     }
-  }, [selectedSegment, dialog, updateProject, project.segments, activeScenes, activeCharacters, project.imageCount, project.modelProviders, project.id, project.imageSize, project.visualStyle, project.seed, project.shots, project.visualStyle, project.genre, project.rawScript, project.scriptData?.storyParagraphs]);
+  }, [selectedSegment, dialog, updateProject, project.segments, activeScenes, activeCharacters, activeProps, project.imageCount, project.modelProviders, project.id, project.imageSize, project.visualStyle, project.seed, project.shots, project.visualStyle, project.genre, project.rawScript, project.scriptData?.storyParagraphs]);
 
   // Batch generate videos for all segments
   const handleBatchGenerateVideos = useCallback(async () => {
@@ -794,12 +859,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     try {
       for (let i = 0; i < segments.length; i++) {
         const segment = segments[i];
-
+        setSelectedSegmentId(segment.id);
         try {
           setGeneratingVideo(segment.id);
 
-          // 如果 description 为空，先生成 description
-          let currentDescription = segment.description;
+          // 如果 videoPrompt 为空，先生成 videoPrompt
+          let currentDescription = segment.videoPrompt || segment.description;
           if (!currentDescription?.trim()) {
             currentDescription = await generateSegmentDescription(
               segment,
@@ -809,15 +874,21 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               project.visualStyle,
               project.genre,
               project.rawScript,
-              project.scriptData?.storyParagraphs || [],
-              i+1
+              segment.description || '',
+              i+1,
+              segment.estimatedDuration||project.segmentDuration,
+              project.imageSize,
+              project.globalSettings
             );
-            // 更新 description
+            if(!currentDescription){
+              continue;
+            }
+            // 更新 videoPrompt
             const segIndex = currentSegments.findIndex(s => s.id === segment.id);
             if (segIndex >= 0) {
               currentSegments[segIndex] = {
                 ...currentSegments[segIndex],
-                description: currentDescription,
+                videoPrompt: currentDescription,
                 lastModified: Date.now(),
               };
             }
@@ -839,6 +910,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             }
           });
 
+          const voices: string[] = [];
+          let voiceIndex = 1;
           segment.characterIds?.forEach((charId) => {
             let character = activeCharacters.find((c) => c.id === charId);
             if (character) {
@@ -859,6 +932,35 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 imageLabels.push(`图${imageIndex}: ${character.name}`);
                 imageIndex++;
               }
+              if(character?.voiceUrl){
+                voices.push(character.voiceUrl);
+                imageLabels.push(`音频${voiceIndex}: ${character.name}`);
+                voiceIndex++;
+              }
+            }
+          });
+
+          // Add prop images
+          segment.propIds?.forEach((propId) => {
+            let prop = activeProps.find((p) => p.id === propId);
+            if (prop) {
+              if (segment.propVariations?.[propId]) {
+                const variation = segment.propVariations[propId];
+                const selectedVar = prop.variations?.find(v => v.id === variation);
+                if (selectedVar?.referenceImage) {
+                  referenceImages.push(selectedVar.referenceImage);
+                  imageLabels.push(`图${imageIndex}: ${prop.name}`);
+                  imageIndex++;
+                } else if (prop.referenceImage) {
+                  referenceImages.push(prop.referenceImage);
+                  imageLabels.push(`图${imageIndex}: ${prop.name}`);
+                  imageIndex++;
+                }
+              } else if (prop.referenceImage) {
+                referenceImages.push(prop.referenceImage);
+                imageLabels.push(`图${imageIndex}: ${prop.name}`);
+                imageIndex++;
+              }
             }
           });
 
@@ -868,7 +970,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             currentDescription,
             segment.shotIds.length,
             segment.transitionFrom,
-            segment.transitionTo
+            segment.transitionTo,project.visualStyle
           );
 
           const prompt = '## 参考图说明：\n' + imageLabels.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n\n' + videoPrompt;
@@ -885,7 +987,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.visualStyle,
             segment.id,
             referenceImages,
-            project.seed
+            project.seed,
+            voices
           );
 
           if (videoUrl) {
@@ -903,9 +1006,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               updateProject({ segments: [...currentSegments] });
               successCount++;
             }
+          }else{
+            dialog.toast({ message: `生成片段 ${i+1} 视频失败`, type: 'error' });
           }
         } catch (err) {
-          dialog.toast({ message: `生成 ${i+1} 视频失败，${err}`, type: 'error' });
+          dialog.toast({ message: `生成片段 ${i+1} 视频失败，${err}`, type: 'error' });
         } finally {
           setGeneratingVideo(null);
         }
@@ -1004,7 +1109,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   }, [getCaretCoordinates]);
 
   // @ Mention: Handle selection from picker
-  const handleSelectMention = useCallback((type: 'character' | 'scene', item: { id: string; name: string }, variationId?: string) => {
+  const handleSelectMention = useCallback((type: 'character' | 'scene' | 'prop', item: { id: string; name: string }, variationId?: string) => {
     if (descriptionTextareaRef.current === null || mentionStartPos === null) return;
     
     const textarea = descriptionTextareaRef.current;
@@ -1017,30 +1122,32 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     const afterMention = descriptionDraft.substring(mentionEndPos);
     const newText = beforeAt + item.name + ' ' + afterMention;
     
+    const savedScrollTop = textarea.scrollTop;
+
     // Update local state first
     setDescriptionDraft(newText);
     setMentionPickerOpen(false);
     
-    // Update segment's characterIds or sceneIds AND description (to prevent reset)
-    if (selectedSegment) {
-      const field = type === 'character' ? 'characterIds' : 'sceneIds';
-      const currentIds = selectedSegment[field] || [];
-      if (!currentIds.includes(item.id)) {
-        const updatedSegment: Segment = {
-          ...selectedSegment,
-          description: newText,  // Include updated description to prevent reset
-          [field]: [...currentIds, item.id],
-          lastModified: Date.now()
-        };
-        // If character with variation, update characterVariations
-        if (type === 'character' && variationId) {
-          updatedSegment.characterVariations = {
-            ...selectedSegment.characterVariations,
-            [item.id]: variationId
-          };
-        }
-        handleSaveSegment(updatedSegment);
-      } else if (type === 'character' && variationId) {
+        // Update segment's characterIds or sceneIds AND videoPrompt (to prevent reset)
+        if (selectedSegment) {
+          const field = type === 'character' ? 'characterIds' : 'sceneIds';
+          const currentIds = selectedSegment[field] || [];
+          if (!currentIds.includes(item.id)) {
+            const updatedSegment: Segment = {
+              ...selectedSegment,
+              videoPrompt: newText,  // Include updated description to prevent reset
+              [field]: [...currentIds, item.id],
+              lastModified: Date.now()
+            };
+            // If character with variation, update characterVariations
+            if (type === 'character' && variationId) {
+              updatedSegment.characterVariations = {
+                ...selectedSegment.characterVariations,
+                [item.id]: variationId
+              };
+            }
+            handleSaveSegment(updatedSegment);
+          } else if (type === 'character' && variationId) {
         // Character already in list, but update variation
         const updatedSegment: Segment = {
           ...selectedSegment,
@@ -1060,6 +1167,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     requestAnimationFrame(() => {
       textarea.focus();
       textarea.setSelectionRange(newCursorPos, newCursorPos);
+      textarea.scrollTop = savedScrollTop;
     });
   }, [descriptionDraft, mentionStartPos, mentionSearchText, selectedSegment, handleSaveSegment]);
 
@@ -1087,8 +1195,17 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     );
   }, [activeScenes, mentionSearchText]);
 
+  const filteredProps = useMemo(() => {
+    const props = activeProps || [];
+    if (!mentionSearchText) return props;
+    return props.filter(p => 
+      p.name.toLowerCase().includes(mentionSearchText)
+    );
+  }, [activeProps, mentionSearchText]);
+
   // @ Mention: Expanded character for variations
   const [expandedCharId, setExpandedCharId] = useState<string | null>(null);
+  const [expandedPropId, setExpandedPropId] = useState<string | null>(null);
 
   // Preview image state
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -1143,6 +1260,39 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     handleSaveSegment(updatedSegment);
   }, [selectedSegment, handleSaveSegment]);
 
+  const handleTogglePropInline = useCallback((propId: string) => {
+    if (!selectedSegment) return;
+    const currentIds = selectedSegment.propIds || [];
+    const newIds = currentIds.includes(propId)
+      ? currentIds.filter(id => id !== propId)
+      : [...currentIds, propId];
+    const updatedSegment: Segment = {
+      ...selectedSegment,
+      propIds: newIds,
+      lastModified: Date.now()
+    };
+    // Remove variation if prop removed
+    if (!newIds.includes(propId) && selectedSegment.propVariations?.[propId]) {
+      const newVariations = { ...selectedSegment.propVariations };
+      delete newVariations[propId];
+      updatedSegment.propVariations = newVariations;
+    }
+    handleSaveSegment(updatedSegment);
+  }, [selectedSegment, handleSaveSegment]);
+
+  const handleSelectPropVariationInline = useCallback((propId: string, variationId: string) => {
+    if (!selectedSegment) return;
+    const updatedSegment: Segment = {
+      ...selectedSegment,
+      propVariations: {
+        ...selectedSegment.propVariations,
+        [propId]: variationId
+      },
+      lastModified: Date.now()
+    };
+    handleSaveSegment(updatedSegment);
+  }, [selectedSegment, handleSaveSegment]);
+
   // Available scenes/characters for selection
   const availableScenesInline = useMemo(() => 
     (activeScenes || []).filter(s => !(selectedSegment?.sceneIds || []).includes(s.id)),
@@ -1151,6 +1301,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const availableCharactersInline = useMemo(() => 
     (activeCharacters || []).filter(c => !(selectedSegment?.characterIds || []).includes(c.id)),
     [activeCharacters, selectedSegment?.characterIds]
+  );
+
+  const availablePropsInline = useMemo(() => 
+    (activeProps || []).filter(p => !(selectedSegment?.propIds || []).includes(p.id)),
+    [activeProps, selectedSegment?.propIds]
   );
 
   return (
@@ -1172,7 +1327,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               className="px-4 py-2 rounded-lg border border-slate-600 bg-slate-700/20 text-slate-300 text-xs font-bold tracking-wide transition-all flex items-center gap-2 hover:bg-slate-600/30 hover:border-slate-500 cursor-pointer"
               title="切换到分镜模式"
             >
-              <ListVideo className="w-3 h-3" />
+              <Clapperboard className="w-3 h-3" />
               <span className='hidden lg:inline'>{!isMobile && '分镜模式'}</span>
             </button>
           )}
@@ -1205,6 +1360,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             )}
             {!isMobile && '批量生成描述'}
           </button>
+          {/**
+           * 
           <button
             onClick={handleBatchGenerateTransitions}
             disabled={generatingTransition || batchGeneratingVideos || (project.segments || []).length < 2}
@@ -1217,6 +1374,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             )}
             {!isMobile && '批量生成转场'}
           </button>
+           */}
           <button
             onClick={handleBatchGenerateVideos}
             disabled={batchGeneratingVideos || (project.segments || []).length === 0}
@@ -1248,7 +1406,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 </span>
               </div>
               <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600">
-                <div className={`w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg border border-slate-600 relative shadow-lg
+                <div className={`w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg border-1 border-slate-600 relative shadow-lg
                    ${(generatingVideo === selectedSegment.id || batchGeneratingVideos)&&'ai-generating-border'}`}>
                 {selectedSegment.videoUrl ? (
                   <video
@@ -1260,7 +1418,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   <div className="flex w-full h-full flex-col items-center justify-center text-slate-500 aspect-video bg-slate-800/50">
                     <ListVideo className="w-16 h-16 mb-4 opacity-50" />
                     <p className="text-sm">暂无视频预览</p>
-                    <p className="text-xs text-slate-600">请先在导演工作台生成视频</p>
+                    <p className="text-xs text-slate-600">请先生成视频</p>
                   </div>
                 )}
                 </div>
@@ -1479,6 +1637,86 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 </div>
               </div>
 
+              {/* Props Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-amber-400 tracking-wide">
+                    道具 ({(selectedSegment?.propIds || []).length})
+                  </label>
+                  {availablePropsInline.length > 0 && (
+                    <CustomSelect
+                      value=""
+                      onChange={(val) => { if (val) handleTogglePropInline(val); }}
+                      options={availablePropsInline.map(p => ({ value: p.id, label: p.name }))}
+                      placeholder="+ 添加道具"
+                      className="w-64" size='sm'
+                    />
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedSegment?.propIds || []).map(propId => {
+                    const prop = getPropWithAssets(propId) || activeProps.find(p => p.id === propId);
+                    if (!prop) return null;
+
+                    // Get available looks
+                    const availableLooks: { id: string; name: string; image?: string }[] = [];
+                    if (prop.referenceImage) {
+                      availableLooks.push({ id: 'base', name: '默认', image: prop.referenceImage });
+                    }
+                    prop.variations?.forEach(v => {
+                      if (v.referenceImage) {
+                        availableLooks.push({ id: v.id, name: v.name, image: v.referenceImage });
+                      }
+                    });
+
+                    const selectedVarId = selectedSegment?.propVariations?.[propId];
+                    const currentLook = selectedVarId
+                      ? availableLooks.find(l => l.id === selectedVarId) || availableLooks[0]
+                      : availableLooks[0];
+
+                    return (
+                      <div key={propId} className="relative group flex items-center gap-1.5 px-2 py-1 bg-amber-900/30 border border-amber-700/50 rounded-lg">
+                        {currentLook?.image ? (
+                          <img
+                            src={currentLook.image}
+                            alt={prop.name}
+                            className="w-10 h-10 rounded-lg object-cover cursor-pointer hover:ring-1 ring-amber-400"
+                            onClick={() => setPreviewImage(currentLook.image!)}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-amber-800 flex items-center justify-center text-xs text-amber-400">
+                            <Box className="w-4 h-4" />
+                          </div>
+                        )}
+                        <div>
+                        <div className="flex items-center gap-1 justify-between pb-1">
+                        <div className="flex-1 text-xs text-amber-200 max-w-[60px] truncate text-left">{prop.name}</div>
+                        <button
+                          onClick={() => handleTogglePropInline(propId)}
+                          className="opacity-100 group-hover:opacity-100 p-0.5 hover:bg-red-900/30 hover:text-red-400 rounded transition-all cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        </div>
+                        {availableLooks.length > 1 && (
+                          <CustomSelect
+                            value={currentLook?.id || 'base'}
+                            onChange={(val) => handleSelectPropVariationInline(propId, val)}
+                            options={availableLooks.map(look => ({ value: look.id, label: look.name }))}
+                            className="w-24 text-[9px]"
+                            size='sm'
+                          />
+                        )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(selectedSegment?.propIds || []).length === 0 && (
+                    <span className="text-xs text-amber-500/50">未选择道具</span>
+                  )}
+                </div>
+              </div>
+
               {/* Description */}
               <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
@@ -1592,18 +1830,77 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                           })}
                         </div>
                       )}
+                      {/* Props Section */}
+                      {filteredProps.length > 0 && (
+                        <div className="p-1 border-t border-slate-700">
+                          <div className="text-[10px] text-amber-400 px-2 py-1 font-bold tracking-wide">道具</div>
+                          {filteredProps.slice(0, 5).map(prop => {
+                            const isExpanded = expandedPropId === prop.id;
+                            const propWithAssets = getPropWithAssets(prop.id) || prop;
+                            const variations = propWithAssets.variations || [];
+
+                            return (
+                              <div key={prop.id}>
+                                <button
+                                  onClick={() => {
+                                    if (variations.length > 0) {
+                                      setExpandedPropId(isExpanded ? null : prop.id);
+                                    } else {
+                                      handleSelectMention('prop', { id: prop.id, name: prop.name });
+                                    }
+                                  }}
+                                  className="w-full text-left px-2 py-1.5 text-sm text-amber-200 hover:bg-amber-900/30 rounded flex items-center gap-2 cursor-pointer"
+                                >
+                                  {propWithAssets.referenceImage ? (
+                                    <img src={propWithAssets.referenceImage} alt={prop.name} className="w-8 h-8 rounded object-cover" />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded bg-amber-800 flex items-center justify-center text-[10px] text-amber-400">
+                                      <Box className="w-3 h-3" />
+                                    </div>
+                                  )}
+                                  <span className="flex-1">{prop.name}</span>
+                                  {variations.length > 0 && (
+                                    <ChevronRight className={`w-3 h-3 text-amber-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                  )}
+                                </button>
+                                {/* Variations */}
+                                {isExpanded && variations.length > 0 && (
+                                  <div className="ml-4 border-l border-amber-800 pl-1">
+                                    {variations.map(variation => (
+                                      <button
+                                        key={variation.id}
+                                        onClick={() => handleSelectMention('prop', { id: prop.id, name: `${prop.name}(${variation.name})` }, variation.id)}
+                                        className="w-full text-left px-2 py-1 text-xs text-amber-300 hover:bg-amber-900/30 rounded flex items-center gap-2 cursor-pointer"
+                                      >
+                                        {variation.referenceImage ? (
+                                          <img src={variation.referenceImage} alt={variation.name} className="w-8 h-8 rounded object-cover" />
+                                        ) : (
+                                          <div className="w-4 h-4 rounded bg-amber-800" />
+                                        )}
+                                        <span>{variation.name}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                       {/* No results */}
-                      {filteredCharacters.length === 0 && filteredScenes.length === 0 && (
+                      {filteredCharacters.length === 0 && filteredScenes.length === 0 && filteredProps.length === 0 && (
                         <div className="p-3 text-sm text-slate-500 text-center">
-                          未找到匹配的角色或场景
+                          未找到匹配的角色、场景或道具
                         </div>
                       )}
                     </div>
                   )}
                   {/* 底部悬浮按钮层 */}
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border border-slate-600 border-t-slate-600/50 rounded-b-lg flex items-center justify-between">
-                    {/* 左边占位 */}
-                    <div />
+                    {/* 左边字数统计 */}
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {descriptionDraft.length} 字
+                    </span>
                     {/* 右边按钮组 */}
                     <div className="flex items-center gap-2">
                       {/* 复制按钮 */}
@@ -1616,6 +1913,17 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         <Copy className="w-3 h-3" />
                         复制
                       </button>
+                      {/* 重置按钮：当 videoPrompt 和 description 不同时显示 */}
+                      {selectedSegment.videoPrompt !== selectedSegment.description && selectedSegment.description && (
+                        <button
+                          onClick={() => setDescriptionDraft(selectedSegment.description || '')}
+                          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[11px] font-bold tracking-wider rounded transition-colors flex items-center gap-1.5 cursor-pointer"
+                          title="重置为原始描述"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          重置
+                        </button>
+                      )}
                       {/* AI生成按钮 */}
                       <button
                         onClick={() => handleGenerateDescription(selectedSegment.id)}
@@ -1676,7 +1984,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     value={transitionFromDraft}
                     onChange={(e) => setTransitionFromDraft(e.target.value)}
                     placeholder="描述从上一个片段的转场效果..."
-                    className={`w-full h-20 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
+                    className={`w-full h-16 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
                       generatingTransition ? 'border-transparent' : 'border-slate-600 focus:border-slate-500'
                     }`}
                   />
@@ -1719,7 +2027,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     value={transitionToDraft}
                     onChange={(e) => setTransitionToDraft(e.target.value)}
                     placeholder="描述到下一个片段的转场效果..."
-                    className={`w-full h-20 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
+                    className={`w-full h-16 p-3 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
                       generatingTransition ? 'border-transparent' : 'border-slate-600 focus:border-slate-500'
                     }`}
                   />
@@ -1751,10 +2059,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         <p className="text-xs text-slate-400 font-mono px-3 py-2">
           {(project.segments || []).length} 个片段 · {totalShots} 个分镜 · 总时长 {totalDuration.toFixed(1)} 秒
         </p>
-        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="pb-1 mx-2 px-1 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
+        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="mx-2 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
-              <p className="text-xs">暂无片段，请先在导演工作台创建分镜</p>
+              <p className="text-xs">暂无片段，请先创建片段</p>
               <div className="flex items-center h-26 justify-center z-10 opacity-80 hover:opacity-100 transition-opacity duration-200">
                 <button
                   onClick={() => handleAddSegmentAfter(0)}
@@ -1762,16 +2070,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   title="在此后添加片段"
                 >
                   <Plus className="rounded-full bg-indigo-600 hover:bg-indigo-500 w-6 h-6" />
-               <p className="text-xs">添加第一个片段</p>
                 </button>
+                  <p className="text-xs">添加第一个片段</p>
               </div>
             </div>
           ) : (
-            <div className="flex h-full">
+            <div className="flex h-full p-1">
               {(project.segments || []).map((segment, index) => {
                 const thumbnail = getSegmentThumbnail(segment);
                 const isSelected = selectedSegmentId === segment.id;
-
                 return (
                   <React.Fragment key={segment.id}>
                   <div
@@ -1782,7 +2089,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         segmentRefs.current.delete(segment.id);
                       }
                     }}
-                    className={`p-0.5 flex-shrink-0 w-48 h-27 bg-slate-900 border rounded-lg cursor-pointer transition-all ${
+                    className={`p-0.5 flex-shrink-0 w-47 h-27 bg-slate-900 border-1 rounded-lg cursor-pointer transition-all ${
                       isSelected
                         ? 'border-indigo-500 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-700/40'
                         : 'border-slate-600 hover:border-slate-400 hover:shadow-lg shadow-indigo-800/60'
@@ -1792,12 +2099,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     onMouseLeave={() => setHoveredSegmentId(null)}
                   >
                     {/* Thumbnail */}
-                    <div className={`relative w-full h-full bg-slate-800 group overflow-hidden rounded`}>
+                    <div className={`relative w-full h-full bg-slate-800 group overflow-hidden rounded-md`}>
                       {thumbnail ? (
                         <img
                           src={thumbnail}
                           alt={`片段 ${index + 1}`}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                          className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-200"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-600">
@@ -1864,8 +2171,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           allShots={project.shots}
           allCharacters={activeCharacters}
           allScenes={activeScenes}
+          allProps={activeProps}
           getCharacterWithAssets={getCharacterWithAssets}
           getSceneWithAssets={getSceneWithAssets}
+          getPropWithAssets={getPropWithAssets}
           isOpen={segmentEditModalOpen}
           onClose={() => setSegmentEditModalOpen(false)}
           onSave={handleSaveSegment}

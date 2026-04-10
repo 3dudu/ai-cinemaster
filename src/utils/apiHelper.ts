@@ -290,7 +290,6 @@ export const pollTask = async <T>(
       );
       if (isFailed) {
         const errorMsg = errorGetter ? errorGetter(data) : "任务失败";
-        
         // 更新日志为失败状态
         if (logContext && logContext.logId) {
           const endTime = Date.now();
@@ -305,30 +304,22 @@ export const pollTask = async <T>(
           }).catch(err => console.warn('Failed to update poll log:', err));
         }
         throw new Error(errorMsg || "任务失败");
+      }else{
+        // 继续等待
+        await new Promise((resolve) => setTimeout(resolve, finalConfig.pollInterval));
       }
-
-      // 继续等待
-      await new Promise((resolve) => setTimeout(resolve, finalConfig.pollInterval));
-
     } catch (error: any) {
-      if (i === finalConfig.maxAttempts - 1) {
-        // 更新日志为超时/失败状态
-        if (logContext && logContext.logId) {
-          const endTime = Date.now();
-          updatePollLog(logContext.logId, {
-            taskStatus: 'failed',
-            pollCount,
-            response: lastData,
-            success: false,
-            errorMessage: error.message || '任务轮询超时',
-            pollEndTime: endTime,
-            duration: endTime - startTime
-          }).catch(err => console.warn('Failed to update poll log:', err));
-        }
+        const endTime = Date.now();
+        updatePollLog(logContext.logId, {
+          taskStatus: 'failed',
+          pollCount,
+          response: lastData,
+          success: false,
+          errorMessage: error.message || '任务轮询异常',
+          pollEndTime: endTime,
+          duration: endTime - startTime
+        }).catch(err => console.warn('Failed to update poll log:', err));
         throw error;
-      }
-      console.warn(`查询任务状态失败 (尝试 ${i + 1}/${finalConfig.maxAttempts}):`, error);
-      await new Promise((resolve) => setTimeout(resolve, finalConfig.pollInterval));
     }
   }
 
@@ -374,7 +365,7 @@ const updatePollLog = async (logId: string, update: PollLogUpdate): Promise<void
     errorMessage: update.errorMessage,
     pollEndTime: update.pollEndTime,
     responseTime: update.pollEndTime,
-    duration: existingLog.duration ? (update.duration + existingLog.duration) : update.duration,
+    duration: update.duration,
     resultUrl: update.resultUrl ?? existingLog.resultUrl
   };
   
@@ -441,7 +432,7 @@ export const fetchTaskStatus = async <T>(
   }
 
   // 判断状态
-  const successStatuses = ["completed", "succeeded", "Success", "SUCCEEDED", "SUCCESS"];
+  const successStatuses = ["completed", "succeeded", "Success", "SUCCEEDED", "SUCCESS","video_generation_completed"];
   const failedStatuses = ["failed", "error", "Error", "FAILED"];
 
   const isSuccess = successStatuses.some(s => status.toLowerCase().includes(s.toLowerCase()));

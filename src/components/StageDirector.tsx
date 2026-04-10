@@ -1,14 +1,15 @@
-import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, ListVideo, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, Play, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Box, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, ListVideo, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, Play, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
 import { addMediaHistory, getAllModelConfigs } from '../services/storageService';
-import { AIModelConfig, Character, Keyframe, ProjectState, Scene, SeriesRecord, Shot } from '../types';
+import { AIModelConfig, Character, Keyframe, ProjectState, Properties, Scene, SeriesRecord, Shot } from '../types';
 import CustomSelect from './common/CustomSelect';
 import { useDialog } from './dialog';
 import EpisodePreviewModal from './modals/EpisodePreviewModal';
 import FileUploadModal, { downloadImage, downloadVideo } from './modals/FileUploadModal';
+import PropVariationModal from './modals/PropVariationModal';
 import ShotEditModal from './modals/ShotEditModal';
 import VideoPromptModal from './modals/VideoPromptModal';
 import WardrobeModal from './modals/WardrobeModal';
@@ -28,6 +29,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   const isSeriesMode = !!project.seriesRefId;
   const activeCharacters = project.scriptData?.characters || [];
   const activeScenes = project.scriptData?.scenes || [];
+  const activeProps = project.scriptData?.props || [];
 
   // Helper function to get character with full library data (in series mode)
   const getCharacterWithAssets = useCallback((charId: string): Character | null => {
@@ -57,7 +59,21 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     }
     return scene;
   }, [activeScenes, isSeriesMode, series?.library?.scenes]);
-  const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'}|null>(null);
+
+  // Helper function to get prop with full library data (in series mode)
+  const getPropWithAssets = useCallback((propId: string): Properties | null => {
+    const prop = activeProps.find(p => String(p.id) === String(propId));
+    if (!prop) return null;
+    // In standalone mode, return prop directly
+    if (!isSeriesMode || !prop.refId) return prop;
+    // In series mode, get full prop data from series library
+    if (series?.library?.props) {
+      const libraryProp = series.library.props.find(p => p.id === prop.refId);
+      if (libraryProp) return libraryProp;
+    }
+    return prop;
+  }, [activeScenes, isSeriesMode, series?.library?.scenes]);
+  const [wardProcessingState, setWardProcessingState] = useState<{id: string, type: 'character'|'scene'|'prop'}|null>(null);
   const [activeShotId, setActiveShotId] = useState<string | null>(null);
   const [editingShotId, setEditingShotId] = useState<string | null>(null);
   const [processingState, setProcessingState] = useState<{id: string, type: 'kf_start'|'kf_end'|'kf_full'|'video'|'character'}|null>(null);
@@ -108,6 +124,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
   }, [processingState?.type, videoGenerateStartTime]);
 
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
+  const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
   const [oneClickProcessing, setOneClickProcessing] = useState<{shotId: string, step: 'images'|'video'}|null>(null);
   const [batchVideoProgress, setBatchVideoProgress] = useState<{current: number, total: number, currentShotName: string} | null>(null);
   const [modelConfigs, setModelConfigs] = useState<AIModelConfig[]>([]);
@@ -290,6 +307,30 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             }
           });
         }
+
+        // 3. Prop References
+        if (shot.properties) {
+          shot.properties.forEach(propId => {
+            // Get full prop data from library if in series mode
+            const prop = getPropWithAssets(String(propId));
+            if (!prop) return;
+
+            // Check if a specific variation is selected for this shot
+            const varId = shot.propVariations?.[propId];
+            if (varId) {
+              const variation = prop.variations?.find(v => v.id === varId);
+              if (variation?.referenceImage) {
+                referenceImages.push(variation.referenceImage);
+                return; // Use variation image instead of base
+              }
+            }
+
+            // Fallback to base image
+            if (prop.referenceImage) {
+              referenceImages.push(prop.referenceImage);
+            }
+          });
+        }
       }
       return referenceImages;
   };
@@ -329,6 +370,31 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                 referenceImages.push(" - 第"+imagecount+"张图是角色："+char.name);
             }
             imagecount++;
+          });
+        }
+        // 3. Prop References
+        if (shot.properties) {
+          shot.properties.forEach(propId => {
+            // Get full prop data from library if in series mode
+            const prop = getPropWithAssets(String(propId));
+            if (!prop) return;
+
+            // Check if a specific variation is selected for this shot
+            const varId = shot.propVariations?.[propId];
+            if (varId) {
+              const variation = prop.variations?.find(v => v.id === varId);
+              if (variation?.referenceImage) {
+                referenceImages.push(" - 第"+imagecount+"张图是道具："+prop.name);
+                imagecount++;
+                return;
+              }
+            }
+
+            // Fallback to base image
+            if (prop.referenceImage) {
+              referenceImages.push(" - 第"+imagecount+"张图是道具："+prop.name);
+              imagecount++;
+            }
           });
         }
       }
@@ -448,7 +514,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     // 生成视频拍摄提示词（如果还没有）
     if (!shot.interval.videoPrompt && project.scriptData) {
       try {
-        const videoPrompt = await ModelService.generateVideoPrompt(shot, project.scriptData, localStyle);
+        const videoPrompt = await ModelService.generateVideoPrompt(shot, project.scriptData, localStyle,project.globalSettings);
         updateShot(shot.id, (s) => ({
           ...s,
           interval: s.interval ? { ...s.interval, videoPrompt } : undefined
@@ -769,6 +835,16 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
          characterVariations: {
              ...(s.characterVariations || {}),
              [charId]: varId
+         }
+     }));
+  };
+
+  const handlePropVariationChange = (shotId: string, propId: string, varId: string) => {
+     updateShot(shotId, (s) => ({
+         ...s,
+         propVariations: {
+             ...(s.propVariations || {}),
+             [propId]: varId
          }
      }));
   };
@@ -1109,6 +1185,12 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
         return episodeChar ? getCharacterWithAssets(String(episodeChar.id)) : null;
       }).filter((c): c is Character => c !== null);
 
+      // Get full prop data from library if in series mode
+      const contextProps = (activeShot.properties || []).map(propId => {
+        const episodeProp = project.scriptData!.props?.find(p => p.id === propId || String(p.id) === String(propId));
+        return episodeProp ? getPropWithAssets(String(episodeProp.id)) : null;
+      }).filter((p): p is Properties => p !== null);
+
       return (
           <div className="bg-slate-800 p-5 rounded-xl border border-slate-600 mb-4 space-y-4">
               <div className="flex items-center justify-between mb-2">
@@ -1191,6 +1273,53 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                              );
                          })}
                     </div>
+                    {/* Props List with Variation Selector */}
+                    {contextProps.length > 0 && (
+                    <div className="flex flex-col grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
+                         {contextProps.map(prop => {
+                             const hasVars = prop.variations && prop.variations.length > 0;
+                             const selectedVarId = activeShot.propVariations?.[prop.id];
+                             const selectedVar = prop.variations?.find(v => v.id === selectedVarId);
+                             const displayImage = selectedVar?.referenceImage || prop.referenceImage;
+                             return (
+                                 <div key={prop.id} className="flex items-center justify-between bg-amber-900/30 rounded p-1.5 border border-amber-700/50">
+                                     <div className="flex items-center gap-2">
+                                         <div
+                                           className="w-16 h-16 rounded-lg bg-amber-800 overflow-hidden cursor-pointer hover:ring-2 hover:ring-amber-500 transition-all"
+                                           onClick={() => displayImage && setPreviewImageUrl(displayImage)}
+                                         >
+                                             {displayImage && <img src={displayImage} className="w-full h-full object-cover" />}
+                                         </div>
+                                     </div>
+                                     <div className="flex pl-2 items-end gap-2 flex-col flex-1">
+                                      <div className="flex items-center gap-2 justify-between w-full">
+                                         <span className="text-[11px] text-amber-200 font-medium">{prop.name}</span>
+                                         <button
+                                             onClick={() => setSelectedPropId(prop.id)}
+                                             className="p-1.5 bg-slate-700/50 text-slate-400 hover:text-slate-50 rounded-full hover:bg-slate-800/20 transition-all border border-white/10 cursor-pointer"
+                                             title="管理变型"
+                                         >
+                                        <Box className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                         {hasVars && (
+                                             <CustomSelect
+                                                options={[
+                                                    { value: '', label: '默认' },
+                                                    ...prop.variations!.map(v => ({ value: v.id, label: v.name }))
+                                                ]}
+                                                value={activeShot.propVariations?.[String(prop.id)] || ""}
+                                                onChange={(value) => handlePropVariationChange(activeShot.id, String(prop.id), value)}
+                                                className="min-w-[145px]"
+                                                size="sm"
+                                             />
+                                         )}
+                                     </div>
+                                 </div>
+                             );
+                         })}
+                    </div>
+                    )}
                   </div>
               </div>
           </div>
@@ -1238,7 +1367,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           <div className="flex items-center gap-4">
               <h2 className="text-lg font-bold text-slate-50 flex items-center gap-3">
                   <Clapperboard className="w-5 h-5 text-slate-500" />
-                  导演台
+                  分镜
               </h2>
               {!isMobile && (
               <span className="text-xs text-slate-500 mr-4 font-mono">
@@ -1699,7 +1828,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                                </div>
                            )}
                           {startKf && (
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className={`grid ${imageCount > 0?'grid-cols-2':''} gap-4`}>
                                    <div className="space-y-2">
                                    {/* Start Frame */}
                                    {imageCount > 0 && (<>
@@ -2052,7 +2181,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
                   </div>
                            <button
                              onClick={() => handleGenerateVideo(activeShot)}
-                             disabled={!!processingState || !!batchProgress}
+                             disabled={processingState?.type === 'video' || !!batchProgress}
                              className={`mx-6 m-3 py-2 rounded-lg font-bold border border-slate-600 xt-xs tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer ${
                                activeShot.interval?.videoUrl
                                  ? 'bg-slate-600 text-slate-300 hover:bg-slate-700'
@@ -2100,11 +2229,13 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               shot={project.shots.find(s => s.id === editingShotId)!}
               characters={isSeriesMode && series?.library?.characters ? series.library.characters : activeCharacters}
               scenes={isSeriesMode && series?.library?.scenes ? series.library.scenes : activeScenes}
+              props={isSeriesMode && series?.library?.props ? series.library.props : activeProps}
               onSave={saveShot}
               onClose={() => setEditingShotId(null)}
               imageCount={project.imageCount}
               scriptData={project.scriptData}
               visualStyle={project.visualStyle}
+              story={project.globalSettings}
             />
           )}
 
@@ -2121,6 +2252,22 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               setProcessingState={setWardProcessingState}
               updateProject={updateProject}
               onClose={() => setSelectedCharId(null)}
+              setPreviewImage={setPreviewImageUrl}
+            />
+          )}
+          {/* Prop Modal */}
+          {selectedPropId && (
+            <PropVariationModal
+              prop={getPropWithAssets(selectedPropId)}
+              series={series}
+              updateSeries={updateSeries}
+              project={project}
+              localStyle={localStyle}
+              imageSize={imageSize}
+              processingState={wardProcessingState}
+              setProcessingState={setWardProcessingState}
+              updateProject={updateProject}
+              onClose={() => setSelectedPropId(null)}
               setPreviewImage={setPreviewImageUrl}
             />
           )}
@@ -2159,6 +2306,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               interval: s.interval ? { ...s.interval, videoPrompt } : undefined
             }));
           }}
+          story={project.globalSettings}
         />
       )}
     </div>

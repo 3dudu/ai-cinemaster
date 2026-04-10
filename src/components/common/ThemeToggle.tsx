@@ -69,11 +69,10 @@ export function ThemeToggle({ className = '', size = 'md' }: ThemeToggleProps) {
     <button
       onClick={handleToggle}
       className={`
-        bg-bg-button rounded-lg cursor-pointer
-        hover:bg-bg-selected hover:border-slate-300
+        bg-slate-700 rounded-lg cursor-pointer
+        hover:bg-slate-600 hover:border-slate-300
         transition-all duration-200 ease-in-out
         flex items-center justify-center text-text-secondary
-        hover:bg-slate-900/30
         hover:text-slate-50 ${sizeClasses[size]} ${className}
       `}
       title={getTooltipText()}

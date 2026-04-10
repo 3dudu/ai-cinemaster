@@ -73,6 +73,9 @@ export interface Shot {
     text2image?: string; // Text-to-image model config ID
     image2video?: string; // Image-to-video model config ID
   };
+  //道具
+  properties: string[];  // Properties Name
+  propVariations?: { [propId: string]: string }; // Map prop name to variation ID for this shot
 }
 
 export interface Props {
@@ -98,7 +101,8 @@ export interface ScriptData {
   language?: string; 
   characters: Character[];
   scenes: Scene[];
-  storyParagraphs: { id: number; text: string; sceneRefId: string }[];
+  storyParagraphs: { id: number; text: string; sceneRefId: string; duration: number }[];
+  props: Properties[];
 }
 
 export interface ProjectState {
@@ -117,6 +121,8 @@ export interface ProjectState {
   genre: string;
   imageSize: string;
   imageCount: number; // 组图数量：文生图一次生成的画面数 (0-9)
+  segmentDuration: number; // 片段时长（秒）
+  globalSettings?: string; // 全局设定（画面风格、历史年代等）
 
   scriptData: ScriptData | null;
   shots: Shot[];
@@ -147,6 +153,7 @@ export interface Segment {
   characterIds: string[]; // 涉及的角色ID列表（去重）
   characterVariations?: { [characterId: string]: string }; // Added: Map char ID to variation ID for this shot
   description?: string; // 片段描述（由LLM生成）
+  videoPrompt?: string;  // 视频提示词
   transitionFrom?: string; // 转场描述：从上一个片段到此片段（由LLM生成）
   transitionTo?: string; // 转场描述：从此片段到下一个片段（由LLM生成）
   estimatedDuration: number; // 预估时长（秒），不超过15秒
@@ -156,6 +163,8 @@ export interface Segment {
   createdAt: number;
   lastModified: number;
   videoUrl?: string; 
+  propIds: string[];  //涉及的道具ID列表（去重）
+  propVariations?: { [propId: string]: string }; // Map prop name to variation ID for this shot
 }
 
 export interface AIModelConfig {
@@ -174,6 +183,7 @@ export interface AIModelConfig {
 export interface SeriesLibrary {
   characters: Character[];
   scenes: Scene[];
+  props: Properties[];
 }
 
 export interface SeriesRecord {
@@ -197,6 +207,7 @@ export interface SeriesRecord {
   episodeOrder: string[]; // Array of ProjectState.id in order
   currentEpisodeId: string;
   version: 1;
+  globalSettings?: string; // 全局设定（画面风格、历史年代等）
 }
 
 // Unified export bundle format (v2)
@@ -254,6 +265,31 @@ export interface LLMCallLog {
   pollStartTime?: number;       // 开始轮询时间
   pollEndTime?: number;         // 结束轮询时间
 }
+//道具
+export interface Properties {
+  id: string;
+  refId?: string; // Reference to SeriesRecord.library.props (for series episodes)
+  name: string;
+  shape: string;
+  material: string;
+  color: string;
+  size: string;
+  structural: string;
+  effects: string;
+  description: string;
+  variations: PropertieVariation[]; // Added: List of alternative looks
+  visualPrompt?: string;
+  referenceImage?: string; // Base URL
+}
+
+//道具变形
+export interface PropertieVariation {
+  id: string;
+  name: string; // e.g., "Casual", "Tactical Gear", "Injured"
+  visualPrompt: string;
+  referenceImage?: string;
+}
+
 
 // Electron API types
 declare global {

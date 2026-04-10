@@ -48,6 +48,24 @@ export const parseScriptToData = async (prompt: string, language: string = '中�
               required: ["id", "name", "gender", "age", "personality"]
             }
           },
+          props: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                name: { type: Type.STRING },
+                shape: { type: Type.STRING },
+                material: { type: Type.STRING },
+                color: { type: Type.STRING },
+                size: { type: Type.STRING },
+                structural: { type: Type.STRING },
+                effects: { type: Type.STRING },
+                description: { type: Type.STRING },
+              },
+              required: ["id", "name", "effects", "description"]
+            }
+          },
           scenes: {
              type: Type.ARRAY,
              items: {
@@ -68,9 +86,10 @@ export const parseScriptToData = async (prompt: string, language: string = '中�
                properties: {
                  id: { type: Type.NUMBER },
                  text: { type: Type.STRING },
-                 sceneRefId: { type: Type.STRING }
+                 sceneRefId: { type: Type.STRING },
+                 duration: { type: Type.NUMBER }
                },
-               required: ["id", "text", "sceneRefId"]
+               required: ["id", "text", "sceneRefId","duration"]
              }
           }
         },
@@ -94,6 +113,11 @@ export const parseScriptToData = async (prompt: string, language: string = '中�
     id: String(c.id),
     variations: [] // Initialize empty variations
   })) : [];
+  const props = Array.isArray(parsed.props) ? parsed.props.map((c: any) => ({
+    ...c, 
+    id: String(c.id),
+    variations: [] // Initialize empty variations
+  })) : [];
   const scenes = Array.isArray(parsed.scenes) ? parsed.scenes.map((s: any) => ({...s, id: String(s.id)})) : [];
   const storyParagraphs = Array.isArray(parsed.storyParagraphs) ? parsed.storyParagraphs.map((p: any) => ({...p, sceneRefId: String(p.sceneRefId)})) : [];
 
@@ -104,6 +128,7 @@ export const parseScriptToData = async (prompt: string, language: string = '中�
     language: language,
     characters,
     scenes,
+    props,
     storyParagraphs
   };
 };
@@ -148,6 +173,7 @@ export const generateShotListForScene = async (
               cameraMovement: { type: Type.STRING },
               shotSize: { type: Type.STRING, description: "例如：广角镜头、特写镜头" },
               characters: { type: Type.ARRAY, items: { type: Type.STRING } },
+              props: { type: Type.ARRAY, items: { type: Type.STRING } },
               keyframes: {
                 type: Type.ARRAY,
                 items: {
@@ -368,6 +394,24 @@ export const importScriptToData = async (
                required: ["id", "location", "time", "atmosphere"]
              }
           },
+          props: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.STRING },
+                name: { type: Type.STRING },
+                shape: { type: Type.STRING },
+                material: { type: Type.STRING },
+                color: { type: Type.STRING },
+                size: { type: Type.STRING },
+                structural: { type: Type.STRING },
+                effects: { type: Type.STRING },
+                description: { type: Type.STRING },
+              },
+              required: ["id", "name", "effects", "description"]
+            }
+          },
           storyParagraphs: {
              type: Type.ARRAY,
              items: {
@@ -401,6 +445,11 @@ export const importScriptToData = async (
     id: String(c.id),
     variations: [] // Initialize empty variations
   })) : [];
+  const props = Array.isArray(parsed.props) ? parsed.props.map((c: any) => ({
+    ...c, 
+    id: String(c.id),
+    variations: [] // Initialize empty variations
+  })) : [];
   const scenes = Array.isArray(parsed.scenes) ? parsed.scenes.map((s: any) => ({...s, id: String(s.id)})) : [];
   const storyParagraphs = Array.isArray(parsed.storyParagraphs) ? parsed.storyParagraphs.map((p: any) => ({...p, sceneRefId: String(p.sceneRefId)})) : [];
 
@@ -411,6 +460,7 @@ export const importScriptToData = async (
     language: language,
     characters,
     scenes,
+    props,
     storyParagraphs
   };
 };
@@ -448,6 +498,7 @@ const ai = getAiClient();
               cameraMovement: { type: Type.STRING },
               shotSize: { type: Type.STRING, description: "例如：广角镜头、特写镜头" },
               characters: { type: Type.ARRAY, items: { type: Type.STRING } },
+              props: { type: Type.ARRAY, items: { type: Type.STRING } },
               keyframes: {
                 type: Type.ARRAY,
                 items: {
@@ -513,6 +564,7 @@ const ai = getAiClient();
               cameraMovement: { type: Type.STRING },
               shotSize: { type: Type.STRING, description: "例如：广角镜头、特写镜头" },
               characters: { type: Type.ARRAY, items: { type: Type.STRING } },
+              props: { type: Type.ARRAY, items: { type: Type.STRING } },
               keyframes: {
                 type: Type.ARRAY,
                 items: {

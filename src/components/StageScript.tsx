@@ -1,8 +1,8 @@
-import { AlertCircle, Aperture, BookOpen, BrainCircuit, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
+import { AlertCircle, Aperture, BookOpen, BrainCircuit, ChevronDown, ChevronUp, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
-import { createCharacterRef, createLightweightCharacters, createLightweightScenes, createSceneRef, generateId, mergeCharactersToLibrary, mergeScenesToLibrary, mergeToLibrary, remapScriptDataRefs, updateLibraryCharacter } from '../services/seriesService';
+import { createCharacterRef, createLightweightCharacters, createLightweightProps, createLightweightScenes, createSceneRef, generateId, mergeCharactersToLibrary, mergeScenesToLibrary, mergeToLibrary, remapScriptDataRefs, updateLibraryCharacter } from '../services/seriesService';
 import { getAllModelConfigs } from '../services/storageService';
 import { Character, ProjectState, Scene, SeriesRecord } from '../types';
 import CustomSelect from './common/CustomSelect';
@@ -72,6 +72,9 @@ const StageScript: React.FC<Props> = ({
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project.modelProviders?.text2image || '');
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState(project.modelProviders?.image2video || '');
   const [scriptSourceMode, setScriptSourceMode] = useState<'generate' | 'import' | 'segment'>(project.scriptSourceMode || 'generate');
+  const [localSegmentDuration, setLocalSegmentDuration] = useState(project.segmentDuration || 15);
+  const [localGlobalSettings, setLocalGlobalSettings] = useState(project.globalSettings || '');
+  const [showModelProviders, setShowModelProviders] = useState(false);
 
   // 当 project.scriptSourceMode 变化时同步更新本地状态
   useEffect(() => {
@@ -79,6 +82,16 @@ const StageScript: React.FC<Props> = ({
       setScriptSourceMode(project.scriptSourceMode);
     }
   }, [project.scriptSourceMode]);
+
+  useEffect(() => {
+    if (project.segmentDuration) {
+      setLocalSegmentDuration(project.segmentDuration);
+    }
+  }, [project.segmentDuration]);
+
+  useEffect(() => {
+    setActiveTab(project.scriptData ? 'script' : 'story');
+  }, [project.id]); 
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -109,10 +122,12 @@ const StageScript: React.FC<Props> = ({
     setLocalImageSize(project.imageSize || '2560x1440');
     setLocalImageCount(project.imageCount || 0);
 
+    setLocalGlobalSettings(project.globalSettings || '');
+
     // 加载模型配置
     loadModelConfigs();
     // initSystemModelProviders();
-  }, [project.id, project.title, project.targetDuration, project.language, project.visualStyle, project.imageSize, project.imageCount]);
+  }, [project.id, project.title, project.targetDuration, project.language, project.visualStyle, project.imageSize, project.imageCount, project.globalSettings]);
 
   const initSystemModelProviders = async () => {
       const llm = await getEnabledConfigByType('llm');
@@ -442,7 +457,7 @@ const StageScript: React.FC<Props> = ({
 
     setRegeneratingSceneId(sceneId);
     try {
-      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex ,project.imageCount);
+      const newShots = await ModelService.generateShotListForScene(project.scriptData, scene, sceneIndex ,project.imageCount,project.segmentDuration,localGlobalSettings);
       if(newShots && newShots.length > 0){
         // 删除该场景的旧分镜
         const otherShots = project.shots.filter(s => s.sceneId !== sceneId);
@@ -507,7 +522,8 @@ const StageScript: React.FC<Props> = ({
         scriptPrompt,
         finalGenre || project.scriptData?.genre || '剧情片',
         getFinalDuration(),
-        localLanguage
+        localLanguage,
+        localGlobalSettings
       );
       if(generatedScript){
         setLocalScript(generatedScript);
@@ -567,9 +583,7 @@ const StageScript: React.FC<Props> = ({
         genre: finalGenre || project.scriptData?.genre || '剧情片',
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
-      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage,localGenre);
-      console.log('scriptData', scriptData);
-      if(scriptData.scenes.length > 0){
+      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage,finalGenre,localGlobalSettings,getFinalDuration());
         updateProject({ isParsingScript: true });
   
         scriptData.targetDuration = finalDuration;
@@ -578,20 +592,21 @@ const StageScript: React.FC<Props> = ({
         if (localTitle && localTitle !== "未命名项目") {
           scriptData.title = localTitle;
         }
-        scriptData.genre = localGenre;
+        scriptData.genre = finalGenre;
 
         // Series mode: merge to library and create lightweight refs
         if (series && updateSeries) {
           setProcessingStep('正在同步到剧集库...');
-          const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
-            mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+          const { series: updatedSeries, charIdMapping, sceneIdMapping,propIdMapping } = 
+            mergeToLibrary(series, scriptData.characters, scriptData.scenes,scriptData.props);
           
           // Remap references in scriptData
-          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping,propIdMapping);
           
           // Create lightweight characters/scenes for episode
           scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
           scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+          scriptData.props = createLightweightProps(scriptData.props, propIdMapping);
           
           // Update series
           updateSeries(updatedSeries);
@@ -605,7 +620,7 @@ const StageScript: React.FC<Props> = ({
           const scene = scriptData.scenes[i];
           setProcessingStep(`正在生成第 ${i + 1}/${totalScenes} 场的分镜...`);
   
-          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i,project.imageCount);
+          const sceneShots = await ModelService.generateShotListForScene(scriptData, scene, i,project.imageCount,project.segmentDuration,localGlobalSettings);
           allShots.push(...sceneShots);
   
           // 短暂延迟，避免请求过快
@@ -637,16 +652,6 @@ const StageScript: React.FC<Props> = ({
   
         setActiveTab('script');
         setProcessingStep('');
-      }else{
-        setProcessingStep('');
-        await dialog.alert({
-          title: '错误',
-          message: `分析剧本失败`,
-          type: 'error',
-        });
-        return;
-      }
-
     } catch (err: any) {
       console.error(err);
       dialog.alert({
@@ -696,9 +701,7 @@ const StageScript: React.FC<Props> = ({
         genre: finalGenre || project.scriptData?.genre || '剧情片',
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
-      let scriptData = await ModelService.importScriptToData(localScript, localLanguage,localGenre);
-      console.log('scriptData', scriptData);
-      if(scriptData.scenes.length > 0){
+      let scriptData = await ModelService.importScriptToData(localScript, localLanguage,finalGenre);
         updateProject({ isParsingScript: true });
   
         scriptData.targetDuration = finalDuration;
@@ -707,20 +710,21 @@ const StageScript: React.FC<Props> = ({
         if (localTitle && localTitle !== "未命名项目") {
           scriptData.title = localTitle;
         }
-        scriptData.genre = localGenre;
+        scriptData.genre = finalGenre;
 
         // Series mode: merge to library and create lightweight refs
         if (series && updateSeries) {
           setProcessingStep('正在同步到剧集库...');
-          const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
-            mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+          const { series: updatedSeries, charIdMapping, sceneIdMapping, propIdMapping } = 
+            mergeToLibrary(series, scriptData.characters, scriptData.scenes,scriptData.props);
           
           // Remap references in scriptData
-          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+          scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping,propIdMapping);
           
           // Create lightweight characters/scenes for episode
           scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
           scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+          scriptData.props = createLightweightProps(scriptData.props, propIdMapping);
           
           // Update series
           updateSeries(updatedSeries);
@@ -729,7 +733,7 @@ const StageScript: React.FC<Props> = ({
         // 逐场景生成分镜
         const allShots: any[] = [];
   
-        const sceneShots = await ModelService.importShotList(scriptData,project.imageCount,localScript);
+        const sceneShots = await ModelService.importShotList(scriptData,project.imageCount,localScript,project.segmentDuration);
         allShots.push(...sceneShots);
   
         // 重新索引 shots
@@ -755,16 +759,6 @@ const StageScript: React.FC<Props> = ({
   
         setActiveTab('script');
         setProcessingStep('');
-      }else{
-        setProcessingStep('');
-        await dialog.alert({
-          title: '错误',
-          message: `分析剧本失败`,
-          type: 'error',
-        });
-        return;
-      }
-
     } catch (err: any) {
       console.error(err);
       dialog.alert({
@@ -811,41 +805,34 @@ const StageScript: React.FC<Props> = ({
         imageSize: localImageSize,
         imageCount: localImageCount,
         genre: finalGenre || project.scriptData?.genre || '剧情片',
+        globalSettings: localGlobalSettings,
       });
       ModelService.setCurrentProjectProviders(project.modelProviders);
       
       // 1. 解析剧本获取角色和场景
-      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage, localGenre);
+      let scriptData = await ModelService.parseScriptToData(localScript, localLanguage, finalGenre,localGlobalSettings,getFinalDuration());
       
-      if (scriptData.scenes.length === 0) {
-        setProcessingStep('');
-        await dialog.alert({
-          title: '错误',
-          message: '分析剧本失败，未找到场景信息',
-          type: 'error',
-        });
-        return;
-      }
-
       scriptData.targetDuration = finalDuration;
       scriptData.language = localLanguage;
       if (localTitle && localTitle !== "未命名项目") {
         scriptData.title = localTitle;
       }
-      scriptData.genre = localGenre;
+      scriptData.genre = finalGenre;
 
       // 2. Series 模式：合并到 library
       if (series && updateSeries) {
         setProcessingStep('正在同步到剧集库...');
-        const { series: updatedSeries, charIdMapping, sceneIdMapping } = 
-          mergeToLibrary(series, scriptData.characters, scriptData.scenes);
+        console.log('scriptData',scriptData);
+        const { series: updatedSeries, charIdMapping, sceneIdMapping,propIdMapping } = 
+          mergeToLibrary(series, scriptData.characters, scriptData.scenes,scriptData.props);
         
         // Remap references in scriptData
-        scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping);
+        scriptData = remapScriptDataRefs(scriptData, charIdMapping, sceneIdMapping,propIdMapping);
         
         // Create lightweight characters/scenes for episode
         scriptData.characters = createLightweightCharacters(scriptData.characters, charIdMapping);
         scriptData.scenes = createLightweightScenes(scriptData.scenes, sceneIdMapping);
+        scriptData.props = createLightweightProps(scriptData.props, propIdMapping);
         
         // Update series
         updateSeries(updatedSeries);
@@ -860,7 +847,8 @@ const StageScript: React.FC<Props> = ({
         getFinalStyle(),
         finalGenre || '剧情片',
         localLanguage,
-        finalDuration
+        finalDuration,
+        localSegmentDuration,
       );
 
       if (segments.length === 0) {
@@ -1019,6 +1007,21 @@ const StageScript: React.FC<Props> = ({
               />
             </div>
 
+            {/* Global Settings */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">补充信息</label>
+              <textarea
+                value={localGlobalSettings}
+                onChange={(e) => setLocalGlobalSettings(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+                placeholder="画面风格、历史年代等，如：赛博朋克，2077年"
+                rows={2}
+              />
+              <p className="text-[10px] text-slate-500">
+                设置整个剧的画面风格、历史年代等全局统一设定
+              </p>
+            </div>
+
             {/* Visual Style Selection */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
@@ -1145,12 +1148,12 @@ const StageScript: React.FC<Props> = ({
                   }`}
                 >
                   <Wand2 className="w-3.5 h-3.5" />
-                  AI生成
+                  分镜模式
                 </button>
                 <button
                   onClick={() => {
                     setScriptSourceMode('segment');
-                    updateProject({ scriptSourceMode: 'segment' });
+                    updateProject({ scriptSourceMode: 'segment',isSegmentMode:true });
                   }}
                   className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-2 ${
                     scriptSourceMode === 'segment'
@@ -1173,7 +1176,7 @@ const StageScript: React.FC<Props> = ({
                   }`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  导入脚本
+                  导入分镜
                 </button>
               </div>
               <p className="text-[10px] text-slate-500">
@@ -1185,85 +1188,123 @@ const StageScript: React.FC<Props> = ({
               </p>
             </div>
 
+            {/* Segment Duration Selection */}
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                <Clock className="w-3 h-3" />
+                片段时长（秒）
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min="4"
+                  max="15"
+                  value={localSegmentDuration}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    setLocalSegmentDuration(value);
+                    updateProject({ segmentDuration: value });
+                  }}
+                  className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-950"
+                />
+                <span className="text-sm font-mono text-slate-300 min-w-[3rem] text-right">
+                  {localSegmentDuration}s
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                设置每个片段的最大时长，范围 4-15 秒，默认 15 秒
+              </p>
+            </div>
+
             {/* Divider */}
             <div className="border-t border-slate-600 pt-4">
-              <p className="text-[12px] font-bold text-slate-500 tracking-widest mb-4">模型供应商</p>
+              <button
+                onClick={() => setShowModelProviders(!showModelProviders)}
+                className="flex items-center justify-between w-full cursor-pointer"
+              >
+                <p className="text-[12px] font-bold text-slate-500 tracking-widest">模型供应商</p>
+                {showModelProviders ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+              </button>
             </div>
 
-            {/* LLM Provider Selection */}
-            <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
-                <Sparkles className="w-3 h-3" />
-                大语言模型 (LLM)
-              </label>
-              <CustomSelect
-                options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => ({
-                  value: config.id,
-                  label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
-                }))]}
-                value={project.modelProviders?.llm || localLlmProvider}
-                onChange={(value) => {
-                  const currentProviders = project.modelProviders || {};
-                  updateProject({
-                    modelProviders: {
-                      ...currentProviders,
-                      llm: value || undefined
-                    }
-                  });
-                }}
-                className="w-full"
-              />
-            </div>
+            {showModelProviders && (
+              <>
+                {/* LLM Provider Selection */}
+                <div className="space-y-2">
+                  <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                    <Sparkles className="w-3 h-3" />
+                    大语言模型 (LLM)
+                  </label>
+                  <CustomSelect
+                    options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'llm' && c.apiKey).map(config => ({
+                      value: config.id,
+                      label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                    }))]}
+                    value={project.modelProviders?.llm || localLlmProvider}
+                    onChange={(value) => {
+                      const currentProviders = project.modelProviders || {};
+                      updateProject({
+                        modelProviders: {
+                          ...currentProviders,
+                          llm: value || undefined
+                        }
+                      });
+                    }}
+                    className="w-full"
+                  />
+                </div>
 
-            {/* Text2Image Provider Selection */}
-            <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
-                <Image className="w-3 h-3" />
-                文生图模型
-              </label>
-              <CustomSelect
-                options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => ({
-                  value: config.id,
-                  label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
-                }))]}
-                value={project.modelProviders?.text2image || localText2imageProvider}
-                onChange={(value) => {
-                  const currentProviders = project.modelProviders || {};
-                  updateProject({
-                    modelProviders: {
-                      ...currentProviders,
-                      text2image: value || undefined
-                    }
-                  });
-                }}
-                className="w-full"
-              />
-            </div>
+                {/* Text2Image Provider Selection */}
+                <div className="space-y-2">
+                  <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                    <Image className="w-3 h-3" />
+                    文生图模型
+                  </label>
+                  <CustomSelect
+                    options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'text2image' && c.apiKey).map(config => ({
+                      value: config.id,
+                      label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                    }))]}
+                    value={project.modelProviders?.text2image || localText2imageProvider}
+                    onChange={(value) => {
+                      const currentProviders = project.modelProviders || {};
+                      updateProject({
+                        modelProviders: {
+                          ...currentProviders,
+                          text2image: value || undefined
+                        }
+                      });
+                    }}
+                    className="w-full"
+                  />
+                </div>
 
-            {/* Image2Video Provider Selection */}
-            <div className="space-y-2">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
-                <Film className="w-3 h-3" />
-                图生视频模型
-              </label>
-              <CustomSelect
-                options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => ({
-                  value: config.id,
-                  label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
-                }))]}
-                value={project.modelProviders?.image2video || localImage2videoProvider}
-                onChange={(value) => {
-                  const currentProviders = project.modelProviders || {};
-                  updateProject({
-                    modelProviders: {
-                      ...currentProviders,
-                      image2video: value || undefined
-                    }
-                  });
-                }}
-                className="w-full"
-              />
-            </div>
+                {/* Image2Video Provider Selection */}
+                <div className="space-y-2">
+                  <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
+                    <Film className="w-3 h-3" />
+                    图生视频模型
+                  </label>
+                  <CustomSelect
+                    options={[{ value: '', label: '系统默认模型' }, ...modelConfigs.filter(c => c.modelType === 'image2video' && c.apiKey).map(config => ({
+                      value: config.id,
+                      label: `${config.provider} - ${config.description || config.model}${config.enabled ? '✅' : ''}`
+                    }))]}
+                    value={project.modelProviders?.image2video || localImage2videoProvider}
+                    onChange={(value) => {
+                      const currentProviders = project.modelProviders || {};
+                      updateProject({
+                        modelProviders: {
+                          ...currentProviders,
+                          image2video: value || undefined
+                        }
+                      });
+                    }}
+                    className="w-full"
+                  />
+                </div>
+              </>
+            )}
 
         </div>
 
@@ -1810,6 +1851,7 @@ const StageScript: React.FC<Props> = ({
     // Series mode: use series.library for full assets
     const localCharacters = project.scriptData?.characters || [];
     const localScenes = project.scriptData?.scenes || [];
+    const localProps = project.scriptData?.props || [];
 
     // Select characters based on mode
     const charactersForSelect = isSeriesMode && series?.library?.characters
@@ -1821,6 +1863,11 @@ const StageScript: React.FC<Props> = ({
       ? series.library.scenes
       : localScenes;
 
+    // Select props based on mode
+    const propsForSelect = isSeriesMode && series?.library?.props
+      ? series.library.props
+      : localProps;
+
     // 编辑现有 shot
     if (editingShotId) {
       const shot = project.shots.find(s => s.id === editingShotId);
@@ -1831,11 +1878,13 @@ const StageScript: React.FC<Props> = ({
           shot={shot}
           characters={charactersForSelect}
           scenes={scenesForSelect}
+          props={propsForSelect}
           onSave={saveShot}
           onClose={() => {
             setEditingShotId(null);
           }}
           imageCount={project.imageCount}
+          story={project.globalSettings}
         />
       );
     }
@@ -1859,11 +1908,13 @@ const StageScript: React.FC<Props> = ({
           shot={newShot}
           characters={charactersForSelect}
           scenes={scenesForSelect}
+          props={propsForSelect}
           onSave={saveShot}
           onClose={() => {
             setAddingShotForSceneId(null);
           }}
           imageCount={project.imageCount}
+          story={project.globalSettings}
         />
       );
     }

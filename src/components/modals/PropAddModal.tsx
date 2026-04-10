@@ -1,85 +1,105 @@
-import { Copy, Loader2, Sparkles, User, X } from 'lucide-react';
+import { Box, Copy, Loader2, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { generateId } from '../../services/seriesService';
-import { Character, ProjectState } from '../../types';
+import { Properties, ProjectState } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 import { useDialog } from '../dialog';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (character: Character) => void;
-  character?: Character | null;
+  onSave: (prop: Properties) => void;
+  prop?: Properties | null;
   genre?: string;
   visualStyle?: string;
-  project?:ProjectState
+  project?: ProjectState;
 }
 
-const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character, genre = '剧情片', visualStyle = '真人写实',project }) => {
-  const isEditMode = !!character;
+const PropAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, prop, genre = '剧情片', visualStyle = '真人写实', project }) => {
+  const isEditMode = !!prop;
   const dialog = useDialog();
-  
+
   const [formData, setFormData] = useState({
     name: '',
-    gender: '男',
-    age: '',
-    personality: '',
+    shape: '',
+    material: '',
+    color: '',
+    size: '',
+    structural: '',
+    effects: '',
+    description: '',
     visualPrompt: ''
   });
   const [error, setError] = useState('');
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
 
-  // Initialize form when character changes or modal opens
+  // Initialize form when prop changes or modal opens
   useEffect(() => {
-    if (isOpen && character) {
+    if (isOpen && prop) {
       setFormData({
-        name: character.name || '',
-        gender: character.gender || '男',
-        age: character.age || '',
-        personality: character.personality || '',
-        visualPrompt: character.visualPrompt || ''
+        name: prop.name || '',
+        shape: prop.shape || '',
+        material: prop.material || '',
+        color: prop.color || '',
+        size: prop.size || '',
+        structural: prop.structural || '',
+        effects: prop.effects || '',
+        description: prop.description || '',
+        visualPrompt: prop.visualPrompt || ''
       });
     } else if (isOpen) {
       // Reset form for add mode
       setFormData({
         name: '',
-        gender: '男',
-        age: '',
-        personality: '',
+        shape: '',
+        material: '',
+        color: '',
+        size: '',
+        structural: '',
+        effects: '',
+        description: '',
         visualPrompt: ''
       });
     }
-  }, [isOpen, character]);
+  }, [isOpen, prop]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      dialog.toast({ message: '请输入角色名称', type: 'error'});
+      dialog.toast({ message: '请输入道具名称', type: 'error' });
       return;
     }
 
-    const charData: Character = {
-      id: character?.id || generateId('char'),
+    const propData: Properties = {
+      id: prop?.id || generateId('prop'),
       name: formData.name.trim(),
-      gender: formData.gender,
-      age: formData.age || '未指定',
-      personality: formData.personality.trim(),
+      shape: formData.shape.trim(),
+      material: formData.material.trim(),
+      color: formData.color.trim(),
+      size: formData.size.trim(),
+      structural: formData.structural.trim(),
+      effects: formData.effects.trim(),
+      description: formData.description.trim(),
       visualPrompt: formData.visualPrompt.trim(),
-      referenceImage: character?.referenceImage || '',
-      variations: character?.variations || [],
-      refId: character?.refId
+      referenceImage: prop?.referenceImage || '',
+      variations: prop?.variations || [],
+      refId: prop?.refId
     };
 
-    onSave(charData);
+    onSave(propData);
   };
 
   const handleClose = () => {
     setFormData({
       name: '',
-      gender: '男',
-      age: '',
-      personality: '',
+      shape: '',
+      material: '',
+      color: '',
+      size: '',
+      structural: '',
+      effects: '',
+      description: '',
       visualPrompt: ''
     });
     setIsGeneratingPrompt(false);
@@ -88,27 +108,30 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
   const handleGenerateVisualPrompt = async () => {
     if (!formData.name.trim()) {
-      dialog.toast({ message: '请先输入角色名称', type: 'error'});
+      dialog.toast({ message: '请先输入道具名称', type: 'error' });
       return;
     }
 
     setIsGeneratingPrompt(true);
 
     try {
-      const tempChar: Character = {
-        id: character?.id || generateId('char'),
+      const tempProp: Properties = {
+        id: prop?.id || generateId('prop'),
         name: formData.name.trim(),
-        gender: formData.gender,
-        age: formData.age || '未指定',
-        personality: formData.personality.trim(),
-        visualPrompt: '',
+        shape: formData.shape.trim(),
+        material: formData.material.trim(),
+        color: formData.color.trim(),
+        size: formData.size.trim(),
+        structural: formData.structural.trim(),
+        effects: formData.effects.trim(),
+        description: formData.description.trim(),
         variations: []
       };
 
-      const prompt = await ModelService.generateVisualPrompts('character', tempChar, genre, visualStyle,project.globalSettings);
+      const prompt = await ModelService.generateVisualPrompts('prop', tempProp, genre, visualStyle, project?.globalSettings);
       setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
-      dialog.toast({ message: `生成视觉提示失败，请重试。${e}`, type: 'error'});
+      dialog.toast({ message: `生成视觉提示失败，请重试。${e}`, type: 'error' });
     } finally {
       setIsGeneratingPrompt(false);
     }
@@ -116,14 +139,14 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
 
   const handleCopyPrompt = async () => {
     if (!formData.visualPrompt.trim()) {
-      dialog.toast({ message: '没有可复制的提示词', type: 'error'});
+      dialog.toast({ message: '没有可复制的提示词', type: 'error' });
       return;
     }
     try {
       await navigator.clipboard.writeText(formData.visualPrompt);
       dialog.toast({ message: '提示词已复制', type: 'success' });
     } catch (e) {
-      dialog.toast({ message: '复制失败', type: 'error'});
+      dialog.toast({ message: '复制失败', type: 'error' });
     }
   };
 
@@ -135,8 +158,8 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
         {/* 标题栏 */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80 shrink-0">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
-            <User className="w-5 h-5 text-slate-400" />
-            {isEditMode ? '编辑角色' : '新增角色'}
+            <Box className="w-5 h-5 text-slate-400" />
+            {isEditMode ? '编辑道具' : '新增道具'}
           </h3>
           <button
             onClick={handleClose}
@@ -154,56 +177,102 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
             </div>
           )}
 
-          {/* 角色名称 */}
+          {/* 道具名称 */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">
-              角色名称 <span className="text-red-400">*</span>
+              道具名称 <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
-              placeholder="请输入角色名称"
+              placeholder="请输入道具名称"
               autoFocus
             />
           </div>
 
-          {/* 性别 */}
-          <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">性别</label>
-            <CustomSelect
-              options={[
-                { value: '男', label: '男' },
-                { value: '女', label: '女' },
-                { value: '未知', label: '未知' }
-              ]}
-              value={formData.gender}
-              onChange={(value) => setFormData({ ...formData, gender: value })}
-            />
+          {/* 形状 & 材质 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">形状</label>
+              <input
+                type="text"
+                value={formData.shape}
+                onChange={(e) => setFormData({ ...formData, shape: e.target.value })}
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+                placeholder="例如：圆形、长方形"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">材质</label>
+              <input
+                type="text"
+                value={formData.material}
+                onChange={(e) => setFormData({ ...formData, material: e.target.value })}
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+                placeholder="例如：金属、木质"
+              />
+            </div>
           </div>
 
-          {/* 年龄 */}
-          <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">年龄</label>
-            <input
-              type="text"
-              value={formData.age}
-              onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
-              placeholder="例如：25岁、中年"
-            />
+          {/* 颜色 & 大小 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">颜色</label>
+              <input
+                type="text"
+                value={formData.color}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+                placeholder="例如：红色、银色"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">大小</label>
+              <input
+                type="text"
+                value={formData.size}
+                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+                placeholder="例如：30cm、大型"
+              />
+            </div>
           </div>
 
-          {/* 性格特点 */}
+          {/* 结构特点 */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">性格特点</label>
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">结构特点</label>
             <textarea
-              value={formData.personality}
-              onChange={(e) => setFormData({ ...formData, personality: e.target.value })}
+              value={formData.structural}
+              onChange={(e) => setFormData({ ...formData, structural: e.target.value })}
               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none"
               rows={2}
-              placeholder="请输入角色性格特点"
+              placeholder="描述道具的结构特征..."
+            />
+          </div>
+
+          {/* 特殊效果 */}
+          <div className="space-y-2">
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">特殊效果</label>
+            <textarea
+              value={formData.effects}
+              onChange={(e) => setFormData({ ...formData, effects: e.target.value })}
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none"
+              rows={2}
+              placeholder="例如：发光、透明、反光..."
+            />
+          </div>
+
+          {/* 描述 */}
+          <div className="space-y-2">
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">详细描述</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all resize-none"
+              rows={2}
+              placeholder="道具的详细描述..."
             />
           </div>
 
@@ -282,4 +351,4 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
   );
 };
 
-export default CharacterAddModal;
+export default PropAddModal;

@@ -311,6 +311,60 @@ export interface MediaFile {
   prompt: string;
 }
 
+/**
+ * 截短数据中的大 base64 字段，减少存储空间
+ * @param data - 要处理的数据对象
+ * @param maxLength - base64 字符串最大长度，默认 1000 字符
+ * @returns 处理后的数据（新对象，不修改原对象）
+ */
+const truncateBase64InData = <T extends any>(data: T, maxLength: number = 1000): T => {
+  // 基本类型直接返回
+  if (data === null || data === undefined || typeof data !== 'object') {
+    return data;
+  }
+
+  // 处理数组
+  if (Array.isArray(data)) {
+    return data.map(item => truncateBase64InData(item, maxLength)) as any;
+  }
+
+  // 处理对象
+  const result: any = {};
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      const value = data[key];
+
+      // 检查是否为 base64 字符串（data:image 或 data:video 或 data:audio）
+      if (typeof value === 'string' && value.length > maxLength) {
+        if (value.startsWith('data:image/') || 
+            value.startsWith('data:video/') || 
+            value.startsWith('data:audio/')) {
+          // 截断 base64 数据，保留头部信息和部分内容
+          const commaIndex = value.indexOf(',');
+          if (commaIndex > 0) {
+            const header = value.substring(0, commaIndex);
+            const preview = value.substring(commaIndex + 1, Math.min(commaIndex + 1 + 100, value.length));
+            result[key] = `${header},${preview}...[TRUNCATED: ${value.length - commaIndex - 1} chars]`;
+          } else {
+            result[key] = value.substring(0, maxLength) + '...[TRUNCATED]';
+          }
+        } else {
+          // 非 base64 的大字符串也截断
+          result[key] = value.substring(0, maxLength) + '...[TRUNCATED]';
+        }
+      } else if (typeof value === 'object' && value !== null) {
+        // 递归处理嵌套对象
+        result[key] = truncateBase64InData(value, maxLength);
+      } else {
+        // 其他类型直接复制
+        result[key] = value;
+      }
+    }
+  }
+
+  return result;
+};
+
 // SHA-256 hash function compatible with all contexts
 export async function md5Hash(str: string): Promise<string> {
   // 优先使用 crypto.subtle（安全上下文）
@@ -609,16 +663,8 @@ export const createNewProjectState = (seriesDefaults?: {
     genre: seriesDefaults?.genre || '剧情片',
     visualStyle: seriesDefaults?.visualStyle || '真人写实',
     imageSize: seriesDefaults?.imageSize || '2560x1440', // Default image size (vertical)
-    imageCount: seriesDefaults?.imageCount ?? 1, // Default image count (1 image per generation)
-    rawScript: seriesDefaults?.rawScript || `标题：示例剧本
-
-场景 1
-外景。夜晚街道 - 雨夜
-霓虹灯在水坑中反射出破碎的光芒。
-侦探（30岁，穿着风衣）站在街角，点燃了一支烟。
-
-侦探
-这雨什么时候才会停？`,
+    imageCount: seriesDefaults?.imageCount ?? 0, // Default image count (1 image per generation)
+    rawScript: seriesDefaults?.rawScript || `标题：示例剧本`,
     scriptData: null,
     shots: [],
     isParsingScript: false,
@@ -631,6 +677,7 @@ export const createNewProjectState = (seriesDefaults?: {
       text2image: undefined,
       image2video: undefined,
     },
+    segmentDuration: 15,
   };
 };
 
@@ -762,11 +809,17 @@ export const importProjectFromFile = (): Promise<ProjectState> => {
 // ==================== LLM Call Log Functions ====================
 
 export const saveLLMLog = async (log: LLMCallLog): Promise<void> => {
+  // 截短 requestParams 和 response 中的 base64 数据
+  const truncatedLog: LLMCallLog = {
+    ...log,
+    requestParams: truncateBase64InData(log.requestParams, 8192),
+    response: truncateBase64InData(log.response, 8192)
+  };
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(LLM_LOG_STORE_NAME, 'readwrite');
     const store = tx.objectStore(LLM_LOG_STORE_NAME);
-    const request = store.put(log);
+    const request = store.put(truncatedLog);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
@@ -985,5 +1038,50 @@ export const getLLMLogStats = async (filter: LLMLogFilter = {}): Promise<LLMLogS
       });
     };
     request.onerror = () => reject(request.error);
+  });
+};
+
+/**
+ * 更新媒体历史记录中的文件 URL
+ */
+export const updateMediaHistoryFileUrl = async (
+  projectId: string,
+  oldUrl: string,
+  newUrl: string
+): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_HISTORY_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(MEDIA_HISTORY_STORE_NAME);
+    const getRequest = store.get(projectId);
+    
+    getRequest.onsuccess = () => {
+      const projectHistory = getRequest.result as MediaHistoryItem | undefined;
+      if (!projectHistory) {
+        resolve();
+        return;
+      }
+      
+      const updateCategory = async (items: MediaFile[]) => {
+        for (const item of items) {
+          if (item.fileUrl === oldUrl) {
+            item.fileUrl = newUrl;
+            item.id = await md5Hash(newUrl);
+          }
+        }
+      };
+      
+      updateCategory(projectHistory.character || []);
+      updateCategory(projectHistory.scene || []);
+      updateCategory(projectHistory.keyframe || []);
+      updateCategory(projectHistory.video || []);
+      updateCategory(projectHistory.audio || []);
+      
+      const putRequest = store.put(projectHistory);
+      putRequest.onsuccess = () => resolve();
+      putRequest.onerror = () => reject(putRequest.error);
+    };
+    
+    getRequest.onerror = () => reject(getRequest.error);
   });
 };

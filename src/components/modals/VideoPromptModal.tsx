@@ -11,6 +11,7 @@ interface Props {
   scriptData: ScriptData | null;
   visualStyle: string;
   onSave: (videoPrompt: string) => void;
+  story?: string
 }
 
 const VideoPromptModal: React.FC<Props> = ({
@@ -19,7 +20,8 @@ const VideoPromptModal: React.FC<Props> = ({
   shot,
   scriptData,
   visualStyle,
-  onSave
+  onSave,
+  story
 }) => {
   const dialog = useDialog();
   const [videoPrompt, setVideoPrompt] = useState('');
@@ -42,7 +44,7 @@ const VideoPromptModal: React.FC<Props> = ({
 
     setIsGenerating(true);
     try {
-      const newPrompt = await ModelService.generateVideoPrompt(shot, scriptData, visualStyle);
+      const newPrompt = await ModelService.generateVideoPrompt(shot, scriptData, visualStyle,story);
       setVideoPrompt(newPrompt);
       setHasChanges(true);
     } catch (error) {

@@ -1,4 +1,4 @@
-import { Character, ProjectState, Scene, ScriptData, SeriesRecord, Shot } from '../types';
+import { Character, ProjectState, Properties, Scene, ScriptData, Segment, SeriesRecord, Shot } from '../types';
 
 // ==================== ID Generation Utilities ====================
 
@@ -44,6 +44,7 @@ export const createNewSeries = (title: string, options?: {
   genre?: string;
   imageSize?: string;
   imageCount?: number;
+  globalSettings?: string;
 }): SeriesRecord => {
   return {
     id: generateId('series'),
@@ -65,10 +66,12 @@ export const createNewSeries = (title: string, options?: {
     },
     library: {
       characters: [],
-      scenes: []
+      scenes: [],
+      props: []
     },
     episodeOrder: [],
-    version: 1
+    version: 1,
+    globalSettings: options?.globalSettings || ''
   };
 };
 /**
@@ -90,12 +93,15 @@ export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
     genre: series.genre || '剧情片',
     visualStyle: series.visualStyle || '真人写实',
     imageSize: series.imageSize || '2560x1440',
-    imageCount: series.imageCount ?? 1,
+    imageCount: series.imageCount ?? 0,
+    globalSettings: series.globalSettings || '',
     scriptData: null,
     isParsingScript: false,
     rawScript: series.rawScript || `标题：示例剧本`,
     isSegmentMode: false,
-    segments: []
+    segments: [],
+    segmentDuration: 15,
+    modelProviders: series.modelProviders||{},
   };
 };
 
@@ -105,6 +111,7 @@ export interface MergeResult {
   series: SeriesRecord;
   charIdMapping: Map<string, string>; // originalId -> libraryId
   sceneIdMapping: Map<string, string>; // originalId -> libraryId
+  propIdMapping: Map<string, string>; // originalId -> libraryId
 }
 
 // ==================== Library Merge Functions ====================
@@ -228,28 +235,104 @@ export const mergeScenesToLibrary = (
 };
 
 /**
- * Merge both characters and scenes to library in one operation
+ * Merge props into series library
+ * Returns a map of original IDs to library IDs
+ * 
+ * Performance: O(n) using Map pre-indexing
+ */
+export const mergePropsToLibrary = (
+  series: SeriesRecord,
+  props: Properties[]
+): { updatedSeries: SeriesRecord; propIdMapping: Map<string, string> } => {
+  const propIdMapping = new Map<string, string>();
+  const newLibrary = { ...series.library };
+  
+  // Initialize props array if not exists
+  if (!newLibrary.props) {
+    newLibrary.props = [];
+  }
+  
+  // Pre-build index for O(1) lookup
+  const existingPropMap = new Map<string, number>();
+  newLibrary.props.forEach((prop, index) => {
+    const key = prop.name;
+    existingPropMap.set(key, index);
+  });
+  
+  props.forEach(prop => {
+    const key = prop.name;
+    const existingIndex = existingPropMap.get(key);
+    
+    if (existingIndex !== undefined) {
+      // Use existing prop ID
+      const existingProp = newLibrary.props![existingIndex];
+      propIdMapping.set(prop.id, existingProp.id);
+      
+      // Update existing prop with any new information
+      newLibrary.props![existingIndex] = {
+        ...existingProp,
+        shape: prop.shape || existingProp.shape,
+        material: prop.material || existingProp.material,
+        color: prop.color || existingProp.color,
+        size: prop.size || existingProp.size,
+        structural: prop.structural || existingProp.structural,
+        effects: prop.effects || existingProp.effects,
+        description: prop.description || existingProp.description,
+        visualPrompt: prop.visualPrompt || existingProp.visualPrompt,
+        referenceImage: prop.referenceImage || existingProp.referenceImage,
+        variations: prop.variations?.length ? prop.variations.map(v => ({ ...v })) : existingProp.variations
+      };
+    } else {
+      // Add new prop to library
+      const libraryPropId = generateLibraryId('prop_lib');
+      propIdMapping.set(prop.id, libraryPropId);
+      newLibrary.props!.push({
+        ...prop,
+        id: libraryPropId
+      });
+    }
+  });
+  
+  return {
+    updatedSeries: {
+      ...series,
+      library: newLibrary,
+      updatedAt: Date.now()
+    },
+    propIdMapping
+  };
+};
+
+/**
+ * Merge both characters, scenes and props to library in one operation
  * 
  * @param series - The series record
  * @param characters - Characters to merge
  * @param scenes - Scenes to merge
+ * @param props - Props to merge (optional)
  * @returns Merge result with updated series and ID mappings
  */
 export const mergeToLibrary = (
   series: SeriesRecord,
   characters: Character[],
-  scenes: Scene[]
+  scenes: Scene[],
+  props?: Properties[]
 ): MergeResult => {
   try {
     // First merge characters
     const charResult = mergeCharactersToLibrary(series, characters);
     // Then merge scenes (using the updated series from charResult)
     const sceneResult = mergeScenesToLibrary(charResult.updatedSeries, scenes);
+    // Finally merge props (if provided)
+    const propResult = props?.length 
+      ? mergePropsToLibrary(sceneResult.updatedSeries, props)
+      : { updatedSeries: sceneResult.updatedSeries, propIdMapping: new Map<string, string>() };
     
     return {
-      series: sceneResult.updatedSeries,
+      series: propResult.updatedSeries,
       charIdMapping: charResult.charIdMapping,
-      sceneIdMapping: sceneResult.sceneIdMapping
+      sceneIdMapping: sceneResult.sceneIdMapping,
+      propIdMapping: propResult.propIdMapping
     };
   } catch (error) {
     console.error('Failed to merge to library:', error);
@@ -268,10 +351,11 @@ export const mergeToLibrary = (
 export const remapScriptDataRefs = (
   scriptData: ScriptData,
   charIdMapping: Map<string, string>,
-  sceneIdMapping: Map<string, string>
+  sceneIdMapping: Map<string, string>,
+  propIdMapping: Map<string, string>
 ): ScriptData => {
   // ✅ Parameter validation
-  if (!scriptData || !charIdMapping || !sceneIdMapping) {
+  if (!scriptData || !charIdMapping || !sceneIdMapping || !propIdMapping) {
     console.error('Invalid parameters for remapScriptDataRefs');
     return scriptData;
   }
@@ -283,6 +367,13 @@ export const remapScriptDataRefs = (
     newScriptData.characters = newScriptData.characters.map(char => ({
       ...char,
       id: charIdMapping.get(char.id) || char.id
+    }));
+  }
+  // Remap characters
+  if (newScriptData.props) {
+    newScriptData.props = newScriptData.props.map(char => ({
+      ...char,
+      id: propIdMapping.get(char.id) || char.id
     }));
   }
   
@@ -381,6 +472,50 @@ export const createSceneRef = (libraryScene: Scene): Scene => ({
   atmosphere: libraryScene.atmosphere,
   visualPrompt: '',
   referenceImage: ''
+});
+
+/**
+ * Create lightweight prop references for episode
+ * Episode stores only: id, refId, name
+ */
+export const createLightweightProps = (
+  props: Properties[],
+  propIdMapping?: Map<string, string>
+): Properties[] => {
+  return props.map(prop => {
+    const libraryId = propIdMapping?.get(prop.id) || prop.id;
+    return {
+      id: prop.id, // Keep original episode-local ID
+      refId: libraryId, // Reference to library
+      name: prop.name,
+      shape: '',
+      material: '',
+      color: '',
+      size: '',
+      structural: '',
+      effects: '',
+      description: '',
+      variations: []
+    };
+  });
+};
+
+/**
+ * Create a prop reference from library prop for episode
+ * Used when adding a prop to an episode from the library
+ */
+export const createPropRef = (libraryProp: Properties): Properties => ({
+  id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+  refId: libraryProp.id,
+  name: libraryProp.name,
+  shape: '',
+  material: '',
+  color: '',
+  size: '',
+  structural: '',
+  effects: '',
+  description: '',
+  variations: []
 });
 
 // ==================== Library Update Functions ====================
@@ -513,7 +648,81 @@ export const deleteLibraryScene = (
 ): SeriesRecord => {
   const newLibrary = {
     characters: series.library.characters,
-    scenes: series.library.scenes.filter(s => s.id !== sceneId)
+    scenes: series.library.scenes.filter(s => s.id !== sceneId),
+    props: series.library.props || []
+  };
+
+  return {
+    ...series,
+    library: newLibrary,
+    updatedAt: Date.now()
+  };
+};
+
+// ==================== Prop Library Management ====================
+
+/**
+ * Add a prop to the series library
+ */
+export const addLibraryProp = (
+  series: SeriesRecord,
+  prop: Properties
+): SeriesRecord => {
+  // Generate library ID if not exists
+  const libraryProp = {
+    ...prop,
+    id: prop.id.startsWith('prop_lib_') ? prop.id : `prop_lib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  };
+
+  return {
+    ...series,
+    library: {
+      ...series.library,
+      props: [...(series.library.props || []), libraryProp]
+    },
+    updatedAt: Date.now()
+  };
+};
+
+/**
+ * Update a prop in the series library
+ */
+export const updateLibraryProp = (
+  series: SeriesRecord,
+  propId: string,
+  updates: Partial<Properties>
+): SeriesRecord => {
+  const newLibrary = { ...series.library };
+  if (!newLibrary.props) newLibrary.props = [];
+  
+  const propIndex = newLibrary.props.findIndex(p => p.id === propId);
+  
+  if (propIndex >= 0) {
+    newLibrary.props[propIndex] = {
+      ...newLibrary.props[propIndex],
+      ...updates
+    };
+  }
+  
+  return {
+    ...series,
+    library: newLibrary,
+    updatedAt: Date.now()
+  };
+};
+
+/**
+ * Delete a prop from the series library
+ * Also removes references from all episodes
+ */
+export const deleteLibraryProp = (
+  series: SeriesRecord,
+  propId: string
+): SeriesRecord => {
+  const newLibrary = {
+    characters: series.library.characters,
+    scenes: series.library.scenes,
+    props: (series.library.props || []).filter(p => p.id !== propId)
   };
 
   return {
@@ -638,7 +847,40 @@ export const getEffectiveScenes = (
 };
 
 /**
- * Get effective scriptData with merged characters/scenes
+ * Get effective props for a project
+ * In series mode: merge library data with episode lightweight refs
+ * In standalone mode: return project props directly
+ */
+export const getEffectiveProps = (
+  project: ProjectState,
+  series: SeriesRecord | null
+): Properties[] => {
+  if (!series || !project.seriesRefId) {
+    // Standalone mode
+    return project.scriptData?.props || [];
+  }
+  
+  // Series mode: merge library data with episode refs
+  const episodeProps = project.scriptData?.props || [];
+  const libraryProps = series.library.props || [];
+  
+  return episodeProps.map(epProp => {
+    if (!epProp.refId) return epProp;
+    
+    const libraryProp = libraryProps.find(p => p.id === epProp.refId);
+    if (!libraryProp) return epProp;
+    
+    // Merge: library data + episode-specific overrides (name)
+    return {
+      ...libraryProp,
+      id: epProp.id, // Keep episode-local ID for reference consistency
+      name: epProp.name
+    };
+  });
+};
+
+/**
+ * Get effective scriptData with merged characters/scenes/props
  */
 export const getEffectiveScriptData = (
   project: ProjectState,
@@ -649,7 +891,8 @@ export const getEffectiveScriptData = (
   return {
     ...project.scriptData,
     characters: getEffectiveCharacters(project, series),
-    scenes: getEffectiveScenes(project, series)
+    scenes: getEffectiveScenes(project, series),
+    props: getEffectiveProps(project, series)
   };
 };
 
@@ -744,6 +987,59 @@ export const remapShotsSceneRefs = (
   }));
 };
 
+/**
+ * Remap character references in segments after merging to library
+ * 
+ * @param segments - Array of segments to remap
+ * @param charIdMapping - Character ID mapping
+ * @returns New array with remapped references (deep copy)
+ */
+export const remapSegmentsCharRefs = (
+  segments: Segment[],
+  charIdMapping: Map<string, string>
+): Segment[] => {
+  // ✅ Parameter validation
+  if (!segments || !charIdMapping) {
+    console.error('Invalid parameters for remapSegmentsCharRefs');
+    return segments;
+  }
+  
+  return segments.map(segment => ({
+    ...segment,
+    characterIds: segment.characterIds.map(id => charIdMapping.get(id) || id),
+    characterVariations: segment.characterVariations
+      ? Object.fromEntries(
+          Object.entries(segment.characterVariations).map(([k, v]) => [
+            charIdMapping.get(k) || k, v
+          ])
+        )
+      : undefined
+  }));
+};
+
+/**
+ * Remap scene references in segments after merging to library
+ * 
+ * @param segments - Array of segments to remap
+ * @param sceneIdMapping - Scene ID mapping
+ * @returns New array with remapped references (deep copy)
+ */
+export const remapSegmentsSceneRefs = (
+  segments: Segment[],
+  sceneIdMapping: Map<string, string>
+): Segment[] => {
+  // ✅ Parameter validation
+  if (!segments || !sceneIdMapping) {
+    console.error('Invalid parameters for remapSegmentsSceneRefs');
+    return segments;
+  }
+  
+  return segments.map(segment => ({
+    ...segment,
+    sceneIds: segment.sceneIds.map(id => sceneIdMapping.get(id) || id)
+  }));
+};
+
 // ==================== Import Functions ====================
 
 /**
@@ -796,6 +1092,12 @@ export const importProjectAsEpisode = (
         if (updatedProject.shots && updatedProject.shots.length > 0) {
           updatedProject.shots = remapShotsCharRefs(updatedProject.shots, mergeResult.charIdMapping);
           updatedProject.shots = remapShotsSceneRefs(updatedProject.shots, mergeResult.sceneIdMapping);
+        }
+
+        // Remap segments character and scene references
+        if (updatedProject.segments && updatedProject.segments.length > 0) {
+          updatedProject.segments = remapSegmentsCharRefs(updatedProject.segments, mergeResult.charIdMapping);
+          updatedProject.segments = remapSegmentsSceneRefs(updatedProject.segments, mergeResult.sceneIdMapping);
         }
 
         // Create lightweight references for episode storage

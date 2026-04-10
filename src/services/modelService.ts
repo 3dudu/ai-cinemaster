@@ -4,7 +4,7 @@
 import { AIModelConfig, Scene, ScriptData, Segment, Shot } from "../types";
 import { cleanJsonString } from "../utils/apiHelper";
 import { uploadFileToService } from "../utils/fileUploadUtils";
-import { imageUrlToBase64 } from "../utils/imageUtils";
+import { audioUrlToBase64, imageUrlToBase64 } from "../utils/imageUtils";
 import { getEnabledConfigByType } from "./modelConfigService";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "./promptTemplates";
 import { getAllModelConfigs } from "./storageService";
@@ -387,6 +387,32 @@ export class ModelService {
   }
 
   /**
+   * 根据 provider 名获取 image2video 类型模型配置
+   * @param provider - 提供商名称，支持 'doubao' 或 'yunwu'
+   * @returns 匹配的模型配置，未找到返回 null
+   */
+  public static async getImage2VideoConfigByProvider(provider: 'doubao' | 'yunwu'): Promise<AIModelConfig | null> {
+    const allConfigs = await getAllModelConfigs();
+    
+    // 查找指定 provider 且 modelType 为 image2video 的配置
+    const config = allConfigs.find(c => 
+      c.provider === provider && 
+      c.modelType === 'image2video' && 
+      c.apiKey
+    );
+    
+    if (!config) {
+      console.warn(`未找到 ${provider} 的 image2video 配置`);
+      return null;
+    }
+    
+    // 更新服务配置
+    await this.updateServiceConfig(config);
+    
+    return config;
+  }
+
+  /**
    * 获取当前启用的文生图提供商
    * @param projectModelProviders - 项目级别的模型供应商配置
    */
@@ -501,9 +527,9 @@ export class ModelService {
    * @param rawText - 剧本文本
    * @param language - 输出语言
    */
-  static async parseScriptToData(text: string, language: string = "中文",genre:string="剧情片"): Promise<ScriptData> {
+  static async parseScriptToData(text: string, language: string = "中文",genre:string="剧情片",story:string="",targetDuration:string='60'): Promise<ScriptData> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
-    const prompt = renderTemplate('PARSE_SCRIPT', text, language,genre);
+    const prompt = renderTemplate('PARSE_SCRIPT', text, language,genre,story,targetDuration);
     switch (provider.provider) {
       case 'deepseek':
         return await (await this.getProviderModule('deepseek')).parseScriptToData(prompt, language);
@@ -530,7 +556,9 @@ export class ModelService {
     scriptData: ScriptData,
     scene: any,
     sceneIndex: number,
-    imageCount:number
+    imageCount:number,
+    segmentDuration:number,
+    story:string=""
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
@@ -542,12 +570,18 @@ export class ModelService {
 
     const paragraphs = scriptData.storyParagraphs
       .filter((p) => String(p.sceneRefId) === String(scene.id))
-      .map((p) => p.text)
+      .map((p) => `时长：${p.duration||segmentDuration},故事：${p.text}`)
       .join("\n");
 
     if (!paragraphs.trim()) return [];
     let characters = "";
     characters = scriptData.characters ? scriptData.characters.map(d =>`${d.id}: ${d.name}: ${d.personality}`).join('\n') : "";
+    let properties = "";
+    properties = scriptData.props ? scriptData.props.map(d =>`${d.id}: ${d.name}`).join('\n') : "";
+    // 计算段落总时长
+    const totalParagraphsDuration = scriptData.storyParagraphs
+      .filter((p) => String(p.sceneRefId) === String(scene.id))
+      .reduce((sum, p) => sum + (p.duration || 0), 0);
     const prompt = renderTemplate('GENERATE_SHOTS',
       sceneIndex+1,
       scene.location,
@@ -555,10 +589,13 @@ export class ModelService {
       scene.atmosphere,
       paragraphs,
       scriptData.genre,
-      scriptData.targetDuration || "30s",
+      story|| "",
       characters,
       lang,
-      imageCount
+      imageCount,
+      segmentDuration,
+      properties,
+      totalParagraphsDuration||segmentDuration
     );
     let shots: Shot[] = [];
     switch (provider.provider) {
@@ -595,11 +632,12 @@ export class ModelService {
     prompt: string,
     genre: string = "剧情片",
     targetDuration: string = "60s",
-    language: string = "中文"
+    language: string = "中文",
+    story: string = ''
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成剧本`);
-    const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language);
+    const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language,story);
 
     let script = '';
     switch (provider.provider) {
@@ -626,17 +664,18 @@ export class ModelService {
 
   /**
    * 生成视觉提示词
-   * @param type - 角色 or 场景
-   * @param data - 角色或场景数据
+   * @param type - 角色 or 场景 or 道具
+   * @param data - 角色或场景或道具数据
    * @param genre - 题材类型
    */
   static async generateVisualPrompts(
-    type: "character" | "scene" | 'variation',
+    type: "character" | "scene" | 'variation' | 'prop',
     data: any,
     genre: string,
     visualStyle: string,
     variationName?: string,
-    variationPrompt?: string
+    variationPrompt?: string,
+    story?:string
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成视觉提示词`);
@@ -657,12 +696,16 @@ export class ModelService {
     let prompt = "";
     if(type=='variation'){
       prompt = renderTemplate('GENERATE_VARIATION_PROMPT', genre,desc,visualStyle,variationName,variationPrompt);
+    }else if(type=='prop'){
+      prompt = renderTemplate('GENERATE_PROP_PROMPT', genre,desc,visualStyle);
     }else{
-      prompt = renderTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', genre,desc,visualStyle);
+      prompt = renderTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', genre,desc,visualStyle,story);
     }
     let visualPrompt = renderTemplate('SYSTEM_CHARA_DESIGNER');
     if(type=='scene'){
       visualPrompt=renderTemplate('SYSTEM_SCENE_DESIGNER');
+    }else if(type=='prop'){
+      visualPrompt=renderTemplate('SYSTEM_PROP_DESIGNER');
     }
     switch (provider.provider) {
       case 'deepseek':
@@ -695,7 +738,8 @@ export class ModelService {
   static async generateVideoPrompt(
     shot: Shot,
     scriptData: ScriptData,
-    visualStyle: string = "真人写实"
+    visualStyle: string = "真人写实",
+    story?:string
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成视频拍摄提示词`);
@@ -731,7 +775,8 @@ export class ModelService {
       characterNames,
       startKeyframe?.visualPrompt || '',
       endKeyframe?.visualPrompt || '',
-      dialogues.join('\n')
+      dialogues.join('\n'),
+      story
     );
 
     let videoPrompt = '';
@@ -1044,6 +1089,7 @@ export class ModelService {
     shotid: string = "0",
     referenceImages: string[] = [],
     seed: number = 0,
+    voiceUrls: string[] = [],
   ): Promise<string> {
     const provider = await this.getEnabledVideoProvider(shotprovider || this.currentProjectModelProviders);
 
@@ -1079,6 +1125,20 @@ export class ModelService {
     }
 
     // 处理参考图片：将HTTP/HTTPS URL转换为Base64
+    let processedVoiceUrls = [];
+    if (voiceUrls && voiceUrls.length > 0) {
+      for(let i=0;i<voiceUrls.length;i++){
+        try{
+          const baseurl = await audioUrlToBase64(voiceUrls[i]);
+          processedVoiceUrls.push(baseurl);
+        }catch(error){
+          console.error('转换参考图片为Base64失败:', error);
+          processedVoiceUrls.push(voiceUrls[i]);
+        }
+      }
+    }else{
+      processedVoiceUrls = voiceUrls;
+    }
     let processedReferenceImages = [];
     if (referenceImages && referenceImages.length > 0) {
       for(let i=0;i<referenceImages.length;i++){
@@ -1100,8 +1160,12 @@ export class ModelService {
     switch (provider.provider) {
       case 'doubao':
         const generate_audio = provider.description.indexOf("sound")>-1;
+        let finalDuration = duration;
+        if(provider.description.indexOf("short")>-1){
+          finalDuration = finalDuration>12?12:finalDuration;
+        }
         videoUrl = await (await this.getProviderModule('doubao')).generateVideo(prompt, processedStartImageBase64, 
-          processedEndImageBase64, duration,full_frame,generate_audio,imageSize, finalSeed,processedReferenceImages,projectid,'',shotid);
+          processedEndImageBase64, finalDuration,full_frame,generate_audio,imageSize, finalSeed,processedReferenceImages,projectid,'',shotid,processedVoiceUrls);
         break;
       case 'gemini':
         videoUrl = await (await this.getProviderModule('gemini')).generateVideo(prompt, processedStartImageBase64, processedEndImageBase64,full_frame);
@@ -1135,23 +1199,27 @@ export class ModelService {
     }
 
     // 将模型返回的视频 URL 转换成本地服务器文件
-    try {
-      const uploadResponse = await uploadFileToService({
-        fileType: projectid+'/video/'+shotid,
-        fileUrl: videoUrl
-      });
-
-      if (uploadResponse.success && uploadResponse.data?.fileUrl) {
-        //console.log(`视频已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
-        return uploadResponse.data.fileUrl;
-      } else {
-        console.error(`视频上传失败: ${uploadResponse.error}`);
-        // 上传失败时返回原始 URL
+    if(videoUrl){
+      try {
+        const uploadResponse = await uploadFileToService({
+          fileType: projectid+'/video/'+shotid,
+          fileUrl: videoUrl
+        });
+  
+        if (uploadResponse.success && uploadResponse.data?.fileUrl) {
+          //console.log(`视频已上传到本地服务器: ${uploadResponse.data.fileUrl}`);
+          return uploadResponse.data.fileUrl;
+        } else {
+          console.error(`视频上传失败: ${uploadResponse.error}`);
+          // 上传失败时返回原始 URL
+          return videoUrl;
+        }
+      } catch (error) {
+        console.error(`处理生成视频时出错:`, error);
+        // 出错时返回原始 URL
         return videoUrl;
       }
-    } catch (error) {
-      console.error(`处理生成视频时出错:`, error);
-      // 出错时返回原始 URL
+    }else{
       return videoUrl;
     }
   }
@@ -1194,18 +1262,35 @@ export class ModelService {
     scene:Scene,
     scriptData: ScriptData,
     imageCount:number,
-    scriptText:string
+    scriptText:string,
+    segmentDuration:number,
+    lang:string
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
 
     let scenes = scriptData.scenes ? scriptData.scenes.map(d =>`id:${d.id}, location:${d.location},time:${d.time}`).join('\n') : "";
     let characters = scriptData.characters ? scriptData.characters.map(d =>`${d.id}: ${d.name}: ${d.personality}`).join('\n') : "";
+    let props = scriptData.characters ? scriptData.props.map(d =>`${d.id}: ${d.name}: ${d.name}`).join('\n') : "";
+    //{scenes}', '{characters}', '{lang}', '{imageCount}','{scriptText}','{segmentDuration}','{props}
+    const paragraphs = scriptData.storyParagraphs
+      .filter((p) => String(p.sceneRefId) === String(scene.id))
+      .map((p) => `时长：${p.duration||segmentDuration},故事：${p.text}`)
+      .join("\n");
+    // 计算段落总时长
+    const totalParagraphsDuration = scriptData.storyParagraphs
+      .filter((p) => String(p.sceneRefId) === String(scene.id))
+      .reduce((sum, p) => sum + (p.duration || 0), 0);
     const prompt = renderTemplate('IMPORT_SHOTS_FOR_SCENE',
       scenes,
       characters,
+      lang,
       imageCount,
-      scriptText
+      scriptText,
+      paragraphs,
+      segmentDuration,
+      props,
+      totalParagraphsDuration||segmentDuration
     );
     let shots: Shot[] = [];
     switch (provider.provider) {
@@ -1234,7 +1319,8 @@ export class ModelService {
   static async importShotList(
     scriptData: ScriptData,
     imageCount:number,
-    scriptText:string
+    scriptText:string,
+    segmentDuration:number
   ): Promise<Shot[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成场景 ${sceneIndex + 1} 的镜头清单`);
@@ -1245,7 +1331,8 @@ export class ModelService {
       scenes,
       characters,
       imageCount,
-      scriptText
+      scriptText,
+      segmentDuration
     );
     let shots: Shot[] = [];
     switch (provider.provider) {
@@ -1322,12 +1409,14 @@ export class ModelService {
     visualStyle: string = "真人写实",
     genre: string = "剧情片",
     language: string = "中文",
-    targetDuration: string = "60s"
+    targetDuration: string = "60s",
+    segmentDuration:number = 15
   ): Promise<Segment[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     
     // 构建角色和场景信息
     const characters = scriptData.characters?.map(c => `${c.id}: ${c.name}`).join('\n') || '';
+    const props = scriptData.props?.map(c => `${c.id}: ${c.name}`).join('\n') || '';
     const scenes = scriptData.scenes?.map(s => `${s.id}: ${s.location}`).join('\n') || '';
     
     const prompt = renderTemplate('GENERATE_SEGMENTS_FROM_SCRIPT',
@@ -1337,10 +1426,11 @@ export class ModelService {
       visualStyle,
       genre,
       language,
-      targetDuration
+      targetDuration,
+      props
     );
     
-    const systemPrompt = renderTemplate('SYSTEM_SEGMENT_SPLIT');
+    const systemPrompt = renderTemplate('SYSTEM_SEGMENT_SPLIT',segmentDuration);
     
     let response = '';
     switch (provider.provider) {
@@ -1375,10 +1465,10 @@ export class ModelService {
       {
         id: `segment-${now}-${index}`,
         name: seg.name || `片段 ${index + 1}`,
-        shotIds: [],
         sceneIds: seg.sceneIds || [],
         characterIds: seg.characterIds || [],
         description: `时长：${seg.estimatedDuration||15}\n运动强度：${seg.motionIntensity||5}\n情绪曲线：${seg.emotionCurve || ''}\n台词与节奏： ${seg.dialogueRhythm || ''}\n\n${seg.description||''}`,
+        videoPrompt: `时长：${seg.estimatedDuration||15}\n运动强度：${seg.motionIntensity||5}\n情绪曲线：${seg.emotionCurve || ''}\n台词与节奏： ${seg.dialogueRhythm || ''}\n\n${seg.description||''}`,
         transitionFrom: '',
         transitionTo: '',
         estimatedDuration: seg.estimatedDuration || 10,
@@ -1387,6 +1477,8 @@ export class ModelService {
         dialogueRhythm: seg.dialogueRhythm || '',
         createdAt: now,
         lastModified: now,
+        propIds: seg.propIds || [],
+        shotIds: seg.shotIds || [],
       }));
     } catch (error) {
       console.error('解析片段数据失败:', error);

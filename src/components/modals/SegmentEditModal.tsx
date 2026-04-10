@@ -1,6 +1,6 @@
-import { ChevronDown, Expand, Film, Save, X } from 'lucide-react';
+import { Box, Expand, Film, Save, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { Character, Scene, Segment, Shot } from '../../types';
+import { Character, Properties, Scene, Segment, Shot } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 
 interface SegmentEditModalProps {
@@ -8,8 +8,10 @@ interface SegmentEditModalProps {
   allShots: Shot[];
   allCharacters: Character[];
   allScenes: Scene[];
+  allProps?: Properties[];
   getCharacterWithAssets?: (charId: string) => Character | null;
   getSceneWithAssets?: (sceneId: string) => Scene | null;
+  getPropWithAssets?: (propId: string) => Properties | null;
   isOpen: boolean;
   onClose: () => void;
   onSave: (updatedSegment: Segment) => void;
@@ -21,7 +23,7 @@ const ShotThumbnail: React.FC<{ shot: Shot; isSelected?: boolean }> = ({ shot, i
   return (
     <div className={`w-12 h-8 rounded overflow-hidden flex-shrink-0 ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}>
       {thumbnail ? (
-        <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+        <img src={thumbnail} alt="" className="w-full h-full object-contain" />
       ) : (
         <div className="w-full h-full bg-slate-700 flex items-center justify-center">
           <Film className="w-3 h-3 text-slate-600" />
@@ -36,8 +38,10 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
   allShots,
   allCharacters,
   allScenes,
+  allProps = [],
   getCharacterWithAssets,
   getSceneWithAssets,
+  getPropWithAssets,
   isOpen,
   onClose,
   onSave,
@@ -48,8 +52,12 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
   const [selectedCharacterIds, setSelectedCharacterIds] = useState<Set<string>>(
     new Set(segment.characterIds),
   );
+  const [selectedPropIds, setSelectedPropIds] = useState<Set<string>>(new Set(segment.propIds || []));
   const [characterVariations, setCharacterVariations] = useState<{ [characterId: string]: string }>(
     segment.characterVariations || {},
+  );
+  const [propVariations, setPropVariations] = useState<{ [propId: string]: string }>(
+    segment.propVariations || {},
   );
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
@@ -85,6 +93,23 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
         });
       }
     });
+    // Prop images (including variations)
+    selectedPropIds.forEach(propId => {
+      let prop = allProps.find(p => p.id === propId);
+      if (!prop && getPropWithAssets) {
+        prop = getPropWithAssets(propId);
+      }
+      if (prop) {
+        if (prop.referenceImage) {
+          images.push(prop.referenceImage);
+        }
+        prop.variations?.forEach(v => {
+          if (v.referenceImage) {
+            images.push(v.referenceImage);
+          }
+        });
+      }
+    });
     return images;
   };
 
@@ -105,6 +130,8 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
       sceneIds: Array.from(selectedSceneIds),
       characterIds: Array.from(selectedCharacterIds),
       characterVariations,
+      propIds: Array.from(selectedPropIds),
+      propVariations,
       lastModified: Date.now(),
     };
     onSave(updatedSegment);
@@ -159,9 +186,31 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
     }));
   };
 
+  const handleToggleProp = (propId: string) => {
+    const newSelected = new Set(selectedPropIds);
+    if (newSelected.has(propId)) {
+      newSelected.delete(propId);
+      // Also remove variation selection when removing prop
+      const newVariations = { ...propVariations };
+      delete newVariations[propId];
+      setPropVariations(newVariations);
+    } else {
+      newSelected.add(propId);
+    }
+    setSelectedPropIds(newSelected);
+  };
+
+  const handleSelectPropVariation = (propId: string, variationId: string) => {
+    setPropVariations((prev) => ({
+      ...prev,
+      [propId]: variationId,
+    }));
+  };
+
   const availableShots = allShots.filter((s) => !selectedShotIds.has(s.id));
   const availableScenes = allScenes.filter((s) => !selectedSceneIds.has(s.id));
   const availableCharacters = allCharacters.filter((c) => !selectedCharacterIds.has(c.id));
+  const availableProps = allProps.filter((p) => !selectedPropIds.has(p.id));
 
   return (
     <div className="fixed inset-0 z-60 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
@@ -308,7 +357,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                         <img
                           src={scene.referenceImage}
                           alt={scene.location}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-slate-700/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <Expand className="w-5 h-5 text-slate-50" />
@@ -395,7 +444,7 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                         <img
                           src={currentLook.image}
                           alt={character.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-slate-700/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <Expand className="w-5 h-5 text-slate-50" />
@@ -424,6 +473,105 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
               )}
             </div>
           </div>
+
+          {/* Props */}
+          {allProps.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-1.5">
+                  <Box className="w-3.5 h-3.5" />
+                  道具 ({selectedPropIds.size} / {allProps.length})
+                </label>
+                {availableProps.length > 0 && (
+                  <div className="flex-1 pl-6">
+                    <CustomSelect
+                      value=""
+                      onChange={(propId) => handleToggleProp(propId)}
+                      options={[
+                        { value: '', label: '+ 添加道具' },
+                        ...availableProps.map((p) => ({
+                          value: p.id,
+                          label: p.name,
+                        })),
+                      ]}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {Array.from(selectedPropIds).map((propId) => {
+                  let prop = allProps.find((p) => p.id === propId);
+                  if (!prop && getPropWithAssets) {
+                    prop = getPropWithAssets(propId);
+                  }
+                  if (!prop) return null;
+
+                  // Get available variations (base + variations with images)
+                  const availableLooks: { id: string; name: string; image: string }[] = [];
+                  if (prop.referenceImage) {
+                    availableLooks.push({ id: 'base', name: '默认外观', image: prop.referenceImage });
+                  }
+                  prop.variations?.forEach((v) => {
+                    if (v.referenceImage) {
+                      availableLooks.push({ id: v.id, name: v.name, image: v.referenceImage });
+                    }
+                  });
+
+                  // Get current selected look
+                  const selectedVariationId = propVariations[propId];
+                  const currentLook = selectedVariationId
+                    ? availableLooks.find((l) => l.id === selectedVariationId) || availableLooks[0]
+                    : availableLooks[0];
+
+                  return (
+                    <div
+                      key={propId}
+                      className="relative flex flex-col items-center gap-2 p-2 bg-amber-900/20 border border-amber-700/50 rounded-lg text-sm text-slate-50 w-[140px]"
+                    >
+                      <button
+                        onClick={() => handleToggleProp(propId)}
+                        className="absolute top-1 right-1 p-1 hover:bg-red-900/30 hover:text-red-400 rounded transition-colors cursor-pointer z-10"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      {currentLook?.image ? (
+                        <div
+                          className="relative w-full aspect-video rounded border border-amber-600/50 overflow-hidden cursor-pointer group"
+                          onClick={() => handlePreviewImage(currentLook.image)}
+                        >
+                          <img
+                            src={currentLook.image}
+                            alt={prop.name}
+                            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-slate-700/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Expand className="w-5 h-5 text-slate-50" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full aspect-video bg-amber-800/30 flex items-center justify-center text-2xl rounded border border-amber-600/50">
+                          <Box className="w-5 h-5 text-amber-400" />
+                        </div>
+                      )}
+                      <span className="text-xs text-center truncate w-full px-1">{prop.name}</span>
+                      {/* Variation Selector */}
+                      {availableLooks.length > 1 && (
+                        <CustomSelect
+                          value={currentLook?.id || 'base'}
+                          onChange={(val) => handleSelectPropVariation(propId, val)}
+                          options={availableLooks.map(look => ({ value: look.id, label: look.name }))}
+                          className="w-full"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+                {selectedPropIds.size === 0 && (
+                  <span className="text-sm text-slate-500">未选择任何道具</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

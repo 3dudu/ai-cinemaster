@@ -55,7 +55,7 @@ const fetchWithRetry = async (
   // 构建完整的日志上下文
   const fullLogContext: LogContext | undefined = logContext ? {
     modelType: logContext.modelType || 'llm',
-    provider: logContext.provider || 'doubao',
+    provider: logContext.provider || 'deepseek',
     apiUrl: endpoint,
     modelId: logContext.modelId || runtimeTextModel,
     seriesId: logContext.seriesId,
@@ -107,7 +107,6 @@ export const parseScriptToData = async (
   let parsed: any = {};
   try {
     const text = cleanJsonString(content);
-    //console.log("Parsed JSON:", text);
     parsed = JSON.parse(text);
     if(Array.isArray(parsed)){
       parsed = parsed[0];
@@ -134,6 +133,13 @@ export const parseScriptToData = async (
         sceneRefId: String(p.sceneRefId),
       }))
     : [];
+  const props = Array.isArray(parsed.props)
+    ? parsed.props.map((c: any) => ({
+        ...c,
+        id: String(c.id),
+        variations: [],
+      }))
+    : [];
 
   return {
     title: parsed.title || "未命名剧本",
@@ -142,6 +148,7 @@ export const parseScriptToData = async (
     language: language,
     characters,
     scenes,
+    props,
     storyParagraphs,
   };
 };

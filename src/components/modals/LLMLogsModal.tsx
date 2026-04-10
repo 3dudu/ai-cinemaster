@@ -18,7 +18,7 @@ interface Props {
 
 const MODEL_TYPE_OPTIONS = [
   { value: '', label: '全部类型' },
-  { value: 'llm', label: '大语言模型' },
+  { value: 'llm', label: '大语言' },
   { value: 'text2image', label: '文生图' },
   { value: 'image2video', label: '图生视频' },
   { value: 'tts', label: '语音合成' },
@@ -93,6 +93,13 @@ const JsonDisplay: React.FC<{ data: any; maxHeight?: string }> = ({ data, maxHei
       >
         {jsonStr}
       </pre>
+      
+      <button
+        onClick={() => navigator.clipboard.writeText(jsonStr)}
+        className="absolute bottom-2 right-12 text-xs text-indigo-400 hover:text-indigo-300"
+      >
+        复制
+      </button>
       <button
         onClick={() => setExpanded(!expanded)}
         className="absolute bottom-2 right-2 text-xs text-indigo-400 hover:text-indigo-300"
@@ -156,7 +163,6 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
 
         if (uploadResponse.success && uploadResponse.data?.fileUrl) {
           finalUrl = uploadResponse.data.fileUrl;
-          console.log(`文件已上传到本地服务器: ${finalUrl}`);
         } else {
           console.warn(`文件上传失败: ${uploadResponse.error}，使用原始URL`);
         }
@@ -239,9 +245,9 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
     setRefreshingTaskId(log.id);
     try {
       // 目前只支持 doubao provider
-      if (log.provider === 'doubao') {
-        const provider = await ModelService.getEnabledVideoProvider();
-
+      if (log.provider === 'doubao' || log.provider === 'yunwu') {
+        
+        const provider = await ModelService.getImage2VideoConfigByProvider(log.provider);
         const result = (await ModelService.getProviderModule('doubao')).fetchVideoTaskStatus(log.taskId, log.id);
 
         if (result.status === 'complesucceededted' && result.content?.videoUrl) {
@@ -413,10 +419,21 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
         </div>
 
         {/* Filters */}
-        <div className="p-4 border-b border-slate-700 bg-slate-800/50 shrink-0">
-          <div className="flex flex-wrap gap-3 items-center">
+        <div className="p-2 md:p-4 border-b border-slate-700 bg-slate-800/50 shrink-0">
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* 搜索 */}
+            <div className="relative flex-1 min-w-[150px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="搜索供应商/模型/任务ID..."
+                className="w-full bg-slate-700 border border-slate-600 text-slate-200 pl-9 pr-3 py-2 text-sm rounded-lg focus:border-indigo-500 focus:outline-none"
+              />
+            </div>
             {/* 时间范围 */}
-            <div className="w-32">
+            <div className="w-28">
               <CustomSelect
                 options={TIME_RANGE_OPTIONS}
                 value={timeRange}
@@ -426,7 +443,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
             </div>
             
             {/* 模型类型 */}
-            <div className="w-32">
+            <div className="w-28">
               <CustomSelect
                 options={MODEL_TYPE_OPTIONS}
                 value={modelType}
@@ -445,18 +462,6 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
               />
             </div>
             
-            {/* 搜索 */}
-            <div className="relative flex-1 min-w-[150px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="搜索供应商/模型/任务ID..."
-                className="w-full bg-slate-700 border border-slate-600 text-slate-200 pl-9 pr-3 py-2 text-sm rounded-lg focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-            
             {/* 刷新 */}
             <button
               onClick={loadLogs}
@@ -470,7 +475,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
             {/* 清理 */}
             <button
               onClick={() => setShowClearConfirm(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 hover:text-red-300 text-sm rounded-lg transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-2 bg-slate-700 hover:bg-red-200 text-red-400 hover:text-red-800 text-[10px] rounded-lg transition-colors cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               清理
@@ -516,7 +521,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
                 return (
                   <div 
                     key={log.id} 
-                    className="p-4 hover:bg-slate-700/50 transition-colors"
+                    className="p-2 md:p-4 hover:bg-slate-700/50 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">
                       {/* 左侧信息 */}

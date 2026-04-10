@@ -15,8 +15,6 @@ interface SeriesManagerModalProps {
   series: SeriesRecord;
   onSeriesUpdate: (updatedSeries: SeriesRecord) => void;
   onSwitchEpisode: (project: ProjectState) => void;
-  allProjects?: ProjectState[]; // Deprecated: no longer needed, episodes are fetched from DB
-  onProjectsUpdate?: (projects: ProjectState[]) => void; // Deprecated: no longer used
   isMobile?: boolean;
 }
 
@@ -295,11 +293,15 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
     };
 
     saveProjectToDB(updatedProject).then(() => {
+      // Update episodes array with the updated project
+      setEpisodes(prev => prev.map(ep => ep.id === updatedProject.id ? updatedProject : ep));
       dialog.toast({ message: '分集设置已保存', type: 'success' });
     }).catch((error) => {
       console.error('Failed to save episode settings:', error);
       dialog.toast({ message: '保存分集设置失败', type: 'error' });
     });
+
+    
   }, [editingEpisode, dialog]);
 
   const getSegmentThumbnail = useCallback(

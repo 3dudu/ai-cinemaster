@@ -1,8 +1,7 @@
 // services/modelproviders/doubaoService.ts
 
 import { Scene, ScriptData, Shot } from "../../types";
-import { fetchWithRetry as apiFetchWithRetry, cleanJsonString, createAsyncTaskLog, LogContext, pollTask, fetchTaskStatus } from "../../utils/apiHelper";
-import { getLLMLog, saveLLMLog } from "../storageService";
+import { fetchWithRetry as apiFetchWithRetry, cleanJsonString, createAsyncTaskLog, fetchTaskStatus, LogContext, pollTask } from "../../utils/apiHelper";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // 火山引擎配置
@@ -170,7 +169,13 @@ export const parseScriptToData = async (
         sceneRefId: String(p.sceneRefId),
       }))
     : [];
-
+  const props = Array.isArray(parsed.props)
+    ? parsed.props.map((c: any) => ({
+        ...c,
+        id: String(c.id),
+        variations: [],
+      }))
+    : [];
   return {
     title: parsed.title || "未命名剧本",
     genre: parsed.genre || "",
@@ -178,6 +183,7 @@ export const parseScriptToData = async (
     language: language,
     characters,
     scenes,
+    props,
     storyParagraphs,
   };
 };
@@ -459,6 +465,7 @@ export const generateVideo = async (
   projectId?: string,
   seriesId?: string,
   shotId?: string,
+  processedVoiceUrls: string[] = [],
 ): Promise<string> => {
   const endpoint = `${runtimeApiUrl}/contents/generations/tasks`;
 
@@ -522,10 +529,27 @@ export const generateVideo = async (
       });
     });
   }
+  if(processedVoiceUrls && processedVoiceUrls.length>0){
+    processedVoiceUrls.forEach((voiceUrl) => {
+      requestBody.content.push({
+        "type": "audio_url",
+        "audio_url": {
+          "url": voiceUrl
+        },
+        "role": "reference_audio"
+      });
+    });
+  }
   
   const response = await fetchWithRetry(endpoint, {
     method: "POST",
     body: JSON.stringify(requestBody),
+  }, 1, {
+    modelType: 'image2video',
+    modelId: runtimeImageModel,
+    projectId,
+    seriesId,
+    shotId
   });
 
   // 火山引擎可能返回异步任务 ID，需要轮询获取结果

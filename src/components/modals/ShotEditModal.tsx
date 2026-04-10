@@ -1,8 +1,8 @@
-import { Aperture, Check, Expand, Plus, RefreshCw, Trash, X } from 'lucide-react';
+import { Aperture, Box, Check, Expand, Plus, RefreshCw, Trash, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { modelConfigEventBus } from '../../services/modelConfigEvents';
 import { getAllModelConfigs } from '../../services/storageService';
-import { AIModelConfig, Keyframe, Scene, Shot } from '../../types';
+import { AIModelConfig, Keyframe, Properties, Scene, Shot } from '../../types';
 import CustomSelect from '../common/CustomSelect';
 import VideoPromptModal from './VideoPromptModal';
 
@@ -10,14 +10,16 @@ interface ShotEditModalProps {
   shot: Shot;
   characters: { id: string; name: string; referenceImage?: string }[];
   scenes?: Scene[];
+  props?: Properties[];
   onSave: (updatedShot: Partial<Shot>) => void;
   onClose: () => void;
   imageCount: number;
   scriptData?: any;
   visualStyle?: string;
+  story?: string;
 }
 
-const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes = [], onSave, onClose, imageCount, scriptData, visualStyle = '真人写实' }) => {
+const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes = [], props = [], onSave, onClose, imageCount, scriptData, visualStyle = '真人写实',story='' }) => {
   const [tempShot, setTempShot] = useState<Partial<Shot>>({ ...shot });
   const [modelConfigs, setModelConfigs] = useState<AIModelConfig[]>([]);
   const [isVideoPromptModalOpen, setIsVideoPromptModalOpen] = useState(false);
@@ -59,6 +61,14 @@ const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes 
       ? currentChars.filter((c: string) => c !== charId)
       : [...currentChars, charId];
     setTempShot({ ...tempShot, characters: updatedChars });
+  };
+
+  const toggleProp = (propId: string) => {
+    const currentProps = tempShot.properties || [];
+    const updatedProps = currentProps.includes(propId)
+      ? currentProps.filter((p: string) => p !== propId)
+      : [...currentProps, propId];
+    setTempShot({ ...tempShot, properties: updatedProps });
   };
 
   const getAvailableKeyframeType = (): 'start' | 'end' | 'full' | null => {
@@ -252,6 +262,57 @@ const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes 
             )}
           </div>
 
+          {/* Props */}
+          {props.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-1.5">
+                <Box className="w-3.5 h-3.5" />
+                道具
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {props.map(prop => {
+                  const isSelected = (tempShot.properties || []).includes(prop.id);
+                  const hasImage = !!prop.referenceImage;
+                  return (
+                    <button
+                      key={prop.id}
+                      onClick={() => toggleProp(prop.id)}
+                      className={`relative px-3 py-2 text-xs font-medium rounded-md transition-all duration-200 border flex items-center gap-1.5 cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-600/30 text-amber-200 border-amber-500 shadow-lg shadow-amber-500/25 scale-100'
+                          : 'bg-slate-900 text-slate-400 border-slate-600 hover:border-slate-300 hover:text-slate-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      {/* 图片 */}
+                      {hasImage && (
+                        <div className={`w-5 h-5 rounded overflow-hidden flex-shrink-0 ${
+                          isSelected ? 'ring-2 ring-amber-400/30' : 'opacity-70'
+                        }`}>
+                          <img
+                            src={prop.referenceImage}
+                            alt={prop.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      {/* 对勾图标 */}
+                      {isSelected && !hasImage && <Check className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={3} />}
+                      {/* 道具名 */}
+                      <span className="truncate">{prop.name}</span>
+                      {/* 选中且有图片时的对勾 */}
+                      {isSelected && hasImage && <Check className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
+              </div>
+              {(tempShot.properties || []).length > 0 && (
+                <div className="text-[11px] text-slate-500">
+                  已选择 {tempShot.properties?.length} 个道具
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Action Summary */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">动作描述</label>
@@ -399,6 +460,7 @@ const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes 
 
           {/* Keyframes */}
           <div className="space-y-3">
+            {imageCount > 0 && (
             <div className="flex items-center justify-between">
               <label className="text-[12px] font-bold text-slate-500 tracking-widest">关键帧</label>
               <button
@@ -414,10 +476,12 @@ const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes 
                 添加关键帧
               </button>
             </div>
+            )}
 
             <div className="space-y-3">
               {(tempShot.keyframes || []).map((kf: Keyframe, kfIdx: number) => (
                 <div key={kf.id || kfIdx} className="bg-slate-800 border border-slate-600 rounded-lg p-4 space-y-3">
+                  {imageCount>0 &&(
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
                       <CustomSelect
@@ -435,6 +499,7 @@ const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes 
                       <Trash className="w-3.5 h-3.5" />
                     </button>
                   </div>
+                  )}
 
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 tracking-widest mb-1 block">画面提示词</label>
@@ -548,6 +613,7 @@ const ShotEditModal: React.FC<ShotEditModalProps> = ({ shot, characters, scenes 
             interval: shot.interval ? { ...shot.interval, videoPrompt } : undefined
           });
         }}
+        story={story}
       />
 
       {/* Fullscreen Image Preview Modal */}

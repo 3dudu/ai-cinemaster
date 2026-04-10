@@ -283,6 +283,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
           isOpen={showImageBrowser}
           onClose={() => setShowImageBrowser(false)}
           project={project}
+          updateProject={updateProject}
           onSelectImage={(imageUrl, allImages) => {
             // 在浏览模式下，点击图片是预览而不是选择
             setPreviewImage(imageUrl);

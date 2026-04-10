@@ -79,7 +79,8 @@ function App() {
 
   // Auto-save logic
   useEffect(() => {
-    if (!project) return;
+    if (!project || !(project.scriptData || project.seriesRefId)) return;
+
 
     setSaveStatus('unsaved');
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -119,7 +120,7 @@ function App() {
     });
   };
 
-  const setStage = (stage: 'script' | 'assets' | 'director' | 'segments' | 'export') => {
+  const setStage = (stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images') => {
     updateProject({ stage });
   };
 
@@ -150,7 +151,7 @@ function App() {
 
   const handleExitProject = async () => {
     // Force save before exiting
-    if (project) {
+    if (project && (project.scriptData || project.seriesRefId)) {
         await saveProjectToDB(project);
     }
     // Save series if in series mode
@@ -214,7 +215,7 @@ function App() {
       case 'export':
         return <StageExport project={project} updateProject={updateProject} />;
       case 'images':
-        return <StageImage project={project} />;
+        return <StageImage project={project} updateProject={updateProject} />;
       default:
         return <div className="text-slate-50">未知阶段</div>;
     }

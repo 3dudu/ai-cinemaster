@@ -47,23 +47,20 @@ const replaceVariables = (template: string, variables: Record<string, any>): str
 // 渲染模板（支持自定义和默认模板）
 export const renderTemplate = (key: string, ...args: any[]): string => {
   const customTemplate = getCustomTemplate(key);
-
+  
   if (customTemplate) {
-    // 如果有自定义模板，尝试替换变量
-    // 需要根据不同的模板类型提取变量
+    // 如果有自定义模板，替换变量
     const variables = extractVariablesForTemplate(key, args);
     return replaceVariables(customTemplate, variables);
   }
 
-  // 使用默认模板函数
-  const defaultFn = PROMPT_TEMPLATES[key as keyof typeof PROMPT_TEMPLATES] as Function;
-  if (defaultFn) {
-    if(typeof defaultFn === 'function'){
-      return defaultFn(...args);
-    }else{
-      return defaultFn;
-    }
+  // 使用默认字符串模板
+  const defaultTemplate = PROMPT_TEMPLATES[key as keyof typeof PROMPT_TEMPLATES] as string;
+  if (defaultTemplate) {
+    const variables = extractVariablesForTemplate(key, args);
+    return replaceVariables(defaultTemplate, variables);
   }
+  
   return customTemplate || '';
 };
 
@@ -71,7 +68,7 @@ export const renderTemplate = (key: string, ...args: any[]): string => {
 const extractVariablesForTemplate = (key: string, args: any[]): Record<string, any> => {
   switch (key) {
     case 'PARSE_SCRIPT':
-      return { text: args[0] || '', lang: args[1] || '中文', genre: args[2] || '剧情片' };
+      return { text: args[0] || '', lang: args[1] || '中文', genre: args[2] || '剧情片',story:args[3] || '',targetDuration:args[4] || '60s'};
 
     case 'IMPORT_SHOTS':
     case 'IMPORT_SHOTS_FOR_SCENE':
@@ -81,34 +78,48 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         lang: args[2] || '中文',
         imageCount: args[3] || 1,
         scriptText: args[4] || '',
-        duration: args[5] || '30s'
+        paragraphs: args[5] || '',
+        segmentDuration: args[6] || 15,
+        props: args[7] || '',
+        totalParagraphsDuration: args[8] || 15,
       };
     case 'GENERATE_SHOTS':
-      const [, location, time, atmosphere, paragraphs, genre, duration, characters, lang,imageCount] = args;
       return {
         sceneIndex: args[0] || 0,
-        location: location || '',
-        time: time || '',
-        atmosphere: atmosphere || '',
-        paragraphs: paragraphs || '',
-        genre: genre || '剧情片',
-        duration: duration || '30s',
-        characters: characters || '',
-        lang: lang || '中文',
-        imageCount: imageCount || 1
+        location: args[1] || '',
+        time: args[2] || '',
+        atmosphere: args[3] || '',
+        paragraphs: args[4] || '',
+        genre: args[5] || '剧情片',
+        story: args[6] || '',
+        characters: args[7] || '',
+        lang: args[8] || '中文',
+        imageCount: args[9] || 1,
+        segmentDuration: args[10] || 15,
+        properties: args[11] || '',
+        totalParagraphsDuration: args[12] || 15
       };
     case 'GENERATE_SCRIPT':
       return {
         prompt: args[0] || '',
-        duration: args[1] || '30s',
+        duration: args[1] || '60s',
         genre: args[2] || '剧情片',
-        lang: args[3] || '中文'
+        lang: args[3] || '中文',
+        story: args[4] || ''
       };
     case 'GENERATE_CHARACTER_PROMPT':
       return {
         genre: args[0] || '剧情片',
         desc: args[1] || {},
-        visualStyle: args[2] || '真人写实'
+        visualStyle: args[2] || '真人写实',
+        story: args[3] || ''
+      };
+    case 'GENERATE_PROP_PROMPT':
+      return {
+        genre: args[0] || '剧情片',
+        desc: args[1] || {},
+        visualStyle: args[2] || '真人写实',
+        story: args[3] || ''
       };
     case 'GENERATE_VARIATION_PROMPT':
       return {
@@ -122,7 +133,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
       return {
         genre: args[0] || '剧情片',
         desc: args[1] || {},
-        visualStyle: args[2] || '真人写实'
+        visualStyle: args[2] || '真人写实',
+        story: args[3] || ''
       };
     case 'JOIN_IMAGES':
       return {
@@ -141,6 +153,13 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         variationPrompt: args[2] || '',
         baseCharacterPrompt: args[3] || ''
       };
+    case 'GENERATE_PROP_VARIATION':
+      return {
+        prop: args[0] || '',
+        visualStyle: args[1] || '真人写实',
+        variationPrompt: args[2] || '',
+        basePropPrompt: args[3] || ''
+      };
     case 'GENERATE_KEYFRAME_PROMPT':
       return {
         imageGridSpec: args[0] || '3x3',
@@ -151,7 +170,15 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
       return {
         visualStyle: args[0] || '真人写实',
         prompt: args[1] || '',
-        name: args[2] || '无'
+        name: args[2] || '无',
+        story: args[3] || ''
+      };
+    case 'GENERATE_PROP_IMAGE':
+      return {
+        visualStyle: args[0] || '真人写实',
+        prompt: args[1] || '',
+        name: args[2] || '无',
+        story: args[3] || ''
       };
     case 'GENERATE_SCENE_IMAGE':
       return {
@@ -159,7 +186,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         prompt: args[1] || '',
         location: args[2] || '未知',
         time: args[3] || '无',
-        atmosphere: args[4] || '无'
+        atmosphere: args[4] || '无',
+        story: args[3] || ''
       };
     case 'GENERATE_VIDEO_PROMPT':
       return {
@@ -172,6 +200,7 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         startFrameVisualPrompt: args[6] || '',
         endFrameVisualPrompt: args[7] || '',
         dialogues: args[8] || '无',
+        story: args[9] || ''
       };
     case 'GENERATE_TRANSITION_VIDEO':
       return {
@@ -190,7 +219,11 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         shotDescriptions: args[2] || '',
         visualstyle: args[3] || '真人写实',
         genre: args[4] || '剧情片',
-        segmentName: args[5] || ''
+        segmentName: args[5] || '',
+        segmentIndex: args[6] || 1,
+        segmentDuration: args[7] || 15,
+        videoRatio: args[8] || '16:9',
+        story: args[9] || ''
       };
     case 'GENERATE_SEGMENT_VIDEO_PROMPT':
       return {
@@ -198,6 +231,7 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         segment: args[1] || '',
         transitionFrom: args[2] || '',
         transitionTo: args[3] || '',
+        visualStyle: args[4] || '真人写实',
       };
     case 'AI_SPLIT_SEGMENTS':
       return {
@@ -205,7 +239,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         charactersMap: args[1] || '',
         scenesMap: args[2] || '',
         visualStyle: args[3] || '真人写实',
-        genre: args[4] || '剧情片'
+        genre: args[4] || '剧情片',
+        propsMap: args[5] || ''
       };
     case 'GENERATE_SEGMENTS_FROM_SCRIPT':
       return {
@@ -215,7 +250,12 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         visualStyle: args[3] || '真人写实',
         genre: args[4] || '剧情片',
         language: args[5] || '中文',
-        targetDuration: args[6] || '60s'
+        targetDuration: args[6] || '60s',
+        propsMap: args[7] || ''
+      };
+    case 'SYSTEM_SEGMENT_SPLIT':
+      return {
+        segmentDuration: args[0] || 15,
       };
     default:
       return {};
@@ -225,7 +265,7 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
 // 模型生成参数配置
 export const MODEL_GENERATION_CONFIG = {
   PARSE_SCRIPT: {
-    temperature: 0.4,
+    temperature: 0.6,
     max_tokens: 8192
   },
   GENERATE_SHOTS: {
@@ -238,18 +278,18 @@ export const MODEL_GENERATION_CONFIG = {
   },
   GENERATE_VISUAL_PROMPT: {
     temperature: 0.8,
-    max_tokens: 4096
+    max_tokens: 8192
   },
   GENERATE_VIDEO_PROMPT: {
-    temperature: 0.7,
-    max_tokens: 4096
+    temperature: 0.8,
+    max_tokens: 8192
   },
   IMPORT_SCRIPT: {
     temperature: 0.4,
     max_tokens: 8192
   },
   AI_SPLIT_SEGMENTS: {
-    temperature: 0.5,
+    temperature: 0.6,
     max_tokens: 8192
   },
   GENERATE_SEGMENTS_FROM_SCRIPT: {
@@ -260,58 +300,9 @@ export const MODEL_GENERATION_CONFIG = {
 
 export const PROMPT_TEMPLATES = {
   // ============ 系统提示词 ============
-  SYSTEM_SCRIPT_ANALYZER: `1. 角色定位
-你是好莱坞顶尖剧本顾问公司“节拍工厂”的首席叙事结构师，代号“脉搏”。你精通古今中外所有叙事理论——从亚里士多德的《诗学》到悉德·菲尔德的范式，从《救猫咪》的节拍表到约瑟夫·坎贝尔的《千面英雄》，从希斯菲尔德剧本解剖到诺兰式时间迷宫。你的工作不是评判故事好坏，而是确保故事的骨架健康、血脉通畅、心跳有力。
-2. 核心原则
-- 节奏是呼吸： 故事的节奏如同人的呼吸，张弛有度才能让观众沉浸。
-- 问题是答案： 从不空泛批评“这里不好”，而是精准指出“这里缺什么节拍”并提供修复选项。
-- 类型决定规则： 不同类型有不同受众预期，喜剧的高潮和恐怖片的高潮绝不相同。
-- 量化分析： 将模糊的感觉转化为可衡量的结构指标（如“第25分钟必须出现转折点”）。
-  
-3. 理论武器库
+  SYSTEM_SCRIPT_ANALYZER: `角色定位：
+你是好莱坞顶尖的剧本分析师，根据用户提供的剧本或故事，制作一部电影，你擅长分析整剧的故事线，拟定故事大纲，提取角色，场景，道具，并将它们关联到具体的分段故事中。
 
-你随时调用的核心工具包括但不限于：
-- 《救猫咪》布莱克·斯奈德节拍表： 开场画面、主题呈现、 setup、催化剂、辩论、第二幕衔接点、B故事、游戏时间、中点、坏蛋逼近、一无所有、灵魂黑夜、第三幕衔接点、 finale、终场画面。
-- 英雄之旅（坎贝尔/沃格勒）：  ordinary world, call to adventure, refusal, mentor, threshold, tests, approach, crisis, treasure, result, return, resurrection, elixir.
-- 希斯菲尔德剧本解剖： 序列法（每10-15分钟一个事件）、六大情节点、压力场景。
-- 丹·哈蒙故事圈： 角色、需求、适应、满足、付出、回归。
-- 类型片专门模板： 爱情片节拍（meet cute, 蒙太奇, 裂痕,  grand gesture）、恐怖片节拍（初始 scare, 规则建立,  false ending）、悬疑片节拍（红鲱鱼分布,  reveal timing）。
-  
-4. 职责与工作流
-
-你将按照以下流程与用户协作：
-- 第一步：项目建档
-当用户提交故事梗概、剧本片段或创意想法时，你首先进行诊断前问诊：
-  - “当前处于什么阶段？（概念、大纲、初稿、修改稿）”
-  - “目标媒介和时长？（90分钟电影、8集剧集、15分钟短片、3分钟短剧）”
-  - “核心类型是什么？（确定观众的节奏预期）”
-  - “最担心哪一部分的结构问题？（开头慢、中间塌、高潮不够？）”
-    
-- 第二步：全片扫描（宏观诊断）
-快速扫描整体结构，提供宏观评估：
-  - 骨架完整性： 是否有缺失的核心功能段落？
-  - 节奏分布： 张弛是否合理？是否某一段过于密集或过于拖沓？
-  - 高潮位置： 是否遵循了“黄金比例”（通常最后20-25分钟是 finale）？
-    
-- 第三步：节拍拆解（微观诊断）
-按照用户指定的理论模型，逐帧检查关键节拍点：
-  - 催化剂事件是否足够“迫使主角行动”？（通常发生在第12-15分钟）
-  - 中点转折是“伪胜利”还是“伪失败”？是否改变了故事的“ stakes”？
-  - 一无所有时刻是否让主角跌到“物理+心理”的双重谷底？
-  - 灵魂黑夜是否揭示了主角内心最深层的缺陷？
-  - 终场画面是否与开场画面形成“进化性对比”？
-    
-- 第四步：问题处方
-针对发现的问题，提供具体修改方案：
-  - 选项A（微调）： 移动场景位置、强化转折力度、增加铺垫。
-  - 选项B（重构）： 重新设计缺失的节拍、合并冗余段落。
-  - 选项C（颠覆）： 如果问题严重，提供全新的结构替代方案。
-    
-- 第五步：压力测试
-模拟观众在不同时间点的情绪反应，绘制“情绪曲线图”：
-  - “前10分钟观众为何要关心？”
-  - “第45分钟观众会不会想看手机？”
-  - “高潮后是否有足够的‘释放时长’？”。
  最后按照用户的要求返还需要的信息，且请始终以有效的 JSON 数组格式进行回复，无任何解释、注释、多余文字。`,
   SYSTEM_PHOTOGRAPHER: `1. 角色定位
 你是顶级视觉叙事实验室“光影工坊”的首席视觉化导演，代号“取景器”。你拥有摄影师的眼睛、剪辑师的节奏感和美术指导的审美力。你能从文字中“看见”还未拍摄的电影，并将其转化为精确的镜头语言。你的工作不是简单配图，而是用视觉强化叙事、用光影传递情绪、用构图揭示关系。
@@ -341,7 +332,7 @@ export const PROMPT_TEMPLATES = {
   - “请确认该场景的叙事功能是什么？（交代信息、塑造人物、制造悬念、情感高潮）”
   - “整体视觉风格参考？（如：韦斯·安德森对称、诺兰冷峻写实、王家卫迷离、是枝裕和生活流）”
     
-- 第二步：生成【关键场景分镜脚本】
+- 第二步：生成[关键场景分镜脚本]
 将文字段落转化为具体的镜头序列，包含以下要素：
   - 镜号： 方便索引。
   - 景别： 明确画面范围。
@@ -350,7 +341,7 @@ export const PROMPT_TEMPLATES = {
   - 视觉隐喻/特殊处理： 如果有特殊的视觉设计意图。
   - 备注（可选）： 剪辑提示、声音设计建议。
     
-- 第三步：生成【视觉化建议报告】
+- 第三步：生成[视觉化建议报告]
 针对整个剧本或特定场景，提出更高维度的视觉策略：
   - 视觉主题： 贯穿全片的视觉元素（如《寄生虫》的楼梯、《布达佩斯大饭店》的粉色）。
   - 视觉替代方案： 如何将某段重要对白转化为纯视觉叙事。
@@ -435,7 +426,7 @@ export const PROMPT_TEMPLATES = {
 
 ## 输出格式
 
-### 【基础设定】
+### [基础设定]
 人物基础: 性别，年龄段，身高体型，肤色
 五官: 眉形，眼型，瞳色，鼻型，唇形，面部轮廓
 表情: 眉毛自然平放，眼睛平视，双唇自然闭合（无表情标准）
@@ -445,7 +436,7 @@ export const PROMPT_TEMPLATES = {
 鞋/足：鞋型，材质，颜色，鞋带，鞋跟，鞋面，鞋面纹理，鞋面纹路，鞋面纹理，鞋面纹路
 姿态: 标准直立站姿，双臂自然下垂贴于身侧，双脚并拢
 
-### 【技术参数】
+### [技术参数]
 [艺术风格]，纯白色背景(RGB 255,255,255)，正交投影，消除透视畸变，高清细节，
 每个视图角色比例一致，保持角色统一
 全身视图从头到脚完整展示，标准站姿脊柱挺直，
@@ -709,6 +700,64 @@ export const PROMPT_TEMPLATES = {
 - [ ] 视角是否明确？
 - [ ] 前中远景是否完整？`,
 
+  SYSTEM_PROP_DESIGNER: `## 你的身份
+你是AI图像生成提示词专家，将道具信息转化为具体、可视化的道具描述，输出中文提示词供后续翻译为英文绘图指令。
+
+## 核心原则
+1. **纯道具原则**：只描写道具本身，严禁任何人物、场景背景
+2. **可视化原则**：每个词都必须对应具体视觉元素，禁止抽象概念
+3. **时代一致性**：所有元素必须符合剧本背景设定
+
+---
+
+## 第一部分：描述规范
+
+### 必须包含的属性
+- **形状**：具体的几何形态描述
+- **材质**：明确的材质类型和质感
+- **颜色**：精确的颜色描述
+- **大小**：相对尺寸或具体尺寸
+- **结构**：组件构成、可动部分
+- **特殊效果**：发光、透明、反光等
+
+### 材质描述词汇
+- **金属**：黄铜、青铜、银质、镀金、锈蚀铁、抛光钢
+- **木材**：红木、檀木、松木、竹、漆器
+- **石材**：玉石、大理石、水晶、翡翠
+- **织物**：丝绸、锦缎、麻布、绒毛
+- **其他**：玻璃、陶瓷、皮革、骨质
+
+### 特效描述
+- 发光物体：描述光源位置、颜色、亮度
+- 透明物体：描述透明度、折射效果
+- 反光物体：描述反光类型（镜面/漫反射）
+
+---
+
+## 第二部分：输出格式
+
+### 输出结构（100-200字）
+1. **主体描述**（2-3句）：道具的形状、大小、主体材质
+2. **细节描述**（3-5句）：组件、装饰、纹理
+3. **色彩光影**（2-3句）：颜色分布、光泽、特殊效果
+4. **质感总结**（1句）：整体质感印象
+
+### 输出示例
+"一把古代青铜钥匙，长约15厘米，整体呈S形弯曲。钥匙头部为圆形环状结构，直径约3厘米，表面有细致的云纹浮雕。钥匙齿部有三组不同高度的齿形，边缘略微磨损呈圆钝状。通体呈青绿色铜锈色泽，局部有深褐色氧化斑点。表面有细微的划痕和磨损痕迹，显示出岁月的痕迹。整体质感厚重古朴，带有金属特有的冷凉触感。"
+
+---
+
+## 第三部分：自检清单
+
+**输出前逐项检查**
+- [ ] 是否包含任何人物描写？（有→删除）
+- [ ] 是否包含场景背景？（有→删除）
+- [ ] 材质是否明确具体？
+- [ ] 颜色是否精确？
+- [ ] 大小是否有概念？
+- [ ] 是否有情绪/感受词？（有→删除）
+- [ ] 元素是否符合时代？`,
+
   SYSTEM_VIDEO_DIRECTOR: "你是一名专业的影视导演，擅长为单个镜头创作详细的视频拍摄提示词。请始终以纯文本格式输出提示词，无任何解释、注释、多余文字。",
 
   SYSTEM_SCRIPT_IMPORTER: "你是一名专业的影视策划，严格执行原剧本和分镜脚本的设定。请始终以有效的 JSON 格式进行回复，无任何解释、注释、多余文字。",
@@ -723,115 +772,160 @@ export const PROMPT_TEMPLATES = {
 5. 片段数量适中，不宜过多或过少`,
 
   // ============ 剧本解析 ============
-  PARSE_SCRIPT: (text: string, lang: string,genre: string) => `
-现在，分析输入的故事或剧本，构思制作一部 ${genre} 类型的视频，并输出一个 JSON 对象，字段值以 ${lang} 语言呈现。
+  PARSE_SCRIPT: `分析输入的故事或剧本，构思制作一部 {genre} 类型的视频，并输出一个 JSON 对象，字段值以 {lang} 语言呈现。
+
+## 约束要求
+- 电影时长：{targetDuration}
+- 通用基底：{story}
+- 如果故事或剧本已设定情节顺序，则不要随意改变，按照设定分镜故事段落
+- 故事或剧本背景、简介，作为理解分析当前剧本的依据，不要直接作为当前故事段落内容
+- 角色姓名，场景地点，道具名要简洁直接，不要有修饰词、定语
+
+## 任务
+**始终已JSON格式返回**
+1. 提取title:标题、genre:类型、logline:故事梗概（以 {lang} 语言呈现）。
+2. 提取characters,角色信息数组，角色包含id:编号 name:姓名 gender:性别 age:年龄（数字） personality:特征，角色时代/地域风格,外貌特征,性格,身份,地位,职业。
+   **personality 特征总结方法：**
+   - 角色当前情绪状态（愤怒/压抑/讨好/撒谎/调情）
+   - 角色在这场戏的权力关系（谁占上风？谁在试探？）
+   - 角色所处时代/地域风格（如：唐代时期、明末、1990年代北京、1940年代上海、赛博朋克东京、中世纪欧洲）
+3. 提取scenes，场景信息象数组，场景包含（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬）、atmosphere:氛围/时代/地域风格）。
+  **tmosphere 总结方法：**
+   - 场景时代/地域风格（如：唐代时期、明末、1990年代北京、1940年代上海、赛博朋克东京、中世纪欧洲）
+4. 提取props,道具信息数组（id:编号、name:名称、shape:形态、material:材质、color:颜色、size:大小、structural:结构、effects:效果、description:描述）。
+5. 提取storyParagraphs，故事段落对象数组:故事段落（id:编号、sceneRefId:引用场景编号、text:内容、duration:时长）。
+
+## 剧本或故事：
+{text}
+
+## 输出要求
+请返回 JSON 格式：
+\`\`\`json
+{
+  "title": "标题",
+  "genre": "类型",
+  "logline": "故事梗概",
+  "characters": [
+    {
+      "id": 1,
+      "name": "角色1",
+      "gender": "男",
+      "age": 20,
+      "personality": "愤怒、压抑、讨好、撒谎、调情,1940年代上海、赛博朋克",
+    }
+  ],
+  "scenes": [
+    {
+      "id": 1,
+      "location": "地点",
+      "time": "时间",
+      "atmosphere": "氛围/时代/地域风格",
+    }
+  ],
+  "props": [
+    {
+      "id": 1,
+      "name": "道具1",
+      "shape": "形态",
+      "material": "材质",
+      "color": "颜色",
+      "size": "大小",
+      "structural": "结构",
+      "effects": "效果",
+      "description": "描述",
+    }
+  ],
+  "storyParagraphs": [
+    {
+      "id": 1,
+      "sceneRefId": 1,
+      "text": "故事段落",
+      "duration": 5,
+    }
+  ]
+}
+\`\`\`
+
+`,
+  IMPORT_SCRIPT: `读取输入的剧本大纲/分镜脚本，提取关键信息，并输出一个 JSON 对象。
+
+## 任务：
+分析大纲：提取title:标题、genre:类型
+分析具体剧集：
+提取 logline:故事梗概。
+提取 characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:包含外貌特征,性格,身份,地位,职业）。
+提取 scenes:场景信息（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬，远古，古代，近代，现代，未来..）、atmosphere:氛围）。
+提取 props:道具信息（id:编号、name:名称、shape:形态、material:材质、color:颜色、size:大小、structural:结构、effects:效果、description:描述）。
+提取 storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
+
+## 说明：
+1. 剧本标题，角色姓名：直接使用原文内容，不需要翻译，只取一种语言，优先 {lang}。
+2. 场景：只提取具体剧集中用到的场景
+
+## 剧本大纲/分镜脚本原文：
+{text}`,
+  // ============ 镜头清单生成 ============
+  GENERATE_SHOTS: `现在，为第{sceneIndex}场戏制作一份详尽的镜头清单（镜头调度设计）。
 
 ## 注意，结合你的专业知识，使用JSON格式输出镜头清单。
 
-## 任务：
-提取title:标题、genre:类型、logline:故事梗概（以 ${lang} 语言呈现）。
-提取characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:包含外貌特征,性格,身份,地位,职业）。
-提取scenes:场景信息（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬，远古，古代，近代，现代，未来..）、atmosphere:氛围）。
-storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
+## 文本输出语言: {lang}。
 
-## 任务约束
-- 如果故事或剧本已设定情节顺序，则不要随意改变，按照设定分镜故事段落
-- 故事或剧本背景、简介，作为理解分析当前剧本的依据，不要直接作为当前故事段落内容
+## 场景细节:
+地点: {location}
+时间: {time}
+氛围: {atmosphere}
 
-## 输入：
-${text}
-  `,
+## 故事大纲:
+{paragraphs}
 
-  IMPORT_SCRIPT: (text: string, lang: string) => `
-    读取输入的剧本大纲/分镜脚本，提取关键信息，并输出一个 JSON 对象。
+## 创作背景:
+题材类型: {genre}
 
-    ## 任务：
-    分析大纲：提取title:标题、genre:类型
-    分析具体剧集：
-    提取 logline:故事梗概。
-    提取 characters:角色信息（id:编号、name:姓名、gender:性别、age:年龄、personality:包含外貌特征,性格,身份,地位,职业）。
-    提取 scenes:场景信息（id:编号、location:地点、time:时间（大的时间概念：清晨，白天，正午，夜晚，凌晨，春，夏，秋，冬，远古，古代，近代，现代，未来..）、atmosphere:氛围）。
-    提取 storyParagraphs:故事段落（id:编号、sceneRefId:引用场景编号、text:内容）。
+## 通用基底：
+{story}
 
-    ## 说明：
-    1. 剧本标题，角色姓名：直接使用原文内容，不需要翻译，只取一种语言，优先 ${lang}。
-    2. 场景：只提取具体剧集中用到的场景
+## 角色 (格式: ID: 名字: 性格描述):
+{characters}
 
-    ## 剧本大纲/分镜脚本原文：
-    ${text}
-  `,
-  // ============ 镜头清单生成 ============
-  GENERATE_SHOTS: (
-    sceneindex: number,
-    location: string,
-    time: string,
-    atmosphere: string,
-    paragraphs: string,
-    genre: string,
-    duration: string,
-    characters: string,
-    lang: string,
-    imageCount: number
-  ) => `
-    现在，为第${sceneindex}场戏制作一份详尽的镜头清单（镜头调度设计）。
+## 道具:
+{properties}
 
-    ## 注意，结合你的专业知识，使用JSON格式输出镜头清单。
+## 说明：
+1. 设计一组覆盖全部情节动作的镜头序列,规划好分镜数和分镜时长，每场景镜头数量上限为 2-6 个，每个镜头时长duration为 2-{segmentDuration} 秒，duration总和<={totalParagraphsDuration}。
+2. 重要提示：避免出现 JSON 截断错误。
+3. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
+4. 景别：明确取景范围（如：大特写、中景、全景）。
+5. 镜头情节概述：详细描述该镜头内发生的情节（使用 {lang} 语言描述），遵循下面表述方式：主体+运动+环境（非必须）+运镜/切镜（非必须）+美学描述（非必须）+声音（非必须）。
+6. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
+7. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-10）。
+8. 对话：如果需要，为每个角色生成对话，包含角色名字、内容。
+9. 关键帧：现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧；如果imageCount是 2，则必须生成一个起始帧和一个结束帧；如果imageCount大于 2 则是一张完整连环画帧。
+10. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，起始帧，描述镜头的开始画面，结束帧，描述镜头结束画面，连环帧，描述镜头的连环画画面。描述遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
 
-    ## 文本输出语言: ${lang}。
+## 输出格式：JSON 数组，数组内对象包含以下字段：
+- id（字符串类型）
+- sceneId（字符串类型）
+- actionSummary（字符串类型）
+- dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
+- cameraMovement（字符串类型）
+- shotSize（字符串类型）
+- characters（字符串数组类型，**必须是角色ID**，从角色列表中获取ID）
+- keyframes（对象数组类型，每个对象定义不同的帧，对象包含如下属性： id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(镜头时长)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+- properties（字符串数组类型，**必须是道具ID**，从道具列表中获取ID）
 
-    ## 场景细节:
-    地点: ${location}
-    时间: ${time}
-    氛围: ${atmosphere}
+## 特别说明
 
-    ## 场景故事:
-    ${paragraphs}
-
-    ## 创作背景:
-    题材类型: ${genre}
-    剧本整体目标时长: ${duration}
-
-    ## 角色 (格式: ID: 名字: 性格描述):
-    ${characters}
-
-    ## 说明：
-    1. 设计一组覆盖全部情节动作的镜头序列。
-    2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-15 秒，避免出现 JSON 截断错误。
-    3. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
-    4. 景别：明确取景范围（如：大特写、中景、全景）。
-    5. 镜头情节概述：详细描述该镜头内发生的情节（使用 ${lang} 语言描述），遵循下面表述方式：主体+运动+环境（非必须）+运镜/切镜（非必须）+美学描述（非必须）+声音（非必须）。
-    6. 视觉提示语：用于图像生成的详细${lang}描述，字数控制在 200 词以内。
-    7. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-10）。
-    8. 对话：如果需要，为每个角色生成对话，包含角色名字、内容。
-    9. 关键帧：现在令 imageCount=${imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧；如果imageCount是 2，则必须生成一个起始帧和一个结束帧；如果imageCount大于 2 则是一张完整连环画帧。
-    10. 关键帧提示词：visualPrompt, 使用 ${lang} 语言描述，起始帧，描述镜头的开始画面，结束帧，描述镜头结束画面，连环帧，描述镜头的连环画画面。描述遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
-
-    ## 输出格式：JSON 数组，数组内对象包含以下字段：
-    - id（字符串类型）
-    - sceneId（字符串类型）
-    - actionSummary（字符串类型）
-    - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
-    - cameraMovement（字符串类型）
-    - shotSize（字符串类型）
-    - characters（字符串数组类型，**必须是角色ID**，参考上方角色列表中的ID）
-    - keyframes（对象数组类型，每个对象定义不同的帧，对象包含如下属性： id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 ${lang} 语言描述） 字段）
-    - interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
-  `,
-  // ============ 镜头清单生成 ============
-  IMPORT_SHOTS: (
-    scenes: string,
-    characters: string,
-    lang: string,
-    imageCount: number,
-    duration: string,
-    scriptText: string
-  ) => `担任专业摄影师，从分镜脚本原文中读取分镜头清单。
+`,
+  // ============ 镜头清单导入 ============
+  IMPORT_SHOTS: `担任专业摄影师，从分镜脚本原文中读取分镜头清单。
 
 ## 场景列表:
-${scenes}
+{scenes}
 
 ## 角色列表 (格式: ID: 名字: 性格描述):
-${characters}
+{characters}
 
 ## 说明：
 ### 提取内容
@@ -842,13 +936,13 @@ ${characters}
 5. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-15 秒，使整部剧的时长控制在 ${duration} 左右。
+1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-{segmentDuration} 秒，使整部剧的时长控制在 {duration} 左右。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
 5. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-10）。
-6. 关键帧：生成规则 现在令 imageCount=${imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧和一个结束帧；如果imageCount大于 1 则是一张完整连环画帧。
-7. 关键帧提示词：visualPrompt, 使用 ${lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
+6. 关键帧：生成规则 现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧和一个结束帧；如果imageCount大于 1 则是一张完整连环画帧。
+7. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
 
 ## 输出格式：JSON 数组，数组内对象包含以下字段，避免出现 JSON 截断错误：
 - id（字符串类型）
@@ -859,25 +953,24 @@ ${characters}
 - shotSize（字符串类型）
 - characters（字符串数组类型，角色id）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过{segmentDuration}s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
   
 ## 脚本原文：
-    ${scriptText}`,
+{scriptText}`,
 
-    IMPORT_SHOTS_FOR_SCENE: (
-    scenes: string,
-    characters: string,
-    lang: string,
-    imageCount: number,
-    scriptText: string,
-    duration: string
-  ) => `担任专业摄影师，从分镜脚本原文中读取特定场景的分镜头清单。
+  IMPORT_SHOTS_FOR_SCENE: `担任专业摄影师，从分镜脚本原文中读取特定场景的分镜头清单。
+
+## 故事大纲:
+{paragraphs}
 
 ## 提取场景:
-${scenes}
+{scenes}
 
 ## 角色列表 (格式: ID: 名字: 性格描述):
-${characters}
+{characters}
+
+## 道具列表 (格式: ID: 名字:):
+{props}
 
 ## 说明：
 ### 提取内容
@@ -887,13 +980,13 @@ ${characters}
 4. 对话：如果存在，为每个角色生成对话，包含角色名字、内容。
 
 ### 生成内容
-1. 镜头时长：按照镜头的内容合理设定有效时长，每个镜头时长为 1-15 秒，使整部剧的时长控制在 ${duration} 左右。
+1. 规划好分镜数和分镜时长，按照镜头的内容合理设定有效时长，每场景镜头数量上限为 2-6 个，每个镜头时长duration为 2-{segmentDuration} 秒，duration总和<={totalParagraphsDuration}。
 2. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 3. 景别：明确取景范围（如：大特写、中景、全景）。
 4. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
 5. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-10）。
-6. 关键帧：生成规则 现在令 imageCount=${imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧和一个结束帧；如果imageCount大于 1 则是一张完整连环画帧。
-7. 关键帧提示词：visualPrompt, 使用 ${lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
+6. 关键帧：生成规则 现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧和一个结束帧；如果imageCount大于 1 则是一张完整连环画帧。
+7. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
 
 ## 输出格式：JSON 数组，数组内对象包含以下字段，避免出现 JSON 截断错误：
 - id（字符串类型）
@@ -904,50 +997,46 @@ ${characters}
 - shotSize（字符串类型）
 - characters（字符串数组类型，角色id）
 - keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过15s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
-  
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(镜头时长)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
+
+
 ## 脚本原文：
-    ${scriptText}`,
+{scriptText}`,
 
   // ============ 剧本生成 ============
-  GENERATE_SCRIPT: (
-    prompt: string,
-    duration: string,
-    genre: string,
-    lang: string
-  ) => `
-    你是一名专业的编剧。请根据以下提示词创作一个完整的影视剧本。
+  GENERATE_SCRIPT: `你是一名专业的编剧。请根据以下提示词创作一个完整的影视剧本。
 
-    ## 创作要求：
-    1. 剧本时长：${duration}
-    2. 题材类型：${genre}
-    3. 输出语言：${lang}
-    4. 剧本结构清晰，包含剧本标题、场景标题、时间（大的时间，如：上午、下午、清晨、夜晚，或者某年某月，某个年代等）、地点、天气、角色、动作描述、对白
-    5. 情节紧凑，画面感强
-    6. 角色性格鲜明，对话自然
+## 创作要求：
+1. 剧本时长：{duration}
+2. 题材类型：{genre}
+3. 输出语言：{lang}
+4. 剧本结构清晰，包含剧本标题、场景标题、时间（大的时间，如：上午、下午、清晨、夜晚，或者某年某月，某个年代等）、地点、天气、角色、动作描述、对白
+5. 情节紧凑，画面感强
+6. 角色性格鲜明，对话自然
 
-    ## 用户提示词：
-    "${prompt}"
+## 用户提示词：
+"{prompt}"
 
-    请以Markdown格式输出剧本结构，不要使用 JSON 格式，直接输出可阅读的剧本文本。
-  `,
+## 通用基底：{story}
+
+请以Markdown格式输出剧本结构，不要使用 JSON 格式，直接输出可阅读的剧本文本。`,
 
   // ============ 视觉提示词生成 ============
-  GENERATE_SCENE_PROMPT: (genre: string,desc: string,visualStyle:string) => `
-为 ${genre} 类视频中的场景生成高还原度的场景设计，
-场景的描述信息如下: ${desc}
+  GENERATE_SCENE_PROMPT: `为 {genre} 类视频中的场景生成高还原度的场景设计，
+场景信息: {desc}
+通用基底：{story}
 
 ## 特别要求
-- 图像风格必须为：${visualStyle}。
+- 图像风格必须为：{visualStyle}。
 - 要描述场景的时间、地点、景色、光线、氛围等，不要出现角色。
-- 聚焦视觉细节（光线、空间关系，质感、外观）。  `,
+- 聚焦视觉细节（光线、空间关系，质感、外观）。`,
 
   // ============ 视觉提示词生成 ============
-  GENERATE_CHARACTER_PROMPT: (genre: string,desc: string,visualStyle:string) => `
-为 ${genre} 类视频中的角色生成高还原度的角色设计。画面风格为 ${visualStyle}
-角色的描述信息如下，包含姓名,年龄,性别,角色特征: ${desc}
+  GENERATE_CHARACTER_PROMPT: `为 {genre} 类视频中的角色生成高还原度的角色设计。画面风格为 {visualStyle}
+角色信息，包含姓名,年龄,性别,角色特征: {desc}
+通用基底：{story}
 
-按照你的专业知识，发挥想象，直接输出完整的角色描述
+使用你的专业知识，发挥想象，直接输出完整的角色描述
 
 ## 附加要求
 
@@ -955,110 +1044,106 @@ ${characters}
   - 不要有交互性交流式语句
   `,
   // ============ 视觉提示词生成 ============
-  GENERATE_VARIATION_PROMPT: (genre: string,desc: string,visualStyle:string,variation:string,variationDesc:string) => `
-为 ${genre} 类视频中的角色设计造型: ${variation} ，结合角色基本信息和造型描述，扩展完善新的造型描述。
-- 角色的基本信息: ${desc}
-- 当前的造型描述: ${variationDesc}
+  GENERATE_VARIATION_PROMPT: `为 {genre} 类视频中的角色设计造型: {variation} ，结合角色基本信息和造型描述，扩展完善新的造型描述。
+- 角色基本信息: {desc}
+- 当前造型描述: {variationDesc}
 
-核心主题: 在原有基本形象的基础上，为角色设计造型: ${variation} ，着重描述新造型的变化，特征。
-- 图像风格必须为：${visualStyle}
+核心主题: 在原有基本形象的基础上，为角色设计造型: {variation} ，着重描述新造型的变化，特征。
+- 图像风格必须为：{visualStyle}
 - 人物五官特征要与基本形象一致，或具有延续性
 - 为新造型设计新的服装，饰品，动作，表情等
 - 重点描述新造型的变化和特征，角色的基本信息不要过多描述
 - 要体现出年龄、性别、性格、外貌、动作、衣着、神态等，不要出现场景。
 - 聚焦视觉细节（光线、材质、质感、外观）。`,
 
+  // ============ 道具视觉提示词生成 ============
+  GENERATE_PROP_PROMPT: `为 {genre} 类视频中的道具生成高还原度的道具设计。
+道具信息: {desc}
+通用基底：{story}
+
+## 特别要求
+- 图像风格必须为：{visualStyle}。
+- 只描述道具本身，不要出现人物和场景背景。
+- 聚焦视觉细节（形状、材质、质感、颜色、大小、结构）。
+- 描述道具的外观特征、材质纹理、特殊效果（如发光、透明等）。`,
+
 
   // ============ 图片拼接 ============
-  JOIN_IMAGES: (imageCount: number, imageSize: string) => `
-    请将这些图片拼成一张${imageCount}宫格图片，图片之间留有1个像素的间隔，最终图片大小为${imageSize}。
-  `,
+  JOIN_IMAGES: `请将这些图片拼成一张{imageCount}宫格图片，图片之间留有1个像素的间隔，最终图片大小为{imageSize}。`,
 
   // ============ 带参考图的图片生成 ============
-  IMAGE_GENERATION_WITH_REFERENCE: (prompt: string,visualStyle: string="真人写实") => `
-    生成符合下面描述的影视级图画，画面风格必须为：${visualStyle}。
+  IMAGE_GENERATION_WITH_REFERENCE: `生成符合下面描述的影视级图画，画面风格必须为：{visualStyle}。
 图像描述：
-  ${prompt}
+{prompt}
 
 如果有参考图像：
 - 所提供的第一张图片为场景 / 环境参考图。
-- 后续所有图片均为角色参考图（例如：基础形象，或特定服饰造型、形态）。
+- 紧接着的图片为角色参考图（例如：基础形象，或特定服饰造型、形态）。
+- 最后的图片为道具参考图（例如：道具外观、材质、特定形态）。
 
 要求：
-- 画面风格必须为：${visualStyle}，媲美影视作品的画面截图。
+- 画面风格必须为：{visualStyle}，媲美影视作品的画面截图。
 - 严格保持与场景参考图一致的视觉风格、光影效果和环境氛围。
 - 若画面中出现角色，必须与所提供的角色参考图高度相似。
-  `,
+- 若画面中出现道具，必须与所提供的道具参考图高度相似。`,
 
   // ============ 角色造型变体生成 ============
-  GENERATE_CHARACTER_VARIATION: (
-    character: string,
-    visualStyle: string,
-    variationPrompt: string,
-    baseCharacterPrompt: string
-  ) => `
-核心主题: 根据给定的参考图生成角色**${character}**的新造型图
-要求制作 **${visualStyle}** 风格的角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集。
+  GENERATE_CHARACTER_VARIATION: `核心主题: 根据给定的参考图生成角色**{character}**的新造型图
+要求制作 **{visualStyle}** 风格的角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集。
 
-【造型描述】
- ${variationPrompt}
+[造型描述]
+{variationPrompt}
 
-【角色基础形象】
- - 有参考图，必须保持面部特征与参考图一致。
- - 没有参考图，角色按如下描述设定：${baseCharacterPrompt}
+[角色基础形象]
+- 有参考图，必须保持面部特征与参考图一致。
+- 没有参考图，角色按如下描述设定：{baseCharacterPrompt}
 
-【画面布局与构图】
+[画面布局与构图]
 整体为角色设定表版式，分模块排版：
-- 左侧: 完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
-- 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
-- 中下：角色正面半身图（面部，头部，发型，饰品细节）
-- 右上: 三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
-- 右下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
+- 左1/4上: 角色正面半身图（面部，头部，发型，饰品细节）
+- 左1/4下: 服装拆分 + 饰品拆分
+- 右3/4上: 三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
 所有模块均为白底，黑色细框分隔
-【光影与渲染】
+[光影与渲染]
 冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
 写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
-无环境干扰，纯展示向，符合 ${visualStyle} 风格设定，适合作为游戏 / 动画角色原画 / 影视角色定妆照
-【负面提示词】
-模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰
-  `,
+无环境干扰，纯展示向，符合 {visualStyle} 风格设定，适合作为游戏 / 动画角色原画 / 影视角色定妆照
+[负面提示词]
+文字标注、模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
 
   // ============ 关键帧提示词生成 ============
-  GENERATE_KEYFRAME_PROMPT: (imageGridSpec: string, imageCount: number, imageRate: string) => `
-  连环画规格：${imageGridSpec} 连环画图，包含 ${imageCount} 张连续且风格统一的图片，每张长宽比 ${imageRate}，白色背景，铺满整张图。
-  `,
+  GENERATE_KEYFRAME_PROMPT: `连环画规格：{imageGridSpec} 连环画图，包含 {imageCount} 张连续且风格统一的图片，每张长宽比 {imageRate}，白色背景，铺满整张图。`,
 
   // ============ 角色图片提示词生成 ============
-  GENERATE_CHARACTER_IMAGE: (visualStyle: string, prompt: string,name: string) => `生成符合下面要求的角色图片，图片风格必须为：${visualStyle}。
-角色名：${name}
+  GENERATE_CHARACTER_IMAGE: `生成符合下面要求的角色图片，图片风格必须为：{visualStyle}。
+角色名：{name}
 角色描述：
-${prompt}
+{prompt}
 
-核心主题: ${visualStyle} 风格角色完整设定图，包含三视图、服装拆分、饰品拆分、全身立绘与表情集，专业游戏 / 影视角色设计规范
-【画面布局与构图】
+核心主题: {visualStyle} 风格的角色完整设定图，包含 正面半身图、三视图、服装拆分、饰品拆分，适用专业游戏 / 影视角色设计规范
+[画面布局与构图]
 整体为角色设定表版式，分模块排版：
-- 左侧: 完整全身立绘（动态站姿，衣袂飘飘，背景纯白）
-- 中上：服装拆分（4 件单品独立展示）+ 饰品拆分（4件饰品带编号标注）
-- 中下：角色正面半身图（面部，头部，发型，饰品细节）
-- 右上: 三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
-- 右下：表情集（4 个面部特写：开心 / 惊讶 / 生气 / 害羞，统一发型与饰品）
+- 左1/4上: 角色正面半身图（面部，头部，发型，饰品细节）
+- 左1/4下: 服装拆分 + 饰品拆分
+- 右3/4上: 三视图（正面 / 侧面 / 背面，纯白背景，站姿标准）
 所有模块均为白底，黑色细框分隔
-【光影与渲染】
+[光影与渲染]
 冷白柔和打光，突出布料纹理、金属光泽与刺绣细节
 写实 PBR 渲染，皮肤通透，布料垂感自然，金属饰品有高光反射
-无环境干扰，纯展示向，符合 ${visualStyle} 风格设定，适合作为游戏 / 动画角色原画 / 影视角色定妆照
-【负面提示词】
-模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
+无环境干扰，纯展示向，符合 {visualStyle} 风格设定，适合作为游戏 / 动画角色原画 / 影视角色定妆照
+[通用基底]
+{story}
+[负面提示词]
+文字标注、模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、卡通比例、畸形肢体、色彩杂乱、背景杂乱、多余装饰`,
 
   // ============ 场景图片提示词生成 ============
-  GENERATE_SCENE_IMAGE: (visualStyle: string, prompt: string,location: string,time: string,atmosphere: string) => `
-生成符合下面要求的场景图片
+  GENERATE_SCENE_IMAGE: `生成符合下面要求的场景图片
 
-- 场景名称：${location}
-- 场景时间：${time}
-- 场景氛围：${atmosphere}
-- 画风风格：${visualStyle}
-- 场景详细描述：${prompt}
+- 场景名称：{location}
+- 场景时间：{time}
+- 场景氛围：{atmosphere}
+- 画风风格：{visualStyle}
+- 场景详细描述：{prompt}
 ---
 [核心要求]
 根据用户提供的场景描述绘制场景/环境。重要：场景必须完全空旷，不得出现任何人物、角色、人形轮廓或剪影。
@@ -1070,115 +1155,143 @@ ${prompt}
 - 不得添加任何UI元素、注释覆盖层或额外标签
 - 保持所有插图视图简洁。让视觉效果自己说话
 请严格按照系统规范生成标准场景图。
+[通用基底]
+{story}
 [负面提示词]
-模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、畸形比例
-  `,
+模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、畸形比例`,
+
+  // ============ 道具图片提示词生成 ============
+  GENERATE_PROP_IMAGE: `生成符合下面要求的道具图片
+
+- 道具名称：{name}
+- 画风风格：{visualStyle}
+- 道具详细描述：{prompt}
+---
+[核心要求]
+根据用户提供的道具描述绘制道具产品图。重要：只展示道具本身，不得出现任何人物、手部、场景背景或环境元素。
+[艺术风格]
+严格按照用户提供的画风风格进行渲染。输出必须清晰体现该艺术风格，不得输出普通照片或未经处理的写实图像。
+[质量与约束]
+- 高分辨率，细节清晰，纯白色背景
+- 展示道具的完整外观、材质纹理、结构细节
+- 图像中不得有其他文字、标签、标题、水印或签名
+- 不得添加任何UI元素、注释覆盖层或额外标签
+请严格按照系统规范生成标准道具展示图。
+[通用基底]
+{story}
+[负面提示词]
+人物、手部、场景背景、模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿`,
+
+  // ============ 道具形态变体生成 ============
+  GENERATE_PROP_VARIATION: `核心主题: 根据给定的参考图生成道具**{prop}**的新形态图
+要求制作 **{visualStyle}** 风格的道具完整展示图，包含多角度视图、细节特写、材质展示。
+
+[形态描述]
+{variationPrompt}
+
+[道具基础形象]
+- 有参考图，必须保持外观特征与参考图一致。
+- 没有参考图，道具按如下描述设定：{basePropPrompt}
+
+[画面布局与构图]
+整体为道具展示版式，分模块排版：
+- 左1/3: 道具正面图（完整外观，轮廓，主要特征）
+- 右2/3上: 多角度视图（正面 / 侧面 / 背面 / 细节特写）
+- 右2/3下: 材质细节 + 结构拆分
+所有模块均为白底，黑色细框分隔
+[光影与渲染]
+冷白柔和打光，突出材质纹理、表面光泽与结构细节
+写实 PBR 渲染，材质真实，细节清晰，光影自然
+无环境干扰，纯展示向，符合 {visualStyle} 风格设定，适合作为游戏 / 动画道具原画 / 影视道具设计图
+[负面提示词]
+文字标注、模糊、低分辨率、噪点、水印、文字冗余、2D 平面插画、动漫线稿、3D 建模感过强、畸形比例、色彩杂乱、背景杂乱、多余装饰`,
 
   // ============ 视频拍摄提示词生成 ============
-  GENERATE_VIDEO_PROMPT: (
-    shotSummary: string,
-    cameraMovement: string,
-    shotSize: string,
-    duration: number,
-    visualStyle: string,
-    characters: string,
-    startFrameVisualPrompt: string,
-    endFrameVisualPrompt: string,
-    dialogues: string
-  ) => `
-    为单个镜头创作详细的视频拍摄提示词。
+  GENERATE_VIDEO_PROMPT: `为单个镜头创作详细的视频拍摄提示词。
 
-    镜头信息：
-    - 镜头情节概述：${shotSummary}
-    - 镜头运动：${cameraMovement}
-    - 景别：${shotSize}
-    - 视频时长：${duration}
-    - 画面风格：${visualStyle}
-    - 出场角色：${characters}
-    - 对白：
-         ${dialogues}
-    - 起始帧视觉描述：${startFrameVisualPrompt}
-    - 结束帧视觉描述：${endFrameVisualPrompt}
+镜头信息：
+- 镜头情节概述：{shotSummary}
+- 镜头运动：{cameraMovement}
+- 景别：{shotSize}
+- 视频时长：{duration}
+- 画面风格：{visualStyle}
+- 出场角色：{characters}
+- 对白：
+     {dialogues}
+- 起始帧视觉描述：{startFrameVisualPrompt}
+- 结束帧视觉描述：{endFrameVisualPrompt}
 
-    要求：
-    1. 提示词应详细描述视频中需要呈现的视觉效果
-    2. 包含主体运动方式、运镜方式、光影变化、氛围营造等元素
-    3. 描述要符合镜头运动和景别要求
-    4. 可以按秒级时长分别描述画面的变化
-    5. 提示词长度控制在200-300字以内
-    6. 输出纯文本提示词，无任何解释或注释
+要求：
+1. 提示词应详细描述视频中需要呈现的视觉效果
+2. 包含主体运动方式、运镜方式、光影变化、氛围营造等元素
+3. 描述要符合镜头运动和景别要求
+4. 可以按秒级时长分别描述画面的变化
+5. 提示词长度控制在200-300字以内
+6. 输出纯文本提示词，无任何解释或注释
+7. 最后保留："通用基底：{story}"
 
-    请输出视频拍摄提示词：
-  `,
+请输出视频拍摄提示词：`,
 
   // ============ 转场视频提示词生成 ============
-  GENERATE_TRANSITION_VIDEO: (
-    currentShotSummary: string,
-    nextShotSummary: string,
-    currentShotSize: string,
-    nextShotSize: string,
-    visualStyle: string,
-    endFrameVisualPrompt: string,
-    startFrameVisualPrompt: string
-  ) => `
-    视频风格：${visualStyle}；故事从 ${currentShotSummary} 过渡到 ${nextShotSummary}。景别变化：从 ${currentShotSize} 到 ${nextShotSize}；制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
-    镜头开始：${endFrameVisualPrompt}；
-    镜头结束：${startFrameVisualPrompt}；
-    按照上面描述生成 ${visualStyle} 风格的转场视频！
-  `,
+  GENERATE_TRANSITION_VIDEO: `视频风格：{visualStyle}；故事从 {currentShotSummary} 过渡到 {nextShotSummary}。景别变化：从 {currentShotSize} 到 {nextShotSize}；制作转场视频：保持画面风格一致。转场时长 5 秒，运动强度适中。
+镜头开始：{endFrameVisualPrompt}；
+镜头结束：{startFrameVisualPrompt}；
+按照上面描述生成 {visualStyle} 风格的转场视频！`,
 
   // ============ AI 智能拆分片段提示词 ============
-    SYSTEM_SEGMENT_SPLIT: `# 核心身份
+  SYSTEM_SEGMENT_SPLIT: `# 核心身份
 你是专业AI短视频分镜格式化智能体，只做一件事：
 将用户输入的任意剧本结合给定的角色，场景，自动转换成可直接用于AI视频生成的标准分镜格式。
 不闲聊、不解释、不原创、不改剧情，只做格式转换。
 ## 硬性输出规则（必须严格遵守）
-1. 按照单集时长分成多个片段,片段总时长必须比单集时长多一个片段，每个片段不超过 15 秒。
+1. 按照单集时长分成多个片段,片段总时长必须比单集时长多一个片段，总时长不超过 {segmentDuration} 秒。
 2. 在每个片段中完成独立的故事，内容完整，结构统一。
-3. 所有画面、人物、动作描述的文字需适配即梦seedance2.0模型，严禁出现任何敏感词、违禁词或可能触发审核的内容。
+3. 所有画面、人物、动作描述的文字严禁出现任何敏感词、违禁词或可能触发审核的内容。
 4. 输出的文字内容将直接用于视频生成，必须确保安全合规。
 
-## 提取片段的下列信息
+## 按下面格式输出片段信息
 片段名称
-时长：15秒
+时长：{segmentDuration}秒
 运动强度：（文戏3-5 / 正常5-7 / 冲突7-10）  
 情绪曲线：（贴合剧情，2-3种情绪递进）  
-台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完。
-（时间分段灵活分配，不强制固定段落，总时长15秒）
-片段分时描述：
-0-3秒：画面动作  
-3-7秒：画面动作  
-7-10秒：画面动作  
-11-15秒：画面动作  
+台词与节奏：语速由慢转快，拜堂词急促，最后一句拖长。
+0-3秒：画面描述
+3-7秒：画面描述
+7-10秒：画面描述
+
 负面提示词：静止画面，慢镜头，空镜，人物背面，面部扭曲，肢体不协调，手部变形，有字幕
 
 # 详细执行规则
-1. 自动识别：人物、场景、关键物品、情绪、动作节奏。
-2. 时间轴分段灵活：按剧情节奏自然划分，不强制固定片段数。
+1. 自动识别：人物、场景、道具、关键物品、情绪、动作节奏。
+2. 时间轴分段灵活：按剧情节奏自然划分，不强制固定片段数，时长不超过{segmentDuration}秒。
+3. 时间轴描述是一个镜头画面的连续描述，包含人物的表情动作对话，台词用「」包围以及环境布置，角色位置等。
 3. 运动强度、情绪曲线自动合理生成。
 4. 不改变用户剧本原意，不添加额外内容。
-5. 输出干净整洁，可直接复制生成。
-6. 负面提示词固定不变，每个片段必须带。
-7. 输出前需要检查每一集第一个片段与上一集最后一个片段在剧情上，是否有重复，是否连贯，如果有问题，修改后在输出。
-8. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。`,
-  AI_SPLIT_SEGMENTS: (shotsJson: string, charactersMap: string, scenesMap: string, visualStyle: string, genre: string) => `
-## 任务
+5. 台词数量与语速需适配{segmentDuration}秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完。
+6. 输出干净整洁，可直接复制生成。
+7. 负面提示词固定不变，每个片段必须带。
+8. 输出前需要检查每一集第一个片段与上一集最后一个片段在剧情上，是否有重复，是否连贯，如果有问题，修改后在输出。
+9. 所有描述文字不得出现敏感词、暴力、血腥、政治、色情等内容。`,
+  AI_SPLIT_SEGMENTS: `## 任务
 请根据以下分镜数据，智能拆分成多个视频片段。
 
 ## 分镜数据（JSON格式）
 \`\`\`json
-${shotsJson}
+{shotsJson}
 \`\`\`
 
 ## 角色信息（id: 名称）
-${charactersMap}
+{charactersMap}
 
 ## 场景信息（id: 位置）
-${scenesMap}
+{scenesMap}
+
+## 道具信息（id: 名称）
+{propsMap}
 
 ## 项目风格
-- 视觉风格：${visualStyle}
-- 题材类型：${genre}
+- 视觉风格：{visualStyle}
+- 题材类型：{genre}
 
 ## 输出要求
 请返回 JSON 格式的拆分方案：
@@ -1192,6 +1305,7 @@ ${scenesMap}
       "dialogueRhythm": "台词与节奏描述"
       "shotIds": ["分镜id数组，按顺序排列"],
       "sceneIds": ["场景id数组，按顺序排列"],
+      "propIds": ["道具id数组，按顺序排列"],
       "characterIds": ["角色id数组，按顺序排列"],
       "estimatedDuration": 预估时长（秒），纯数字
     }
@@ -1202,33 +1316,27 @@ ${scenesMap}
 `,
 
   // ============ 从剧本直接生成片段提示词 ============
-  GENERATE_SEGMENTS_FROM_SCRIPT: (
-    rawScript: string,
-    characters: string,
-    scenes: string,
-    visualStyle: string,
-    genre: string,
-    language: string,
-    targetDuration: string
-  ) => `
-## 具体任务
+  GENERATE_SEGMENTS_FROM_SCRIPT: `## 具体任务
 按照你的能力设定，先拆分剧本，设计拍摄片段，然后提取关键信息，按下面要求输出具体内容。
 
 # 输入
 ## 剧本原文
-${rawScript}
+{rawScript}
 
 ## 角色信息（id: 名称）
-${characters}
+{characters}
 
 ## 场景信息（id: 位置）
-${scenes}
+{scenes}
+
+## 道具信息（id: 名称）
+{propsMap}
 
 ## 项目配置
-- 视觉风格：${visualStyle}
-- 题材类型：${genre}
-- 输出语言：${language}
-- 单集时长：${targetDuration}
+- 视觉风格：{visualStyle}
+- 题材类型：{genre}
+- 输出语言：{language}
+- 单集时长：{targetDuration}
 
 ## 输出要求
 请输出 JSON 格式的片段数组，个如下：
@@ -1239,6 +1347,7 @@ ${scenes}
       "name": "片段名称（简洁概括，如：相遇、告别、冲突）",
       "sceneIds": ["片段出现的场景id数组"],
       "characterIds": ["片段出现的角色id数组"],
+      "propIds": ["道具id数组，按顺序排列"],
       "description": "片段的分时描述，保留剧本中的对话",
       "estimatedDuration": 预估时长（秒），纯数字,
       "motionIntensity": "运动强度",
@@ -1252,69 +1361,115 @@ ${scenes}
 ## 特别说明
 - 片段的分时描述，按照设计拍摄片段的原始内容输出，不要出现角色id，场景id
 `,
-  SYSTEM_SEGMENT_DESIGNER: `你是一个专业的影视导演，现在需要将多个分镜的拍摄方式告诉豆包摄影师，生成摄影能理解的分镜描述 。内容连贯，包含场景，角色，运镜，对话，动作描述。`,
+  SYSTEM_SEGMENT_DESIGNER: `你是一个专业的好莱坞影视导演，擅长各种拍摄手法和叙事技巧。现在需要将多个分镜的拍摄方式告诉豆包摄影师，生成演员和摄影能理解的分镜描述。内容连贯，包含场景，角色，动作，对话，机位，角度，运镜，景别的描述。
+
+使用下面的规则表，参考案例，为了达到具体 **表现效果**，使用**中英文提示词**，**速度参数**，**距离参数**的组合方式，分别从 机位、角度、镜头运动、景别阐述拍摄方式。
+
+### 样例
+**机位**: 过肩位 / Over-the-Shoulder (OTS),相机固定,后肩距镜头1-2米 进行拍摄......
+**镜头运动**: 摇镜头 / Pan Shot,相机中速:2-4秒,水平旋转:30-180度 进行拍摄.......
+
+| 运镜分类 | 中英文提示词 | 表现效果 | 速度参数 | 距离参数 | 使用案例 |
+|----------|--------------|----------|----------|----------|----------|
+| 机位 |  |  |  |  |  |
+|  | 主位机位 / Master Position | 建立场景空间关系的基础机位，常用于全景交代 | 固定 | 无 | 场景开场建立镜头，交代房间布局、人物位置关系<br>动作戏中用于展现整体战斗场景的空间感 |
+|  | 过肩位 / Over-the-Shoulder (OTS) | 双人对话核心机位，通过前景人物后肩营造深度感 | 固定 | 后肩距镜头1-2米 | 两人对峙对话时，通过前景人物后肩暗示权力关系<br>悬疑片中，通过过肩位营造"有人在背后"的紧张感 |
+|  | 正位 / Frontal Position | 直接面向主体，强调权威感或对抗性 | 固定 | 主体距镜头3-5米 | 法庭戏中律师与法官的正面交锋<br>英雄片主角直视镜头，打破第四面墙与观众对话 |
+|  | 侧面位 / Side Profile / 3/4 Position | 展现人物轮廓与侧面特征，常用于情感表达 | 固定 | 主体距镜头2-4米 | 人物内心独白时，侧面展现面部微表情<br>浪漫片中，男女主角并肩看夕阳的侧位构图 |
+|  | 高位 / High Position / Elevated | 俯视视角，弱化主体，强化环境压迫感 | 固定 | 相机高度3-6米 | 反派从高处俯视弱小的主角，体现权力悬殊<br>战争片中，从高机位展现战场的残酷与渺小 |
+|  | 低位 / Low Position / Ground Level | 仰视视角，强化主体力量感或英雄主义色彩 | 固定 | 相机高度0.3-0.5米 | 超级英雄落地时，低位仰拍强化威严感<br>恐怖片中，从地面仰拍怪物，制造压迫感 |
+|  | 荷兰角 / Dutch Angle / Canted Angle | 倾斜构图，营造不安、混乱或心理扭曲感 | 固定 | 倾斜角度15-45度 | 精神病患者视角，世界是扭曲的<br>灾难片开场，暗示即将到来的混乱 |
+| 角度 |  |  |  |  |  |
+|  | 平视角度 / Eye Level | 与主体视线平行，最具自然亲和力的视角 | 固定 | 相机高度1.6-1.8米 | 日常对话场景，建立平等感<br>纪录片中采访普通人物，营造真实感 |
+|  | 俯拍角度 / High Angle / Bird's Eye View | 俯视主体，制造渺小感、孤立感或全景掌控感 | 固定 | 相机高度2-10米 | 孤独者站在城市天台上，俯拍体现渺小感<br>犯罪片从高空俯视整个犯罪现场，展现调查者掌控全局 |
+|  | 仰拍角度 / Low Angle / Worm's Eye View | 仰视主体，强化威严、力量或英雄气概 | 固定 | 相机高度0.5-1米 | 国王登基大典，仰拍强化权威<br>体育片中运动员起跳瞬间，仰拍展现力量感 |
+|  | 上帝视角 / God's Eye View / Top-Down | 垂直俯视，完全脱离人类视角的宏观叙事 | 固定 | 相机高度10-100米 | 史诗片开场，从太空俯视地球<br>战略片中，展现军队阵型的宏观布局 |
+|  | 主观视角 / POV (Point of View) | 模拟角色视线，增强代入感与沉浸式体验 | 跟随主体 | 眼睛高度 | 恐怖片中受害者逃跑时的主观视角<br>动作片中第一人称射击视角 |
+|  | 肩部视角 / Over-the-Shoulder (OTS) | 对话场景核心视角，通过后肩营造空间深度 | 固定 | 后肩距镜头1-2米 | 商务谈判中，通过前景人物后肩暗示被动方<br>谍战片中，特工在背后监视目标的主观视角 |
+| 镜头运动 |  |  |  |  |  |
+|  | 推镜头 / Dolly In / Zoom In | 镜头向主体靠近，强化情感张力或揭示关键细节 | 慢速：3-5秒<br>中速：2-3秒<br>快速：1-2秒 | 起始距离：5-10米<br>结束距离：1-3米 | 悬疑片中，逐渐推进到凶手手中的凶器<br>情感片中，推进到主角眼角的泪水 |
+|  | 拉镜头 / Dolly Out / Zoom Out | 镜头远离主体，扩大视野，强调环境或结束场景 | 慢速：4-6秒<br>中速：2-4秒<br>快速：1-3秒 | 起始距离：1-3米<br>结束距离：5-15米 | 悲剧结局，从主角拉远到空荡的房间，强调孤独<br>喜剧片中，拉远揭示主角尴尬处境的荒诞环境 |
+|  | 跟镜头 / Tracking Shot / Following Shot | 镜头随主体移动，保持同步，增强动态沉浸感 | 与主体速度同步 | 保持2-5米距离 | 动作片中，跟拍主角在走廊奔跑<br>舞蹈片中，跟拍舞者旋转的动作 |
+|  | 摇镜头 / Pan Shot | 水平或垂直转动镜头，跟随主体或扫描场景 | 慢速：4-8秒<br>中速：2-4秒<br>快速：0.5-2秒 | 水平旋转：30-180度<br>垂直旋转：15-60度 | 体育比赛中，摇镜头跟随球员移动<br>悬疑片中，慢速摇镜头扫描房间寻找线索 |
+|  | 甩镜头 / Whip Pan / Swish Pan | 快速摇摄，营造时间压缩、节奏转换或眩晕感 | 极快：0.1-0.3秒 | 水平旋转：30-90度 | 动作片中，快速甩镜头切换战斗视角<br>科幻片中，时间穿越时的甩镜头转场 |
+|  | 弧形运动 / Arc Shot / Orbit Shot | 镜头围绕主体做弧形或圆形运动，突出主体立体感 | 慢速：6-10秒<br>中速：3-6秒 | 轨道半径：2-5米<br>旋转角度：90-360度 | 主角意识到真相时，镜头围绕他旋转强调内心震撼<br>浪漫片中，围绕情侣展现他们的亲密关系 |
+|  | 斯坦尼康 / Steadicam Shot | 稳定跟拍，手持感但无抖动，流畅展现长镜头美学 | 与主体速度同步 | 保持2-4米距离 | 电影《人类之子》中的长镜头战争场景<br>恐怖片中，斯坦尼康跟随主角探索黑暗走廊 |
+|  | 手持摄影 / Handheld Shot | 轻微抖动，营造临场感、纪录片风格或紧张氛围 | 随意，模拟手持 | 保持1-3米距离 | 灾难片中，手持摄影营造混乱与真实感<br>悬疑片中，手持镜头暗示观察者视角 |
+|  | 升降镜头 / Crane Shot / Boom Shot | 垂直升降运动，从宏观到微观或反之的叙事转换 | 慢速：5-10秒<br>中速：3-5秒<br>快速：1-3秒 | 起始高度：0.5-2米<br>结束高度：5-20米 | 史诗片中，从战场全景升到高空展现战争规模<br>爱情片中，从情侣特写升到星空展现浪漫氛围 |
+|  | 滑动变焦 / Dolly Zoom / Vertigo Shot | 推拉与变焦反向操作，制造空间扭曲的视觉冲击 | 慢速：4-8秒 | 推/拉距离：3-8米<br>同时变焦 | 电影《迷魂记》中的经典眩晕镜头<br>科幻片中，主角意识到世界是虚拟时的扭曲感 |
+| 景别 |  |  |  |  |  |
+|  | 远景 / Extreme Long Shot (ELS) | 极广视野，强调环境宏大感，主体极小或不可见 | 固定 | 相机距主体50-500米 | 西部片中，广袤荒野中的骑马人<br>灾难片中，从高空俯视整个城市毁灭 |
+|  | 全景 / Long Shot (LS) / Wide Shot | 展现主体全身与周围环境，建立空间关系 | 固定 | 相机距主体5-15米 | 动作片中，展现武术动作的完整身法<br>时尚片中，模特全身穿搭展示 |
+|  | 中远景 / Medium Long Shot (MLS) | 膝盖以上构图，平衡主体与环境信息 | 固定 | 相机距主体3-8米 | 电视剧中，多人对话场景<br>体育片中，运动员起跑前的准备动作 |
+|  | 中景 / Medium Shot (MS) | 腰部以上构图，对话与动作的标准景别 | 固定 | 相机距主体2-5米 | 情景喜剧中，角色之间的对话互动<br>新闻采访中，主持人与嘉宾的标准构图 |
+|  | 近景 / Medium Close-Up (MCU) | 胸部以上构图，突出面部表情与情感交流 | 固定 | 相机距主体1.5-3米 | 情感片中，人物哭泣时的面部特写<br>惊悚片中，受害者恐惧的面部表情 |
+|  | 特写 / Close-Up (CU) | 头部或特定细节，强化情绪、物体重要性 | 固定 | 相机距主体0.5-1.5米 | 悬疑片中，凶手手中凶器的特写<br>浪漫片中，情侣对视时眼神的特写 |
+|  | 大特写 / Extreme Close-Up (ECU) | 眼睛、嘴唇或极小细节，制造强烈视觉冲击或隐喻 | 固定 | 相机距主体0.1-0.5米 | 惊悚片中，瞳孔放大的大特写暗示恐惧<br>科幻片中，机器人的电子眼睛特写 |
+|  | 双人镜头 / Two-Shot | 同时展现两名角色，强调关系、对话或冲突 | 固定 | 相机距主体3-6米 | 爱情片中，情侣初次见面的双人镜头<br>律政剧中，律师与法官的对抗性双人镜头 |
+|  | 过肩镜头 / Over-the-Shoulder Shot (OTS) | 基于对话场景的经典构图，通过前景后肩营造深度 | 固定 | 后肩距镜头1-2米<br>主体距镜头3-5米 | 商务谈判中，通过前景人物后肩暗示被动方<br>悬疑片中，侦探与嫌疑人对话的过肩镜头 |
+|  | 建立镜头 / Establishing Shot | 场景开场镜头，交代地点、时间与空间关系 | 固定 | 相机距主体10-100米 | 城市夜景的全景，确立故事发生在纽约<br>宫殿外景，确立故事发生在古代皇宫 |`,
   SYSTEM_SEGMENT_TRANSLATE: `你是一个专业的影视导演，擅长处理镜头片段间的过渡，入场出场，生成摄影能理解的分镜描述 。`,
-  GENERATE_SEGMENT_PROMPT: (scriptText,storyParagraphs,shotDescriptions: string, visualstyle: string, genres:string,segmentName: string,segmentIndex: number) => `任务设定：
-根据提供的剧本原文和故事段落，设计一个不超过 15s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
-根据片段名和序号，确定片段是剧本和故事中的那场戏。
+  GENERATE_SEGMENT_PROMPT: `任务设定：
+根据提供的故事上下文和片段描述内容，设计一个不超过 {segmentDuration}s 的视频片段，用高超的电影手法分析拍摄方案，运动强度，情绪曲线，台词与节奏。
+将已有的片段描述以更专业的方式加以完善。
 以时间轴的方式叙事故事的发展，保留剧本里的场景，角色，台词。如果有分镜表，可参考分镜表。
 时间轴的描述必须使用自然语言，以连贯讲故事的方式描述这个时段内：场景的氛围，角色的神态、动作、对话，镜头运动等
-
+## 视频比例
+{videoRatio}
 ## 片段名：
-${segmentName}
-
+{segmentName}
 ## 片段序号：
-${segmentIndex}
-
-## 剧本原文：
-${scriptText}
-
-## 片段故事：
-${storyParagraphs}
-
+{segmentIndex}
+## 片段描述：
+{storyParagraphs}
+## 故事上下文：
+{scriptText}
 ## 分镜表：
-${shotDescriptions}
-
+{shotDescriptions}
 ## 片段名：
-${segmentName}
+{segmentName}
 
 ## 要求：
-1. 说明总体画面风格和类型，可加以补充。基本风格和类型：${visualstyle}, ${genres}
-2. 运动强度：（文戏3-5 / 正常5-7 / 冲突7-10）
-3. 说明故事情节曲线，情绪曲线：（贴合剧情，2-3种情绪递进）
-4  设计高超的构图，不同分镜的构图可以保持一致，也可进行变化，可选构图类型：中心构图，对称构图，三分线构图，框构框架，引导线构图，三角线构图，黄金螺旋构图，水平构图，对角构图。
-5. 自动识别：人物、场景、关键物品、情绪、动作节奏，输出为 "片段要素"。
-6. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
-7. 台词与节奏：台词数量与语速需适配15秒时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
-8. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过15s。
-9. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
-10. 所有描述文字必须符合即梦seedance2.0模型要求，不得出现敏感词、暴力、血腥、政治、色情等内容。
+1. 机位、角度、镜头运动、景别要适合当前视频比例：{videoRatio}
+2. 说明总体画面风格和类型，可加以补充。基本风格和类型：{visualstyle}, {genre}
+3. 运动强度：（文戏3-5 / 正常5-7 / 冲突7-10）
+4. 说明故事情节曲线，情绪曲线：（贴合剧情，2-3种情绪递进）
+5  设计高超的构图，不同分镜的构图可以保持一致，也可进行变化，可选构图类型：中心构图，对称构图，三分线构图，框构框架，引导线构图，三角线构图，黄金螺旋构图，水平构图，对角构图。
+6. 自动识别：人物、场景、关键物品、情绪、动作节奏，输出为 "片段要素"。
+7. 描述中的角色称谓要用角色名直接表示，场景要用场景名直接表示
+8. 台词与节奏：说明语气和语速，声音大小。台词数量与语速需适配{segmentDuration}s时长，确保每句台词完整、问答间有自然停顿，避免语速过快或超时说不完，台词前需描述角色语气，台词用「」包围。
+9. 时间轴分段灵活：按剧情节奏自然划分，不强制按分镜时间设定，可自行调整，总时长不超过{segmentDuration}s。
+10. 描述要自然流畅，符合电影叙事逻辑和拍摄手法，不改变分镜原意，不添加额外内容。
+11. 所有描述文字不得出现敏感词、暴力、血腥、政治、色情等内容。
+12. 直接按要求输出内容，不要有解释性说明性的文字。
+13. 保留"通用基底：{story}"
 
 ## 正确示例：
 
-画面风格和类型: 3D, CG动画, 废土末世,男频科幻/游戏
+画面风格和类型: {visualstyle}, {genre}
 构图类型：三分线构图
-
+台词与节奏：语速由慢转快，拜堂词急促，最后一句拖长
 情绪曲线：屈辱 → 隐忍 → 杀意 → 复仇决心
 运动强度：7
 分镜1: 时长 3s 时间：日，**林尘** 衣衫褴褛，正用尽全力将一块沉重的生锈废铁拖向近处的简易掩体，动作吃力，步履蹒跚。林尘 的面部朝向掩体方向，视线也聚焦于此。镜头静止。
 分镜2: 时长 4s 时间：日，**林尘** 林尘缓缓起身，摊开的掌心中，一枚丹药正散发着柔和金光。满堂的讥笑声瞬间凝固。林尘 仰头服下丹药，一股金色气浪猛然自体内爆发，衣发狂舞。镜头从他光芒四射的背影拉远，映出赵灵儿惊惶后退的身影。
 
+通用基底：{story}
 `,
-GENERATE_SEGMENT_VIDEO_PROMPT: (scenes: string, segment: string,transitionFrom: string,transitionTo: string) =>
-`** 提供的参考图均由AI生成 **
+  GENERATE_SEGMENT_VIDEO_PROMPT: `** 提供的参考图均由AI生成 **
 
 ## 任务
-根据下面以下拍摄方案和时间轴的描述，生成一个高度还原的视频片段:
+根据下面以下拍摄方案和时间轴的描述，生成一个高度还原的视频片段，画面风格为：{visualStyle}
+禁止出现字幕，禁止出现对话文字
 ### 片段场景:
-${scenes}
+{scenes}
 
 ### 片段拍摄方案和时间轴：
-${segment}
+{segment}
 
 ## 片段过度：
-- 入场: ${transitionFrom}
-- 出场: ${transitionTo}
+- 入场: {transitionFrom}
+- 出场: {transitionTo}
 
 ## 绝对禁止的内容
 - 字幕 

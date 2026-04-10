@@ -14,8 +14,8 @@ interface Props {
   project: ProjectState;
   localStyle: string;
   imageSize: string;
-  processingState: {id: string, type: 'character'|'scene'}|null;
-  setProcessingState: (state: {id: string, type: 'character'|'scene'}|null) => void;
+  processingState: {id: string, type: 'character'|'scene'|'prop'}|null;
+  setProcessingState: (state: {id: string, type: 'character'|'scene'|'prop'}|null) => void;
   updateProject: (updates: Partial<ProjectState>) => void;
   onClose: () => void;
   setPreviewImage: (image:string)=>void;
@@ -150,7 +150,8 @@ const WardrobeModal: React.FC<Props> = ({
               project.scriptData?.genre || '剧情片',
               localStyle,
               editingVariationId?editVarName:newVarName,
-              editingVariationId?editVarPrompt:newVarPrompt
+              editingVariationId?editVarPrompt:newVarPrompt,
+              project.globalSettings
           );
           if (prompt) {
               editingVariationId?setEditVarPrompt(prompt):setNewVarPrompt(prompt);
@@ -173,7 +174,7 @@ const WardrobeModal: React.FC<Props> = ({
       try {
           // IMPORTANT: Use Base Look as reference to maintain facial consistency
           const refImages = character.referenceImage ? [character.referenceImage] : [];
-          const prompt = character.visualPrompt || await ModelService.generateVisualPrompts('character', character, project.scriptData?.genre || '剧情片',project.visualStyle);
+          const prompt = character.visualPrompt || await ModelService.generateVisualPrompts('character', character, project.scriptData?.genre || '剧情片',project.visualStyle,project.globalSettings);
 
           // Enhance prompt to emphasize character consistency
           const enhancedPrompt = renderTemplate('GENERATE_CHARACTER_VARIATION',
@@ -290,7 +291,7 @@ const WardrobeModal: React.FC<Props> = ({
                         <div className="bg-slate-800 p-4 rounded-xl border border-slate-600">
                             <div className="aspect-[16/9] bg-slate-900 rounded-lg overflow-hidden mb-4 relative cursor-pointer" onClick={() =>  setPreviewImage(character.referenceImage)}>
                                 {character.referenceImage ? (
-                                    <img src={character.referenceImage} className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" />
+                                    <img src={character.referenceImage} className="w-full h-full object-contain hover:scale-105 transition-transform duration-200" />
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-slate-600">无图像</div>
                                 )}
@@ -447,11 +448,11 @@ const WardrobeModal: React.FC<Props> = ({
 
                         <div className="space-y-4">
                             <div className="overflow-y-auto h-[45vh]"> 
-                            <div className="grid grid-cols-2 gap-4"> 
+                            <div className="grid grid-cols-2 gap-2 md:gap-4"> 
                             {/* List */}
                             {(character.variations || []).map((variation) => (
-                                <div key={variation.id} className="flex aspect-square overflow-hidden flex-col gap-4 p-4 bg-slate-800 border border-slate-600 rounded-xl group hover:border-slate-300 transition-colors">
-                                    <div className={`aspect-[16/9] bg-slate-900 rounded-lg overflow-hidden relative border border-slate-600 ${variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? 'cursor-pointer' : ''}`} onClick={variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? () => setPreviewImage(variation.referenceImage) : undefined}>
+                                <div key={variation.id} className="flex flex-col md:gap-4 md:p-4 p-2 gap-2 bg-slate-800 border border-slate-600 rounded-xl group hover:border-slate-300 transition-colors">
+                                    <div className={`aspect-[16/9] flex-shrink-0 bg-slate-900 rounded-lg overflow-hidden relative border border-slate-600 ${variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? 'cursor-pointer' : ''}`} onClick={variation.referenceImage && !(processingState?.type === 'character' && processingState?.id === variation.id) ? () => setPreviewImage(variation.referenceImage) : undefined}>
                                         {variation.referenceImage ? (
                                             <img src={variation.referenceImage} className="object-contain hover:scale-105 transition-transform duration-200" />
                                         ) : (
@@ -492,7 +493,7 @@ const WardrobeModal: React.FC<Props> = ({
 </div>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start mb-2">
+                                        <div className="flex justify-between items-start">
                                             <h5 className="font-bold text-slate-200 text-sm line-clamp-2">{variation.name}</h5>
                                         <button
                                             onClick={() => handleGenerateVariation(variation.id)}

@@ -1,7 +1,8 @@
-import { ArrowRightLeft, Download, Images, NotebookPen, Search, Trash2, X } from 'lucide-react';
+import { ArrowRightLeft, Cloud, Download, Images, Loader2, NotebookPen, Search, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, md5Hash, MediaFile } from '../services/storageService';
+import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, loadSeriesFromDB, md5Hash, MediaFile, saveProjectToDB, saveSeriesToDB, updateMediaHistoryFileUrl } from '../services/storageService';
 import { ProjectState, SeriesRecord } from '../types';
+import { uploadFileToService } from '../utils/fileUploadUtils';
 import CustomSelect from './common/CustomSelect';
 import { useDialog } from './dialog';
 import { downloadImage, downloadVideo } from './modals/FileUploadModal';
@@ -13,24 +14,26 @@ interface ImageItem {
   imageUrl: string;
   title: string;
   subtitle: string;
-  type: 'character' | 'scene' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
+  type: 'character' | 'scene' | 'prop' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
   projectId: string;
   projectName: string;
   downname: string;
   mediaType?: 'image' | 'video' | 'audio';
   ishistory: boolean;
+  islocal?: boolean;
   prompt: string;
   timestamp: number;
 }
 
 interface Props {
   project: ProjectState;
+  updateProject?: (updates: Partial<ProjectState>) => void;
 }
 
-const StageImage: React.FC<Props> = ({ project }) => {
+const StageImage: React.FC<Props> = ({ project, updateProject }) => {
   const dialog = useDialog();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'keyframe' | 'video'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'prop' | 'keyframe' | 'video'>('all');
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
   const [seriesList, setSeriesList] = useState<SeriesRecord[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -43,6 +46,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<{title: string, prompt: string, timestamp?: number} | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
+  const [uploadingStatus, setUploadingStatus] = useState<string | null>(null);
 
   // 加载所有项目和连续剧
   useEffect(() => {
@@ -176,6 +180,20 @@ const StageImage: React.FC<Props> = ({ project }) => {
     return scene;
   }, [seriesList]);
 
+  // Helper function to get prop with full library data (in series mode)
+  const getPropWithAssets = useCallback((prop: import('../types').Properties, projectSeriesRefId?: string): import('../types').Properties => {
+    // In standalone mode, return prop directly
+    if (!projectSeriesRefId || !prop.refId) return prop;
+
+    // In series mode, get full prop data from series library
+    const series = seriesList.find(s => s.id === projectSeriesRefId);
+    if (series?.library?.props) {
+      const libraryProp = series.library.props.find(p => p.id === prop.refId);
+      if (libraryProp) return libraryProp;
+    }
+    return prop;
+  }, [seriesList]);
+
   useEffect(() => {
     const loadAllImages = async () => {
       // 等待项目和媒体历史加载完成
@@ -262,6 +280,42 @@ const StageImage: React.FC<Props> = ({ project }) => {
               downname: `${selectedProject.scriptData?.title}-场景-${scene.id}`,
               mediaType: 'image'
             });
+          }
+        }
+      }
+
+      // 道具图片（包含所有变体）
+      if (selectedProject.scriptData?.props) {
+        for (const episodeProp of selectedProject.scriptData.props) {
+          const prop = getPropWithAssets(episodeProp, selectedProject.seriesRefId);
+          if (prop.referenceImage) {
+            imageTasks.push({
+              url: prop.referenceImage,
+              id: `prop-${selectedProject.id}-${prop.id}`,
+              type: 'prop',
+              title: prop.name,
+              subtitle: `道具 - ${prop.name}`,
+              downname: `${selectedProject.scriptData?.title}-道具-${prop.name}`,
+              mediaType: 'image'
+            });
+          }
+
+          // 添加道具的所有变体图片
+          if (prop.variations) {
+            for (let idx = 0; idx < prop.variations.length; idx++) {
+              const variation = prop.variations[idx];
+              if (variation.referenceImage) {
+                imageTasks.push({
+                  url: variation.referenceImage,
+                  id: `prop-${selectedProject.id}-${prop.id}-variation-${idx}`,
+                  type: 'prop',
+                  title: `${prop.name} - ${variation.name || `变体 ${idx + 1}`}`,
+                  subtitle: `道具变体 - ${prop.name}`,
+                  downname: `${selectedProject.scriptData?.title}-道具-${prop.name}-变体 ${idx + 1}`,
+                  mediaType: 'image'
+                });
+              }
+            }
           }
         }
       }
@@ -388,6 +442,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
             downname: task.downname,
             mediaType: task.mediaType,
             ishistory: false,
+            islocal: isLocalFile(task.url),
             prompt: file.prompt,
             timestamp: file.timestamp
           });
@@ -403,7 +458,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
 
         if (!urlHashSet.has(file.id)) {
           urlHashSet.add(file.id);
-          let type: 'character' | 'scene' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
+          let type: 'character' | 'scene' | 'prop' | 'keyframe-start' | 'keyframe-end' | 'keyframe-full' | 'video' | 'video-transition';
           let subtitle = '';
 
           if (file.mediaType === 'character') {
@@ -412,6 +467,9 @@ const StageImage: React.FC<Props> = ({ project }) => {
           } else if (file.mediaType === 'scene') {
             type = 'scene';
             subtitle = `场景历史 - ${file.fileName}`;
+          } else if (file.mediaType === 'prop') {
+            type = 'prop';
+            subtitle = `道具历史 - ${file.fileName}`;
           } else if (file.fileType === 'video') {
             type = file.mediaType === 'video' ? 'video' : 'video-transition';
             subtitle = `场景视频 - ${file.fileName}`;
@@ -432,11 +490,12 @@ const StageImage: React.FC<Props> = ({ project }) => {
             title: file.fileName,
             subtitle: subtitle,
             type,
-            projectId: selectedProject.id,
+            projectId: selectedProject.seriesRefId || selectedProject.id,
             projectName: selectedProject.title || '未命名项目',
             downname: file.fileName,
             mediaType: file.fileType,
             ishistory: true,
+            islocal: isLocalFile(file.fileUrl),
             prompt:file.prompt,
             timestamp: file.timestamp
           });
@@ -446,7 +505,7 @@ const StageImage: React.FC<Props> = ({ project }) => {
     };
 
     loadAllImages();
-  }, [allProjects, seriesList, selectedProjectId, showVideo, getCharacterWithAssets, getSceneWithAssets]);
+  }, [allProjects, seriesList, selectedProjectId, showVideo, getCharacterWithAssets, getSceneWithAssets, getPropWithAssets]);
 
   // 根据搜索词过滤图片
   const filteredImages = useMemo(() => {
@@ -465,12 +524,143 @@ const StageImage: React.FC<Props> = ({ project }) => {
     return filteredImages.filter(img => img.type.startsWith(activeTab));
   }, [filteredImages, activeTab]);
 
+  // 判断是否为本地文件
+  const isLocalFile = useCallback((url: string): boolean => {
+    if (!url) return true;
+    if (url.startsWith('data:') || url.includes('volces.com')) {
+      return false;
+    }
+    return true;
+  }, []);
+
+  // 批量上传非本地文件到本地服务器
+  const handleBatchUpload = useCallback(async () => {
+    if (!project || uploadingStatus) return;
+    const remoteImages = displayImages.filter(img => !img.islocal);
+    if (remoteImages.length === 0) return;
+
+    setUploadingStatus(`上传中 0/${remoteImages.length}`);
+    let failCount = 0;
+    const selectedProject = allProjects.find(p => p.id === selectedProjectId);
+
+    const updatedProject = project.id==selectedProjectId?{ ...project }:{...selectedProject};
+
+    for (let i = 0; i < remoteImages.length; i++) {
+      const img = remoteImages[i];
+      setUploadingStatus(`上传中 ${i + 1}/${remoteImages.length}`);
+      try {
+        const isBase64 = img.imageUrl.startsWith('data:');
+        const uploadResponse = await uploadFileToService({
+          fileType: `${project.id}/batch/${img.type}/${img.hash}`,
+          fileUrl: isBase64 ? undefined : img.imageUrl,
+          base64Data: isBase64 ? img.imageUrl : undefined
+        });
+
+        if (uploadResponse.success && uploadResponse.data?.fileUrl) {
+          const newUrl = uploadResponse.data.fileUrl;
+
+          setAllImages(prev => prev.map(item =>
+            item.id === img.id ? { ...item, imageUrl: newUrl, islocal: true } : item
+          ));
+
+          // 回写项目数据
+          if (updatedProject.scriptData) {
+            for (const char of updatedProject.scriptData.characters) {
+              if (char.referenceImage === img.imageUrl) char.referenceImage = newUrl;
+              if (char.variations) {
+                for (const v of char.variations) {
+                  if (v.referenceImage === img.imageUrl) v.referenceImage = newUrl;
+                }
+              }
+            }
+            for (const scene of updatedProject.scriptData.scenes) {
+              if (scene.referenceImage === img.imageUrl) scene.referenceImage = newUrl;
+            }
+          }
+          if (updatedProject.shots) {
+            for (const shot of updatedProject.shots) {
+              if (shot.keyframes) {
+                for (const kf of shot.keyframes) {
+                  if (kf.imageUrl === img.imageUrl) kf.imageUrl = newUrl;
+                }
+              }
+              if (shot.interval?.videoUrl === img.imageUrl) shot.interval.videoUrl = newUrl;
+              if (shot.transitionUrl === img.imageUrl) shot.transitionUrl = newUrl;
+            }
+          }
+          if (updatedProject.segments) {
+            for (const seg of updatedProject.segments) {
+              if (seg.videoUrl === img.imageUrl) seg.videoUrl = newUrl;
+            }
+          }
+
+          // 更新历史表中的 fileUrl
+          try {
+            await updateMediaHistoryFileUrl(img.projectId, img.imageUrl, newUrl);
+          } catch (e) {
+            console.warn('更新历史表失败:', e);
+          }
+
+          // 更新连续剧 SeriesLibrary
+          if (updatedProject.seriesRefId) {
+            try {
+              const series = await loadSeriesFromDB(updatedProject.seriesRefId);
+              let seriesUpdated = false;
+              for (const char of series.library.characters) {
+                if (char.referenceImage === img.imageUrl) {
+                  char.referenceImage = newUrl;
+                  seriesUpdated = true;
+                }
+                if (char.variations) {
+                  for (const v of char.variations) {
+                    if (v.referenceImage === img.imageUrl) {
+                      v.referenceImage = newUrl;
+                      seriesUpdated = true;
+                    }
+                  }
+                }
+              }
+              for (const scene of series.library.scenes) {
+                if (scene.referenceImage === img.imageUrl) {
+                  scene.referenceImage = newUrl;
+                  seriesUpdated = true;
+                }
+              }
+              if (seriesUpdated) {
+                await saveSeriesToDB(series);
+              }
+            } catch (e) {
+              console.warn('更新连续剧Library失败:', e);
+            }
+          }
+        } else {
+          failCount++;
+        }
+      } catch (e) {
+        console.error('上传失败:', img.id, e);
+        failCount++;
+      }
+    }
+
+    try {
+      if (project.id==selectedProjectId) {
+        updateProject(updatedProject);
+      }
+      await saveProjectToDB(updatedProject);
+    } catch (e) {
+      console.error('保存项目失败:', e);
+    }
+
+    setUploadingStatus(null);
+  }, [project, displayImages, updateProject, uploadingStatus]);
+
   // 计算标签数量 - 优化为单次遍历
   const tabCounts = useMemo(() => {
     const counts: Record<string, number> = {
       all: 0,
       character: 0,
       scene: 0,
+      prop: 0,
       video: 0,
       keyframe: 0
     };
@@ -480,12 +670,18 @@ const StageImage: React.FC<Props> = ({ project }) => {
       counts.all++;
       if (img.type === 'character') counts.character++;
       else if (img.type === 'scene') counts.scene++;
+      else if (img.type === 'prop') counts.prop++;
       else if (img.type.startsWith('video')) counts.video++;
       else if (img.type.startsWith('keyframe')) counts.keyframe++;
     }
     
     return counts as typeof tabCounts;
   }, [filteredImages]);
+
+  // 当前过滤结果中的非本地文件数量
+  const remoteImageCount = useMemo(() => {
+    return displayImages.filter(img => !img.islocal).length;
+  }, [displayImages]);
 
   // 处理图片点击预览
   const handleImageClick = (image: ImageItem) => {
@@ -507,6 +703,25 @@ const StageImage: React.FC<Props> = ({ project }) => {
           </h2>
         </div>
         <div className="flex items-center gap-3">
+          {remoteImageCount > 0 && (
+            <button
+              onClick={handleBatchUpload}
+              disabled={!!uploadingStatus}
+              className="px-3 py-1 rounded text-[12px] font-mono transition-colors cursor-pointer bg-orange-600 text-white hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              {uploadingStatus ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  {uploadingStatus}
+                </>
+              ) : (
+                <>
+                  <Cloud className="w-3 h-3" />
+                  上传 ({remoteImageCount})
+                </>
+              )}
+            </button>
+          )}
           <button
             onClick={() => setShowVideo(!showVideo)}
             className={`px-3 py-1 rounded text-[12px] font-mono transition-colors cursor-pointer ${
@@ -614,13 +829,14 @@ const StageImage: React.FC<Props> = ({ project }) => {
             <div className="flex gap-1">
               {(
                 showVideo
-                  ? ['all', 'character', 'scene', 'keyframe', 'video'] as const
-                  : ['all', 'character', 'scene', 'keyframe'] as const
+                  ? ['all', 'character', 'scene', 'prop', 'keyframe', 'video'] as const
+                  : ['all', 'character', 'scene', 'prop', 'keyframe'] as const
               ).map(tab => {
                 const labels = {
                   all: '全部',
                   character: '角色',
                   scene: '场景',
+                  prop: '道具',
                   keyframe: '关键帧',
                   video: '视频'
                 };
@@ -683,6 +899,12 @@ const StageImage: React.FC<Props> = ({ project }) => {
                     </div>
                   </div>
                 </button>
+                {/* 非本地文件标记 */}
+                {!image.islocal && (
+                  <div className="absolute top-2 left-2 p-1.5 bg-orange-500/80 text-white rounded-full backdrop-blur" title="非本地文件，可上传到本地">
+                    <Cloud className="w-3 h-3" />
+                  </div>
+                )}
                 {/* 按钮组 */}
                 <div className="absolute top-2 right-2 flex gap-1 opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none">
                   {/* 删除历史记录按钮 - 仅历史记录显示 */}
