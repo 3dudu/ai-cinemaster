@@ -84,7 +84,6 @@ function createWindow() {
       allowRunningInsecureContent: true
     },
     icon: path.join(__dirname, '../assets/icon.png'),
-    webSecurity: false,
     show: false
   });
 
