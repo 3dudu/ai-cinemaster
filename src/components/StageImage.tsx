@@ -576,6 +576,14 @@ const StageImage: React.FC<Props> = ({ project, updateProject }) => {
             for (const scene of updatedProject.scriptData.scenes) {
               if (scene.referenceImage === img.imageUrl) scene.referenceImage = newUrl;
             }
+            for (const prop of updatedProject.scriptData.props) {
+              if (prop.referenceImage === img.imageUrl) prop.referenceImage = newUrl;
+              if (prop.variations) {
+                for (const v of prop.variations) {
+                  if (v.referenceImage === img.imageUrl) v.referenceImage = newUrl;
+                }
+              }
+            }
           }
           if (updatedProject.shots) {
             for (const shot of updatedProject.shots) {
@@ -613,6 +621,20 @@ const StageImage: React.FC<Props> = ({ project, updateProject }) => {
                 }
                 if (char.variations) {
                   for (const v of char.variations) {
+                    if (v.referenceImage === img.imageUrl) {
+                      v.referenceImage = newUrl;
+                      seriesUpdated = true;
+                    }
+                  }
+                }
+              }
+              for (const prop of series.library.props) {
+                if (prop.referenceImage === img.imageUrl) {
+                  prop.referenceImage = newUrl;
+                  seriesUpdated = true;
+                }
+                if (prop.variations) {
+                  for (const v of prop.variations) {
                     if (v.referenceImage === img.imageUrl) {
                       v.referenceImage = newUrl;
                       seriesUpdated = true;
@@ -826,7 +848,7 @@ const StageImage: React.FC<Props> = ({ project, updateProject }) => {
         {/* 标签页 - 固定在滚动容器的顶部 */}
         <div className="sticky top-0 z-20 p-1 border-b border-slate-600 bg-slate-700">
           <div className="bg-slate-700 rounded-xl p-1">
-            <div className="flex gap-1">
+            <div className="flex gap-1 overflow-x-auto">
               {(
                 showVideo
                   ? ['all', 'character', 'scene', 'prop', 'keyframe', 'video'] as const
@@ -844,7 +866,7 @@ const StageImage: React.FC<Props> = ({ project, updateProject }) => {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-1 lg:px-2 h-8 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center cursor-pointer ${
+                    className={`px-2 lg:px-4 h-8 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex items-center cursor-pointer ${
                       activeTab === tab
                        ? 'bg-slate-800 text-slate-100'
                        : 'text-slate-400 hover:bg-slate-800'
