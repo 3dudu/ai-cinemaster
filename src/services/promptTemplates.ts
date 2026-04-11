@@ -232,6 +232,7 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         transitionFrom: args[2] || '',
         transitionTo: args[3] || '',
         visualStyle: args[4] || '真人写实',
+        story: args[5] || '',
       };
     case 'AI_SPLIT_SEGMENTS':
       return {
@@ -784,7 +785,7 @@ export const PROMPT_TEMPLATES = {
 ## 任务
 **始终已JSON格式返回**
 1. 提取title:标题、genre:类型、logline:故事梗概（以 {lang} 语言呈现）。
-2. 提取characters,角色信息数组，角色包含id:编号 name:姓名 gender:性别 age:年龄（数字） personality:特征，角色时代/地域风格,外貌特征,性格,身份,地位,职业。
+2. 提取characters,角色信息数组，角色包含id:编号 name:姓名 gender:性别 age:年龄 personality:特征，角色时代/地域风格,外貌特征,性格,身份,地位,职业。
    **personality 特征总结方法：**
    - 角色当前情绪状态（愤怒/压抑/讨好/撒谎/调情）
    - 角色在这场戏的权力关系（谁占上风？谁在试探？）
@@ -807,16 +808,16 @@ export const PROMPT_TEMPLATES = {
   "logline": "故事梗概",
   "characters": [
     {
-      "id": 1,
+      "id": "1",
       "name": "角色1",
       "gender": "男",
-      "age": 20,
+      "age": "20",
       "personality": "愤怒、压抑、讨好、撒谎、调情,1940年代上海、赛博朋克",
     }
   ],
   "scenes": [
     {
-      "id": 1,
+      "id": "1",
       "location": "地点",
       "time": "时间",
       "atmosphere": "氛围/时代/地域风格",
@@ -824,7 +825,7 @@ export const PROMPT_TEMPLATES = {
   ],
   "props": [
     {
-      "id": 1,
+      "id": "1",
       "name": "道具1",
       "shape": "形态",
       "material": "材质",
@@ -838,7 +839,7 @@ export const PROMPT_TEMPLATES = {
   "storyParagraphs": [
     {
       "id": 1,
-      "sceneRefId": 1,
+      "sceneRefId": "1",
       "text": "故事段落",
       "duration": 5,
     }
@@ -1461,6 +1462,8 @@ export const PROMPT_TEMPLATES = {
 ## 任务
 根据下面以下拍摄方案和时间轴的描述，生成一个高度还原的视频片段，画面风格为：{visualStyle}
 禁止出现字幕，禁止出现对话文字
+[通用基底]
+{story}
 ### 片段场景:
 {scenes}
 

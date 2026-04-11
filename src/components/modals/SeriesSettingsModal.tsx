@@ -28,7 +28,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
   const [localLanguage, setLocalLanguage] = useState('中文');
   const [localStyle, setLocalStyle] = useState('真人写实');
   const [localImageSize, setLocalImageSize] = useState('2560x1440');
-  const [localImageCount, setLocalImageCount] = useState(1);
+  const [localImageCount, setLocalImageCount] = useState(0);
   const [localGenre, setLocalGenre] = useState('剧情片');
   const [customDurationInput, setCustomDurationInput] = useState('');
   const [customStyleInput, setCustomStyleInput] = useState('');
@@ -89,7 +89,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         setLocalGenre(isCustomGenre ? 'custom' : currentGenre);
 
         setLocalImageSize(series.imageSize || '2560x1440');
-        setLocalImageCount(series.imageCount ?? 1);
+        setLocalImageCount(series.imageCount ?? 0);
 
         const currentDuration = series.targetDuration || '60s';
         const isCustomDuration = !DURATION_OPTIONS.some(opt => opt.value === currentDuration);
@@ -111,7 +111,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         setLocalGenre('剧情片');
         setCustomGenreInput('');
         setLocalImageSize('2560x1440');
-        setLocalImageCount(1);
+        setLocalImageCount(0);
         setLocalDuration('60s');
         setCustomDurationInput('');
         setLocalGlobalSettings('');

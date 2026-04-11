@@ -799,8 +799,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       });
 
       // 使用 currentDescription（可能刚生成）
-      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),currentDescription,selectedSegment.shotIds.length,
-        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.visualStyle
+      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),currentDescription,
+        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.visualStyle,project.globalSettings
       );
 
       const prompt = '## 参考图说明：\n'+imageLabels.map((l,i)=>`${i+1}. ${l}`).join('\n')+'\n\n'+videoPrompt;
@@ -968,9 +968,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             'GENERATE_SEGMENT_VIDEO_PROMPT',
             scenes.join(','),
             currentDescription,
-            segment.shotIds.length,
             segment.transitionFrom,
-            segment.transitionTo,project.visualStyle
+            segment.transitionTo,project.visualStyle,
+            project.globalSettings
           );
 
           const prompt = '## 参考图说明：\n' + imageLabels.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n\n' + videoPrompt;
