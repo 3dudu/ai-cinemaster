@@ -3,6 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { initializeCozeConfig, submitWorkflow } from '../services/modelproviders/cozeService';
 import { ProjectState } from '../types';
 import { uploadFileToService } from "../utils/fileUploadUtils";
+import CutOSEditor from './CutOSEditor';
 
 interface Props {
   project: ProjectState;
@@ -25,6 +26,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
   const completedShots = project.shots.filter(s => s.interval?.videoUrl);
   const totalShots = project.shots.length;
   const progress = totalShots > 0 ? Math.round((completedShots.length / totalShots) * 100) : 0;
+  const [showCutOSEditor, setShowCutOSEditor] = useState(true);
 
   // Calculate total duration roughly
   const estimatedDuration = project.shots.reduce((acc, s) => acc + (s.interval?.duration || 5), 0);
@@ -360,8 +362,8 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
           </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto md:p-6 p-0 md:p-12">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <div className="flex-1 overflow-y-auto p-0 md:p-6">
+        <div className="mx-auto space-y-8">
           {/* Main Status Panel */}
           <div className="bg-slate-800 md:border border-slate-600 md:rounded-xl p-2 sm:p-6 shadow-2xl relative overflow-hidden group">
              {/* Background Decoration */}
@@ -719,6 +721,12 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                  下载成片
                </button>
              </div>
+
+      <CutOSEditor
+        project={project}
+        open={showCutOSEditor}
+        onClose={() => setShowCutOSEditor(false)}
+      />
           </div>
         </div>
       </div>
