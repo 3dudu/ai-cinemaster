@@ -866,10 +866,7 @@ export const PROMPT_TEMPLATES = {
 ## 剧本大纲/分镜脚本原文：
 {text}`,
   // ============ 镜头清单生成 ============
-  GENERATE_SHOTS: `现在，为第{sceneIndex}场戏制作一份详尽的镜头清单（镜头调度设计）。
-
-## 注意，结合你的专业知识，使用JSON格式输出镜头清单。
-
+  GENERATE_SHOTS: `担任专业摄影师，为第{sceneindex}场戏制作一份详尽的镜头清单（镜头调度设计）。
 ## 文本输出语言: {lang}。
 
 ## 场景细节:
@@ -877,32 +874,27 @@ export const PROMPT_TEMPLATES = {
 时间: {time}
 氛围: {atmosphere}
 
-## 故事大纲:
+## 场景动作:
 {paragraphs}
 
 ## 创作背景:
 题材类型: {genre}
+剧本整体目标时长: {duration}
 
-## 通用基底：
-{story}
-
-## 角色 (格式: ID: 名字: 性格描述):
+## 角色:
 {characters}
 
-## 道具:
-{properties}
-
 ## 说明：
-1. 设计一组覆盖全部情节动作的镜头序列,规划好分镜数和分镜时长，每场景镜头数量上限为 2-6 个，每个镜头时长duration为 2-{segmentDuration} 秒，duration总和<={totalParagraphsDuration}。
-2. 重要提示：避免出现 JSON 截断错误。
+1. 设计一组覆盖全部情节动作的镜头序列。
+2. 重要提示：每场戏镜头数量上限为 2-8 个，每个镜头时长为 4-12 秒，避免出现 JSON 截断错误。
 3. 镜头运动：请使用专业术语（如：前推、右摇、固定、手持、跟拍）。
 4. 景别：明确取景范围（如：大特写、中景、全景）。
-5. 镜头情节概述：详细描述该镜头内发生的情节（使用 {lang} 语言描述），遵循下面表述方式：主体+运动+环境（非必须）+运镜/切镜（非必须）+美学描述（非必须）+声音（非必须）。
-6. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 200 词以内。
-7. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-10）。
+5. 镜头情节概述：详细描述该镜头内发生的情节（使用 {lang} 语言描述）。
+6. 视觉提示语：用于图像生成的详细{lang}描述，字数控制在 120 词以内。
+7. 转场动画：包含起始帧，结束帧，时长，运动强度（取值为 0-100）。
 8. 对话：如果需要，为每个角色生成对话，包含角色名字、内容。
-9. 关键帧：现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧；如果imageCount是 2，则必须生成一个起始帧和一个结束帧；如果imageCount大于 2 则是一张完整连环画帧。
-10. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，起始帧，描述镜头的开始画面，结束帧，描述镜头结束画面，连环帧，描述镜头的连环画画面。描述遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
+9. 关键帧：现在令 imageCount={imageCount}，生成关键帧时：如果imageCount是 0，则不生成关键帧；如果imageCount是 1，则必须生成一个起始帧和一个结束帧；如果imageCount大于 1 则是一张完整连环画帧。
+10. 关键帧提示词：visualPrompt, 使用 {lang} 语言描述，遵循下面表述方式： 主体+行为+环境，可补充： 风格、色彩、光影、构图 等美学元素。
 
 ## 输出格式：JSON 数组，数组内对象包含以下字段：
 - id（字符串类型）
@@ -911,13 +903,9 @@ export const PROMPT_TEMPLATES = {
 - dialogue（对象数组类型，对象包含 character（角色名字）、value（对话内容），每个角色一条记录。可选）
 - cameraMovement（字符串类型）
 - shotSize（字符串类型）
-- characters（字符串数组类型，**必须是角色ID**，从角色列表中获取ID）
-- keyframes（对象数组类型，每个对象定义不同的帧，对象包含如下属性： id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
-- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(镜头时长)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
-- properties（字符串数组类型，**必须是道具ID**，从道具列表中获取ID）
-
-## 特别说明
-
+- characters（字符串数组类型）
+- keyframes（对象数组类型，对象包含 id、type（取值为 ["start", "end", 'full']）、visualPrompt（使用 {lang} 语言描述） 字段）
+- interval（对象类型，包含 id、startKeyframeId、endKeyframeId、duration(不超过12s)、motionStrength、status（取值为 ["pending", "completed"]） 字段）
 `,
   // ============ 镜头清单导入 ============
   IMPORT_SHOTS: `担任专业摄影师，从分镜脚本原文中读取分镜头清单。
