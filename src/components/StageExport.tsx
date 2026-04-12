@@ -346,7 +346,6 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
 
   return (
     <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
-      
       {/* Header - Consistent with Director */}
       <div className="h-14 border-b border-slate-600 bg-slate-700 md:px-6 px-2 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
@@ -361,7 +360,6 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
              </span>
           </div>
       </div>
-
       <div className="flex-1 overflow-y-auto p-0 md:p-6">
         <div className="mx-auto space-y-8">
           {/* Main Status Panel */}
@@ -721,14 +719,13 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
                  下载成片
                </button>
              </div>
-
+          </div>
+        </div>
       <CutOSEditor
         project={project}
         open={showCutOSEditor}
         onClose={() => setShowCutOSEditor(false)}
       />
-          </div>
-        </div>
       </div>
     </div>
   );

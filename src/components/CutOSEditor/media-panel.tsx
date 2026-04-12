@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Film, FolderOpen, Search, Upload, X, Play, Loader2, Cloud, CloudOff, Wand2, Eye, EyeOff, Captions, AlertCircle, Clock, Zap, GripVertical } from "lucide-react"
-import { useEditor, MediaFile, DEFAULT_CLIP_TRANSFORM, DEFAULT_CLIP_EFFECTS } from "./editor-context"
-import type { EffectPreset, ClipEffects, ClipTransform } from "./types"
+import { AnimatePresence, motion } from "framer-motion"
+import { AlertCircle, Captions, Clock, Cloud, CloudOff, Eye, EyeOff, Film, FolderOpen, GripVertical, Loader2, Play, Search, Upload, Wand2, X, Zap } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { TimelineClip } from "./editor-context"
-import { ColorPicker } from "./ui/color-picker"
+import { DEFAULT_CLIP_EFFECTS, DEFAULT_CLIP_TRANSFORM, MediaFile, useEditor } from "./editor-context"
+import type { ClipEffects, ClipTransform, EffectPreset } from "./types"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"
+import { ColorPicker } from "./ui/color-picker"
 
 
 export function MediaPanel() {
@@ -22,7 +22,7 @@ export function MediaPanel() {
   return (
     <div className="flex h-full flex-col">
       {/* Custom Animated Tabs */}
-      <div className="border-b border-[var(--border-primary)] px-3 py-2">
+      <div className="border-b border-slate-600 px-3 py-2">
         <div className="relative grid w-full grid-cols-2 rounded-md bg-[var(--bg-secondary)] p-1">
           {/* Animated background indicator */}
           <motion.div
@@ -576,7 +576,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
   return (
     <div className="flex h-full flex-col">
       {/* Search with NLP support */}
-      <div className="border-b border-[var(--border-primary)] p-3">
+      <div className="border-b border-slate-600 p-3">
         <div className="relative">
           {isSearching ? (
             <Loader2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--accent)] animate-spin" />
@@ -628,7 +628,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
           <div
             className={`flex h-full flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors cursor-pointer ${isDragOver
                 ? "border-[var(--accent)] bg-[var(--accent-bg)]"
-                : "border-[var(--border-primary)] hover:border-[var(--text-muted)]"
+                : "border-slate-600 hover:border-[var(--text-muted)]"
               }`}
             onClick={() => fileInputRef.current?.click()}
           >
@@ -652,7 +652,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
             {/* Add more button */}
             <motion.button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center justify-center gap-2 rounded-md border border-dashed border-[var(--border-primary)] py-2 text-xs text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-600 py-2 text-xs text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
@@ -678,7 +678,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                   className={`group relative aspect-video overflow-hidden rounded border bg-[var(--bg-deep)] ${
                     media.isUploading
                       ? "border-[var(--accent)]/50 opacity-70"
-                      : "border-[var(--border-primary)] hover:border-[var(--accent)] cursor-grab active:cursor-grabbing"
+                      : "border-slate-600 hover:border-[var(--accent)] cursor-grab active:cursor-grabbing"
                   }`}
                   draggable={!media.isUploading}
                   onDragStart={(e) => !media.isUploading && handleMediaDragStart(e as unknown as React.DragEvent<Element>, media)}
@@ -1094,7 +1094,7 @@ function EffectsTab() {
 
   return (
     <div className="h-full overflow-y-auto scrollbar-thin">
-      <div className="px-3 py-2 border-b border-[var(--border-primary)] flex items-center justify-between">
+      <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-between">
         <motion.span
           className="text-xs font-medium text-[var(--text-primary)] truncate max-w-[60%]"
           initial={{ opacity: 0, x: -10 }}
@@ -1116,7 +1116,7 @@ function EffectsTab() {
       
       <Accordion type="multiple" className="w-full">
         {/* Transform Accordion */}
-        <AccordionItem value="transform" className="border-[var(--border-primary)]">
+        <AccordionItem value="transform" className="border-slate-600">
           <AccordionTrigger className="px-3 py-2 text-xs font-medium hover:no-underline">
             Transform
           </AccordionTrigger>
@@ -1177,7 +1177,7 @@ function EffectsTab() {
         </AccordionItem>
 
         {/* Presets Accordion */}
-        <AccordionItem value="presets" className="border-[var(--border-primary)]">
+        <AccordionItem value="presets" className="border-slate-600">
           <AccordionTrigger className="px-3 py-2 text-xs font-medium hover:no-underline">
             <div className="flex items-center justify-between w-full pr-2">
               <span>Presets</span>
@@ -1227,7 +1227,7 @@ function EffectsTab() {
         </AccordionItem>
 
         {/* Adjustments Accordion */}
-        <AccordionItem value="adjustments" className="border-[var(--border-primary)]">
+        <AccordionItem value="adjustments" className="border-slate-600">
           <AccordionTrigger className="px-3 py-2 text-xs font-medium hover:no-underline">
             Adjustments
           </AccordionTrigger>
@@ -1312,8 +1312,8 @@ function EffectsTab() {
         </AccordionItem>
 
         {/* Chromakey Accordion */}
-        <AccordionItem value="chromakey" className="border-[var(--border-primary)]">
-          <div className="flex items-center justify-between border-b border-[var(--border-primary)] px-3 py-2">
+        <AccordionItem value="chromakey" className="border-slate-600">
+          <div className="flex items-center justify-between border-b border-slate-600 px-3 py-2">
             <AccordionTrigger className="flex-1 text-xs font-medium hover:no-underline py-0">
               <span>Green Screen</span>
             </AccordionTrigger>
@@ -1432,8 +1432,8 @@ function EffectsTab() {
         </AccordionItem>
 
         {/* Captions Accordion */}
-        <AccordionItem value="captions" className="border-[var(--border-primary)]">
-          <div className="flex items-center justify-between border-b border-[var(--border-primary)] px-3 py-2">
+        <AccordionItem value="captions" className="border-slate-600">
+          <div className="flex items-center justify-between border-b border-slate-600 px-3 py-2">
             <AccordionTrigger className="flex-1 text-xs font-medium hover:no-underline py-0">
               <div className="flex items-center gap-1.5">
                 <Captions className="h-3.5 w-3.5" />
@@ -1635,7 +1635,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
               {/* Caption Style Selector */}
               <div>
                 <label className="text-xs text-[var(--text-muted)] mb-1.5 block">Style</label>
-                <div className="relative flex rounded-md border border-[var(--border-primary)] bg-[var(--bg-secondary)]/30 p-0.5">
+                <div className="relative flex rounded-md border border-slate-600 bg-[var(--bg-secondary)]/30 p-0.5">
                   {/* Animated background indicator */}
                   <motion.div
                     className="absolute inset-y-0.5 rounded bg-[var(--accent)]"
@@ -1685,7 +1685,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
                 <span className="text-[var(--text-primary)] font-medium">{media.captions!.length}</span>
               </div>
               
-              <div className="max-h-32 overflow-y-auto rounded border border-[var(--border-primary)] bg-[var(--bg-secondary)]/30 p-2">
+              <div className="max-h-32 overflow-y-auto rounded border border-slate-600 bg-[var(--bg-secondary)]/30 p-2">
                 <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                   {media.captions!.map((c) => c.word).join(" ")}
                 </p>

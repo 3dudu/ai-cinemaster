@@ -138,7 +138,7 @@ function EditorContent({
   return (
     <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-[var(--bg-primary)]">
       {/* Top Bar - 与 CutOS 一致 */}
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--border-primary)] bg-[var(--bg-elevated)] px-4">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-600 bg-[var(--bg-elevated)] px-4">
         <div className="flex items-center gap-3">
           <motion.div whileHover="hover" whileTap={{ scale: 0.97 }}>
             <Button variant="ghost" size="sm" className="gap-2 cursor-pointer" onClick={onClose}>
@@ -187,30 +187,30 @@ function EditorContent({
       {/* Main Content - 与 CutOS 相同：左媒体库 | 中预览 | 右 Inspector */}
       {/* v2 API: defaultSize 为数字 1-100 表示百分比 */}
       <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
-        <ResizablePanel defaultSize={30} minSize={30}>
+        <ResizablePanel defaultSize={25} minSize={20}>
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={40}>
-              <div className="h-full min-w-0 border-r border-[var(--border-primary)] bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
+            <ResizablePanel defaultSize={20} minSize={15} maxSize={20}>
+              <div className="h-full min-w-0 border-r border-slate-600 bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
                 <MediaPanel />
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={55} minSize={30}>
+            <ResizablePanel defaultSize={35} minSize={30}>
               <div className="h-full min-w-0 overflow-hidden flex flex-col">
                 <VideoPreview />
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
-              <div className="h-full min-w-0 border-l border-[var(--border-primary)] bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
+              <div className="h-full min-w-0 border-l border-slate-600 bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
                 <InspectorPanel />
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
         </ResizablePanel>
         <ResizableHandle className="bg-transparent after:bg-transparent hover:bg-[var(--border-primary)]/50 transition-colors" />
-        <ResizablePanel defaultSize={35} minSize={20} maxSize={60}>
-          <div className="h-full border-t border-[var(--border-primary)] bg-[var(--bg-elevated)]">
+        <ResizablePanel defaultSize={25} minSize={20}>
+          <div className="h-full border-t border-slate-600 bg-[var(--bg-elevated)]">
             <Timeline />
           </div>
         </ResizablePanel>

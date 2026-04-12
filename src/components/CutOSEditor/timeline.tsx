@@ -1,11 +1,11 @@
 "use client"
 
-import type React from "react"
-import { useState, useRef, useEffect, useCallback } from "react"
-import { Video, Volume2, VolumeX, Lock, Unlock, Eye, EyeOff, Film, Trash2, Scissors, Undo2, Redo2, Copy, Clipboard, CopyPlus } from "lucide-react"
 import { motion } from "framer-motion"
+import { Clipboard, Copy, CopyPlus, Eye, EyeOff, Film, Lock, Redo2, Scissors, Trash2, Undo2, Unlock, Video, Volume2, VolumeX } from "lucide-react"
+import type React from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { DEFAULT_CLIP_EFFECTS, DEFAULT_CLIP_TRANSFORM, PIXELS_PER_SECOND, TimelineClip, useEditor } from "./editor-context"
 import { Button } from "./ui/button"
-import { useEditor, TimelineClip, PIXELS_PER_SECOND, DEFAULT_CLIP_TRANSFORM, DEFAULT_CLIP_EFFECTS } from "./editor-context"
 
 export function Timeline() {
   const {
@@ -811,11 +811,11 @@ export function Timeline() {
   return (
     <div className="flex h-full flex-col">
       {/* Timeline Header */}
-      <div className="flex items-center justify-between border-b border-[var(--border-primary)] px-4 py-2">
+      <div className="flex items-center justify-between border-b border-slate-600 px-4 py-2">
         <div className="flex items-center gap-3">
           <div className="text-xs font-medium text-[var(--text-primary)]">Timeline</div>
           {/* Editing Toolbar */}
-          <div className="flex items-center gap-1 border-l border-[var(--border-primary)] pl-3 ml-3">
+          <div className="flex items-center gap-1 border-l border-slate-600 pl-3 ml-3">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant={canCut ? "default" : "ghost"}
@@ -950,15 +950,15 @@ export function Timeline() {
       {/* Timeline Tracks */}
       <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Track Labels - 与右侧轨道对齐：先 ruler 占位 (h-6)，再 4 轨道 (h-12) */}
-        <div className="w-24 shrink-0 flex flex-col border-r border-[var(--border-primary)] bg-[var(--bg-secondary)]">
+        <div className="w-24 shrink-0 flex flex-col border-r border-slate-600 bg-[var(--bg-secondary)]">
           {/* Ruler spacer - 与时间标尺等高 */}
-          <div className="h-6 shrink-0 border-b border-[var(--border-primary)]" />
+          <div className="h-6 shrink-0 border-b border-slate-600" />
           {tracks.map((track) => {
             const isMuted = trackMuted[track] ?? false
             const isLocked = trackLocked[track] ?? false
             const isVisible = trackVisible[track] ?? true
             return (
-              <div key={track} className="flex h-12 shrink-0 items-center gap-2 border-b border-[var(--border-primary)] px-2">
+              <div key={track} className="flex h-12 shrink-0 items-center gap-2 border-b border-slate-600 px-2">
                 <div className="flex items-center gap-0.5 shrink-0">
                   {/* 静音按钮 - 扩大点击区域 */}
                   <button
@@ -1015,7 +1015,7 @@ export function Timeline() {
           } as React.CSSProperties}
         >
           {/* Time Ruler - Dynamic based on zoom level */}
-          <div className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-[var(--border-primary)] bg-[var(--bg-elevated)]">
+          <div className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-slate-600 bg-[var(--bg-elevated)]">
             {(() => {
               // Calculate ruler segments based on zoom
               // At 100% zoom: 10px/sec, show every 8 seconds (80px segments)
@@ -1030,7 +1030,7 @@ export function Timeline() {
               const numSegments = Math.ceil(maxTimelineSeconds / secondsPerSegment)
               
               return Array.from({ length: numSegments }).map((_, i) => (
-                <div key={i} className="shrink-0 border-r border-[var(--border-primary)]" style={{ width: `${segmentWidth}px` }}>
+                <div key={i} className="shrink-0 border-r border-slate-600" style={{ width: `${segmentWidth}px` }}>
                   <div className="px-2 text-[10px] text-[var(--text-muted)]">
                     {formatRulerTime(i * secondsPerSegment)}
                   </div>
@@ -1050,13 +1050,8 @@ export function Timeline() {
                 className={`flex h-12 shrink-0 border-b transition-all relative ${
                   dropTargetTrack === track 
                     ? "bg-blue-500/20 border-blue-400 shadow-inner ring-1 ring-blue-400/50 ring-inset" 
-                    : "border-[var(--border-primary)]"
+                    : "border-slate-600 bg-slate-700"
                 } ${!isVisible ? "opacity-40 pointer-events-none" : ""}`}
-                style={{
-                  background: dropTargetTrack === track 
-                    ? undefined 
-                    : index < 2 ? "oklch(0.10 0 0)" : "oklch(0.12 0 0)",
-                }}
                 onDragOver={(e) => {
                   e.preventDefault()
                   e.dataTransfer.dropEffect = isLocked ? 'none' : 'copy'
@@ -1082,7 +1077,7 @@ export function Timeline() {
                     const numSegments = Math.ceil(maxTimelineSeconds / secondsPerSegment)
                     
                     return Array.from({ length: numSegments }).map((_, i) => (
-                      <div key={i} className="shrink-0 border-r border-[var(--border-primary)]/30" style={{ width: `${segmentWidth}px` }} />
+                      <div key={i} className="shrink-0 border-r border-slate-600/30" style={{ width: `${segmentWidth}px` }} />
                     ))
                   })()}
                 </div>
@@ -1305,7 +1300,7 @@ export function Timeline() {
       {/* Context Menu - 与 CutOS 一致，增加 Paste、Duplicate */}
       {contextMenu && (
         <div
-          className="fixed z-50 bg-[var(--bg-elevated)] border border-[var(--border-primary)] rounded-md shadow-lg py-1 min-w-[160px] animate-in fade-in slide-in-from-top-1 duration-150"
+          className="fixed z-50 bg-[var(--bg-elevated)] border border-slate-600 rounded-md shadow-lg py-1 min-w-[160px] animate-in fade-in slide-in-from-top-1 duration-150"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >

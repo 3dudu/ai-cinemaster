@@ -1103,7 +1103,7 @@ export function VideoPreview() {
           ref={previewContainerRef}
           className={`relative overflow-hidden bg-black ${isFullscreen
             ? "w-full h-full max-w-none"
-            : "rounded-lg border border-[var(--border-primary)]"
+            : "rounded-lg border border-slate-600"
             }`}
           style={!isFullscreen ? {
             aspectRatio: `${aspectRatio}`,
@@ -1355,7 +1355,7 @@ export function VideoPreview() {
       </div>
 
       {/* Transport Controls */}
-      <div className="shrink-0 border-t border-[var(--border-primary)] bg-[var(--bg-elevated)] px-6 py-4">
+      <div className="shrink-0 border-t border-slate-600 bg-[var(--bg-elevated)] px-6 py-4">
         <div className="mx-auto max-w-5xl">
           {/* Playhead Scrubber */}
           <div className="mb-3 flex items-center gap-3">

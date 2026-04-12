@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
 import { Eye } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface ColorPickerProps {
   value: string;
@@ -29,10 +29,10 @@ export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="flex items-center gap-2 rounded border border-[var(--border-primary)] bg-[var(--bg-primary)] px-2 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex items-center gap-2 rounded border border-slate-600 bg-[var(--bg-primary)] px-2 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <div
-          className="h-5 w-5 rounded border border-[var(--border-primary)]"
+          className="h-5 w-5 rounded border border-slate-600"
           style={{ backgroundColor: value }}
         />
         <span className="text-[var(--text-muted)]">{value.toUpperCase()}</span>
@@ -40,11 +40,11 @@ export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-[var(--border-primary)] bg-[var(--bg-surface)] p-4 shadow-xl">
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-slate-600 bg-[var(--bg-surface)] p-4 shadow-xl">
           <div className="space-y-3">
             <div className="flex gap-3">
               <div
-                className="h-16 w-16 shrink-0 rounded border-2 border-[var(--border-primary)]"
+                className="h-16 w-16 shrink-0 rounded border-2 border-slate-600"
                 style={{ backgroundColor: value }}
               />
               <div className="flex-1">
@@ -64,7 +64,7 @@ export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
                       onChange(value || '#00FF00');
                     }
                   }}
-                  className="w-full rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)] px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  className="w-full rounded-md border border-slate-600 bg-[var(--bg-primary)] px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                   placeholder="#00FF00"
                   disabled={disabled}
                 />
@@ -76,7 +76,7 @@ export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
                 type="color"
                 value={value || '#00FF00'}
                 onChange={(e) => e.target.value && onChange(e.target.value)}
-                className="h-10 w-full cursor-pointer rounded border border-[var(--border-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 w-full cursor-pointer rounded border border-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={disabled}
               />
             </div>

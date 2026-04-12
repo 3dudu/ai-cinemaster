@@ -7,12 +7,12 @@ import { useVideoAgent } from "./agent/use-agent"
 import { AutoEnhanceModal } from "./auto-enhance-modal"
 import { useEditor } from "./editor-context"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "./ui/dialog"
 
 export function InspectorPanel() {
@@ -155,7 +155,7 @@ function AgentTab() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-[var(--border-primary)] px-3 py-2">
+      <div className="flex items-center justify-between border-b border-slate-600 px-3 py-2">
         <span className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">AI Assistant</span>
         <motion.button
           onClick={handleNewChat}
@@ -170,7 +170,7 @@ function AgentTab() {
         </motion.button>
       </div>
 
-      <div className="border-b border-[var(--border-primary)] p-3">
+      <div className="border-b border-slate-600 p-3">
         <div className="mb-2 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Smart Enhance</div>
         <motion.button
           onClick={() => setShowAutoEnhanceModal(true)}
@@ -219,7 +219,7 @@ function AgentTab() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             >
-              <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)]">
+              <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-slate-600">
                 Hi! I&apos;m your AI editing assistant. I can split, trim, delete, move clips, and apply effects. Just tell me what you&apos;d like to do!
               </div>
             </motion.div>
@@ -248,7 +248,7 @@ function AgentTab() {
                   className={`max-w-[85%] rounded-lg text-xs ${
                     message.role === "user"
                       ? "bg-[var(--accent)] text-[var(--accent-on)] px-3 py-2"
-                      : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)]"
+                      : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-slate-600"
                   }`}
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
@@ -323,7 +323,7 @@ function AgentTab() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             >
-              <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-primary)] flex items-center gap-2">
+              <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-slate-600 flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span>Thinking...</span>
               </div>
@@ -334,7 +334,7 @@ function AgentTab() {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-[var(--border-primary)] p-3">
+      <form onSubmit={handleSubmit} className="border-t border-slate-600 p-3">
         <div className="flex gap-2 items-center">
           <input
             type="text"
@@ -342,7 +342,7 @@ function AgentTab() {
             value={input}
             onChange={handleInputChange}
             disabled={isLoading || isRecording}
-            className="flex-1 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
+            className="flex-1 rounded-md border border-slate-600 bg-[var(--bg-primary)] px-3 py-2.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
           />
           {input.trim() ? (
             <motion.button

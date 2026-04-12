@@ -22,7 +22,7 @@ const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose }) => 
   if (media.length === 0 || clips.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-        <div className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] p-6 shadow-xl max-w-md">
+        <div className="rounded-lg border border-slate-600 bg-[var(--bg-primary)] p-6 shadow-xl max-w-md">
           <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">AI Edit</h3>
           <p className="mb-4 text-sm text-[var(--text-secondary)]">
             No completed video shots yet. Please generate video clips in the Director stage first.
