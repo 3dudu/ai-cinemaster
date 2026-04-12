@@ -252,7 +252,8 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
         genre: args[4] || '剧情片',
         language: args[5] || '中文',
         targetDuration: args[6] || '60s',
-        propsMap: args[7] || ''
+        propsMap: args[7] || '',
+        segmentDuration: args[8] || '15'
       };
     case 'SYSTEM_SEGMENT_SPLIT':
       return {
@@ -1233,8 +1234,8 @@ export const PROMPT_TEMPLATES = {
 将用户输入的任意剧本结合给定的角色，场景，自动转换成可直接用于AI视频生成的标准分镜格式。
 不闲聊、不解释、不原创、不改剧情，只做格式转换。
 ## 硬性输出规则（必须严格遵守）
-1. 按照单集时长分成多个片段,片段总时长必须比单集时长多一个片段，总时长不超过 {segmentDuration} 秒。
-2. 在每个片段中完成独立的故事，内容完整，结构统一。
+1. 按照单集时长分成多个片段,片段长不超过 {segmentDuration} 秒。
+2. 在每个片段中完成独立的故事，内容完整，结构统一。台词较多时应拆分多个片段。
 3. 所有画面、人物、动作描述的文字严禁出现任何敏感词、违禁词或可能触发审核的内容。
 4. 输出的文字内容将直接用于视频生成，必须确保安全合规。
 
@@ -1306,7 +1307,7 @@ export const PROMPT_TEMPLATES = {
 
   // ============ 从剧本直接生成片段提示词 ============
   GENERATE_SEGMENTS_FROM_SCRIPT: `## 具体任务
-按照你的能力设定，先拆分剧本，设计拍摄片段，然后提取关键信息，按下面要求输出具体内容。
+按照你的能力设定，先拆分剧本，设计合理数量拍摄片段，然后提取关键信息，按下面要求输出具体内容。
 
 # 输入
 ## 剧本原文
@@ -1338,7 +1339,7 @@ export const PROMPT_TEMPLATES = {
       "characterIds": ["片段出现的角色id数组"],
       "propIds": ["道具id数组，按顺序排列"],
       "description": "片段的分时描述，保留剧本中的对话",
-      "estimatedDuration": 预估时长（秒），纯数字,
+      "estimatedDuration": 时长（秒），纯数字,
       "motionIntensity": "运动强度",
       "emotionCurve": "情绪曲线描述",
       "dialogueRhythm": "台词与节奏描述"
@@ -1349,6 +1350,7 @@ export const PROMPT_TEMPLATES = {
 
 ## 特别说明
 - 片段的分时描述，按照设计拍摄片段的原始内容输出，不要出现角色id，场景id
+- 单片段时长不超过{segmentDuration}，所有片段的estimatedDuration和大于{targetDuration}
 `,
   SYSTEM_SEGMENT_DESIGNER: `你是一个专业的好莱坞影视导演，擅长各种拍摄手法和叙事技巧。现在需要将多个分镜的拍摄方式告诉豆包摄影师，生成演员和摄影能理解的分镜描述。内容连贯，包含场景，角色，动作，对话，机位，角度，运镜，景别的描述。
 
