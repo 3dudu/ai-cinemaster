@@ -5,6 +5,7 @@ import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVid
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Properties, Scene, Segment, SeriesRecord } from '../types';
+import { generateVideoThumbnail } from "../utils/imageUtils";
 import CustomSelect from './common/CustomSelect';
 
 import {
@@ -691,9 +692,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     try {
       // 如果 videoPrompt 为空，先生成 videoPrompt
       let currentDescription = selectedSegment.videoPrompt || selectedSegment.description;
+      const segments = project.segments || [];
+      const segmentIndex = segments.findIndex((s) => s.id === selectedSegment.id);
       if (!currentDescription?.trim()) {
-        const segments = project.segments || [];
-        const segmentIndex = segments.findIndex((s) => s.id === selectedSegment.id);
 
         try {
           currentDescription = await generateSegmentDescription(
@@ -797,6 +798,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           }
         }
       });
+      if(segmentIndex>0){
+        const lastSegemnt = segments[segmentIndex-1];
+        const lastVideoUrl = lastSegemnt.videoUrl;
+        if(lastVideoUrl){
+          const lastframe = await generateVideoThumbnail(lastVideoUrl);
+          referenceImages.push(lastframe);
+          imageLabels.push(`图${imageIndex}: 首帧参考`);
+        }
+      }
 
       // 使用 currentDescription（可能刚生成）
       const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),currentDescription,
@@ -973,6 +983,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.globalSettings
           );
 
+          if(i>0){
+            const lastSegemnt = segments[i-1];
+            const lastVideoUrl = lastSegemnt.videoUrl;
+            if(lastVideoUrl){
+              const lastframe = await generateVideoThumbnail(lastVideoUrl);
+              referenceImages.push(lastframe);
+              imageLabels.push(`图${imageIndex}: 首帧参考`);
+            }
+          }
           const prompt = '## 参考图说明：\n' + imageLabels.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n\n' + videoPrompt;
 
           const videoUrl = await ModelService.generateVideo(
