@@ -1427,7 +1427,8 @@ export class ModelService {
       genre,
       language,
       targetDuration,
-      props
+      props,
+      segmentDuration
     );
     
     const systemPrompt = renderTemplate('SYSTEM_SEGMENT_SPLIT',segmentDuration);
