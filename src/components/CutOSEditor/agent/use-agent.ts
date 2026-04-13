@@ -389,42 +389,6 @@ export function useVideoAgent() {
             forceUpdate((n) => n + 1)
           })
           return
-        case "createMorphTransition": {
-          processedToolCallsRef.current.add(tc.toolCallId)
-          const fromClipId = tc.input.fromClipId as string
-          const toClipId = tc.input.toClipId as string
-          const durationSeconds = (tc.input.durationSeconds as number) || 5
-          const fromClip = editor.timelineClips.find((c) => c.id === fromClipId)
-          const toClip = editor.timelineClips.find((c) => c.id === toClipId)
-          if (!fromClip || !toClip) {
-            toolInfo.status = "error"
-            toolInfo.description = "找不到要转场的片段"
-            toolCallInfoRef.current.set(tc.toolCallId, { ...toolInfo })
-            forceUpdate((n) => n + 1)
-            return
-          }
-          import("@/lib/cutos/morph-transition")
-            .then(({ createMorphTransition }) =>
-              createMorphTransition(fromClip, toClip, editor.mediaFiles, editor.projectId || "", durationSeconds)
-            )
-            .then((result) => {
-              editor.addMediaFiles([result.media])
-              editor.addClipToTimeline(result.clip)
-              editor.updateClip(result.toClipUpdate.clipId, { startTime: result.toClipUpdate.newStartTime })
-              toolInfo.status = "success"
-              toolInfo.description = "Morph 转场已添加"
-              toolCallInfoRef.current.set(tc.toolCallId, { ...toolInfo })
-              forceUpdate((n) => n + 1)
-            })
-            .catch((err) => {
-              toolInfo.status = "error"
-              toolInfo.description = err?.message || "Morph 转场失败"
-              toolCallInfoRef.current.set(tc.toolCallId, { ...toolInfo })
-              showAlert.alert({message:err?.message || "Morph 转场失败", type: "error" })
-              forceUpdate((n) => n + 1)
-            })
-          return
-        }
       }
 
       if (action) {
