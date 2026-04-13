@@ -5,7 +5,7 @@ import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVid
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Properties, Scene, Segment, SeriesRecord } from '../types';
-import { generateVideoThumbnail } from "../utils/imageUtils";
+import { generateVideoThumbnail, getVideoLastFrame } from "../utils/imageUtils";
 import CustomSelect from './common/CustomSelect';
 
 import {
@@ -347,9 +347,14 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     [project.segments, updateProject, editingSegment, insertIndex],
   );
 
-  // Get thumbnail image for segment (first shot's scene image, fallback to start keyframe)
+  // Get thumbnail image for segment (priority: firstFrameThumbnail > scene reference image)
   const getSegmentThumbnail = useCallback(
     (segment: Segment): string | undefined => {
+      // 优先使用视频首帧缩略图
+      if (segment.firstFrameThumbnail) {
+        return segment.firstFrameThumbnail;
+      }
+      // 次选使用场景参考图
       const sceneids = segment.sceneIds.find(sceneid=>{
         const scene = activeScenes.find((s) => String(s.id) === String(sceneid));
         return scene && scene.referenceImage;
@@ -798,13 +803,23 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           }
         }
       });
-      if(segmentIndex>0){
-        const lastSegemnt = segments[segmentIndex-1];
-        const lastVideoUrl = lastSegemnt.videoUrl;
-        if(lastVideoUrl){
-          const lastframe = await generateVideoThumbnail(lastVideoUrl);
-          referenceImages.push(lastframe);
+      // 检查是否启用尾帧参考（默认 true）
+      const useTailFrameRef = selectedSegment.useTailFrameRef !== false;
+      if(segmentIndex>0 && useTailFrameRef){
+        const lastSegment = segments[segmentIndex-1];
+        // 优先使用缓存的尾帧缩略图
+        if(lastSegment.lastFrameThumbnail){
+          referenceImages.push(lastSegment.lastFrameThumbnail);
           imageLabels.push(`图${imageIndex}: 首帧参考`);
+          imageIndex++;
+        } else if(lastSegment.videoUrl){
+          // fallback：实时提取尾帧
+          const lastframe = await getVideoLastFrame(lastSegment.videoUrl);
+          if(lastframe){
+            referenceImages.push(lastframe);
+            imageLabels.push(`图${imageIndex}: 首帧参考`);
+            imageIndex++;
+          }
         }
       }
 
@@ -831,14 +846,26 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           voices
       );
 
-      
+
       if (videoUrl) {
         // Save to media history
         const fileName = `Segment_${selectedSegment.name||selectedSegment.id}_video`;
         await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video',prompt);
-        // Update segment with videoUrl
+
+        // 提取首帧和尾帧缩略图
+        const [firstFrame, lastFrame] = await Promise.all([
+          generateVideoThumbnail(videoUrl, 1),
+          getVideoLastFrame(videoUrl),
+        ]);
+
+        // Update segment with videoUrl and thumbnails
         const updatedSegments = (project.segments || []).map((seg) =>
-          seg.id === selectedSegment.id ? { ...seg, videoUrl } : seg
+          seg.id === selectedSegment.id ? {
+            ...seg,
+            videoUrl,
+            firstFrameThumbnail: firstFrame || undefined,
+            lastFrameThumbnail: lastFrame || undefined,
+          } : seg
         );
         updateProject({ segments: updatedSegments });
         dialog.toast({ message: '视频生成成功', type: 'success' });
@@ -983,13 +1010,23 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             project.globalSettings
           );
 
-          if(i>0){
-            const lastSegemnt = segments[i-1];
-            const lastVideoUrl = lastSegemnt.videoUrl;
-            if(lastVideoUrl){
-              const lastframe = await generateVideoThumbnail(lastVideoUrl);
-              referenceImages.push(lastframe);
+          // 检查是否启用尾帧参考（默认 true）
+          const useTailFrameRef = segment.useTailFrameRef !== false;
+          if(i>0 && useTailFrameRef){
+            const lastSegment = segments[i-1];
+            // 优先使用缓存的尾帧缩略图
+            if(lastSegment.lastFrameThumbnail){
+              referenceImages.push(lastSegment.lastFrameThumbnail);
               imageLabels.push(`图${imageIndex}: 首帧参考`);
+              imageIndex++;
+            } else if(lastSegment.videoUrl){
+              // fallback：实时提取尾帧
+              const lastframe = await getVideoLastFrame(lastSegment.videoUrl);
+              if(lastframe){
+                referenceImages.push(lastframe);
+                imageLabels.push(`图${imageIndex}: 首帧参考`);
+                imageIndex++;
+              }
             }
           }
           const prompt = '## 参考图说明：\n' + imageLabels.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n\n' + videoPrompt;
@@ -1015,12 +1052,20 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             const fileName = `Segment_${segment.name || segment.id}_video`;
             await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video', prompt);
 
-            // Update segment with videoUrl
+            // 提取首帧和尾帧缩略图
+            const [firstFrame, lastFrame] = await Promise.all([
+              generateVideoThumbnail(videoUrl, 1),
+              getVideoLastFrame(videoUrl),
+            ]);
+
+            // Update segment with videoUrl and thumbnails
             const segIndex = currentSegments.findIndex(s => s.id === segment.id);
             if (segIndex >= 0) {
               currentSegments[segIndex] = {
                 ...currentSegments[segIndex],
                 videoUrl,
+                firstFrameThumbnail: firstFrame || undefined,
+                lastFrameThumbnail: lastFrame || undefined,
               };
               updateProject({ segments: [...currentSegments] });
               successCount++;
@@ -1496,6 +1541,20 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </>
                   )}
                 </button>
+                <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={selectedSegment.useTailFrameRef !== false}
+                    onChange={(e) => {
+                      const updated = (project.segments || []).map(s =>
+                        s.id === selectedSegment.id ? { ...s, useTailFrameRef: e.target.checked } : s
+                      );
+                      updateProject({ segments: updated });
+                    }}
+                    className="w-3 h-3 rounded border-slate-500 accent-indigo-500"
+                  />
+                  尾帧参考
+                </label>
               </div>
               </div>
             </div>

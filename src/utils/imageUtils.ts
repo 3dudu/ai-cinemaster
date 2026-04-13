@@ -84,7 +84,7 @@ export function getPureBase64Data(base64String: string): string {
 /**
  * 从视频 URL 生成缩略图（base64 格式）
  * @param url - 视频 URL
- * @param seekTime - 跳转到的时间点（秒），默认 1 秒
+ * @param seekTime - 跳转到的时间点（秒），默认 1 秒（取早期帧）
  * @returns Promise<string | null> - base64 图片数据或 null
  */
 export async function generateVideoThumbnail(url: string, seekTime: number = 1): Promise<string | null> {
@@ -100,8 +100,10 @@ export async function generateVideoThumbnail(url: string, seekTime: number = 1):
       resolve(null);
     }, 10000);
 
-    video.onloadeddata = () => {
-      video.currentTime = seekTime;
+    // 先加载元数据获取时长
+    video.onloadedmetadata = () => {
+      const targetTime = Math.max(0, Math.min(seekTime, video.duration - 0.1));
+      video.currentTime = targetTime;
     };
 
     video.onseeked = () => {
@@ -126,6 +128,57 @@ export async function generateVideoThumbnail(url: string, seekTime: number = 1):
     video.onerror = () => {
       clearTimeout(timeout);
       console.error("Error loading video for thumbnail from URL:", url);
+      resolve(null);
+    };
+
+    video.src = url;
+  });
+}
+
+/**
+ * 获取视频尾帧缩略图
+ * @param url - 视频 URL
+ * @returns Promise<string | null> - base64 图片数据或 null
+ */
+export async function getVideoLastFrame(url: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = "anonymous";
+
+    const timeout = setTimeout(() => {
+      console.warn("Last frame extraction timeout for URL:", url);
+      resolve(null);
+    }, 10000);
+
+    video.onloadedmetadata = () => {
+      // 跳转到最后一帧（duration - 0.1秒）
+      video.currentTime = Math.max(0, video.duration - 0.1);
+    };
+
+    video.onseeked = () => {
+      clearTimeout(timeout);
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.7));
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(null);
+      }
+    };
+
+    video.onerror = () => {
+      clearTimeout(timeout);
+      console.error("Error loading video for last frame from URL:", url);
       resolve(null);
     };
 
