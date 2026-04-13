@@ -8,11 +8,12 @@ import { DEFAULT_CLIP_EFFECTS, DEFAULT_CLIP_TRANSFORM, MediaFile, useEditor } fr
 import type { ClipEffects, ClipTransform, EffectPreset } from "./types"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"
 import { ColorPicker } from "./ui/color-picker"
+import { generateVideoThumbnail } from "../../utils/imageUtils"
 
 
 export function MediaPanel() {
   const [activeTab, setActiveTab] = useState("media")
-  const { mediaFiles, addMediaFiles, removeMediaFile, projectId, reindexMedia } = useEditor()
+  const { mediaFiles, addMediaFiles, removeMediaFile, projectId, reindexMedia, updateMediaThumbnail } = useEditor()
 
   const tabs = [
     { id: "media", label: "媒体", icon: FolderOpen },
@@ -98,6 +99,7 @@ export function MediaPanel() {
                 onRemoveFile={removeMediaFile}
                 projectId={projectId}
                 onReindexMedia={reindexMedia}
+                onUpdateThumbnail={updateMediaThumbnail}
               />
             </motion.div>
           )}
@@ -135,9 +137,10 @@ interface MediaTabProps {
   onRemoveFile: (id: string) => void
   projectId: string | null
   onReindexMedia: (mediaId: string) => Promise<void>
+  onUpdateThumbnail: (mediaId: string, thumbnail: string | null) => void
 }
 
-function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindexMedia }: MediaTabProps) {
+function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindexMedia, onUpdateThumbnail }: MediaTabProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -151,6 +154,27 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
   // Preview state for NLP results
   const [previewResult, setPreviewResult] = useState<NLPSearchResult | null>(null)
   const previewVideoRef = useRef<HTMLVideoElement>(null)
+
+  // Auto-generate thumbnails for videos that don't have one
+  useEffect(() => {
+    const generateMissingThumbnails = async () => {
+      for (const media of mediaFiles) {
+        // Only process video files without thumbnails but with a valid URL
+        if (
+          !media.thumbnail &&
+          media.type.startsWith("video/") &&
+          media.objectUrl
+        ) {
+          const thumbnail = await generateVideoThumbnail(media.objectUrl)
+          if (thumbnail) {
+            onUpdateThumbnail(media.id, thumbnail)
+          }
+        }
+      }
+    }
+
+    generateMissingThumbnails()
+  }, [mediaFiles, onUpdateThumbnail])
   
   // Format time for display
   const formatTime = (seconds: number): string => {

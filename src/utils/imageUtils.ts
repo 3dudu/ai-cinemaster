@@ -80,3 +80,55 @@ export function getPureBase64Data(base64String: string): string {
   const match = base64String.match(/^data:[a-zA-Z]+\/[a-zA-Z0-9.+-]+;base64,(.+)$/);
   return match ? match[1] : base64String;
 }
+
+/**
+ * 从视频 URL 生成缩略图（base64 格式）
+ * @param url - 视频 URL
+ * @param seekTime - 跳转到的时间点（秒），默认 1 秒
+ * @returns Promise<string | null> - base64 图片数据或 null
+ */
+export async function generateVideoThumbnail(url: string, seekTime: number = 1): Promise<string | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = "anonymous";
+
+    const timeout = setTimeout(() => {
+      console.warn("Thumbnail generation timeout for URL:", url);
+      resolve(null);
+    }, 10000);
+
+    video.onloadeddata = () => {
+      video.currentTime = seekTime;
+    };
+
+    video.onseeked = () => {
+      clearTimeout(timeout);
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.7));
+        } else {
+          resolve(null);
+        }
+      } catch {
+        // 跨域限制可能导致 canvas 无法读取像素
+        resolve(null);
+      }
+    };
+
+    video.onerror = () => {
+      clearTimeout(timeout);
+      console.error("Error loading video for thumbnail from URL:", url);
+      resolve(null);
+    };
+
+    video.src = url;
+  });
+}

@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getEnabledConfigByType } from '../../../services/modelConfigService';
 import { useDialog } from '../../dialog';
 
@@ -115,18 +115,6 @@ export function useVideoAgent() {
     timelineStateRef.current = getTimelineContext()
   }, [getTimelineContext])
 
-  const buildModelConfig = useCallback(async () => {
-    const activeModel = await getEnabledConfigByType('llm');
-    if (!activeModel) return null
-    const apiKey = activeModel.apiKey
-    if (!apiKey) return null
-    return {
-      apiBase: activeModel.apiUrl,
-      apiKey,
-      endpoint: "/v1/chat/completions",
-      model: activeModel.model
-    }
-  }, [])
 
   const handleAction = useCallback(
     (action: AgentAction) => {
@@ -292,14 +280,34 @@ export function useVideoAgent() {
     }
   }, [handleAction])
 
-  const modelConfig = buildModelConfig()
-  const transport = new DefaultChatTransport({
-    api: "/api/cutos/agent",
-    body: () => ({
-      timelineState: timelineStateRef.current || getTimelineContext(),
-      modelConfig: modelConfig || undefined,
-    }),
-  })
+  const buildModelConfig = useCallback(async () => {
+    const activeModel = await getEnabledConfigByType('llm');
+    if (!activeModel) return null
+    const apiKey = activeModel.apiKey
+    if (!apiKey) return null
+    return {
+      apiBase: activeModel.apiUrl,
+      apiKey,
+      endpoint: "/v1/chat/completions",
+      model: activeModel.model
+    }
+  }, [])
+
+  const [modelConfig, setModelConfig] = useState<Awaited<ReturnType<typeof buildModelConfig>>>(null)
+
+  useEffect(() => {
+    buildModelConfig().then(setModelConfig)
+  }, [buildModelConfig])
+
+  const transport = useMemo(() => {
+    return new DefaultChatTransport({
+      api: "/api/cutos/agent",
+      body: () => ({
+        timelineState: timelineStateRef.current || getTimelineContext(),
+        modelConfig: modelConfig || undefined,
+      }),
+    })
+  }, [modelConfig])
 
   const { messages, sendMessage, setMessages, status, error } = useChat({
     transport,

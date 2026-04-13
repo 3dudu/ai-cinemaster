@@ -190,7 +190,7 @@ function EditorContent({
       <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
         <ResizablePanel defaultSize={25} minSize={60}>
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={15} minSize={10} maxSize={20}>
+            <ResizablePanel defaultSize={15} minSize={15} maxSize={20}>
               <div className="h-full min-w-0 border-r border-slate-600 bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
                 <MediaPanel />
               </div>
@@ -210,7 +210,7 @@ function EditorContent({
           </ResizablePanelGroup>
         </ResizablePanel>
         <ResizableHandle className="bg-transparent after:bg-transparent hover:bg-slate-400/50 transition-colors" />
-        <ResizablePanel defaultSize={35} minSize={30}>
+        <ResizablePanel defaultSize={30} minSize={30}>
           <div className="h-full border-t border-slate-600 bg-[var(--bg-elevated)]">
             <Timeline />
           </div>

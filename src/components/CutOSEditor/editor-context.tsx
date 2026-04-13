@@ -146,6 +146,7 @@ interface EditorContextType {
   setTrackMuted: (trackId: string, muted: boolean) => void;
   setTrackLocked: (trackId: string, locked: boolean) => void;
   setTrackVisible: (trackId: string, visible: boolean) => void;
+  updateMediaThumbnail: (mediaId: string, thumbnail: string | null) => void;
 }
 
 const EditorContext = createContext<EditorContextType | null>(null);
@@ -297,6 +298,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const addMediaFiles = useCallback((files: MediaFile[]) => {
     setMediaFiles((prev) => [...prev, ...files.map((f) => ({ ...f, isUploading: false }))]);
     setHasUnsavedChanges(true);
+  }, []);
+
+  const updateMediaThumbnail = useCallback((mediaId: string, thumbnail: string | null) => {
+    setMediaFiles((prev) =>
+      prev.map((m) => (m.id === mediaId ? { ...m, thumbnail } : m))
+    );
   }, []);
 
   const reindexMedia = useCallback(async (_mediaId: string) => {
@@ -608,6 +615,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setTrackMuted,
     setTrackLocked,
     setTrackVisible,
+    updateMediaThumbnail,
   };
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;

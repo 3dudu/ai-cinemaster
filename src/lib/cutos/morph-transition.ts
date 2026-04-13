@@ -2,11 +2,11 @@
  * Morph 转场 - 使用万象首尾帧模型
  * 从两个相邻片段提取首尾帧，调用 DashScope 万象 kf2v API 生成转场视频
  */
-import type { TimelineClip, MediaFile } from "@/components/StageExport/CutOSEditor/editor-context";
-import { PIXELS_PER_SECOND, DEFAULT_CLIP_TRANSFORM, DEFAULT_CLIP_EFFECTS } from "@/components/StageExport/CutOSEditor/editor-context";
-import { extractLastFrame, extractThirdFrame } from "./frame-extractor";
+import type { MediaFile, TimelineClip } from "@/components/CutOSEditor/editor-context";
+import { DEFAULT_CLIP_EFFECTS, DEFAULT_CLIP_TRANSFORM, PIXELS_PER_SECOND } from "@/components/CutOSEditor/editor-context";
 import { callVideoApi } from "@/services/adapters/videoAdapter";
 import { getActiveVideoModel, getVideoModels } from "@/services/modelRegistry";
+import { extractLastFrame, extractThirdFrame } from "./frame-extractor";
 
 interface MorphTransitionResult {
   clip: TimelineClip;
