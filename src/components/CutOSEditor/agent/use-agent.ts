@@ -81,7 +81,7 @@ function getToolDescription(toolName: string, input: Record<string, unknown>): s
 
 export function useVideoAgent() {
   const editor = useEditor()
-  const { showAlert } = useDialog()
+  const showAlert = useDialog()
   const pendingActionsRef = useRef<AgentAction[]>([])
   const processedToolCallsRef = useRef<Set<string>>(new Set())
   const toolCallInfoRef = useRef<Map<string, ToolCallInfo>>(new Map())
@@ -115,8 +115,8 @@ export function useVideoAgent() {
     timelineStateRef.current = getTimelineContext()
   }, [getTimelineContext])
 
-  const buildModelConfig = useCallback(() => {
-    const activeModel = getEnabledConfigByType('llm');
+  const buildModelConfig = useCallback(async () => {
+    const activeModel = await getEnabledConfigByType('llm');
     if (!activeModel) return null
     const apiKey = activeModel.apiKey
     if (!apiKey) return null
@@ -267,7 +267,7 @@ export function useVideoAgent() {
 
   const handleIsolateVoice = useCallback(
     async (clipId: string, _toolCallId: string): Promise<{ success: boolean; error?: string }> => {
-      showAlert("语音分离功能暂未集成，请先在模型配置中配置相关 API", { type: "warning" })
+      showAlert.alert({message:"语音分离功能暂未集成，请先在模型配置中配置相关 API",  type: "warning" })
       return { success: false, error: "功能暂未集成" }
     },
     [showAlert]
@@ -279,7 +279,7 @@ export function useVideoAgent() {
       targetLanguage: string,
       toolCallId: string
     ): Promise<{ success: boolean; error?: string }> => {
-      showAlert("配音功能暂未集成，请先在模型配置中配置相关 API", { type: "warning" })
+      showAlert.alert({message:"配音功能暂未集成，请先在模型配置中配置相关 API",  type: "warning" })
       return { success: false, error: "功能暂未集成" }
     },
     [showAlert]
@@ -412,7 +412,7 @@ export function useVideoAgent() {
               toolInfo.status = "error"
               toolInfo.description = err?.message || "Morph 转场失败"
               toolCallInfoRef.current.set(tc.toolCallId, { ...toolInfo })
-              showAlert(err?.message || "Morph 转场失败", { type: "error" })
+              showAlert.alert({message:err?.message || "Morph 转场失败", type: "error" })
               forceUpdate((n) => n + 1)
             })
           return
@@ -515,7 +515,7 @@ export function useVideoAgent() {
         e?.preventDefault()
         if (!input.trim() || isLoading) return
         if (!modelConfig) {
-          showAlert("请先在模型配置中配置对话模型（如通义千问、豆包等）并设置 API Key", { type: "warning" })
+          showAlert.alert({message:"请先在模型配置中配置对话模型（如通义千问、豆包等）并设置 API Key",  type: "warning" })
           return
         }
         const message = input
@@ -529,7 +529,7 @@ export function useVideoAgent() {
     sendQuickAction: useCallback(async (message: string) => {
       if (isLoading) return
       if (!modelConfig) {
-        showAlert("请先在模型配置中配置对话模型", { type: "warning" })
+        showAlert.alert({message:"请先在模型配置中配置对话模型",  type: "warning" })
         return
       }
       await sendMessage({ text: message })

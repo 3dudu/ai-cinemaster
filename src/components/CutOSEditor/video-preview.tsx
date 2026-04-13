@@ -402,6 +402,7 @@ export function VideoPreview() {
             canvas.width = video.videoWidth
             canvas.height = video.videoHeight
           }
+
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
         }
         // Wait for video to be ready, then draw
@@ -1098,7 +1099,7 @@ export function VideoPreview() {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Video Preview Area */}
-      <div className="flex flex-1 min-h-0 items-center justify-center bg-black/40 p-4">
+      <div className="flex flex-1 min-h-0 items-center justify-center bg-slate-800/50 p-2">
         <div
           ref={previewContainerRef}
           className={`relative overflow-hidden bg-black ${isFullscreen
@@ -1169,15 +1170,15 @@ export function VideoPreview() {
               {chromakeyEnabled && (
                 <canvas
                   ref={chromakeyCanvasRef}
-                  className={`absolute inset-0 h-full w-full ${isEyedropperActive ? "cursor-crosshair" : "cursor-pointer"}`}
+                  className={`absolute inset-0 h-full w-full object-contain ${isEyedropperActive ? "cursor-crosshair" : "cursor-pointer"}`}
                   style={{ ...videoStyle, zIndex: 1 }}
                   onClick={handleVideoClick}
                 />
               )}
               {/* Debug indicator when eyedropper is active */}
               {isEyedropperActive && (
-                <div className="absolute top-2 left-2 z-20 rounded bg-[var(--accent)]/90 px-2 py-1 text-xs text-[var(--accent-on)]">
-                  Click on video to sample color
+                <div className="absolute top-2 left-2 z-20 rounded bg-slate-500/90 px-2 py-1 text-xs text-[var(--accent-on)]">
+                  点击视频以取样颜色
                 </div>
               )}
               {/* VHS Scanlines Overlay */}
@@ -1289,7 +1290,7 @@ export function VideoPreview() {
                       >
                         {/* Progress bar - 使用 transition 使播放时移动更平滑 */}
                         <div
-                          className="absolute left-0 top-0 h-full rounded-full bg-[var(--accent)] transition-[width] duration-75 ease-linear"
+                          className="absolute left-0 top-0 h-full rounded-full bg-slate-500 transition-[width] duration-75 ease-linear"
                           style={{ width: `${progressPercent}%` }}
                         />
 
@@ -1309,7 +1310,7 @@ export function VideoPreview() {
                       <div className="flex items-center gap-4">
                         <button
                           onClick={handlePlayPause}
-                          className="rounded-full bg-white p-2.5 text-black hover:bg-white/90 transition-colors"
+                          className="rounded-full border border-slate-600 bg-slate-700 text-slate-100 text-xs font-bold transition-all hover:bg-slate-500 transition-colors"
                         >
                           {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}
                         </button>
@@ -1344,9 +1345,9 @@ export function VideoPreview() {
           ) : (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
-                <Film className="mx-auto mb-2 h-16 w-16 text-[var(--text-muted)]" />
-                <div className="text-sm text-[var(--text-muted)]">
-                  {hasClips ? "Move playhead over a clip" : "Drop media on timeline to preview"}
+                <Film className="mx-auto mb-2 h-16 w-16 text-slate-100" />
+                <div className="text-sm text-slate-100">
+                  {hasClips ? "将播放头移到片段上" : "将媒体拖放到时间轴以预览"}
                 </div>
               </div>
             </div>
@@ -1355,32 +1356,32 @@ export function VideoPreview() {
       </div>
 
       {/* Transport Controls */}
-      <div className="shrink-0 border-t border-slate-600 bg-[var(--bg-elevated)] px-6 py-4">
+      <div className="shrink-0 border-t border-slate-600 bg-slate-900 px-6 py-2">
         <div className="mx-auto max-w-5xl">
           {/* Playhead Scrubber */}
           <div className="mb-3 flex items-center gap-3">
-            <div className="font-mono text-xs text-[var(--text-muted)] w-16">
+            <div className="font-mono text-xs text-slate-100 w-16">
               {formatTime(displayTime)}
             </div>
             <div
               ref={scrubberRef}
-              className="relative h-1 flex-1 cursor-pointer rounded-full bg-[var(--bg-secondary)]/50"
+              className="relative h-1 flex-1 cursor-pointer rounded-full bg-slate-500/50"
               onClick={handleScrubberClick}
               onMouseDown={handleScrubberDrag}
             >
               {/* Progress bar - 使用 transition 使播放时移动更平滑 */}
               <div
-                className="absolute left-0 top-0 h-full rounded-full bg-[var(--accent)] transition-[width] duration-75 ease-linear"
+                className="absolute left-0 top-0 h-full rounded-full bg-slate-500 transition-[width] duration-75 ease-linear"
                 style={{ width: `${progressPercent}%` }}
               />
 
               {/* Playhead handle */}
               <div
-                className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--accent)] ring-2 ring-[var(--bg-primary)]"
+                className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-500 ring-2 ring-slate-600"
                 style={{ left: `${progressPercent}%` }}
               />
             </div>
-            <div className="font-mono text-xs text-[var(--text-muted)] w-16 text-right">
+            <div className="font-mono text-xs text-slate-100 w-16 text-right">
               {formatTime(Math.max(timelineEndTime, displayTime, 1))}
             </div>
           </div>
@@ -1389,30 +1390,30 @@ export function VideoPreview() {
           <div className="flex items-center justify-center gap-2">
             <button
               onClick={handleSkipBack}
-              className="rounded-md p-2 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="rounded-md p-2 text-slate-100 bg-slate-600 hover:bg-slate-500 hover:text-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={!hasClips}
             >
               <SkipBack className="h-4 w-4" />
             </button>
             <button
               onClick={handlePlayPause}
-              className="rounded-md bg-[var(--accent)] p-3 text-[var(--accent-on)] hover:bg-[var(--accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="rounded-md bg-slate-500 p-3 text-slate-50 hover:bg-slate-500/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={!hasClips}
             >
               {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </button>
             <button
               onClick={handleSkipForward}
-              className="rounded-md p-2 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="rounded-md p-2 text-slate-100 bg-slate-600 hover:bg-slate-500 hover:text-slate-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={!hasClips}
             >
               <SkipForward className="h-4 w-4" />
             </button>
-            <div className="w-px h-6 bg-[var(--border-primary)] mx-1" />
+            <div className="w-px h-6 bg-slate-400 mx-1" />
             <button
               onClick={toggleFullscreen}
-              className="rounded-md p-2 text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
-              title={isFullscreen ? "Exit fullscreen (ESC)" : "Enter fullscreen (F)"}
+              className="rounded-md p-2 text-slate-100 bg-slate-600 hover:bg-slate-500 hover:text-slate-50 cursor-pointer"
+              title={isFullscreen ? "退出全屏 (ESC)" : "进入全屏 (F)"}
             >
               {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
             </button>

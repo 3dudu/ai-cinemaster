@@ -813,7 +813,7 @@ export function Timeline() {
       {/* Timeline Header */}
       <div className="flex items-center justify-between border-b border-slate-600 px-4 py-2">
         <div className="flex items-center gap-3">
-          <div className="text-xs font-medium text-[var(--text-primary)]">Timeline</div>
+          <div className="text-xs font-medium text-[var(--text-primary)]">时间轴</div>
           {/* Editing Toolbar */}
           <div className="flex items-center gap-1 border-l border-slate-600 pl-3 ml-3">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -825,7 +825,7 @@ export function Timeline() {
                 }`}
                 onClick={handleCut}
                 disabled={!canCut}
-                title="Split clip at playhead (S) - 需将播放头移到要剪切的片段上"
+                title="在播放头处分割片段 (S)"
               >
                 <Scissors className="h-3.5 w-3.5" />
               </Button>
@@ -837,12 +837,12 @@ export function Timeline() {
                 className="h-7 w-7 p-0"
                 onClick={handleDelete}
                 disabled={!selectedClipId && !activeClip}
-                title="Delete clip (Delete)"
+                title="删除片段 (Delete)"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </motion.div>
-            <div className="w-px h-3 bg-[var(--border-primary)] mx-0.5" />
+            <div className="w-px h-3 bg-slate-400 mx-0.5" />
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant="ghost"
@@ -850,7 +850,7 @@ export function Timeline() {
                 className="h-7 w-7 p-0"
                 onClick={undo}
                 disabled={!canUndo}
-                title="Undo (Ctrl+Z / Cmd+Z)"
+                title="撤销 (Ctrl+Z / Cmd+Z)"
               >
                 <Undo2 className="h-3.5 w-3.5" />
               </Button>
@@ -862,12 +862,12 @@ export function Timeline() {
                 className="h-7 w-7 p-0"
                 onClick={redo}
                 disabled={!canRedo}
-                title="Redo (Ctrl+Shift+Z / Cmd+Shift+Z)"
+                title="重做 (Ctrl+Shift+Z / Cmd+Shift+Z)"
               >
                 <Redo2 className="h-3.5 w-3.5" />
               </Button>
             </motion.div>
-            <div className="w-px h-3 bg-[var(--border-primary)] mx-0.5" />
+            <div className="w-px h-3 bg-slate-400 mx-0.5" />
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant="ghost"
@@ -875,7 +875,7 @@ export function Timeline() {
                 className="h-7 w-7 p-0"
                 onClick={handleCopy}
                 disabled={!selectedClipId && !activeClip}
-                title="Copy clip (Ctrl+C / Cmd+C)"
+                title="复制片段 (Ctrl+C / Cmd+C)"
               >
                 <Copy className="h-3.5 w-3.5" />
               </Button>
@@ -887,7 +887,7 @@ export function Timeline() {
                 className="h-7 w-7 p-0"
                 onClick={pasteClip}
                 disabled={!canPaste}
-                title="Paste clip (Ctrl+V / Cmd+V)"
+                title="粘贴片段 (Ctrl+V / Cmd+V)"
               >
                 <Clipboard className="h-3.5 w-3.5" />
               </Button>
@@ -899,7 +899,7 @@ export function Timeline() {
                 className="h-7 w-7 p-0"
                 onClick={handleDuplicate}
                 disabled={!selectedClipId && !activeClip}
-                title="Duplicate clip (Ctrl+D / Cmd+D)"
+                title="复制片段 (Ctrl+D / Cmd+D)"
               >
                 <CopyPlus className="h-3.5 w-3.5" />
               </Button>
@@ -915,9 +915,9 @@ export function Timeline() {
             className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            title="Zoom to fit all clips"
+            title="缩放以适应所有片段"
           >
-            Fit
+            适应
           </motion.button>
           <div className="flex items-center gap-1">
             <motion.button 
@@ -926,7 +926,7 @@ export function Timeline() {
               className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               whileHover={{ scale: zoomLevel > 25 ? 1.05 : 1 }}
               whileTap={{ scale: zoomLevel > 25 ? 0.95 : 1 }}
-              title="Zoom out (max 10 minutes)"
+              title="缩小（最大10分钟）"
             >
               −
             </motion.button>
@@ -939,7 +939,7 @@ export function Timeline() {
               className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               whileHover={{ scale: zoomLevel < 500 ? 1.05 : 1 }}
               whileTap={{ scale: zoomLevel < 500 ? 0.95 : 1 }}
-              title="Zoom in (max detail)"
+              title="放大（最大精度）"
             >
               +
             </motion.button>
@@ -1177,10 +1177,10 @@ export function Timeline() {
                       onMouseDown={(e) => handleClipMouseDown(e, clip.id)}
                       onContextMenu={(e) => handleClipContextMenu(e, clip.id)}
                         className={`absolute z-10 mx-1 my-1.5 h-9 rounded border overflow-hidden group ${
-                        clip.type === "video" ? "bg-[var(--accent)]/80 border-[var(--accent)]" : "bg-[var(--info)]/80 border-[var(--info)]"
+                        clip.type === "video" ? "bg-slate-500/60 border-slate-200" : "bg-slate-900/80 border-slate-600"
                         } ${draggedClip === clip.id ? "opacity-70 cursor-grabbing z-50" : trimState?.clipId === clip.id ? "cursor-ew-resize z-50" : "cursor-grab"} ${
-                          selectedClipId === clip.id ? "ring-2 ring-white" : ""
-                        } ${activeClip?.id === clip.id ? "ring-2 ring-red-500/50" : ""}`}
+                          selectedClipId === clip.id ? "ring-2 ring-slate-300/80" : ""
+                        } ${activeClip?.id === clip.id ? "ring-2 ring-red-500/80" : ""}`}
                       style={{ left: `${visualStartTime}px`, width: `${Math.max(20, visualDuration)}px` }}
                     >
                       {clip.type === "video" ? (
@@ -1225,9 +1225,9 @@ export function Timeline() {
                         >
                           {/* Grip lines */}
                           <div className="absolute inset-y-0 left-0.5 flex flex-col items-center justify-center gap-0.5">
-                            <div className="w-0.5 h-1 bg-white/80 rounded-full"></div>
-                            <div className="w-0.5 h-1 bg-white/80 rounded-full"></div>
-                            <div className="w-0.5 h-1 bg-white/80 rounded-full"></div>
+                            <div className="w-0.5 h-1 bg-slate-400 rounded-full"></div>
+                            <div className="w-0.5 h-1 bg-slate-400 rounded-full"></div>
+                            <div className="w-0.5 h-1 bg-slate-400 rounded-full"></div>
                           </div>
                         </div>
                         <div
@@ -1238,9 +1238,9 @@ export function Timeline() {
                         >
                           {/* Grip lines */}
                           <div className="absolute inset-y-0 right-0.5 flex flex-col items-center justify-center gap-0.5">
-                            <div className="w-0.5 h-1 bg-white/80 rounded-full"></div>
-                            <div className="w-0.5 h-1 bg-white/80 rounded-full"></div>
-                            <div className="w-0.5 h-1 bg-white/80 rounded-full"></div>
+                            <div className="w-0.5 h-1 bg-slate-400 rounded-full"></div>
+                            <div className="w-0.5 h-1 bg-slate-400 rounded-full"></div>
+                            <div className="w-0.5 h-1 bg-slate-400 rounded-full"></div>
                           </div>
                         </div>
                         
@@ -1292,7 +1292,7 @@ export function Timeline() {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center text-[var(--text-muted)]/50">
             <Film className="h-8 w-8 mx-auto mb-2" />
-            <p className="text-sm">Drag media here to start editing</p>
+            <p className="text-sm">拖拽媒体到此处开始编辑</p>
           </div>
         </div>
       )}
@@ -1316,7 +1316,7 @@ export function Timeline() {
             disabled={!activeClip || activeClip.id !== contextMenu.clipId}
           >
             <Scissors className="h-3.5 w-3.5" />
-            Split at Playhead
+            在播放头处分割
             <span className="ml-auto text-xs text-[var(--text-muted)]">S</span>
           </button>
           <button
@@ -1327,7 +1327,7 @@ export function Timeline() {
             }}
           >
             <Copy className="h-3.5 w-3.5" />
-            Copy
+            复制
             <span className="ml-auto text-xs text-[var(--text-muted)]">Ctrl+C</span>
           </button>
           <button
@@ -1339,7 +1339,7 @@ export function Timeline() {
             }}
           >
             <CopyPlus className="h-3.5 w-3.5" />
-            Duplicate
+            复制
             <span className="ml-auto text-xs text-[var(--text-muted)]">Ctrl+D</span>
           </button>
           <button
@@ -1351,10 +1351,10 @@ export function Timeline() {
             disabled={!canPaste}
           >
             <Clipboard className="h-3.5 w-3.5" />
-            Paste
+            粘贴
             <span className="ml-auto text-xs text-[var(--text-muted)]">Ctrl+V</span>
           </button>
-          <div className="h-px bg-[var(--border-primary)] my-1" />
+          <div className="h-px bg-slate-400 my-1" />
           <button
             className="w-full px-3 py-2 text-sm text-left hover:bg-[var(--error-bg)] hover:text-[var(--error-text)] flex items-center gap-2 cursor-pointer"
             onClick={() => {
@@ -1363,7 +1363,7 @@ export function Timeline() {
             }}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Delete
+            删除
             <span className="ml-auto text-xs text-[var(--text-muted)]">Del</span>
           </button>
         </div>

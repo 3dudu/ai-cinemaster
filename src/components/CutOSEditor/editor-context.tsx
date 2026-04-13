@@ -3,20 +3,20 @@
  */
 import {
   createContext,
-  useContext,
-  useState,
-  useCallback,
   ReactNode,
+  useCallback,
+  useContext,
   useEffect,
   useRef,
+  useState,
 } from 'react';
 import type {
-  TimelineData,
-  TimelineClipData,
-  MediaFileData,
-  ClipTransform,
-  ClipEffects,
   Caption,
+  ClipEffects,
+  ClipTransform,
+  MediaFileData,
+  TimelineClipData,
+  TimelineData,
 } from './types';
 
 export const PIXELS_PER_SECOND = 10;
@@ -35,6 +35,9 @@ export interface MediaFile {
   isUploading?: boolean;
   captions?: Caption[];
   captionsGenerating?: boolean;
+  twelveLabsStatus: string;
+  twelveLabsVideoId: string;
+  twelveLabsError:string;
 }
 
 export interface TimelineClip {
@@ -410,9 +413,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       isUploading: false,
       captions: m.captions,
       captionsGenerating: false,
+      twelveLabsError: '',
+      twelveLabsStatus: '',
+      twelveLabsVideoId: m.id,
     }));
     setMediaFiles(restoredMedia);
     setTimelineClips(restoredClips);
+    // 新增：恢复项目分辨率
+    if (data.projectResolution) {
+      setProjectResolution(data.projectResolution);
+    }
     setHasUnsavedChanges(false);
   }, []);
 

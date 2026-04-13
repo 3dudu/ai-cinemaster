@@ -24,9 +24,11 @@ interface EditorShellProps {
 function EditorContent({
   onClose,
   projectTitle,
+  projectResolution,
 }: {
   onClose: () => void;
   projectTitle?: string;
+  projectResolution?: string;
 }) {
   const [showExportModal, setShowExportModal] = useState(false);
   const {
@@ -50,7 +52,6 @@ function EditorContent({
     isPlaying,
     setIsPlaying,
     setCurrentTime,
-    projectResolution,
   } = useEditor();
 
   const handleKeyDown = useCallback(
@@ -149,12 +150,12 @@ function EditorContent({
               >
                 <ArrowLeft className="h-4 w-4" />
               </motion.div>
-              Back
+              返回
             </Button>
           </motion.div>
-          <div className="h-4 w-px bg-[var(--border-primary)]" />
+          <div className="h-4 w-px bg-slate-400" />
           <span className="text-sm font-semibold text-[var(--text-primary)]">
-            {projectTitle || 'AI Edit'}
+            {projectTitle || 'AI 剪辑'}
           </span>
           <span className="text-xs text-[var(--text-muted)]">{resolutionDisplay}</span>
         </div>
@@ -167,7 +168,7 @@ function EditorContent({
             disabled={isSaving || !hasUnsavedChanges}
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save' : 'Saved'}
+            {isSaving ? '保存中...' : hasUnsavedChanges ? '保存' : '已保存'}
           </Button>
           <motion.div
             whileHover={{ scale: 1.02 }}
@@ -176,7 +177,7 @@ function EditorContent({
           >
             <Button size="sm" className="gap-2" onClick={() => setShowExportModal(true)}>
               <Download className="h-4 w-4" />
-              Export
+              导出
             </Button>
           </motion.div>
         </div>
@@ -187,29 +188,29 @@ function EditorContent({
       {/* Main Content - 与 CutOS 相同：左媒体库 | 中预览 | 右 Inspector */}
       {/* v2 API: defaultSize 为数字 1-100 表示百分比 */}
       <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
-        <ResizablePanel defaultSize={25} minSize={20}>
+        <ResizablePanel defaultSize={25} minSize={60}>
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={20}>
+            <ResizablePanel defaultSize={15} minSize={10} maxSize={20}>
               <div className="h-full min-w-0 border-r border-slate-600 bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
                 <MediaPanel />
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={35} minSize={30}>
+            <ResizablePanel defaultSize={55} minSize={50}>
               <div className="h-full min-w-0 overflow-hidden flex flex-col">
                 <VideoPreview />
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={25} minSize={15} maxSize={40}>
+            <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
               <div className="h-full min-w-0 border-l border-slate-600 bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
                 <InspectorPanel />
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
         </ResizablePanel>
-        <ResizableHandle className="bg-transparent after:bg-transparent hover:bg-[var(--border-primary)]/50 transition-colors" />
-        <ResizablePanel defaultSize={25} minSize={20}>
+        <ResizableHandle className="bg-transparent after:bg-transparent hover:bg-slate-400/50 transition-colors" />
+        <ResizablePanel defaultSize={35} minSize={30}>
           <div className="h-full border-t border-slate-600 bg-[var(--bg-elevated)]">
             <Timeline />
           </div>
@@ -250,9 +251,10 @@ function EditorContentWithData({
         storageUrl: m.storageUrl,
       })),
       clips: initialData.clips,
+      projectResolution: initialData.projectResolution,
     };
     loadTimelineData(data);
   }, [initialData, loadTimelineData]);
 
-  return <EditorContent onClose={onClose} projectTitle={projectTitle} />;
+  return <EditorContent onClose={onClose} projectTitle={projectTitle} projectResolution={initialData.projectResolution} />;
 }

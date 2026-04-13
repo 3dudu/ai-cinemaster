@@ -15,8 +15,8 @@ export function MediaPanel() {
   const { mediaFiles, addMediaFiles, removeMediaFile, projectId, reindexMedia } = useEditor()
 
   const tabs = [
-    { id: "media", label: "Media", icon: FolderOpen },
-    { id: "effects", label: "Effects", icon: Wand2 },
+    { id: "media", label: "媒体", icon: FolderOpen },
+    { id: "effects", label: "效果", icon: Wand2 },
   ]
 
   return (
@@ -372,6 +372,11 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
             thumbnail,
             type: file.type || "video/mp4", // Default to mp4 if type is missing
             objectUrl: URL.createObjectURL(file),
+            twelveLabsVideoId:'',
+            twelveLabsStatus: 'idle',
+            captions: null,
+            captionsGenerating: false,
+            twelveLabsError: null,
           })
         } catch (err) {
           console.error("Error processing file:", file.name, err)
@@ -385,6 +390,11 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
             thumbnail: null,
             type: file.type || "video/mp4",
             objectUrl: URL.createObjectURL(file),
+            twelveLabsVideoId:'',
+            twelveLabsStatus: 'idle',
+            captions: null,
+            captionsGenerating: false,
+            twelveLabsError: null,
           })
         }
       }
@@ -585,7 +595,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
           )}
           <input
             type="text"
-            placeholder={hasIndexedMedia ? "Search by name or describe what you're looking for..." : "Search media..."}
+            placeholder={hasIndexedMedia ? "按名称搜索或描述你要找的内容..." : "搜索媒体..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-md border border-[var(--border-secondary)] bg-[var(--bg-primary)] pl-8 pr-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
@@ -595,13 +605,13 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
         {hasIndexedMedia && searchQuery.length > 0 && filteredFiles.length === 0 && !isSearching && !showNlpResults && (
           <div className="mt-1.5 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
             <Zap className="h-3 w-3" />
-            <span>Try natural language: "person walking", "sunset scene", etc.</span>
+            <span>试试自然语言："人走路"、"日落场景"等</span>
           </div>
         )}
         {indexingCount > 0 && (
           <div className="mt-1.5 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
             <Loader2 className="h-3 w-3 animate-spin" />
-            <span>Indexing {indexingCount} video{indexingCount > 1 ? 's' : ''} for AI search...</span>
+            <span>正在为 AI 搜索索引 {indexingCount} 个视频...</span>
           </div>
         )}
       </div>
@@ -637,10 +647,10 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                 }`}
             />
             <p className="text-sm font-medium text-[var(--text-primary)] mb-1">
-              Drop videos here
+              拖放视频到此处
             </p>
             <p className="text-xs text-[var(--text-muted)]">
-              or click to browse
+              或点击浏览
             </p>
             <p className="text-[10px] text-[var(--text-muted)]/60 mt-2">
               MP4, MOV, WebM, AVI
@@ -657,7 +667,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
               whileTap={{ scale: 0.98 }}
             >
               <Upload className="h-3.5 w-3.5" />
-              Add more videos
+              添加更多视频
             </motion.button>
 
             {/* Media items */}
@@ -704,7 +714,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                     >
                       <div className="flex flex-col items-center gap-1">
                         <Loader2 className="h-6 w-6 text-white animate-spin" />
-                        <span className="text-[10px] text-white">Uploading...</span>
+                        <span className="text-[10px] text-white">上传中...</span>
                       </div>
                     </motion.div>
                   )}
@@ -728,7 +738,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                     {media.storageUrl ? (
                       <motion.div
                         className="rounded-full bg-emerald-500/80 p-1"
-                        title="Saved to cloud"
+                        title="已保存到云端"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 500, damping: 25 }}
@@ -736,7 +746,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                         <Cloud className="h-2.5 w-2.5 text-white" />
                       </motion.div>
                     ) : !media.isUploading && (
-                      <div className="rounded-full bg-amber-500/80 p-1" title="Not saved">
+                      <div className="rounded-full bg-amber-500/80 p-1" title="未保存">
                         <CloudOff className="h-2.5 w-2.5 text-white" />
                       </div>
                     )}
@@ -745,7 +755,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                     {media.twelveLabsStatus === "indexing" || media.twelveLabsStatus === "pending" ? (
                       <motion.div
                         className="rounded-full bg-cyan-500/80 p-1"
-                        title="Indexing..."
+                        title="索引中..."
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 500, damping: 25 }}
@@ -755,7 +765,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                     ) : media.twelveLabsStatus === "ready" ? (
                       <motion.div
                         className="rounded-full bg-cyan-500/80 p-1"
-                        title="Searchable"
+                        title="可搜索"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: "spring", stiffness: 500, damping: 25 }}
@@ -785,7 +795,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                           onReindexMedia(media.id)
                         }}
                         className="rounded-full bg-cyan-500/80 p-1 hover:bg-cyan-500 cursor-pointer"
-                        title={media.twelveLabsStatus === "failed" ? "Retry indexing" : "Make searchable"}
+                        title={media.twelveLabsStatus === "failed" ? "重试索引" : "设为可搜索"}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                       >
@@ -800,7 +810,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                         onRemoveFile(media.id)
                       }}
                       className="rounded-full bg-black/60 p-1 hover:bg-black/80 cursor-pointer"
-                      title="Remove"
+                      title="移除"
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                     >
@@ -821,10 +831,10 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
 
             {filteredFiles.length === 0 && searchQuery && !showNlpResults && !isSearching && (
               <div className="text-center py-8 text-xs text-[var(--text-muted)]">
-                No media matching "{searchQuery}"
+                没有匹配"{searchQuery}"的媒体
                 {nlpAvailable && hasIndexedMedia && (
                   <div className="mt-2 text-[10px]">
-                    Try using natural language to search video content
+                    尝试使用自然语言搜索视频内容
                   </div>
                 )}
               </div>
@@ -835,7 +845,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
               <div className="mt-2 space-y-2">
                 <div className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--text-muted)]">
                   <Zap className="h-3 w-3 text-[var(--accent)]" />
-                  <span>AI Found {nlpResults.length} matching moment{nlpResults.length > 1 ? 's' : ''}</span>
+                  <span>AI 找到 {nlpResults.length} 个匹配片段</span>
                 </div>
                 <AnimatePresence mode="popLayout">
                   {nlpResults.map((result, index) => (
@@ -896,7 +906,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                         
                         {/* Click to preview hint */}
                         <div className="flex items-center text-[9px] text-[var(--text-muted)]/60 group-hover:text-[var(--accent)]/60 transition-colors whitespace-nowrap">
-                          Click to preview
+                          点击预览
                         </div>
                       </div>
                     </motion.div>
@@ -962,7 +972,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
               {/* Footer with drag hint */}
               <div className="p-3 border-t flex items-center justify-between">
                 <div className="text-xs text-[var(--text-muted)]">
-                  Press Esc or click outside to close
+                  按 Esc 或点击外部关闭
                 </div>
                 <div 
                   className="flex items-center gap-2 text-xs text-[var(--accent)] cursor-grab active:cursor-grabbing px-3 py-1.5 rounded border border-[var(--accent)]/30 hover:bg-[var(--accent-bg)] transition-colors"
@@ -970,7 +980,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                   onDragStart={(e) => handleNlpResultDragStart(e as unknown as React.DragEvent<Element>, previewResult)}
                 >
                   <GripVertical className="h-3 w-3" />
-                  <span>Drag to timeline</span>
+                  <span>拖到时间轴</span>
                 </div>
               </div>
             </motion.div>
@@ -982,15 +992,15 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
 }
 
 const EFFECT_PRESETS: { id: EffectPreset; label: string }[] = [
-  { id: "none", label: "None" },
-  { id: "grayscale", label: "Black & White" },
-  { id: "sepia", label: "Sepia" },
-  { id: "invert", label: "Invert" },
-  { id: "cyberpunk", label: "Cyberpunk" },
-  { id: "noir", label: "Film Noir" },
-  { id: "vhs", label: "VHS Retro" },
-  { id: "glitch", label: "Glitch" },
-  { id: "ascii", label: "Dreamy" },
+  { id: "none", label: "无" },
+  { id: "grayscale", label: "黑白" },
+  { id: "sepia", label: "复古棕" },
+  { id: "invert", label: "反色" },
+  { id: "cyberpunk", label: "赛博朋克" },
+  { id: "noir", label: "黑色电影" },
+  { id: "vhs", label: "VHS 复古" },
+  { id: "glitch", label: "故障风" },
+  { id: "ascii", label: "梦幻" },
 ]
 
 function EffectsTab() {
@@ -1011,7 +1021,7 @@ function EffectsTab() {
   if (!selectedClip) {
     return (
       <div className="flex h-full items-center justify-center p-3">
-        <p className="text-xs text-[var(--text-muted)]">Select a clip to edit</p>
+        <p className="text-xs text-[var(--text-muted)]">选择一个片段进行编辑</p>
       </div>
     )
   }
@@ -1110,7 +1120,7 @@ function EffectsTab() {
           whileTap={{ scale: 0.95 }}
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
-          Reset All
+          全部重置
         </motion.button>
       </div>
       
@@ -1118,13 +1128,13 @@ function EffectsTab() {
         {/* Transform Accordion */}
         <AccordionItem value="transform" className="border-slate-600">
           <AccordionTrigger className="px-3 py-2 text-xs font-medium hover:no-underline">
-            Transform
+            变换
           </AccordionTrigger>
           <AccordionContent className="px-3 pb-3">
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-[var(--text-muted)] mb-1 block">Position X</label>
+                  <label className="text-xs text-[var(--text-muted)] mb-1 block">位置 X</label>
                   <input
                     type="number"
                     value={transform.positionX}
@@ -1133,7 +1143,7 @@ function EffectsTab() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-[var(--text-muted)] mb-1 block">Position Y</label>
+                  <label className="text-xs text-[var(--text-muted)] mb-1 block">位置 Y</label>
                   <input
                     type="number"
                     value={transform.positionY}
@@ -1145,7 +1155,7 @@ function EffectsTab() {
               
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-[var(--text-muted)]">Scale</span>
+                  <span className="text-[var(--text-muted)]">缩放</span>
                   <span className="text-[var(--text-muted)]">{transform.scale}%</span>
                 </div>
                 <input
@@ -1160,7 +1170,7 @@ function EffectsTab() {
 
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-[var(--text-muted)]">Opacity</span>
+                  <span className="text-[var(--text-muted)]">不透明度</span>
                   <span className="text-[var(--text-muted)]">{transform.opacity}%</span>
                 </div>
                 <input
@@ -1180,7 +1190,7 @@ function EffectsTab() {
         <AccordionItem value="presets" className="border-slate-600">
           <AccordionTrigger className="px-3 py-2 text-xs font-medium hover:no-underline">
             <div className="flex items-center justify-between w-full pr-2">
-              <span>Presets</span>
+              <span>预设</span>
               <span className="text-[var(--text-muted)] font-normal">{currentPresetLabel}</span>
             </div>
           </AccordionTrigger>
@@ -1229,13 +1239,13 @@ function EffectsTab() {
         {/* Adjustments Accordion */}
         <AccordionItem value="adjustments" className="border-slate-600">
           <AccordionTrigger className="px-3 py-2 text-xs font-medium hover:no-underline">
-            Adjustments
+            调整
           </AccordionTrigger>
           <AccordionContent className="px-3 pb-3">
             <div className="space-y-3">
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">Blur</span>
+                  <span className="text-[var(--text-muted)]">模糊</span>
                   <span className="text-[var(--text-muted)]">{effects.blur}px</span>
                 </div>
                 <input
@@ -1250,7 +1260,7 @@ function EffectsTab() {
               
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">Brightness</span>
+                  <span className="text-[var(--text-muted)]">亮度</span>
                   <span className="text-[var(--text-muted)]">{effects.brightness}%</span>
                 </div>
                 <input
@@ -1265,7 +1275,7 @@ function EffectsTab() {
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">Contrast</span>
+                  <span className="text-[var(--text-muted)]">对比度</span>
                   <span className="text-[var(--text-muted)]">{effects.contrast}%</span>
                 </div>
                 <input
@@ -1280,7 +1290,7 @@ function EffectsTab() {
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">Saturation</span>
+                  <span className="text-[var(--text-muted)]">饱和度</span>
                   <span className="text-[var(--text-muted)]">{effects.saturate}%</span>
                 </div>
                 <input
@@ -1295,7 +1305,7 @@ function EffectsTab() {
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">Hue Rotate</span>
+                  <span className="text-[var(--text-muted)]">色相旋转</span>
                   <span className="text-[var(--text-muted)]">{effects.hueRotate}°</span>
                 </div>
                 <input
@@ -1315,7 +1325,7 @@ function EffectsTab() {
         <AccordionItem value="chromakey" className="border-slate-600">
           <div className="flex items-center justify-between border-b border-slate-600 px-3 py-2">
             <AccordionTrigger className="flex-1 text-xs font-medium hover:no-underline py-0">
-              <span>Green Screen</span>
+              <span>绿幕</span>
             </AccordionTrigger>
             <motion.button
               type="button"
@@ -1345,7 +1355,7 @@ function EffectsTab() {
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </motion.div>
-                    <span>On</span>
+                    <span>开</span>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -1357,7 +1367,7 @@ function EffectsTab() {
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   >
                     <EyeOff className="h-3.5 w-3.5" />
-                    <span>Off</span>
+                    <span>关</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1366,7 +1376,7 @@ function EffectsTab() {
           <AccordionContent className="px-3 pb-3">
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-[var(--text-muted)] mb-1 block">Key Color</label>
+                <label className="text-xs text-[var(--text-muted)] mb-1 block">键颜色</label>
                 <ColorPicker
                   value={effects.chromakey?.keyColor ?? "#00FF00"}
                   onChange={(color) => handleChromakeyChange("keyColor", color)}
@@ -1376,7 +1386,7 @@ function EffectsTab() {
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">Similarity</span>
+                  <span className="text-[var(--text-muted)]">相似度</span>
                   <span className="text-[var(--text-muted)]">{((effects.chromakey?.similarity ?? 0.4) * 100).toFixed(0)}%</span>
                 </div>
                 <input
@@ -1389,12 +1399,12 @@ function EffectsTab() {
                   className="w-full accent-primary"
                   disabled={!effects.chromakey?.enabled}
                 />
-                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">How close colors must be to be removed</p>
+                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">颜色需要多接近才会被移除</p>
               </div>
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">Smoothness</span>
+                  <span className="text-[var(--text-muted)]">平滑度</span>
                   <span className="text-[var(--text-muted)]">{((effects.chromakey?.smoothness ?? 0.1) * 100).toFixed(0)}%</span>
                 </div>
                 <input
@@ -1407,12 +1417,12 @@ function EffectsTab() {
                   className="w-full accent-primary"
                   disabled={!effects.chromakey?.enabled}
                 />
-                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Edge softness</p>
+                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">边缘柔化</p>
               </div>
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">Spill Suppression</span>
+                  <span className="text-[var(--text-muted)]">溢出抑制</span>
                   <span className="text-[var(--text-muted)]">{((effects.chromakey?.spill ?? 0.3) * 100).toFixed(0)}%</span>
                 </div>
                 <input
@@ -1425,7 +1435,7 @@ function EffectsTab() {
                   className="w-full accent-primary"
                   disabled={!effects.chromakey?.enabled}
                 />
-                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">Removes color bleed from edges</p>
+                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">去除边缘的颜色溢出</p>
               </div>
             </div>
           </AccordionContent>
@@ -1437,7 +1447,7 @@ function EffectsTab() {
             <AccordionTrigger className="flex-1 text-xs font-medium hover:no-underline py-0">
               <div className="flex items-center gap-1.5">
                 <Captions className="h-3.5 w-3.5" />
-                <span>Captions</span>
+                <span>字幕</span>
               </div>
             </AccordionTrigger>
             <motion.button
@@ -1468,7 +1478,7 @@ function EffectsTab() {
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </motion.div>
-                    <span>Show</span>
+                    <span>显示</span>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -1480,7 +1490,7 @@ function EffectsTab() {
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   >
                     <EyeOff className="h-3.5 w-3.5" />
-                    <span>Hide</span>
+                    <span>隐藏</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1502,20 +1512,20 @@ function EffectsTab() {
 }
 
 const LANGUAGES = [
-  { code: "", label: "Auto-detect" },
-  { code: "en", label: "English" },
-  { code: "es", label: "Spanish" },
-  { code: "fr", label: "French" },
-  { code: "de", label: "German" },
-  { code: "it", label: "Italian" },
-  { code: "pt", label: "Portuguese" },
-  { code: "nl", label: "Dutch" },
-  { code: "ja", label: "Japanese" },
-  { code: "ko", label: "Korean" },
-  { code: "zh", label: "Chinese" },
-  { code: "ar", label: "Arabic" },
-  { code: "hi", label: "Hindi" },
-  { code: "ru", label: "Russian" },
+  { code: "", label: "自动检测" },
+  { code: "en", label: "英语" },
+  { code: "es", label: "西班牙语" },
+  { code: "fr", label: "法语" },
+  { code: "de", label: "德语" },
+  { code: "it", label: "意大利语" },
+  { code: "pt", label: "葡萄牙语" },
+  { code: "nl", label: "荷兰语" },
+  { code: "ja", label: "日语" },
+  { code: "ko", label: "韩语" },
+  { code: "zh", label: "中文" },
+  { code: "ar", label: "阿拉伯语" },
+  { code: "hi", label: "印地语" },
+  { code: "ru", label: "俄语" },
 ]
 
 interface CaptionsSectionProps {
@@ -1532,7 +1542,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
   
   if (!media) {
     return (
-      <p className="text-xs text-[var(--text-muted)]">Media not found</p>
+      <p className="text-xs text-[var(--text-muted)]">未找到媒体</p>
     )
   }
 
@@ -1542,7 +1552,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
 
   if (!isVideoType) {
     return (
-      <p className="text-xs text-[var(--text-muted)]">Captions are only available for video clips with audio</p>
+      <p className="text-xs text-[var(--text-muted)]">字幕仅对带音频的视频片段可用</p>
     )
   }
 
@@ -1558,12 +1568,12 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
   return (
     <div className="space-y-3">
       {!media.storageUrl ? (
-        <p className="text-xs text-[var(--text-muted)]">Upload media to cloud first to generate captions</p>
+        <p className="text-xs text-[var(--text-muted)]">请先将媒体上传到云端以生成字幕</p>
       ) : (
         <>
           {/* Language Selector */}
           <div>
-            <label className="text-xs text-[var(--text-muted)] mb-1.5 block">Language</label>
+            <label className="text-xs text-[var(--text-muted)] mb-1.5 block">语言</label>
             <select
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
@@ -1576,7 +1586,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
                 </option>
               ))}
             </select>
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">Specifying the language improves accuracy</p>
+            <p className="text-[10px] text-[var(--text-muted)] mt-1">指定语言可提高准确度</p>
           </div>
 
           <motion.button
@@ -1606,7 +1616,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
                   >
                     <Loader2 className="h-3.5 w-3.5" />
                   </motion.div>
-                  <span>Generating...</span>
+                  <span>生成中...</span>
                 </motion.div>
               ) : hasCaptions ? (
                 <motion.span
@@ -1615,7 +1625,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                 >
-                  Regenerate Captions
+                  重新生成字幕
                 </motion.span>
               ) : (
                 <motion.span
@@ -1624,7 +1634,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                 >
-                  Generate Captions
+                  生成字幕
                 </motion.span>
               )}
             </AnimatePresence>
@@ -1634,7 +1644,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
             <div className="space-y-3">
               {/* Caption Style Selector */}
               <div>
-                <label className="text-xs text-[var(--text-muted)] mb-1.5 block">Style</label>
+                <label className="text-xs text-[var(--text-muted)] mb-1.5 block">风格</label>
                 <div className="relative flex rounded-md border border-slate-600 bg-[var(--bg-secondary)]/30 p-0.5">
                   {/* Animated background indicator */}
                   <motion.div
@@ -1662,7 +1672,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
                     whileTap={{ scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   >
-                    Classic
+                    经典
                   </motion.button>
                   <motion.button
                     onClick={() => setCaptionStyle("tiktok")}
@@ -1681,7 +1691,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[var(--text-muted)]">Words detected</span>
+                <span className="text-[var(--text-muted)]">检测到的词数</span>
                 <span className="text-[var(--text-primary)] font-medium">{media.captions!.length}</span>
               </div>
               

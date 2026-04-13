@@ -74,7 +74,7 @@ function AgentTab() {
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" })
         const dashScopeKey = getProviderById("qwen")?.apiKey
         if (!dashScopeKey) {
-          setTranscriptionError("Please configure DashScope API Key in model settings first")
+          setTranscriptionError("请先在模型设置中配置 DashScope API Key")
           setIsTranscribing(false)
           return
         }
@@ -93,12 +93,12 @@ function AgentTab() {
           })
           if (!res.ok) {
             const err = await res.json()
-            throw new Error(err.error || "Transcription failed")
+            throw new Error(err.error || "语音转写失败")
           }
           const { text } = await res.json()
           if (text?.trim()) await sendMessage({ text: text.trim() })
         } catch (err) {
-          setTranscriptionError(err instanceof Error ? err.message : "Transcription failed")
+          setTranscriptionError(err instanceof Error ? err.message : "语音转写失败")
         } finally {
           setIsTranscribing(false)
         }
@@ -107,7 +107,7 @@ function AgentTab() {
       mediaRecorderRef.current = mediaRecorder
       setIsRecording(true)
     } catch {
-      setTranscriptionError("Failed to access microphone. Please check permissions.")
+      setTranscriptionError("无法访问麦克风，请检查权限。")
     }
   }, [sendMessage])
 
@@ -156,22 +156,22 @@ function AgentTab() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-slate-600 px-3 py-2">
-        <span className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">AI Assistant</span>
+        <span className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">AI 助手</span>
         <motion.button
           onClick={handleNewChat}
           disabled={isLoading || messages.length === 0}
           className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Start new chat"
+          title="开始新对话"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
           <MessageSquarePlus className="h-3 w-3" />
-          New Chat
+          新对话
         </motion.button>
       </div>
 
       <div className="border-b border-slate-600 p-3">
-        <div className="mb-2 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">Smart Enhance</div>
+        <div className="mb-2 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">智能增强</div>
         <motion.button
           onClick={() => setShowAutoEnhanceModal(true)}
           disabled={isLoading || timelineClips.length === 0}
@@ -186,10 +186,10 @@ function AgentTab() {
           >
             <Zap className="h-4 w-4" />
           </motion.div>
-          <span>Auto Enhance Video</span>
+          <span>自动增强视频</span>
         </motion.button>
         <p className="mt-1.5 text-[9px] text-[var(--text-tertiary)]/80 text-center">
-          AI + Video RAG for smart enhancements
+          AI + 视频 RAG 智能增强
         </p>
       </div>
 
@@ -205,7 +205,7 @@ function AgentTab() {
             <motion.div className="flex justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Loading chat history...
+                加载聊天记录...
               </div>
             </motion.div>
           )}
@@ -220,7 +220,7 @@ function AgentTab() {
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             >
               <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-slate-600">
-                Hi! I&apos;m your AI editing assistant. I can split, trim, delete, move clips, and apply effects. Just tell me what you&apos;d like to do!
+                你好！我是你的 AI 剪辑助手。我可以分割、裁剪、删除、移动片段，还能应用效果。告诉我你想做什么！
               </div>
             </motion.div>
           )}
@@ -325,7 +325,7 @@ function AgentTab() {
             >
               <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-slate-600 flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                <span>Thinking...</span>
+                <span>思考中...</span>
               </div>
             </motion.div>
           )}
@@ -338,7 +338,7 @@ function AgentTab() {
         <div className="flex gap-2 items-center">
           <input
             type="text"
-            placeholder="Ask AI to edit your video..."
+            placeholder="向 AI 描述你想如何编辑视频..."
             value={input}
             onChange={handleInputChange}
             disabled={isLoading || isRecording}
@@ -384,7 +384,7 @@ function AgentTab() {
                 className={`relative flex items-center justify-center rounded-md px-3 py-2.5 text-[var(--accent-on)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
                   isRecording ? "bg-red-500" : "bg-[var(--accent)]"
                 }`}
-                title={isRecording ? "Stop recording" : "Start voice recording"}
+                title={isRecording ? "停止录制" : "开始语音录制"}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 animate={isRecording ? { backgroundColor: ["#ef4444", "#dc2626", "#ef4444"] } : {}}
@@ -470,7 +470,7 @@ function AgentTab() {
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
             >
               <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Transcribing audio...</span>
+              <span>语音转写中...</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -479,10 +479,10 @@ function AgentTab() {
       <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
         <DialogContent showCloseButton={false} className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Start New Chat?</DialogTitle>
-            <DialogDescription>
-              This will clear your current conversation. This action cannot be undone.
-            </DialogDescription>
+          <DialogTitle>开始新对话？</DialogTitle>
+          <DialogDescription>
+            这将清除当前对话，此操作不可撤销。
+          </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
             <motion.button
@@ -492,7 +492,7 @@ function AgentTab() {
               whileTap={{ scale: 0.98 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              Cancel
+              取消
             </motion.button>
             <motion.button
               onClick={confirmNewChat}
@@ -502,7 +502,7 @@ function AgentTab() {
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
               <MessageSquarePlus className="h-4 w-4" />
-              Start New Chat
+              开始新对话
             </motion.button>
           </DialogFooter>
         </DialogContent>

@@ -337,7 +337,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
     setDownloadStatus(null);
   }, [downloadStatus, selectedShotIds, project.shots, project.scriptData?.title]);
 
-    if (!project.shots.length) return (
+    if (!project.shots.length && !project.segments.length) return (
         <div className="flex flex-col items-center justify-center h-full text-slate-500 bg-slate-900">
             <AlertCircle className="w-12 h-12 mb-4 opacity-50"/>
             <p>暂无可导出镜头，请先在导演阶段完成镜头制作。</p>

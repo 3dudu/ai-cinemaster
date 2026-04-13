@@ -32,19 +32,19 @@ export function AutoEnhanceModal({ open, onOpenChange, onEnhance }: AutoEnhanceM
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
-            Auto Enhance Video
+            自动增强视频
           </DialogTitle>
           <DialogDescription>
-            Describe what you want or leave blank for general improvements (trimming, effects, pacing, etc.)
+            描述你想要的效果，或留空进行常规优化（裁剪、效果、节奏等）
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="enhance-prompt">What would you like to enhance? (optional)</Label>
+            <Label htmlFor="enhance-prompt">你想要增强什么？（可选）</Label>
             <Input
               id="enhance-prompt"
-              placeholder="e.g., Make it more cinematic, highlight action scenes, remove green screens..."
+              placeholder="例如：增加电影感、突出动作场景、去除绿幕..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="h-10"
@@ -54,11 +54,11 @@ export function AutoEnhanceModal({ open, onOpenChange, onEnhance }: AutoEnhanceM
 
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-            Cancel
+            取消
           </Button>
           <Button onClick={handleEnhance} className="flex-1 bg-gradient-to-r from-primary to-primary/80">
             <Sparkles className="h-4 w-4 mr-2" />
-            Enhance Now
+            立即增强
           </Button>
         </div>
       </DialogContent>

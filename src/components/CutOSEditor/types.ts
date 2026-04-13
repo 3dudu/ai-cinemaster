@@ -71,4 +71,5 @@ export interface MediaFileData {
 export interface TimelineData {
   clips: TimelineClipData[];
   media: MediaFileData[];
+  projectResolution?: string;
 }

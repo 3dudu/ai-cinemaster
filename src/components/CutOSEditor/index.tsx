@@ -17,18 +17,18 @@ interface CutOSEditorProps {
 const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose }) => {
   if (!open) return null;
 
-  const { media, clips } = projectToCutOSTimeline(project);
+  const { media, clips ,projectResolution} = projectToCutOSTimeline(project);
 
   if (media.length === 0 || clips.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
         <div className="rounded-lg border border-slate-600 bg-[var(--bg-primary)] p-6 shadow-xl max-w-md">
-          <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">AI Edit</h3>
+          <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">AI 剪辑</h3>
           <p className="mb-4 text-sm text-[var(--text-secondary)]">
-            No completed video shots yet. Please generate video clips in the Director stage first.
+            暂无已完成的视频镜头，请先在导演阶段生成视频片段。
           </p>
           <button onClick={onClose} className={STYLES.button.secondary}>
-            Close
+            关闭
           </button>
         </div>
       </div>
@@ -38,7 +38,7 @@ const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose }) => 
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-[var(--bg-primary)]">
       <EditorShell
-        initialData={{ media, clips }}
+        initialData={{ media, clips, projectResolution }}
         projectTitle={project.title}
         onClose={onClose}
       />

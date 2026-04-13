@@ -1,7 +1,7 @@
 /**
  * 将 ai-shotlive 项目数据适配为 CutOS 编辑器格式
  */
-import type { ProjectState, Shot } from '../../types';
+import type { ProjectState, Segment, Shot } from '../../types';
 
 const PIXELS_PER_SECOND = 10;
 
@@ -42,10 +42,14 @@ export interface CutOSClip {
 export const getCompletedShots = (project: ProjectState) => {
   return project.shots.filter(s => s.interval?.videoUrl);
 };
+export const getCompletedSegments = (project: ProjectState) => {
+  return project.segments?project.segments.filter(s => s.videoUrl):[];
+};
 
 export interface CutOSTimelineData {
   media: CutOSMediaFile[];
   clips: CutOSClip[];
+  projectResolution: string;
 }
 
 const DEFAULT_TRANSFORM = { positionX: 0, positionY: 0, scale: 100, opacity: 100 };
@@ -106,8 +110,53 @@ function shotToClip(shot: Shot, index: number, startTimePixels: number): CutOSCl
 /**
  * 将 ProjectState 转为 CutOS 时间轴数据
  */
+/**
+ * 将 Segment 转为 CutOS MediaFile
+ */
+function segmentToMedia(segment: Segment, index: number): CutOSMediaFile | null {
+  const videoUrl = segment.videoUrl;
+  if (!videoUrl) return null;
+
+  const durationNum = segment.estimatedDuration ?? 10;
+
+  return {
+    id: `media-segment-${segment.id}`,
+    name: segment.name || `片段 ${index + 1}`,
+    duration: `${Math.floor(durationNum / 60)}:${String(Math.floor(durationNum % 60)).padStart(2, '0')}`,
+    durationSeconds: durationNum,
+    thumbnail: null,
+    type: 'video/mp4',
+    objectUrl: videoUrl,
+    storageUrl: videoUrl.startsWith('http') ? videoUrl : undefined,
+  };
+}
+
+/**
+ * 将 Segment 转为 CutOS TimelineClip
+ */
+function segmentToClip(segment: Segment, index: number, startTimePixels: number): CutOSClip | null {
+  if (!segment.videoUrl) return null;
+
+  const durationNum = segment.estimatedDuration ?? 10;
+  const durationPixels = durationNum * PIXELS_PER_SECOND;
+
+  return {
+    id: `clip-segment-${segment.id}`,
+    mediaId: `media-segment-${segment.id}`,
+    trackId: 'V1',
+    startTime: startTimePixels,
+    duration: durationPixels,
+    mediaOffset: 0,
+    label: segment.name || `片段 ${index + 1}`,
+    type: 'video',
+    transform: { ...DEFAULT_TRANSFORM },
+    effects: { ...DEFAULT_EFFECTS },
+  };
+}
+
 export function projectToCutOSTimeline(project: ProjectState): CutOSTimelineData {
   const completedShots = getCompletedShots(project);
+  const completedSegments = getCompletedSegments(project);
   const media: CutOSMediaFile[] = [];
   const clips: CutOSClip[] = [];
   let currentStartPixels = 0;
@@ -121,6 +170,17 @@ export function projectToCutOSTimeline(project: ProjectState): CutOSTimelineData
       currentStartPixels += c.duration;
     }
   });
+  completedSegments.forEach((segment, index) => {
+    const m = segmentToMedia(segment, index);
+    const c = segmentToClip(segment, index, currentStartPixels);
+    if (m && c) {
+      media.push(m);
+      clips.push(c);
+      currentStartPixels += c.duration;
+    }
+  });
 
-  return { media, clips };
+  const [width, height] = project.imageSize.split('x').map(Number);
+  const projectResolution = project.imageSize;
+  return { media, clips,projectResolution };
 }

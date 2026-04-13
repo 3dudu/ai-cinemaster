@@ -23,9 +23,9 @@ type ExportFormat = "mp4" | "webm"
 type ExportQuality = "low" | "medium" | "high"
 
 const QUALITY_SETTINGS: Record<ExportQuality, { bitrate: number; label: string }> = {
-  low: { bitrate: 2_500_000, label: "Low (2.5 Mbps)" },
-  medium: { bitrate: 5_000_000, label: "Medium (5 Mbps)" },
-  high: { bitrate: 10_000_000, label: "High (10 Mbps)" },
+  low: { bitrate: 2_500_000, label: "低 (2.5 Mbps)" },
+  medium: { bitrate: 5_000_000, label: "中 (5 Mbps)" },
+  high: { bitrate: 10_000_000, label: "高 (10 Mbps)" },
 }
 
 // Build CSS filter string from effects
@@ -249,7 +249,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
       console.log(`[Export] Successfully loaded ${videoElements.size}/${clips.length} videos`)
     } catch (e) {
       console.error("[Export] Failed to load videos:", e)
-      setError(e instanceof Error ? e.message : "Failed to load videos")
+      setError(e instanceof Error ? e.message : "加载视频失败")
       setIsExporting(false)
       return
     }
@@ -309,10 +309,10 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
     }
 
     const exportPromise = new Promise<Blob>((resolve, reject) => {
-      recorder.onerror = () => reject(new Error("Recording failed"))
+      recorder.onerror = () => reject(new Error("录制失败"))
       recorder.onstop = () => {
         if (abortRef.current) {
-          reject(new Error("Export cancelled"))
+          reject(new Error("导出已取消"))
           return
         }
         resolve(new Blob(chunks, { type: mimeType }))
@@ -653,7 +653,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
       setSuccess(true)
     } catch (e) {
       if (!abortRef.current) {
-        setError(e instanceof Error ? e.message : "Export failed")
+        setError(e instanceof Error ? e.message : "导出失败")
       }
     } finally {
       setIsExporting(false)
@@ -695,10 +695,10 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download className="h-5 w-5" />
-            Export Video
+            导出视频
           </DialogTitle>
           <DialogDescription>
-            Render your project to a video file
+            将项目渲染为视频文件
           </DialogDescription>
         </DialogHeader>
 
@@ -706,14 +706,14 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Film className="h-12 w-12 text-[var(--text-muted)] mb-3" />
             <p className="text-sm text-[var(--text-muted)]">
-              Add clips to the timeline before exporting
+              导出前请先将片段添加到时间轴
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             {/* Format Selection */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Format</label>
+              <label className="text-sm font-medium mb-2 block">格式</label>
               <div className="grid grid-cols-2 gap-2">
                 {(["webm", "mp4"] as ExportFormat[]).map((f) => (
                   <motion.button
@@ -732,7 +732,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                     {f.toUpperCase()}
                     {f === "mp4" && (
                       <span className="block text-[10px] opacity-70">
-                        (exported as WebM)
+                        （以 WebM 格式导出）
                       </span>
                     )}
                   </motion.button>
@@ -742,7 +742,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
 
             {/* Quality Selection */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Quality</label>
+              <label className="text-sm font-medium mb-2 block">质量</label>
               <div className="space-y-1">
                 {(Object.entries(QUALITY_SETTINGS) as [ExportQuality, { bitrate: number; label: string }][]).map(([q, settings]) => (
                   <motion.button
@@ -775,7 +775,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                   className="space-y-2"
                 >
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[var(--text-muted)]">Exporting...</span>
+                    <span className="text-[var(--text-muted)]">导出中...</span>
                     <span className="font-mono">{progress}%</span>
                   </div>
                   <div className="h-2 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -788,8 +788,8 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                   </div>
                   <p className="text-xs text-[var(--text-muted)]">
                     {supportsVideoFrameCallback
-                      ? "Using frame-accurate rendering"
-                      : "Export runs at 1x speed"}
+                      ? "使用逐帧精确渲染"
+                      : "以 1x 速度导出"}
                   </p>
                 </motion.div>
               )}
@@ -820,7 +820,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
                   className="flex items-center gap-2 text-sm text-green-600 bg-green-500/10 px-3 py-2 rounded-md"
                 >
                   <Check className="h-4 w-4" />
-                  Export complete! Your download should start automatically.
+                  导出完成！下载将自动开始。
                 </motion.div>
               )}
             </AnimatePresence>
@@ -839,7 +839,7 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
             whileTap={{ scale: 0.98 }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
-            {isExporting ? "Cancel" : "Close"}
+            {isExporting ? "取消" : "关闭"}
           </motion.button>
           {hasClips && !success && (
             <motion.button
@@ -853,12 +853,12 @@ export function ExportModal({ open, onOpenChange }: ExportModalProps) {
               {isExporting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Exporting...
+                  导出中...
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4" />
-                  Export
+                  导出
                 </>
               )}
             </motion.button>

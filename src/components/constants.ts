@@ -5,13 +5,13 @@
 // 样式常量
 export const STYLES = {
   // 主容器
-  container: "flex flex-col h-full bg-[var(--bg-secondary)] overflow-hidden",
+  container: "flex flex-col h-full bg-slate-500 overflow-hidden",
   
   // 头部
   header: {
     container: "h-16 border-b border-slate-600 bg-[var(--bg-elevated)] px-6 flex items-center justify-between shrink-0",
     title: "text-lg font-bold text-[var(--text-primary)] flex items-center gap-3",
-    subtitle: "text-xs text-[var(--text-muted)] font-mono font-normal uppercase tracking-wider bg-[var(--bg-base)]/30 px-2 py-1 rounded",
+    subtitle: "text-xs text-slate-50 font-mono font-normal uppercase tracking-wider bg-[var(--bg-base)]/30 px-2 py-1 rounded",
     status: "text-[10px] text-[var(--text-tertiary)] font-mono uppercase bg-[var(--bg-elevated)] border border-slate-600 px-2 py-1 rounded"
   },
   
@@ -20,7 +20,7 @@ export const STYLES = {
     primary: "h-12 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--text-primary)] border border-[var(--accent)] shadow-lg shadow-[var(--accent-shadow)] rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all",
     secondary: "h-12 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)] border border-[var(--btn-primary-bg)] shadow-lg shadow-[var(--btn-primary-shadow)] rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all",
     tertiary: "h-12 bg-[var(--bg-elevated)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-secondary)] hover:border-slate-600 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all",
-    disabled: "h-12 bg-[var(--bg-elevated)] text-[var(--text-muted)] border border-slate-600 cursor-not-allowed rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all",
+    disabled: "h-12 bg-[var(--bg-elevated)] text-slate-50 border border-slate-600 cursor-not-allowed rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all",
     loading: "h-12 bg-[var(--accent)] text-[var(--text-primary)] border border-[var(--accent)] cursor-wait rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all"
   },
   
@@ -57,7 +57,7 @@ export const STYLES = {
     },
     progressBadge: "text-right bg-[var(--bg-base)]/20 p-4 rounded-lg border border-[var(--overlay-border)] backdrop-blur-sm min-w-[160px]",
     stat: "flex flex-col",
-    statLabel: "text-[9px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-0.5",
+    statLabel: "text-[9px] text-slate-50 uppercase tracking-widest font-bold mb-0.5",
     statValue: "text-sm font-mono text-[var(--text-secondary)]"
   },
   
@@ -82,7 +82,7 @@ export const STYLES = {
     container: "p-6 border-b border-slate-600 bg-[var(--bg-primary)]",
     grid: "grid grid-cols-1 md:grid-cols-3 gap-4",
     card: "bg-[var(--bg-surface)] border border-slate-600 rounded-lg p-4",
-    label: "text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-bold mb-1"
+    label: "text-[10px] text-slate-50 uppercase tracking-widest font-bold mb-1"
   }
 };
 
