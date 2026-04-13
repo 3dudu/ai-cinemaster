@@ -162,9 +162,12 @@ export interface Segment {
   dialogueRhythm?: string; // 台词与节奏描述
   createdAt: number;
   lastModified: number;
-  videoUrl?: string; 
+  videoUrl?: string;
   propIds: string[];  //涉及的道具ID列表（去重）
   propVariations?: { [propId: string]: string }; // Map prop name to variation ID for this shot
+  firstFrameThumbnail?: string; // 视频首帧缩略图 (base64)，优先用于列表缩略图
+  lastFrameThumbnail?: string; // 视频尾帧缩略图 (base64)，用于下一段参考图
+  useTailFrameRef?: boolean; // 生成下一段时是否使用尾帧参考图，默认 true
 }
 
 export interface AIModelConfig {

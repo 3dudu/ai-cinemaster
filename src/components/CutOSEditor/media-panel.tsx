@@ -3,12 +3,12 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle, Captions, Clock, Cloud, CloudOff, Eye, EyeOff, Film, FolderOpen, GripVertical, Loader2, Play, Search, Upload, Wand2, X, Zap } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { generateVideoThumbnail } from "../../utils/imageUtils"
 import type { TimelineClip } from "./editor-context"
 import { DEFAULT_CLIP_EFFECTS, DEFAULT_CLIP_TRANSFORM, MediaFile, useEditor } from "./editor-context"
 import type { ClipEffects, ClipTransform, EffectPreset } from "./types"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion"
 import { ColorPicker } from "./ui/color-picker"
-import { generateVideoThumbnail } from "../../utils/imageUtils"
 
 
 export function MediaPanel() {
@@ -165,7 +165,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
           media.type.startsWith("video/") &&
           media.objectUrl
         ) {
-          const thumbnail = await generateVideoThumbnail(media.objectUrl)
+          const thumbnail = await generateVideoThumbnail(media.objectUrl,1)
           if (thumbnail) {
             onUpdateThumbnail(media.id, thumbnail)
           }
