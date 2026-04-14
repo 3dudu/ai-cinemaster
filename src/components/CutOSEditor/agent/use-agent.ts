@@ -286,30 +286,34 @@ export function useVideoAgent() {
     const apiKey = activeModel.apiKey
     if (!apiKey) return null
     return {
-      apiBase: activeModel.apiUrl,
+      apiBase: "https://ark.cn-beijing.volces.com/api/v3",
       apiKey,
-      endpoint: "/v1/chat/completions",
+      endpoint: "/chat/completions",
       model: activeModel.model
     }
   }, [])
-
+  
   const [modelConfig, setModelConfig] = useState<Awaited<ReturnType<typeof buildModelConfig>>>(null)
 
   useEffect(() => {
     buildModelConfig().then(setModelConfig)
   }, [buildModelConfig])
 
+  // 当 modelConfig 变化时，id 也会变化，触发 useChat 重新初始化
+  const chatId = useMemo(() => `cutos-agent-${modelConfig?.model || 'default'}`, [modelConfig?.model])
+
   const transport = useMemo(() => {
     return new DefaultChatTransport({
       api: "/api/cutos/agent",
-      body: () => ({
+      body: {
         timelineState: timelineStateRef.current || getTimelineContext(),
         modelConfig: modelConfig || undefined,
-      }),
+      },
     })
-  }, [modelConfig])
+  }, [modelConfig, getTimelineContext])
 
   const { messages, sendMessage, setMessages, status, error } = useChat({
+    id: chatId,
     transport,
     onToolCall: ({ toolCall }) => {
       const tc = toolCall as {
@@ -478,7 +482,7 @@ export function useVideoAgent() {
   }, [messages, handleAction])
 
   useEffect(() => {
-    if (status === "idle" && messages.length > 0) {
+    if (status === "streaming" && messages.length > 0) {
       const timer = setTimeout(() => {
         setMessages([])
         processedToolCallsRef.current.clear()

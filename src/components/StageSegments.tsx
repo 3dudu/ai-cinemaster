@@ -240,7 +240,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           }
           dialog.toast({ message: `成功生成 ${successCount} / ${segments.length} 个片段描述`, type: 'success' });
         } catch (err) {
-          dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败: ${err.message}`, type: 'error' });
+          dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败: ${err}`, type: 'error' });
           // 继续生成下一个
         }
       }
@@ -316,6 +316,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       dialogueRhythm: '',
       createdAt: Date.now(),
       lastModified: Date.now(),
+      propIds: [],
     };
     setEditingSegment(newSegment);
     setInsertIndex(index + 1);
@@ -854,7 +855,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
         // 提取首帧和尾帧缩略图
         const [firstFrame, lastFrame] = await Promise.all([
-          generateVideoThumbnail(videoUrl, 1),
+          generateVideoThumbnail(videoUrl, 2),
           getVideoLastFrame(videoUrl),
         ]);
 
@@ -1054,7 +1055,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
             // 提取首帧和尾帧缩略图
             const [firstFrame, lastFrame] = await Promise.all([
-              generateVideoThumbnail(videoUrl, 1),
+              generateVideoThumbnail(videoUrl, 2),
               getVideoLastFrame(videoUrl),
             ]);
 

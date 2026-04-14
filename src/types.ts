@@ -102,7 +102,7 @@ export interface ScriptData {
   characters: Character[];
   scenes: Scene[];
   storyParagraphs: { id: number; text: string; sceneRefId: string; duration: number }[];
-  props: Properties[];
+  props?: Properties[];
 }
 
 export interface ProjectState {

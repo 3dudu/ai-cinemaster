@@ -31,7 +31,7 @@ interface Props {
   project?: ProjectState;
   updateProject?: (updates: Partial<ProjectState>) => void;
   onSelectImage: (imageUrl: string, allImages?: string[]) => void;
-  filterType?: 'character' | 'scene' | 'keyframe' | 'prop' | 'all';
+  filterType?: 'character' | 'scene' | 'keyframe' | 'prop' | 'all' | 'video';
   previewMode?: boolean;
   showVideo?: boolean;
 }
@@ -870,8 +870,7 @@ const ImageSelectorModal: React.FC<Props> = ({
                   className="group relative aspect-square bg-slate-800 rounded-lg overflow-hidden border border-slate-700 hover:border-slate-500 transition-all hover:shadow-lg"
                 >
                   <button
-                    onClick={() => { 
-                      if(image.mediaType === 'video')return;
+                    onClick={() => {
                       const allImageUrls = displayImages.map(img => img.imageUrl || '');
                       onSelectImage(image.imageUrl || '', allImageUrls);
                       if (!previewMode) {

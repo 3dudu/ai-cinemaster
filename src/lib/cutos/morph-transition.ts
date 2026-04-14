@@ -4,9 +4,9 @@
  */
 import type { MediaFile, TimelineClip } from "@/components/CutOSEditor/editor-context";
 import { DEFAULT_CLIP_EFFECTS, DEFAULT_CLIP_TRANSFORM, PIXELS_PER_SECOND } from "@/components/CutOSEditor/editor-context";
-import { callVideoApi } from "@/services/adapters/videoAdapter";
-import { getActiveVideoModel, getVideoModels } from "@/services/modelRegistry";
+import { ModelService } from "@/services/modelService";
 import { extractLastFrame, extractThirdFrame } from "./frame-extractor";
+
 
 interface MorphTransitionResult {
   clip: TimelineClip;
@@ -24,24 +24,15 @@ function formatDuration(seconds: number): string {
 }
 
 /** 获取可用的首尾帧模型（万象 kf2v 或豆包 Seedance） */
-function getMorphVideoModel() {
-  const active = getActiveVideoModel();
-  // 万象首尾帧 或 豆包 Seedance（均支持 startImage + endImage）
+async function getMorphVideoModel() {
+  const videoModels = await ModelService.getImage2VideoConfigByProvider('doubao');
   if (
-    active &&
-    active.isEnabled &&
-    ((active.providerId === "qwen" && (active.id.includes("kf2v") || (active.apiModel || "").includes("kf2v"))) ||
-      (active.providerId === "doubao" && (active.apiModel || active.id).includes("seedance")))
+    videoModels &&
+    videoModels.enabled &&
+    ((videoModels.provider === "doubao" && (videoModels.model || videoModels.id).includes("seedance")))
   ) {
-    return active;
+    return videoModels;
   }
-  const videoModels = getVideoModels();
-  return videoModels.find(
-    (m) =>
-      m.isEnabled &&
-      ((m.providerId === "qwen" && (m.id.includes("kf2v") || (m.apiModel || "").includes("kf2v"))) ||
-        (m.providerId === "doubao" && (m.apiModel || m.id).includes("seedance")))
-  );
 }
 
 /** Blob 转 base64 data URL */
@@ -92,7 +83,8 @@ export async function createMorphTransition(
   toClip: TimelineClip,
   mediaFiles: MediaFile[],
   _projectId: string,
-  durationSeconds: number = 5
+  durationSeconds: number = 5,
+  aspectRatio: string = "16:9"
 ): Promise<MorphTransitionResult> {
   const fromMedia = mediaFiles.find((m) => m.id === fromClip.mediaId);
   const toMedia = mediaFiles.find((m) => m.id === toClip.mediaId);
@@ -128,15 +120,13 @@ export async function createMorphTransition(
     blobToDataUrl(endFrameBlob),
   ]);
 
-  const videoResult = await callVideoApi(
-    {
-      prompt: "平滑过渡转场，保持画面连贯自然",
-      startImage: startBase64,
-      endImage: endBase64,
-      aspectRatio: "16:9",
-      duration: 4,
-    },
-    morphModel
+  ModelService.setCurrentProjectProviders(morphModel);
+  const videoResult = await ModelService.generateVideo(
+      "平滑过渡转场，保持画面连贯自然",
+      startBase64,
+      endBase64,
+      4,false,null,_projectId,
+      aspectRatio
   );
 
   const videoBlob = await toBlob(videoResult);
@@ -152,6 +142,9 @@ export async function createMorphTransition(
     thumbnail: null,
     type: "video",
     objectUrl,
+    twelveLabsError:'',
+    twelveLabsStatus: 'success',
+    twelveLabsVideoId: '',
   };
 
   const startPosition = fromClip.startTime + fromClip.duration;

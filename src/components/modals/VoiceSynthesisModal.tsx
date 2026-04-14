@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { VOICE_LIBRARY, VOICE_LIBRARY_TYPE_NAMES } from '../../config/voiceLibrary';
 import { ModelService } from '../../services/modelService';
 import { addMediaHistory } from '../../services/storageService';
-import { uploadBase64File } from '../../utils/fileUploadUtils';
 import { Character, ProjectState, SeriesRecord, Shot, TtsParams } from '../../types';
+import { uploadBase64File } from '../../utils/fileUploadUtils';
 import CustomSelect from '../common/CustomSelect';
 import { useDialog } from '../dialog';
 
@@ -41,6 +41,11 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
   const [generatedVoiceUrl, setGeneratedVoiceUrl] = useState<string | null>(null);
   const [dialogueText, setDialogueText] = useState<string>('');
   const audioFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const audioChunksRef = React.useRef<Blob[]>([]);
+  const [recordedBlobUrl, setRecordedBlobUrl] = useState<string | null>(null);
+  const recordedBlobRef = React.useRef<Blob | null>(null);
 
   // Check if in series mode
   const isSeriesMode = !!series && !!updateSeries;
@@ -90,6 +95,20 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       setPreviewAudio(null);
     }
   }, [isOpen, character]);
+
+  // Stop recording when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      if (isRecording) {
+        stopRecording();
+      }
+      if (recordedBlobUrl) {
+        URL.revokeObjectURL(recordedBlobUrl);
+        setRecordedBlobUrl(null);
+        recordedBlobRef.current = null;
+      }
+    }
+  }, [isOpen]);
 
   // Extract all dialogue for this character from all shots
   const extractCharacterDialogue = (): string => {
@@ -143,7 +162,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       console.error('Voice generation failed:', error);
       await dialog.alert({
         title: '错误',
-        message: `语音合成失败: ${error.message || '未知错误'}`,
+        message: `语音合成失败: ${error || '未知错误'}`,
         type: 'error'
       });
     } finally {
@@ -211,6 +230,112 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
     }
   };
 
+  // --- Recording functionality ---
+  const startRecording = async () => {
+    try {
+      // 先停止上一次的流，避免占用麦克风
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = 'audio/mp4';
+      const options = { mimeType: mimeType };
+
+      const mediaRecorder = new MediaRecorder(stream, options);
+      audioChunksRef.current = [];
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        if (recordedBlobUrl) {
+          URL.revokeObjectURL(recordedBlobUrl);
+        }
+        stream.getTracks().forEach((t) => t.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType});
+        recordedBlobRef.current = audioBlob;
+        const blobUrl = URL.createObjectURL(audioBlob);
+        setRecordedBlobUrl(blobUrl);
+        
+        setIsRecording(false);
+        mediaRecorderRef.current = null;
+      };
+      mediaRecorder.start(100);
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+    } catch {
+      dialog.toast({ message: '无法访问麦克风，请检查权限。', type: 'error' });
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) stopRecording();
+    else startRecording();
+  };
+
+  // Cancel recording preview
+  const cancelRecordingPreview = () => {
+    if (recordedBlobUrl) {
+      URL.revokeObjectURL(recordedBlobUrl);
+    }
+    setRecordedBlobUrl(null);
+    recordedBlobRef.current = null;
+  };
+
+  // Confirm and upload recording
+  const confirmRecordingUpload = async () => {
+    const audioBlob = recordedBlobRef.current;
+    if (!audioBlob) return;
+
+    if (generatedVoiceUrl) {
+      const confirmed = await dialog.confirm({
+        title: '确认替换',
+        message: '将覆盖当前已合成的语音，是否继续？',
+        type: 'warning'
+      });
+      if (!confirmed) return;
+    }
+
+    setIsUploading(true);
+    try {
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      });
+
+      const result = await uploadBase64File(
+        dataUrl,
+        `${project.id}/audio`,
+        `${character.name}_录音.webm`
+      );
+
+      if (result.success && result.data?.url) {
+        const voiceUrl = result.data.url;
+        setGeneratedVoiceUrl(voiceUrl);
+        updateCharacterVoice(voiceUrl, ttsParams);
+        await addMediaHistory(project.id, voiceUrl, `${character.name}_录音`, 'audio', 'character', '');
+        dialog.toast({ message: '录音上传成功', type: 'success' });
+        // Clean up preview
+        cancelRecordingPreview();
+      } else {
+        dialog.toast({ message: result.error || '录音上传失败，请重试', type: 'error' });
+      }
+    } catch (error: any) {
+      console.error('Recording upload failed:', error);
+      dialog.toast({ message: `录音上传失败: ${error?.message || '未知错误'}`, type: 'error' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handlePreview = async () => {
     if (!dialogueText.trim()) return;
     setIsGenerating(true);
@@ -227,7 +352,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       console.error('Preview generation failed:', error);
       await dialog.alert({
         title: '错误',
-        message: `预览生成失败: ${error.message || '未知错误'}`,
+        message: `预览生成失败: ${error || '未知错误'}`,
         type: 'error'
       });
     } finally {
@@ -263,7 +388,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       console.error('Download failed:', error);
       await dialog.alert({
         title: '错误',
-        message: `下载失败，请重试。${error?.message || ''}`,
+        message: `下载失败，请重试。${error || ''}`,
         type: 'error'
       });
     }
@@ -327,7 +452,34 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border-t border-slate-600/50 rounded-b-lg flex items-center gap-2">
                   <div className="flex-1 flex items-center gap-2">
-                    {generatedVoiceUrl && (
+                    {/* Recording preview - confirm/cancel */}
+                    {recordedBlobUrl && (
+                      <>
+                        <audio
+                          controls
+                          src={recordedBlobUrl}
+                          className="h-8 flex-1"
+                        />
+                        <button
+                          onClick={confirmRecordingUpload}
+                          disabled={isUploading}
+                          className="px-2 py-2 bg-green-600 hover:bg-green-500 text-white rounded text-xs transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                          title="确认上传"
+                        >
+                          {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : '✓'}
+                        </button>
+                        <button
+                          onClick={cancelRecordingPreview}
+                          disabled={isUploading}
+                          className="px-2 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                          title="取消"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                    {/* Generated voice player */}
+                    {!recordedBlobUrl && generatedVoiceUrl && (
                       <>
                         <audio
                           controls
@@ -354,6 +506,22 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <AudioLines className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    onClick={toggleRecording}
+                    disabled={isGenerating || isUploading}
+                    className={`px-2 py-2 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0 cursor-pointer ${
+                      isRecording
+                        ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                        : 'bg-slate-600 hover:bg-slate-400 text-slate-50 hover:text-slate-900'
+                    }`}
+                    title={isRecording ? "停止录音" : "开始录音"}
+                  >
+                    {isRecording ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Mic className="w-4 h-4" />
                     )}
                   </button>
                   <button
