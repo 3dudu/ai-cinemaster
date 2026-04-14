@@ -1,5 +1,6 @@
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
+import { renderGroupTemplate } from "../services/templateGroupService";
 import { Character, Properties, Scene, Segment, Shot } from '../types';
 
 /**
@@ -78,6 +79,7 @@ function createSegmentFromShots(shotIds: string[], shots: Shot[], index: number)
     dialogueRhythm: '',
     createdAt: Date.now(),
     lastModified: Date.now(),
+    propIds: [],
   };
 }
 
@@ -117,10 +119,10 @@ export async function generateSegmentDescription(
   }).join('\n');
   */
   const videoRatio = imageSize=="2560x1440" ? "16:9" : "9:16";
-  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story);
+  const prompt = renderGroupTemplate('GENERATE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story},scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story);
 
   try {
-    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
+    const sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
 
     const response = await ModelService.generateSegmentPropmt(prompt,sysctemPrompt);
     return response || '';
@@ -309,7 +311,8 @@ export async function aiConvertShotsToSegments(
   visualStyle: string = "真人写实",
   genre: string = "剧情片",
   segmentDuration:number=15,
-  props:Properties[]
+  props:Properties[],
+  story:string,
 ): Promise<Segment[] | null> {
   if (!shots || shots.length === 0) {
     return [];
@@ -334,7 +337,7 @@ export async function aiConvertShotsToSegments(
   // 3. 构建场景映射（id: location）
   const scenesMap = scenes.map(s => `${s.id}: ${s.location}`).join('\n');
 
-  const propsMap = props.map(s => `${s.id}: ${s.location}`).join('\n');
+  const propsMap = props.map(s => `${s.id}: ${s.name}`).join('\n');
 
   // 4. 构建 prompt
   const prompt = renderTemplate(
@@ -348,7 +351,7 @@ export async function aiConvertShotsToSegments(
   );
 
   try {
-    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_SPLIT',segmentDuration);
+    const sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_SPLIT',{ visualStyle, genre, globalSettings:story},segmentDuration);
 
     // 5. 调用 LLM
     const response = await ModelService.generateSegmentPropmt(prompt,sysctemPrompt);
@@ -436,6 +439,7 @@ function parseAiSegmentResponse(response: string, originalShots: Shot[]): Segmen
         dialogueRhythm: seg.dialogueRhythm || '',
         createdAt: Date.now(),
         lastModified: Date.now(),
+        propIds:[]
       });
     }
 

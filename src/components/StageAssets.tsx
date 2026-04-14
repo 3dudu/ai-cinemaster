@@ -1,7 +1,7 @@
 import { AlertCircle, Box, Camera, Download, Drama, Edit2, Expand, Loader2, MapPin, Mic, Palette, Plus, RefreshCw, Shirt, Sparkles, Trash2, Upload, User, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ModelService } from '../services/modelService';
-import { renderTemplate } from "../services/promptTemplates";
+import { renderGroupTemplate } from "../services/templateGroupService";
 import { addLibraryCharacter, addLibraryProp, addLibraryScene, deleteLibraryCharacter, deleteLibraryProp, deleteLibraryScene } from '../services/seriesService';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Properties, Scene, SeriesRecord } from '../types';
@@ -128,7 +128,7 @@ const StageAssets: React.FC<Props> = ({
         new_prompt = prompt;
         if (char) {
           prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, genre || '剧情片', project.visualStyle, project.globalSettings);
-          new_prompt = renderTemplate('GENERATE_CHARACTER_IMAGE', localStyle, prompt, char.name, project.globalSettings);
+          new_prompt = renderGroupTemplate('GENERATE_CHARACTER_IMAGE', { visualStyle: project.visualStyle, genre: genre || '剧情片', globalSettings: project.globalSettings }, localStyle, prompt, char.name, project.globalSettings);
         }
       } else if (type === 'scene') {
         const scene = scenes.find(s => String(s.id) === String(id));
@@ -137,7 +137,7 @@ const StageAssets: React.FC<Props> = ({
         new_prompt = prompt;
         if (scene) {
           prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle, project.globalSettings);
-          new_prompt = renderTemplate('GENERATE_SCENE_IMAGE', localStyle, prompt, scene.location, scene.time, scene.atmosphere, project.globalSettings);
+          new_prompt = renderGroupTemplate('GENERATE_SCENE_IMAGE', { visualStyle: project.visualStyle, genre: genre || '剧情片', globalSettings: project.globalSettings }, localStyle, prompt, scene.location, scene.time, scene.atmosphere, project.globalSettings);
         }
       } else {
         // prop
@@ -147,7 +147,7 @@ const StageAssets: React.FC<Props> = ({
         new_prompt = prompt;
         if (prop) {
           prompt = prop.visualPrompt || await ModelService.generateVisualPrompts('prop', prop, genre || '剧情片', project.visualStyle, project.globalSettings);
-          new_prompt = renderTemplate('GENERATE_PROP_IMAGE', localStyle, prompt, prop.name, project.globalSettings);
+          new_prompt = renderGroupTemplate('GENERATE_PROP_IMAGE', { visualStyle: project.visualStyle, genre: genre || '剧情片', globalSettings: project.globalSettings }, localStyle, prompt, prop.name, project.globalSettings);
         }
       }
 

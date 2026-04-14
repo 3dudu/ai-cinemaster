@@ -849,6 +849,7 @@ const StageScript: React.FC<Props> = ({
         localLanguage,
         finalDuration,
         localSegmentDuration,
+        localGlobalSettings,
       );
 
       if (segments.length === 0) {

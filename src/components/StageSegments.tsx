@@ -1,6 +1,6 @@
 import { ModelService } from '@/services/modelService';
-import { renderTemplate } from '@/services/promptTemplates';
 import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
+import { renderGroupTemplate } from '@/services/templateGroupService';
 import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RotateCcw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
@@ -515,7 +515,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.genre,
           project.language,
           project.targetDuration,
-          project.segmentDuration
+          project.segmentDuration,
+          project.globalSettings
         );
 
         if (segments.length === 0) {
@@ -565,7 +566,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         const scenes = isSeriesMode ? series?.library?.scenes : project.scriptData.scenes;
         const props = isSeriesMode ? series?.library?.props : project.scriptData.props;
         newSegments = await aiConvertShotsToSegments(
-          project.shots, characters, scenes, project.visualStyle, project.genre,project.segmentDuration,props
+          project.shots, characters, scenes, project.visualStyle, project.genre,project.segmentDuration,props,project.globalSettings
         ) ?? [];
         if (newSegments.length === 0) {
           dialog.toast({ message: 'AI 拆分失败', type: 'error' });
@@ -825,8 +826,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       }
 
       // 使用 currentDescription（可能刚生成）
-      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),currentDescription,
-        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.visualStyle,project.globalSettings
+      const videoPrompt = renderGroupTemplate('GENERATE_SEGMENT_VIDEO_PROMPT', { visualStyle: project.visualStyle, genre: project.genre, globalSettings: project.globalSettings },scenes.join(','),currentDescription,
+        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.globalSettings,project.visualStyle
       );
 
       const prompt = '## 参考图说明：\n'+imageLabels.map((l,i)=>`${i+1}. ${l}`).join('\n')+'\n\n'+videoPrompt;
@@ -1002,8 +1003,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             }
           });
 
-          const videoPrompt = renderTemplate(
+          const videoPrompt = renderGroupTemplate(
             'GENERATE_SEGMENT_VIDEO_PROMPT',
+            { visualStyle: project.visualStyle, genre: project.genre, globalSettings: project.globalSettings },
             scenes.join(','),
             currentDescription,
             segment.transitionFrom,
