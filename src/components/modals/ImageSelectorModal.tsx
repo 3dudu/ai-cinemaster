@@ -31,7 +31,7 @@ interface Props {
   project?: ProjectState;
   updateProject?: (updates: Partial<ProjectState>) => void;
   onSelectImage: (imageUrl: string, allImages?: string[]) => void;
-  filterType?: 'character' | 'scene' | 'keyframe' | 'prop' | 'all';
+  filterType?: 'character' | 'scene' | 'keyframe' | 'prop' | 'all' | 'video';
   previewMode?: boolean;
   showVideo?: boolean;
 }
@@ -870,14 +870,6 @@ const ImageSelectorModal: React.FC<Props> = ({
                   className="group relative aspect-square bg-slate-800 rounded-lg overflow-hidden border border-slate-700 hover:border-slate-500 transition-all hover:shadow-lg"
                 >
                   <button
-                    onClick={() => { 
-                      if(image.mediaType === 'video')return;
-                      const allImageUrls = displayImages.map(img => img.imageUrl || '');
-                      onSelectImage(image.imageUrl || '', allImageUrls);
-                      if (!previewMode) {
-                        onClose();
-                      }
-                    }}
                     className="w-full h-full cursor-pointer"
                   >
                     {image.mediaType === 'video' ? (
@@ -894,6 +886,13 @@ const ImageSelectorModal: React.FC<Props> = ({
                       <img
                         src={image.imageUrl}
                         alt={image.title}
+                     onClick={() => {
+                      const allImageUrls = displayImages.map(img => img.imageUrl || '');
+                      onSelectImage(image.imageUrl || '', allImageUrls);
+                      if (!previewMode) {
+                        onClose();
+                      }
+                    }}
                         className="w-full h-full object-contain group-hover:scale-115 transition-transform duration-200"
                       />
                     )}

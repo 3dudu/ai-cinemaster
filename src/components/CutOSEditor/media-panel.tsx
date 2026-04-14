@@ -1,9 +1,12 @@
 "use client"
 
 import { AnimatePresence, motion } from "framer-motion"
-import { AlertCircle, Captions, Clock, Cloud, CloudOff, Eye, EyeOff, Film, FolderOpen, GripVertical, Loader2, Play, Search, Upload, Wand2, X, Zap } from "lucide-react"
+import { AlertCircle, Captions, Clock, Cloud, CloudOff, Eye, EyeOff, Film, FolderOpen, GripVertical, Images, Loader2, Play, Search, Upload, Wand2, X, Zap } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { loadProjectFromDB } from "../../services/storageService"
+import type { ProjectState } from "../../types"
 import { generateVideoThumbnail } from "../../utils/imageUtils"
+import ImageSelectorModal from "../modals/ImageSelectorModal"
 import type { TimelineClip } from "./editor-context"
 import { DEFAULT_CLIP_EFFECTS, DEFAULT_CLIP_TRANSFORM, MediaFile, useEditor } from "./editor-context"
 import type { ClipEffects, ClipTransform, EffectPreset } from "./types"
@@ -145,11 +148,22 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
+  // Video selector state
+  const [isVideoSelectorOpen, setIsVideoSelectorOpen] = useState(false)
+  const [project, setProject] = useState<ProjectState | null>(null)
+  
   // NLP Search state
   const [nlpResults, setNlpResults] = useState<NLPSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [showNlpResults, setShowNlpResults] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Load project for ImageSelectorModal
+  useEffect(() => {
+    if (projectId) {
+      loadProjectFromDB(projectId).then(setProject).catch(console.error)
+    }
+  }, [projectId])
   
   // Preview state for NLP results
   const [previewResult, setPreviewResult] = useState<NLPSearchResult | null>(null)
@@ -363,6 +377,69 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
       video.src = URL.createObjectURL(file)
     })
   }, [])
+
+  // Get video duration from URL (for remote videos)
+  const getVideoDurationFromUrl = useCallback((url: string): Promise<{ formatted: string; seconds: number }> => {
+    return new Promise((resolve) => {
+      const video = document.createElement("video")
+      video.preload = "metadata"
+      video.crossOrigin = "anonymous"
+
+      const timeout = setTimeout(() => {
+        console.warn("Duration loading timeout for remote video:", url)
+        resolve({ formatted: "00:00", seconds: 0 })
+      }, 15000)
+
+      video.onloadedmetadata = () => {
+        clearTimeout(timeout)
+        resolve({ formatted: formatDuration(video.duration), seconds: video.duration })
+      }
+
+      video.onerror = () => {
+        clearTimeout(timeout)
+        console.error("Error loading remote video metadata:", url)
+        resolve({ formatted: "00:00", seconds: 0 })
+      }
+
+      video.src = url
+    })
+  }, [])
+
+  // Process remote video URL (from ImageSelectorModal)
+  const processVideoUrl = useCallback(
+    async (videoUrl: string) => {
+      const fileName = videoUrl.split('/').pop() || 'video.mp4'
+
+      try {
+        const [thumbnail, durationData] = await Promise.all([
+          generateVideoThumbnail(videoUrl).catch(() => null),
+          getVideoDurationFromUrl(videoUrl).catch(() => ({ formatted: "00:00", seconds: 0 })),
+        ])
+
+        const mediaFile: MediaFile = {
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          file: null,
+          name: fileName,
+          duration: durationData.formatted,
+          durationSeconds: durationData.seconds,
+          thumbnail,
+          type: "video/mp4",
+          objectUrl: videoUrl,
+          storageUrl: videoUrl,
+          twelveLabsVideoId: '',
+          twelveLabsStatus: 'idle',
+          captions: null,
+          captionsGenerating: false,
+          twelveLabsError: null,
+        }
+
+        onFilesAdded([mediaFile])
+      } catch (err) {
+        console.error("Error processing remote video:", videoUrl, err)
+      }
+    },
+    [getVideoDurationFromUrl, onFilesAdded]
+  )
 
   const processFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -642,7 +719,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
 
       {/* Drop zone & media grid */}
       <div
-        className={`flex-1 overflow-y-auto p-3 scrollbar-thin transition-colors ${isDragOver ? "bg-[var(--accent-bg)]" : ""
+        className={`flex-1 overflow-y-auto p-3 pt-0 scrollbar-thin transition-colors ${isDragOver ? "bg-[var(--accent-bg)]" : ""
           }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -683,16 +760,27 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
         ) : (
           /* Media grid */
           <div className="space-y-2">
-            {/* Add more button */}
-            <motion.button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-600 py-2 text-xs text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              添加更多视频
-            </motion.button>
+            {/* Add more buttons */}
+            <div className="flex pt-2 gap-2 sticky top-0 z-10 bg-[var(--bg-primary)]">
+              <motion.button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1 flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-600 py-2 text-xs text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                本地上传
+              </motion.button>
+              <motion.button
+                onClick={() => setIsVideoSelectorOpen(true)}
+                className="flex-1 flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-600 py-2 text-xs text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Images className="h-3.5 w-3.5" />
+                从图库选择
+              </motion.button>
+            </div>
 
             {/* Media items */}
             <AnimatePresence mode="popLayout">
@@ -1011,6 +1099,19 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Video Selector Modal */}
+      <ImageSelectorModal
+        isOpen={isVideoSelectorOpen}
+        onClose={() => setIsVideoSelectorOpen(false)}
+        onSelectImage={(videoUrl) => {
+          processVideoUrl(videoUrl)
+          setIsVideoSelectorOpen(false)
+        }}
+        showVideo={true}
+        project={project}
+        filterType='video'
+      />
     </div>
   )
 }

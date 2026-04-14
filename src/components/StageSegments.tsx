@@ -1,6 +1,6 @@
 import { ModelService } from '@/services/modelService';
-import { renderTemplate } from '@/services/promptTemplates';
 import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
+import { renderGroupTemplate } from '@/services/templateGroupService';
 import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RotateCcw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
@@ -142,7 +142,30 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       const segments = project.segments || [];
       const segment = segments.find((s) => s.id === segmentId);
       if (!segment) return;
+      // 如果已有 videoPrompt，询问用户选择
+      if (segment.videoPrompt) {
+        const choice = await dialog.confirm({
+          title: '已有分镜描述',
+          message: '该片段已有分镜描述，请选择操作方式：',
+          type: 'info',
+          confirmText: '重新生成',
+          cancelText: '优化当前',
+        });
+        // choice: true = 重新生成, false = 优化
+        await doGenerateDescription(segmentId, !choice);
+      } else {
+        await doGenerateDescription(segmentId, false);
+      }
+    },
+    [project.segments, dialog,descriptionDraft],
+  );
 
+  // 实际执行生成分片描述
+  const doGenerateDescription = useCallback(
+    async (segmentId: string, optimizeMode: boolean) => {
+      const segments = project.segments || [];
+      const segment = segments.find((s) => s.id === segmentId);
+      if (!segment) return;
       setGeneratingDescription((prev) => new Set([...prev, segmentId]));
       const segmentIndex = segments.findIndex((s) => s.id === segmentId);
       try {
@@ -154,11 +177,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.visualStyle,
           project.genre,
           project.rawScript,
-          segment.description||'',
+          optimizeMode?descriptionDraft:segment.description||'',
           segmentIndex+1,
           segment.estimatedDuration||project.segmentDuration,
           project.imageSize,
-          project.globalSettings
+          project.globalSettings,
+          optimizeMode ? descriptionDraft||segment.videoPrompt||segment.description:'' // 优化模式传入现有提示词
         );
         if(!description){
           dialog.toast({ message: '生成分片描述失败，请重试',type: 'error' });
@@ -181,7 +205,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         });
       }
     },
-    [project.segments, project.shots, activeCharacters, activeScenes, updateProject, dialog],
+    [project.segments, project.shots, activeCharacters, activeScenes, updateProject, dialog,descriptionDraft],
   );
 
   // Generate all segment descriptions
@@ -240,7 +264,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           }
           dialog.toast({ message: `成功生成 ${successCount} / ${segments.length} 个片段描述`, type: 'success' });
         } catch (err) {
-          dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败: ${err.message}`, type: 'error' });
+          dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败: ${err}`, type: 'error' });
           // 继续生成下一个
         }
       }
@@ -316,6 +340,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       dialogueRhythm: '',
       createdAt: Date.now(),
       lastModified: Date.now(),
+      propIds: [],
     };
     setEditingSegment(newSegment);
     setInsertIndex(index + 1);
@@ -514,7 +539,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           project.genre,
           project.language,
           project.targetDuration,
-          project.segmentDuration
+          project.segmentDuration,
+          project.globalSettings
         );
 
         if (segments.length === 0) {
@@ -564,7 +590,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         const scenes = isSeriesMode ? series?.library?.scenes : project.scriptData.scenes;
         const props = isSeriesMode ? series?.library?.props : project.scriptData.props;
         newSegments = await aiConvertShotsToSegments(
-          project.shots, characters, scenes, project.visualStyle, project.genre,project.segmentDuration,props
+          project.shots, characters, scenes, project.visualStyle, project.genre,project.segmentDuration,props,project.globalSettings
         ) ?? [];
         if (newSegments.length === 0) {
           dialog.toast({ message: 'AI 拆分失败', type: 'error' });
@@ -681,7 +707,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   // Generate video for segment
   const handleGenerateSegmentVideo = useCallback(async () => {
     if (!selectedSegment) return;
-
     // 如果已有视频，需要用户确认
     if (selectedSegment.videoUrl) {
       const confirmed = await dialog.confirm({
@@ -824,8 +849,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       }
 
       // 使用 currentDescription（可能刚生成）
-      const videoPrompt = renderTemplate('GENERATE_SEGMENT_VIDEO_PROMPT',scenes.join(','),currentDescription,
-        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.visualStyle,project.globalSettings
+      const videoPrompt = renderGroupTemplate('GENERATE_SEGMENT_VIDEO_PROMPT', { visualStyle: project.visualStyle, genre: project.genre, globalSettings: project.globalSettings },scenes.join(','),currentDescription,
+        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.globalSettings,project.visualStyle
       );
 
       const prompt = '## 参考图说明：\n'+imageLabels.map((l,i)=>`${i+1}. ${l}`).join('\n')+'\n\n'+videoPrompt;
@@ -854,7 +879,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
         // 提取首帧和尾帧缩略图
         const [firstFrame, lastFrame] = await Promise.all([
-          generateVideoThumbnail(videoUrl, 1),
+          generateVideoThumbnail(videoUrl, 2),
           getVideoLastFrame(videoUrl),
         ]);
 
@@ -1001,8 +1026,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             }
           });
 
-          const videoPrompt = renderTemplate(
+          const videoPrompt = renderGroupTemplate(
             'GENERATE_SEGMENT_VIDEO_PROMPT',
+            { visualStyle: project.visualStyle, genre: project.genre, globalSettings: project.globalSettings },
             scenes.join(','),
             currentDescription,
             segment.transitionFrom,
@@ -1054,7 +1080,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
             // 提取首帧和尾帧缩略图
             const [firstFrame, lastFrame] = await Promise.all([
-              generateVideoThumbnail(videoUrl, 1),
+              generateVideoThumbnail(videoUrl, 2),
               getVideoLastFrame(videoUrl),
             ]);
 
@@ -1585,6 +1611,235 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               </div>
             </div>
             <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-4 border-b border-slate-600">
+               {/* Description */}
+              <div className="mb-4">
+                <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
+                <div 
+                  className={`relative h-[35vh] ${
+                    selectedSegment && generatingDescription.has(selectedSegment.id) 
+                      ? 'ai-generating-border' 
+                      : ''
+                  }`}
+                >
+                  <textarea
+                    ref={descriptionTextareaRef}
+                    value={descriptionDraft}
+                    onChange={handleDescriptionInput}
+                    onKeyDown={handleDescriptionKeyDown}
+                    placeholder="输入片段描述... 使用 @ 提及角色或场景"
+                    className={`w-full h-full p-3 pb-14 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
+                      selectedSegment && generatingDescription.has(selectedSegment.id)
+                        ? 'border-transparent'
+                        : 'border-slate-600 focus:border-slate-500'
+                    }`}
+                  />
+                  {/* @ Mention Picker */}
+                  {mentionPickerOpen && (
+                    <div
+                      className="fixed z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-80 overflow-y-auto w-64"
+                      style={{ 
+                        top: mentionPickerPosition.top, 
+                        left: Math.max(8, mentionPickerPosition.left - 256) // 左下角，确保不超出左边界
+                      }}
+                    >
+                      {/* Characters Section */}
+                      {filteredCharacters.length > 0 && (
+                        <div className="p-1">
+                          <div className="text-[10px] text-slate-500 px-2 py-1 font-bold tracking-wide">角色</div>
+                          {filteredCharacters.slice(0, 5).map(char => {
+                            const isExpanded = expandedCharId === char.id;
+                            const charWithAssets = getCharacterWithAssets(char.id) || char;
+                            const variations = charWithAssets.variations || [];
+                            return (
+                              <div key={char.id}>
+                                <button
+                                  onClick={() => {
+                                    if (variations.length > 0) {
+                                      setExpandedCharId(isExpanded ? null : char.id);
+                                    } else {
+                                      handleSelectMention('character', { id: char.id, name: char.name });
+                                    }
+                                  }}
+                                  className="w-full text-left px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
+                                >
+                                  {charWithAssets.referenceImage ? (
+                                    <img src={charWithAssets.referenceImage} alt={char.name} className="w-8 h-8 rounded-full object-cover" />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-slate-600 flex items-center justify-center text-[10px] text-slate-400">
+                                      {char.name.charAt(0)}
+                                    </div>
+                                  )}
+                                  <span className="flex-1">{char.name}</span>
+                                  {variations.length > 0 && (
+                                    <ChevronRight className={`w-3 h-3 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                  )}
+                                </button>
+                                {/* Variations */}
+                                {isExpanded && variations.length > 0 && (
+                                  <div className="ml-4 border-l border-slate-700 pl-1">
+                                    {variations.map(variation => (
+                                      <button
+                                        key={variation.id}
+                                        onClick={() => handleSelectMention('character', { id: char.id, name: `${char.name}(${variation.name})` }, variation.id)}
+                                        className="w-full text-left px-2 py-1 text-xs text-slate-400 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
+                                      >
+                                        {variation.referenceImage ? (
+                                          <img src={variation.referenceImage} alt={variation.name} className="w-8 h-8 rounded-full object-cover" />
+                                        ) : (
+                                          <div className="w-4 h-4 rounded bg-slate-700" />
+                                        )}
+                                        <span>{variation.name}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Scenes Section */}
+                      {filteredScenes.length > 0 && (
+                        <div className="p-1 border-t border-slate-700">
+                          <div className="text-[10px] text-slate-500 px-2 py-1 font-bold tracking-wide">场景</div>
+                          {filteredScenes.slice(0, 5).map(scene => {
+                            const sceneWithAssets = getSceneWithAssets(scene.id) || scene;
+                            return (
+                              <button
+                                key={scene.id}
+                                onClick={() => handleSelectMention('scene', { id: scene.id, name: scene.location })}
+                                className="w-full text-left px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
+                              >
+                                {sceneWithAssets.referenceImage ? (
+                                  <img src={sceneWithAssets.referenceImage} alt={scene.location} className="w-8 h-8 rounded object-cover" />
+                                ) : (
+                                  <div className="w-5 h-5 rounded bg-slate-700 flex items-center justify-center">
+                                    <Film className="w-3 h-3 text-slate-500" />
+                                  </div>
+                                )}
+                                <span>{scene.location}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Props Section */}
+                      {filteredProps.length > 0 && (
+                        <div className="p-1 border-t border-slate-700">
+                          <div className="text-[10px] text-amber-400 px-2 py-1 font-bold tracking-wide">道具</div>
+                          {filteredProps.slice(0, 5).map(prop => {
+                            const isExpanded = expandedPropId === prop.id;
+                            const propWithAssets = getPropWithAssets(prop.id) || prop;
+                            const variations = propWithAssets.variations || [];
+
+                            return (
+                              <div key={prop.id}>
+                                <button
+                                  onClick={() => {
+                                    if (variations.length > 0) {
+                                      setExpandedPropId(isExpanded ? null : prop.id);
+                                    } else {
+                                      handleSelectMention('prop', { id: prop.id, name: prop.name });
+                                    }
+                                  }}
+                                  className="w-full text-left px-2 py-1.5 text-sm text-amber-200 hover:bg-amber-900/30 rounded flex items-center gap-2 cursor-pointer"
+                                >
+                                  {propWithAssets.referenceImage ? (
+                                    <img src={propWithAssets.referenceImage} alt={prop.name} className="w-8 h-8 rounded object-cover" />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded bg-amber-800 flex items-center justify-center text-[10px] text-amber-400">
+                                      <Box className="w-3 h-3" />
+                                    </div>
+                                  )}
+                                  <span className="flex-1">{prop.name}</span>
+                                  {variations.length > 0 && (
+                                    <ChevronRight className={`w-3 h-3 text-amber-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                  )}
+                                </button>
+                                {/* Variations */}
+                                {isExpanded && variations.length > 0 && (
+                                  <div className="ml-4 border-l border-amber-800 pl-1">
+                                    {variations.map(variation => (
+                                      <button
+                                        key={variation.id}
+                                        onClick={() => handleSelectMention('prop', { id: prop.id, name: `${prop.name}(${variation.name})` }, variation.id)}
+                                        className="w-full text-left px-2 py-1 text-xs text-amber-300 hover:bg-amber-900/30 rounded flex items-center gap-2 cursor-pointer"
+                                      >
+                                        {variation.referenceImage ? (
+                                          <img src={variation.referenceImage} alt={variation.name} className="w-8 h-8 rounded object-cover" />
+                                        ) : (
+                                          <div className="w-4 h-4 rounded bg-amber-800" />
+                                        )}
+                                        <span>{variation.name}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* No results */}
+                      {filteredCharacters.length === 0 && filteredScenes.length === 0 && filteredProps.length === 0 && (
+                        <div className="p-3 text-sm text-slate-500 text-center">
+                          未找到匹配的角色、场景或道具
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* 底部悬浮按钮层 */}
+                  <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border border-slate-600 border-t-slate-600/50 rounded-b-lg flex items-center justify-between">
+                    {/* 左边字数统计 */}
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {descriptionDraft.length} 字
+                    </span>
+                    {/* 右边按钮组 */}
+                    <div className="flex items-center gap-2">
+                      {/* 复制按钮 */}
+                      <button
+                        onClick={() => navigator.clipboard.writeText(descriptionDraft)}
+                        disabled={!descriptionDraft.trim()}
+                        className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                        title="复制描述"
+                      >
+                        <Copy className="w-3 h-3" />
+                        复制
+                      </button>
+                      {/* 重置按钮：当 videoPrompt 和 description 不同时显示 */}
+                      {selectedSegment.videoPrompt !== selectedSegment.description && selectedSegment.description && (
+                        <button
+                          onClick={() => setDescriptionDraft(selectedSegment.description || '')}
+                          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[11px] font-bold tracking-wider rounded transition-colors flex items-center gap-1.5 cursor-pointer"
+                          title="重置为原始描述"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          重置
+                        </button>
+                      )}
+                      {/* AI生成按钮 */}
+                      <button
+                        onClick={() => handleGenerateDescription(selectedSegment.id)}
+                        disabled={generatingDescription.has(selectedSegment.id) || batchGeneratingVideos}
+                        className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                        title="AI生成描述"
+                      >
+                        {generatingDescription.has(selectedSegment.id) ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            生成中...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3 h-3" />
+                            AI生成
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
               {/* Scenes Selection */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -1792,237 +2047,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   {(selectedSegment?.propIds || []).length === 0 && (
                     <span className="text-xs text-amber-500/50">未选择道具</span>
                   )}
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
-                <div 
-                  className={`relative h-[35vh] ${
-                    selectedSegment && generatingDescription.has(selectedSegment.id) 
-                      ? 'ai-generating-border' 
-                      : ''
-                  }`}
-                >
-                  <textarea
-                    ref={descriptionTextareaRef}
-                    value={descriptionDraft}
-                    onChange={handleDescriptionInput}
-                    onKeyDown={handleDescriptionKeyDown}
-                    placeholder="输入片段描述... 使用 @ 提及角色或场景"
-                    className={`w-full h-full p-3 pb-14 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
-                      selectedSegment && generatingDescription.has(selectedSegment.id)
-                        ? 'border-transparent'
-                        : 'border-slate-600 focus:border-slate-500'
-                    }`}
-                  />
-                  {/* @ Mention Picker */}
-                  {mentionPickerOpen && (
-                    <div
-                      className="fixed z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-80 overflow-y-auto w-64"
-                      style={{ 
-                        top: mentionPickerPosition.top, 
-                        left: Math.max(8, mentionPickerPosition.left - 256) // 左下角，确保不超出左边界
-                      }}
-                    >
-                      {/* Characters Section */}
-                      {filteredCharacters.length > 0 && (
-                        <div className="p-1">
-                          <div className="text-[10px] text-slate-500 px-2 py-1 font-bold tracking-wide">角色</div>
-                          {filteredCharacters.slice(0, 5).map(char => {
-                            const isExpanded = expandedCharId === char.id;
-                            const charWithAssets = getCharacterWithAssets(char.id) || char;
-                            const variations = charWithAssets.variations || [];
-                            
-                            return (
-                              <div key={char.id}>
-                                <button
-                                  onClick={() => {
-                                    if (variations.length > 0) {
-                                      setExpandedCharId(isExpanded ? null : char.id);
-                                    } else {
-                                      handleSelectMention('character', { id: char.id, name: char.name });
-                                    }
-                                  }}
-                                  className="w-full text-left px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
-                                >
-                                  {charWithAssets.referenceImage ? (
-                                    <img src={charWithAssets.referenceImage} alt={char.name} className="w-8 h-8 rounded-full object-cover" />
-                                  ) : (
-                                    <div className="w-5 h-5 rounded-full bg-slate-600 flex items-center justify-center text-[10px] text-slate-400">
-                                      {char.name.charAt(0)}
-                                    </div>
-                                  )}
-                                  <span className="flex-1">{char.name}</span>
-                                  {variations.length > 0 && (
-                                    <ChevronRight className={`w-3 h-3 text-slate-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                                  )}
-                                </button>
-                                {/* Variations */}
-                                {isExpanded && variations.length > 0 && (
-                                  <div className="ml-4 border-l border-slate-700 pl-1">
-                                    {variations.map(variation => (
-                                      <button
-                                        key={variation.id}
-                                        onClick={() => handleSelectMention('character', { id: char.id, name: `${char.name}(${variation.name})` }, variation.id)}
-                                        className="w-full text-left px-2 py-1 text-xs text-slate-400 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
-                                      >
-                                        {variation.referenceImage ? (
-                                          <img src={variation.referenceImage} alt={variation.name} className="w-8 h-8 rounded-full object-cover" />
-                                        ) : (
-                                          <div className="w-4 h-4 rounded bg-slate-700" />
-                                        )}
-                                        <span>{variation.name}</span>
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {/* Scenes Section */}
-                      {filteredScenes.length > 0 && (
-                        <div className="p-1 border-t border-slate-700">
-                          <div className="text-[10px] text-slate-500 px-2 py-1 font-bold tracking-wide">场景</div>
-                          {filteredScenes.slice(0, 5).map(scene => {
-                            const sceneWithAssets = getSceneWithAssets(scene.id) || scene;
-                            return (
-                              <button
-                                key={scene.id}
-                                onClick={() => handleSelectMention('scene', { id: scene.id, name: scene.location })}
-                                className="w-full text-left px-2 py-1.5 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2 cursor-pointer"
-                              >
-                                {sceneWithAssets.referenceImage ? (
-                                  <img src={sceneWithAssets.referenceImage} alt={scene.location} className="w-8 h-8 rounded object-cover" />
-                                ) : (
-                                  <div className="w-5 h-5 rounded bg-slate-700 flex items-center justify-center">
-                                    <Film className="w-3 h-3 text-slate-500" />
-                                  </div>
-                                )}
-                                <span>{scene.location}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {/* Props Section */}
-                      {filteredProps.length > 0 && (
-                        <div className="p-1 border-t border-slate-700">
-                          <div className="text-[10px] text-amber-400 px-2 py-1 font-bold tracking-wide">道具</div>
-                          {filteredProps.slice(0, 5).map(prop => {
-                            const isExpanded = expandedPropId === prop.id;
-                            const propWithAssets = getPropWithAssets(prop.id) || prop;
-                            const variations = propWithAssets.variations || [];
-
-                            return (
-                              <div key={prop.id}>
-                                <button
-                                  onClick={() => {
-                                    if (variations.length > 0) {
-                                      setExpandedPropId(isExpanded ? null : prop.id);
-                                    } else {
-                                      handleSelectMention('prop', { id: prop.id, name: prop.name });
-                                    }
-                                  }}
-                                  className="w-full text-left px-2 py-1.5 text-sm text-amber-200 hover:bg-amber-900/30 rounded flex items-center gap-2 cursor-pointer"
-                                >
-                                  {propWithAssets.referenceImage ? (
-                                    <img src={propWithAssets.referenceImage} alt={prop.name} className="w-8 h-8 rounded object-cover" />
-                                  ) : (
-                                    <div className="w-5 h-5 rounded bg-amber-800 flex items-center justify-center text-[10px] text-amber-400">
-                                      <Box className="w-3 h-3" />
-                                    </div>
-                                  )}
-                                  <span className="flex-1">{prop.name}</span>
-                                  {variations.length > 0 && (
-                                    <ChevronRight className={`w-3 h-3 text-amber-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                                  )}
-                                </button>
-                                {/* Variations */}
-                                {isExpanded && variations.length > 0 && (
-                                  <div className="ml-4 border-l border-amber-800 pl-1">
-                                    {variations.map(variation => (
-                                      <button
-                                        key={variation.id}
-                                        onClick={() => handleSelectMention('prop', { id: prop.id, name: `${prop.name}(${variation.name})` }, variation.id)}
-                                        className="w-full text-left px-2 py-1 text-xs text-amber-300 hover:bg-amber-900/30 rounded flex items-center gap-2 cursor-pointer"
-                                      >
-                                        {variation.referenceImage ? (
-                                          <img src={variation.referenceImage} alt={variation.name} className="w-8 h-8 rounded object-cover" />
-                                        ) : (
-                                          <div className="w-4 h-4 rounded bg-amber-800" />
-                                        )}
-                                        <span>{variation.name}</span>
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {/* No results */}
-                      {filteredCharacters.length === 0 && filteredScenes.length === 0 && filteredProps.length === 0 && (
-                        <div className="p-3 text-sm text-slate-500 text-center">
-                          未找到匹配的角色、场景或道具
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {/* 底部悬浮按钮层 */}
-                  <div className="absolute bottom-0 left-0 right-0 p-2 bg-slate-800/65 backdrop-blur-sm border border-slate-600 border-t-slate-600/50 rounded-b-lg flex items-center justify-between">
-                    {/* 左边字数统计 */}
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {descriptionDraft.length} 字
-                    </span>
-                    {/* 右边按钮组 */}
-                    <div className="flex items-center gap-2">
-                      {/* 复制按钮 */}
-                      <button
-                        onClick={() => navigator.clipboard.writeText(descriptionDraft)}
-                        disabled={!descriptionDraft.trim()}
-                        className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
-                        title="复制描述"
-                      >
-                        <Copy className="w-3 h-3" />
-                        复制
-                      </button>
-                      {/* 重置按钮：当 videoPrompt 和 description 不同时显示 */}
-                      {selectedSegment.videoPrompt !== selectedSegment.description && selectedSegment.description && (
-                        <button
-                          onClick={() => setDescriptionDraft(selectedSegment.description || '')}
-                          className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-400 text-[11px] font-bold tracking-wider rounded transition-colors flex items-center gap-1.5 cursor-pointer"
-                          title="重置为原始描述"
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                          重置
-                        </button>
-                      )}
-                      {/* AI生成按钮 */}
-                      <button
-                        onClick={() => handleGenerateDescription(selectedSegment.id)}
-                        disabled={generatingDescription.has(selectedSegment.id) || batchGeneratingVideos}
-                        className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-50 text-[11px] font-bold tracking-wider rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
-                        title="AI生成描述"
-                      >
-                        {generatingDescription.has(selectedSegment.id) ? (
-                          <>
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            生成中...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-3 h-3" />
-                            AI生成
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
 

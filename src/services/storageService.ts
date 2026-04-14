@@ -307,7 +307,7 @@ export interface MediaFile {
   fileName: string;
   timestamp: number;
   fileType: 'image' | 'video' | 'audio';
-  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition';
+  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition' | 'prop';
   prompt: string;
 }
 
@@ -462,7 +462,7 @@ export const addMediaHistory = async (
   fileUrl: string,
   fileName: string,
   fileType: 'image' | 'video' | 'audio',
-  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition',
+  mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition'|'prop',
   prompt: string
 ): Promise<void> => {
   const filehash = await md5Hash(fileUrl);
@@ -786,7 +786,11 @@ export const importFromFile = (): Promise<ImportResult> => {
         reject(new Error('Import cancelled'));
       }
     };
-    input.oncancel = input.onabort;
+    input.oncancel = () => {
+      if (!eventTriggered) {
+        reject(new Error('Import cancelled'));
+      }
+    };
     input.click();
   });
 };

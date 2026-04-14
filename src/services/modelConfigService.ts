@@ -54,7 +54,7 @@ export const getModelConfigByType = async (
 };
 
 // 获取当前启用的配置（按模型类型）
-export const getEnabledConfigByType = async (
+export const getEnabledConfigByType = async  (
   modelType: AIModelConfig['modelType']
 ): Promise<AIModelConfig | null> => {
   const allConfigs = await getAllModelConfigs();

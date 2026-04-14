@@ -8,6 +8,7 @@ import { audioUrlToBase64, imageUrlToBase64 } from "../utils/imageUtils";
 import { getEnabledConfigByType } from "./modelConfigService";
 import { MODEL_GENERATION_CONFIG, renderTemplate } from "./promptTemplates";
 import { getAllModelConfigs } from "./storageService";
+import { renderGroupTemplate } from "./templateGroupService";
 
 const loadDeepseekModule = () => import("./modelproviders/deepseekService");
 const loadGeminiModule = () => import("./modelproviders/geminiService");
@@ -697,15 +698,15 @@ export class ModelService {
     if(type=='variation'){
       prompt = renderTemplate('GENERATE_VARIATION_PROMPT', genre,desc,visualStyle,variationName,variationPrompt);
     }else if(type=='prop'){
-      prompt = renderTemplate('GENERATE_PROP_PROMPT', genre,desc,visualStyle);
+      prompt = renderGroupTemplate('GENERATE_PROP_PROMPT', { visualStyle, genre, globalSettings:story }, genre,desc,visualStyle);
     }else{
-      prompt = renderTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', genre,desc,visualStyle,story);
+      prompt = renderGroupTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', { visualStyle, genre, globalSettings:story }, genre,desc,visualStyle,story);
     }
-    let visualPrompt = renderTemplate('SYSTEM_CHARA_DESIGNER');
+    let visualPrompt = renderGroupTemplate('SYSTEM_CHARA_DESIGNER', { visualStyle, genre, globalSettings:story });
     if(type=='scene'){
-      visualPrompt=renderTemplate('SYSTEM_SCENE_DESIGNER');
+      visualPrompt=renderGroupTemplate('SYSTEM_SCENE_DESIGNER', { visualStyle, genre, globalSettings:story });
     }else if(type=='prop'){
-      visualPrompt=renderTemplate('SYSTEM_PROP_DESIGNER');
+      visualPrompt=renderGroupTemplate('SYSTEM_PROP_DESIGNER', { visualStyle, genre, globalSettings:story });
     }
     switch (provider.provider) {
       case 'deepseek':
@@ -1410,7 +1411,8 @@ export class ModelService {
     genre: string = "剧情片",
     language: string = "中文",
     targetDuration: string = "60s",
-    segmentDuration:number = 15
+    segmentDuration:number = 15,
+    story:string = ""
   ): Promise<Segment[]> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     
@@ -1431,7 +1433,7 @@ export class ModelService {
       segmentDuration
     );
     
-    const systemPrompt = renderTemplate('SYSTEM_SEGMENT_SPLIT',segmentDuration);
+    const systemPrompt = renderGroupTemplate('SYSTEM_SEGMENT_SPLIT',{ visualStyle, genre, globalSettings:story},segmentDuration);
     
     let response = '';
     switch (provider.provider) {

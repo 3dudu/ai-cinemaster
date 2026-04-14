@@ -74,7 +74,7 @@ router.post('/agent', async (req, res) => {
     }
 
     const result = streamText({
-      model: openai(modelConfig.model),
+      model: openai.chat(modelConfig.model),
       system: systemPrompt,
       messages: formattedMessages,
       tools: videoEditingTools,

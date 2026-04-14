@@ -1,5 +1,6 @@
 import { ModelService } from '../services/modelService';
 import { renderTemplate } from "../services/promptTemplates";
+import { renderGroupTemplate } from "../services/templateGroupService";
 import { Character, Properties, Scene, Segment, Shot } from '../types';
 
 /**
@@ -78,6 +79,7 @@ function createSegmentFromShots(shotIds: string[], shots: Shot[], index: number)
     dialogueRhythm: '',
     createdAt: Date.now(),
     lastModified: Date.now(),
+    propIds: [],
   };
 }
 
@@ -96,10 +98,10 @@ export async function generateSegmentDescription(
   segmentIndex:number,
   segmentDuration:number,
   imageSize:string,
-  story?:string
+  story?:string,
+  existingVideoPrompt?: string // 已有提示词，用于优化模式
 ): Promise<string> {
   const segmentShots = allShots.filter(s => segment.shotIds.includes(s.id));
-
   // 构建提示词
   const shotDescriptions = segmentShots.length==0?'':segmentShots.map((shot, idx) => {
     const scene = scenes.find(s => s.id === shot.sceneId);
@@ -117,10 +119,18 @@ export async function generateSegmentDescription(
   }).join('\n');
   */
   const videoRatio = imageSize=="2560x1440" ? "16:9" : "9:16";
-  const prompt = renderTemplate('GENERATE_SEGMENT_PROMPT', scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story);
+
+  let prompt: string;
+  if (existingVideoPrompt) {
+    // 优化模式：在现有提示词基础上优化
+    prompt = renderGroupTemplate('OPTIMIZE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story}, existingVideoPrompt, segment.name, segmentIndex, segmentDuration, videoRatio, visualstyle, genre, story,scriptText);
+  } else {
+    // 重新生成模式
+    prompt = renderGroupTemplate('GENERATE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story},scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story);
+  }
 
   try {
-    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_DESIGNER');
+    const sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
 
     const response = await ModelService.generateSegmentPropmt(prompt,sysctemPrompt);
     return response || '';
@@ -309,7 +319,8 @@ export async function aiConvertShotsToSegments(
   visualStyle: string = "真人写实",
   genre: string = "剧情片",
   segmentDuration:number=15,
-  props:Properties[]
+  props:Properties[],
+  story:string,
 ): Promise<Segment[] | null> {
   if (!shots || shots.length === 0) {
     return [];
@@ -334,7 +345,7 @@ export async function aiConvertShotsToSegments(
   // 3. 构建场景映射（id: location）
   const scenesMap = scenes.map(s => `${s.id}: ${s.location}`).join('\n');
 
-  const propsMap = props.map(s => `${s.id}: ${s.location}`).join('\n');
+  const propsMap = props.map(s => `${s.id}: ${s.name}`).join('\n');
 
   // 4. 构建 prompt
   const prompt = renderTemplate(
@@ -348,7 +359,7 @@ export async function aiConvertShotsToSegments(
   );
 
   try {
-    const sysctemPrompt=renderTemplate('SYSTEM_SEGMENT_SPLIT',segmentDuration);
+    const sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_SPLIT',{ visualStyle, genre, globalSettings:story},segmentDuration);
 
     // 5. 调用 LLM
     const response = await ModelService.generateSegmentPropmt(prompt,sysctemPrompt);
@@ -436,6 +447,7 @@ function parseAiSegmentResponse(response: string, originalShots: Shot[]): Segmen
         dialogueRhythm: seg.dialogueRhythm || '',
         createdAt: Date.now(),
         lastModified: Date.now(),
+        propIds:[]
       });
     }
 
