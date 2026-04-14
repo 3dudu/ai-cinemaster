@@ -151,14 +151,13 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           confirmText: '重新生成',
           cancelText: '优化当前',
         });
-
         // choice: true = 重新生成, false = 优化
         await doGenerateDescription(segmentId, !choice);
       } else {
         await doGenerateDescription(segmentId, false);
       }
     },
-    [project.segments, dialog],
+    [project.segments, dialog,descriptionDraft],
   );
 
   // 实际执行生成分片描述
@@ -167,7 +166,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       const segments = project.segments || [];
       const segment = segments.find((s) => s.id === segmentId);
       if (!segment) return;
-
       setGeneratingDescription((prev) => new Set([...prev, segmentId]));
       const segmentIndex = segments.findIndex((s) => s.id === segmentId);
       try {

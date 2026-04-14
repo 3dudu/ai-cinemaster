@@ -102,7 +102,6 @@ export async function generateSegmentDescription(
   existingVideoPrompt?: string // 已有提示词，用于优化模式
 ): Promise<string> {
   const segmentShots = allShots.filter(s => segment.shotIds.includes(s.id));
-
   // 构建提示词
   const shotDescriptions = segmentShots.length==0?'':segmentShots.map((shot, idx) => {
     const scene = scenes.find(s => s.id === shot.sceneId);
@@ -138,13 +137,10 @@ ${existingVideoPrompt}
 - 视觉风格：${visualstyle}
 - 题材类型：${genre}
 
-## 故事上下文
-${scriptText}
-
 ## 优化要求
 1. 保持原有叙事逻辑和剧情内容
 2. 优化镜头描述的专业性和画面感
-3. 改进球运动强度和情绪曲线的描述
+3. 改进运动强度和情绪曲线的描述
 4. 完善台词与节奏的匹配度
 5. 确保所有描述文字安全合规
 
