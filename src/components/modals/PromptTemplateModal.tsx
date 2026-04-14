@@ -1,17 +1,15 @@
 import { Download, Layers, NotebookPen, RotateCcw, Save, Upload, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { BUILT_IN_TEMPLATE_GROUPS } from '../../config/templateGroups';
 import { PROMPT_TEMPLATES } from '../../services/promptTemplates';
-import CustomSelect from '../common/CustomSelect';
-import { useDialog } from '../dialog';
+import { TemplateGroupService } from '../../services/templateGroupService';
 import {
-  GROUP_MANAGED_TEMPLATE_KEYS,
-  GROUP_TEMPLATE_NAMES,
   GROUP_TEMPLATE_VARIABLES,
   GroupTemplates,
-  PromptTemplateGroup,
+  PromptTemplateGroup
 } from '../../types/promptTemplate';
-import { TemplateGroupService } from '../../services/templateGroupService';
-import { BUILT_IN_TEMPLATE_GROUPS } from '../../config/templateGroups';
+import CustomSelect from '../common/CustomSelect';
+import { useDialog } from '../dialog';
 
 interface Template {
   key: string;
@@ -260,21 +258,11 @@ const PromptTemplateModal: React.FC<{
   const handleResetGroupTemplate = () => {
     if (!selectedGroupId) return;
 
-    // 从内置组获取默认内容
-    const builtInGroup = BUILT_IN_TEMPLATE_GROUPS.find(g => g.id === selectedGroupId);
-    if (builtInGroup && builtInGroup.templates[selectedTemplateKey]) {
-      setGroupTemplateContent(builtInGroup.templates[selectedTemplateKey]!);
-    } else {
-      // 从 PROMPT_TEMPLATES 获取
-      const key = GROUP_MANAGED_TEMPLATE_KEYS.find(k =>
-        require('../../types/promptTemplate').TEMPLATE_KEY_TO_GROUP_PROP[k] === selectedTemplateKey
-      );
-      if (key) {
-        const content = PROMPT_TEMPLATES[key as keyof typeof PROMPT_TEMPLATES];
-        if (typeof content === 'string') {
-          setGroupTemplateContent(content);
-        }
-      }
+    // 使用服务获取原始模版内容
+    const builtInGroup = BUILT_IN_TEMPLATE_GROUPS.find(g => g.id === selectedGroupId) || BUILT_IN_TEMPLATE_GROUPS[0];
+    const content = TemplateGroupService.getGroupTemplateRaw(selectedTemplateKey, builtInGroup);
+    if (content) {
+      setGroupTemplateContent(content);
     }
 
     // 删除自定义覆盖
@@ -345,7 +333,7 @@ const PromptTemplateModal: React.FC<{
     } else {
       // 字符串数组处理
       const strValue = value as string;
-      newRules[field] = strValue ? strValue.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+      newRules[field] = strValue ? strValue.split(',').map(s => s.trim()): undefined;
     }
 
     TemplateGroupService.updateCustomGroup({

@@ -895,20 +895,20 @@ const StageImage: React.FC<Props> = ({ project, updateProject }) => {
                 className="group relative aspect-square bg-slate-800 rounded-lg overflow-hidden border border-slate-700 hover:border-slate-500 transition-all hover:shadow-lg"
               >
                 <button
-                  onClick={() => handleImageClick(image)}
                   className="w-full h-full cursor-pointer"
-                >
+                  >
                   {image.mediaType === 'video' ? (
                     <video 
-                      src={image.imageUrl}
-                      className="w-full h-full object-contain"
-                      controls
-                      muted
-                      onMouseLeave={(e) => e.currentTarget.pause()}
+                    src={image.imageUrl}
+                    className="w-full h-full object-contain"
+                    controls
+                    muted
+                    onMouseLeave={(e) => e.currentTarget.pause()}
                     />
                   ) : (
                     <img
-                      src={image.imageUrl}
+                    src={image.imageUrl}
+                    onClick={() => handleImageClick(image)}
                       alt={image.title}
                       className="w-full h-full object-contain group-hover:scale-115 transition-transform duration-200"
                     />

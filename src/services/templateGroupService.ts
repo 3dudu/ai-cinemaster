@@ -51,11 +51,24 @@ export class TemplateGroupService {
   }
 
   /**
-   * 获取所有模版组（内置 + 自定义）
+   * 获取所有模版组（内置 + 自定义，自定义覆盖同 id 内置组）
    */
   static getAllGroups(): PromptTemplateGroup[] {
     const customGroups = this.loadCustomGroups();
-    return [...BUILT_IN_TEMPLATE_GROUPS, ...customGroups];
+    // 用 Map 实现自定义组覆盖内置组
+    const groupMap = new Map<string, PromptTemplateGroup>();
+
+    // 先添加内置组
+    for (const group of BUILT_IN_TEMPLATE_GROUPS) {
+      groupMap.set(group.id, group);
+    }
+
+    // 再用自定义组覆盖（同 id 会被替换）
+    for (const group of customGroups) {
+      groupMap.set(group.id, group);
+    }
+
+    return Array.from(groupMap.values());
   }
 
   /**
@@ -198,6 +211,7 @@ export class TemplateGroupService {
 
     // 匹配模版组
     const group = context ? this.matchGroup(context) : DEFAULT_TEMPLATE_GROUP;
+    console.log('use group', group);
     // 解析模版内容
     const templateContent = this.resolveTemplate(group, templateKey);
 
@@ -400,8 +414,6 @@ export class TemplateGroupService {
     } else {
       // 如果是内置组，创建一个覆盖的自定义组
       if (BUILT_IN_TEMPLATE_GROUPS.some(g => g.id === group.id)) {
-        group.id = group.id + '_custom';
-        group.name = group.name + '（自定义）';
         customGroups.push({ ...group, isBuiltIn: false });
         this.saveCustomGroups(customGroups);
       }
@@ -441,7 +453,22 @@ export class TemplateGroupService {
     const group = this.getGroupById(groupId);
     if (!group) return;
 
-    const groupProp = TEMPLATE_KEY_TO_GROUP_PROP[templateKey];
+    // 尝试从映射获取 groupProp
+    let groupProp = TEMPLATE_KEY_TO_GROUP_PROP[templateKey] as keyof GroupTemplates | undefined;
+
+    // 如果映射不存在，检查是否传入的直接是 GroupTemplates 的属性名
+    if (!groupProp) {
+      const groupTemplateKeys: (keyof GroupTemplates)[] = [
+        'systemCharacterDesigner', 'systemSceneDesigner', 'systemPropDesigner',
+        'systemSegmentDesigner', 'systemSegmentSplit',
+        'characterPrompt', 'scenePrompt', 'propPrompt', 'segmentPrompt',
+        'characterImage', 'sceneImage', 'propImage', 'segmentVideoPrompt'
+      ];
+      if (groupTemplateKeys.includes(templateKey as keyof GroupTemplates)) {
+        groupProp = templateKey as keyof GroupTemplates;
+      }
+    }
+
     if (!groupProp) return;
 
     // 如果是内置组，创建自定义覆盖

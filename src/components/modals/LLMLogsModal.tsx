@@ -597,7 +597,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
                       {/* 右侧操作 */}
                       <div className="flex items-center gap-2 shrink-0">
                         {/* 异步任务刷新按钮 - 仅限超过20分钟的pending/processing任务 */}
-                        {log.isAsyncTask && log.taskId && (log.taskStatus === 'pending' || log.taskStatus === 'processing') && (Date.now() - log.requestTime > 20 * 60 * 1000) && (
+                        {log.isAsyncTask && log.taskId && (log.taskStatus === 'pending' || log.taskStatus === 'processing' || log.taskStatus === 'failed') && (Date.now() - log.requestTime > 20 * 60 * 1000) && (
                           <button
                             onClick={() => handleRefreshTaskStatus(log)}
                             disabled={refreshingTaskId === log.id}
@@ -713,7 +713,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
                       <div className="flex items-center gap-2">
                         <p className="text-slate-200">{selectedLog.taskStatus}</p>
                         {/* 刷新按钮 - 仅限超过20分钟的pending/processing任务 */}
-                        {selectedLog.isAsyncTask && (selectedLog.taskStatus === 'pending' || selectedLog.taskStatus === 'processing') && (Date.now() - selectedLog.requestTime > 20 * 60 * 1000) && (
+                        {selectedLog.isAsyncTask && (selectedLog.taskStatus === 'pending' || selectedLog.taskStatus === 'processing' || selectedLog.taskStatus === 'failed') && (Date.now() - selectedLog.requestTime > 20 * 60 * 1000) && (
                           <button
                             onClick={() => handleRefreshTaskStatus(selectedLog)}
                             disabled={refreshingTaskId === selectedLog.id}
