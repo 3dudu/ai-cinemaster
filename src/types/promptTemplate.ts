@@ -11,7 +11,7 @@ export interface TemplateGroupMatchRules {
   priority: number;           // 优先级（0最低，数值越高越优先）
 }
 
-/** 组内模版（13个可选项，未定义则降级到 default 组） */
+/** 组内模版（14个可选项，未定义则降级到 default 组） */
 export interface GroupTemplates {
   // 系统提示词
   systemCharacterDesigner?: string;   // SYSTEM_CHARA_DESIGNER
@@ -24,6 +24,7 @@ export interface GroupTemplates {
   scenePrompt?: string;               // GENERATE_SCENE_PROMPT
   propPrompt?: string;                // GENERATE_PROP_PROMPT
   segmentPrompt?: string;             // GENERATE_SEGMENT_PROMPT
+  segmentOptimizePrompt?: string;     // OPTIMIZE_SEGMENT_PROMPT
   // 图片生成
   characterImage?: string;            // GENERATE_CHARACTER_IMAGE
   sceneImage?: string;                // GENERATE_SCENE_IMAGE
@@ -60,6 +61,7 @@ export const TEMPLATE_KEY_TO_GROUP_PROP: Record<string, keyof GroupTemplates> = 
   GENERATE_SCENE_PROMPT: 'scenePrompt',
   GENERATE_PROP_PROMPT: 'propPrompt',
   GENERATE_SEGMENT_PROMPT: 'segmentPrompt',
+  OPTIMIZE_SEGMENT_PROMPT: 'segmentOptimizePrompt',
   GENERATE_CHARACTER_IMAGE: 'characterImage',
   GENERATE_SCENE_IMAGE: 'sceneImage',
   GENERATE_PROP_IMAGE: 'propImage',
@@ -77,6 +79,7 @@ export const GROUP_TEMPLATE_NAMES: Record<keyof GroupTemplates, string> = {
   scenePrompt: '场景视觉提示词润色',
   propPrompt: '道具视觉提示词润色',
   segmentPrompt: '片段视频视觉提示词润色',
+  segmentOptimizePrompt: '片段描述优化提示词',
   characterImage: '角色图片生成',
   sceneImage: '场景图片生成',
   propImage: '道具图片生成',
@@ -94,6 +97,7 @@ export const GROUP_TEMPLATE_VARIABLES: Record<keyof GroupTemplates, string[]> = 
   scenePrompt: ['{desc}', '{genre}', '{visualStyle}', '{story}'],
   propPrompt: ['{desc}', '{genre}', '{visualStyle}', '{story}'],
   segmentPrompt: ['{scriptText}', '{storyParagraphs}', '{shotDescriptions}', '{visualstyle}', '{genre}', '{segmentName}', '{segmentIndex}', '{segmentDuration}', '{videoRatio}', '{story}'],
+  segmentOptimizePrompt: ['{existingVideoPrompt}', '{segmentName}', '{segmentIndex}', '{segmentDuration}', '{videoRatio}', '{visualstyle}', '{genre}', '{story}','{scriptText}'],
   characterImage: ['{prompt}', '{visualStyle}', '{name}', '{story}'],
   sceneImage: ['{prompt}', '{visualStyle}', '{location}', '{time}', '{atmosphere}', '{story}'],
   propImage: ['{prompt}', '{visualStyle}', '{name}', '{story}'],
@@ -114,6 +118,7 @@ export const GROUP_MANAGED_TEMPLATE_KEYS = [
   'GENERATE_SCENE_PROMPT',
   'GENERATE_PROP_PROMPT',
   'GENERATE_SEGMENT_PROMPT',
+  'OPTIMIZE_SEGMENT_PROMPT',
   'GENERATE_CHARACTER_IMAGE',
   'GENERATE_SCENE_IMAGE',
   'GENERATE_PROP_IMAGE',

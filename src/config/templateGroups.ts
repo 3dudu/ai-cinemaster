@@ -484,6 +484,33 @@ export const DEFAULT_TEMPLATE_GROUP: PromptTemplateGroup = {
 通用基底：{story}
 `,
 
+    // 片段描述优化提示词
+    segmentOptimizePrompt: `## 任务
+请优化以下现有的视频分镜描述，使其更加专业、生动、符合电影叙事。
+
+## 现有分镜描述
+{existingVideoPrompt}
+
+## 片段基础信息
+- 片段名：{segmentName}
+- 片段序号：{segmentIndex}
+- 时长：{segmentDuration}秒
+- 视频比例：{videoRatio}
+- 视觉风格：{visualstyle}
+- 题材类型：{genre}
+
+## 优化要求
+1. 保持原有叙事逻辑和剧情内容
+2. 优化镜头描述的专业性和画面感
+3. 改进运动强度和情绪曲线的描述
+4. 完善台词与节奏的匹配度
+5. 确保所有描述文字安全合规
+
+## 通用基底
+{story}
+
+请直接输出优化后的分镜描述，不要有解释性说明。`,
+
     // 片段拆分系统提示词
     systemSegmentDesigner: `你是一个专业的好莱坞影视导演，擅长各种拍摄手法和叙事技巧。现在需要将多个分镜的拍摄方式告诉豆包摄影师，生成演员和摄影能理解的分镜描述。内容连贯，包含场景，角色，动作，对话，机位，角度，运镜，景别的描述。
 

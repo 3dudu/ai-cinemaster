@@ -325,6 +325,18 @@ export class TemplateGroupService {
           videoRatio: args[8] || '16:9',
           story: args[9] || '',
         };
+      case 'OPTIMIZE_SEGMENT_PROMPT':
+        return {
+          existingVideoPrompt: args[0] || '',
+          segmentName: args[1] || '',
+          segmentIndex: args[2] || 1,
+          segmentDuration: args[3] || 15,
+          videoRatio: args[4] || '16:9',
+          visualstyle: args[5] || '真人写实',
+          genre: args[6] || '剧情片',
+          story: args[7] || '',
+          scriptText: args[8] || '',
+        };
       case 'GENERATE_SEGMENT_VIDEO_PROMPT':
         return {
           scenes: args[0] || '',
@@ -359,7 +371,7 @@ export class TemplateGroupService {
         'systemCharacterDesigner', 'systemSceneDesigner', 'systemPropDesigner',
         'systemSegmentDesigner', 'systemSegmentSplit',
         'characterPrompt', 'scenePrompt', 'propPrompt', 'segmentPrompt',
-        'characterImage', 'sceneImage', 'propImage', 'segmentVideoPrompt'
+        'characterImage', 'sceneImage', 'propImage', 'segmentVideoPrompt','segmentOptimizePrompt'
       ];
       if (groupTemplateKeys.includes(templateKey as keyof GroupTemplates)) {
         groupProp = templateKey as keyof GroupTemplates;
@@ -462,7 +474,7 @@ export class TemplateGroupService {
         'systemCharacterDesigner', 'systemSceneDesigner', 'systemPropDesigner',
         'systemSegmentDesigner', 'systemSegmentSplit',
         'characterPrompt', 'scenePrompt', 'propPrompt', 'segmentPrompt',
-        'characterImage', 'sceneImage', 'propImage', 'segmentVideoPrompt'
+        'characterImage', 'sceneImage', 'propImage', 'segmentVideoPrompt','segmentOptimizePrompt'
       ];
       if (groupTemplateKeys.includes(templateKey as keyof GroupTemplates)) {
         groupProp = templateKey as keyof GroupTemplates;

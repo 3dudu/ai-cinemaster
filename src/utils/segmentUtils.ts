@@ -123,31 +123,7 @@ export async function generateSegmentDescription(
   let prompt: string;
   if (existingVideoPrompt) {
     // 优化模式：在现有提示词基础上优化
-    prompt = `## 任务
-请优化以下现有的视频分镜描述，使其更加专业、生动、符合电影叙事。
-
-## 现有分镜描述
-${existingVideoPrompt}
-
-## 片段基础信息
-- 片段名：${segment.name}
-- 片段序号：${segmentIndex}
-- 时长：${segmentDuration}秒
-- 视频比例：${videoRatio}
-- 视觉风格：${visualstyle}
-- 题材类型：${genre}
-
-## 优化要求
-1. 保持原有叙事逻辑和剧情内容
-2. 优化镜头描述的专业性和画面感
-3. 改进运动强度和情绪曲线的描述
-4. 完善台词与节奏的匹配度
-5. 确保所有描述文字安全合规
-
-## 通用基底
-${story || ''}
-
-请直接输出优化后的分镜描述，不要有解释性说明。`;
+    prompt = renderGroupTemplate('OPTIMIZE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story}, existingVideoPrompt, segment.name, segmentIndex, segmentDuration, videoRatio, visualstyle, genre, story,scriptText);
   } else {
     // 重新生成模式
     prompt = renderGroupTemplate('GENERATE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story},scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story);
