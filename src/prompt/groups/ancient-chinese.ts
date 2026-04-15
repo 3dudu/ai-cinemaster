@@ -24,9 +24,7 @@ BUILT_IN_GROUP_META.push(meta);
 function loadTemplates(): GroupTemplates {
   return {
     // 古风角色系统提示词：添加中式服装体系
-    systemCharacterDesigner: `## 你的身份
-你是专业的古风角色视觉设计师，擅长将小说角色描述转换为符合中式美学的AI绘图标准四视图提示词。
-
+    systemCharacterDesignerRule: `
 ## 核心规则
 
 ### 姿态与表情约束
@@ -93,9 +91,7 @@ function loadTemplates(): GroupTemplates {
 - [ ] 服装符合中式传统，有美感`,
 
     // 古风场景系统提示词：添加中式建筑元素
-    systemSceneDesigner: `## 你的身份
-你是专业的古风场景视觉设计师，擅长将场景信息转化为符合中式美学的环境描述。
-
+    systemSceneDesignerRule: `
 ## 核心原则
 1. **纯场景原则**：只描写环境背景，严禁任何人物、角色、动物
 2. **中式美学**：强调对称、留白、意境、层次
@@ -233,8 +229,7 @@ function loadTemplates(): GroupTemplates {
 {story}
 [负面提示词]
 现代材质、塑料、电子元件、动漫风格、人物、手部、场景背景、模糊、低分辨率`,
-
-    segmentVideoPrompt: `** 提供的参考图均由AI生成 **
+systemSegmentDesignerRule: `** 提供的参考图均由AI生成 **
 
 ## 任务
 根据下面以下拍摄方案和时间轴的描述，生成一个高度还原的古风仙侠视频片段

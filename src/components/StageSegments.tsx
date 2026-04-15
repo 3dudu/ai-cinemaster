@@ -182,7 +182,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           segment.estimatedDuration||project.segmentDuration,
           project.imageSize,
           project.globalSettings,
-          optimizeMode ? descriptionDraft||segment.videoPrompt||segment.description:'' // 优化模式传入现有提示词
+          optimizeMode ? descriptionDraft||segment.videoPrompt||segment.description:'', // 优化模式传入现有提示词
+          activeProps,
         );
         if(!description){
           dialog.toast({ message: '生成分片描述失败，请重试',type: 'error' });
@@ -240,7 +241,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             i+1,
             segment.estimatedDuration||project.segmentDuration,
             project.imageSize,
-            project.globalSettings
+            project.globalSettings,
+            null,
+            activeProps
           );
           if(!description){
             dialog.toast({ message: `生成片段 ${segment.name || segment.id} 描述失败`, type: 'error' });
@@ -739,7 +742,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             segmentIndex+1,
             selectedSegment.estimatedDuration||project.segmentDuration,
             project.imageSize,
-            project.globalSettings
+            project.globalSettings,
+            null,
+            activeProps
           );
           if(!currentDescription){
             dialog.toast({ message: `生成片段描述失败`, type: 'error' });
@@ -941,7 +946,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               i+1,
               segment.estimatedDuration||project.segmentDuration,
               project.imageSize,
-              project.globalSettings
+              project.globalSettings,
+              null,
+              activeProps
             );
             if(!currentDescription){
               continue;

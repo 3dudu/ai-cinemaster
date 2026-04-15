@@ -480,7 +480,7 @@ export const generateScript = async (
     systemInstruction: {
       parts: [
         {
-          text: renderTemplate('SYSTEM_SCREENWRITER'),
+          text: renderTemplate('SYSTEM_SCRIPTWRITER'),
         },
       ],
     },

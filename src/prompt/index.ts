@@ -7,11 +7,12 @@
 import './groups/default';
 
 import './groups/2d-90s-japanese-anime';
+import './groups/2d-chinese-guofeng';
 import './groups/3d-animation';
+import './groups/3d-chinese-traditional';
 import './groups/ancient-chinese';
 import './groups/real-ancient-chinese';
 import './groups/real-urban-modern';
-import './groups/realistic';
 
 // 导出类型
 export type { RegisteredGroup, TemplateGroupFull, TemplateGroupMeta, TemplateLoader } from './types';

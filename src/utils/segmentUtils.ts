@@ -99,7 +99,8 @@ export async function generateSegmentDescription(
   segmentDuration:number,
   imageSize:string,
   story?:string,
-  existingVideoPrompt?: string // 已有提示词，用于优化模式
+  existingVideoPrompt?: string,// 已有提示词，用于优化模式
+  props?:Properties[]
 ): Promise<string> {
   const segmentShots = allShots.filter(s => segment.shotIds.includes(s.id));
   // 构建提示词
@@ -111,7 +112,9 @@ export async function generateSegmentDescription(
 
     return `分镜${idx + 1}：${shot.actionSummary} 场景：${scene?.location || '未知'} 角色：${shotChars}。`;
   }).join('\n');
-
+    const characters_str = characters?.map(c => `${c.id}: ${c.name}`).join(';') || '';
+    const props_str = props?.map(c => `${c.id}: ${c.name}`).join(';') || '';
+    const scenes_str = scenes?.map(s => `${s.id}: ${s.location}`).join(';') || '';
   /*
   const storyLine = segment.sceneIds.map(sceneId => {
     const stories = storyParagraphs.filter(p => String(p.sceneRefId) == String(sceneId));
@@ -132,7 +135,9 @@ export async function generateSegmentDescription(
   } else {
     // 重新生成模式
     sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
-    prompt = renderGroupTemplate('GENERATE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story},scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story);
+    sysctemPrompt=sysctemPrompt+'/n'+renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER_RULE',{ visualStyle:visualstyle, genre, globalSettings:story});
+    prompt = renderGroupTemplate('GENERATE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story},scriptText,description,shotDescriptions, visualstyle, 
+      genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story,characters_str,scenes_str,props_str);
   }
 
   try {
@@ -188,7 +193,8 @@ export async function generateAllSegmentDescriptions(
   scriptText:string,
   segmentDuration:number,
   imageSize:string,
-  globalSettings:string
+  globalSettings:string,
+  props:Properties[]
 ): Promise<Segment[]> {
   const updatedSegments = [...segments];
 
@@ -206,7 +212,9 @@ export async function generateAllSegmentDescriptions(
       i+1,
       segmentDuration,
       imageSize,
-      globalSettings
+      globalSettings,
+      null,
+      props
     );
     updatedSegments[i] = {
       ...updatedSegments[i],

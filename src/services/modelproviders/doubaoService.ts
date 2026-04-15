@@ -260,7 +260,7 @@ export const generateScript = async (
       messages: [
         {
           role: "system",
-          content: renderTemplate('SYSTEM_SCREENWRITER'),
+          content: renderTemplate('SYSTEM_SCRIPTWRITER'),
         },
         {
           role: "user",

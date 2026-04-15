@@ -226,7 +226,7 @@ export const generateScript = async (
     model: 'gemini-2.5-flash',
     contents: prompt,
     config: {
-      systemInstruction: renderTemplate('SYSTEM_SCREENWRITER'),
+      systemInstruction: renderTemplate('SYSTEM_SCRIPTWRITER'),
       maxOutputTokens: 8192,
     }
   }));

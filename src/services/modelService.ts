@@ -707,10 +707,13 @@ export class ModelService {
     let visualPrompt=""
     if(type=='scene'){
       visualPrompt=renderGroupTemplate('SYSTEM_SCENE_DESIGNER', { visualStyle, genre, globalSettings:story });
+      visualPrompt = visualPrompt + '/n' + renderGroupTemplate('SYSTEM_SCENE_DESIGNER_RULE', { visualStyle, genre, globalSettings:story });
     }else if(type=='prop' || type=='prop-variation'){
       visualPrompt=renderGroupTemplate('SYSTEM_PROP_DESIGNER', { visualStyle, genre, globalSettings:story });
+      visualPrompt = visualPrompt + '/n' + renderGroupTemplate('SYSTEM_PROP_DESIGNER_RULE', { visualStyle, genre, globalSettings:story });
     }else{
       visualPrompt = renderGroupTemplate('SYSTEM_CHARA_DESIGNER', { visualStyle, genre, globalSettings:story });
+      visualPrompt = visualPrompt + '/n' + renderGroupTemplate('SYSTEM_CHARA_DESIGNER_RULE', { visualStyle, genre, globalSettings:story });
     }
     switch (provider.provider) {
       case 'deepseek':

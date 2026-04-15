@@ -20,9 +20,14 @@ import { PROMPT_TEMPLATES, renderTemplate } from './promptTemplates';
 /**
  * 模版组服务
  */
+const groupTemplateKeys: (keyof GroupTemplates)[] = [
+      'systemCharacterDesignerRule', 'systemSceneDesignerRule', 'systemPropDesignerRule',
+      'systemSegmentDesignerRule',
+      'systemSegmentOptimize',
+      'characterImage', 'sceneImage', 'propImage'
+];
 export class TemplateGroupService {
   private static customGroups: PromptTemplateGroup[] | null = null;
-
   /**
    * 从 localStorage 加载自定义模版组
    */
@@ -328,6 +333,9 @@ export class TemplateGroupService {
           segmentDuration: args[7] || 15,
           videoRatio: args[8] || '16:9',
           story: args[9] || '',
+          chars: args[10] || '',
+          scenes: args[11] || '',
+          props: args[12] || ''
         };
       case 'OPTIMIZE_SEGMENT_PROMPT':
         return {
@@ -371,12 +379,6 @@ export class TemplateGroupService {
 
     // 如果映射不存在，检查是否传入的直接是 GroupTemplates 的属性名
     if (!groupProp) {
-      const groupTemplateKeys: (keyof GroupTemplates)[] = [
-        'systemCharacterDesigner', 'systemSceneDesigner', 'systemPropDesigner',
-        'systemSegmentDesigner', 'systemSegmentSplit',
-        'characterPrompt', 'scenePrompt', 'propPrompt', 'segmentPrompt',
-        'characterImage', 'sceneImage', 'propImage', 'segmentVideoPrompt','segmentOptimizePrompt'
-      ];
       if (groupTemplateKeys.includes(templateKey as keyof GroupTemplates)) {
         groupProp = templateKey as keyof GroupTemplates;
       }
@@ -475,12 +477,6 @@ export class TemplateGroupService {
 
     // 如果映射不存在，检查是否传入的直接是 GroupTemplates 的属性名
     if (!groupProp) {
-      const groupTemplateKeys: (keyof GroupTemplates)[] = [
-        'systemCharacterDesigner', 'systemSceneDesigner', 'systemPropDesigner',
-        'systemSegmentDesigner', 'systemSegmentSplit',
-        'characterPrompt', 'scenePrompt', 'propPrompt', 'segmentPrompt',
-        'characterImage', 'sceneImage', 'propImage', 'segmentVideoPrompt','segmentOptimizePrompt'
-      ];
       if (groupTemplateKeys.includes(templateKey as keyof GroupTemplates)) {
         groupProp = templateKey as keyof GroupTemplates;
       }

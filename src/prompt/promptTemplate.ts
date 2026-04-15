@@ -14,26 +14,17 @@ export interface TemplateGroupMatchRules {
 /** 组内模版（14个可选项，未定义则降级到 default 组） */
 export interface GroupTemplates {
   // 系统提示词
-  systemCharacterDesigner?: string;   // SYSTEM_CHARA_DESIGNER
-  systemSceneDesigner?: string;       // SYSTEM_SCENE_DESIGNER
-  systemPropDesigner?: string;        // SYSTEM_PROP_DESIGNER
-  systemSegmentDesigner?: string;     // SYSTEM_SEGMENT_DESIGNER
+  systemCharacterDesignerRule?: string;   //
+  systemSceneDesignerRule?: string;       //
+  systemPropDesignerRule?: string;        //
+  systemSegmentDesignerRule?: string;     // SYSTEM_SEGMENT_DESIGNER_RULE
+
   systemSegmentOptimize?: string      //SYSTEM_SEGMENT_OPTIMIZE
-  systemSegmentSplit?: string;        // SYSTEM_SEGMENT_SPLIT
-  // 视觉提示词润色
-  characterPrompt?: string;           // GENERATE_CHARACTER_PROMPT
-  scenePrompt?: string;               // GENERATE_SCENE_PROMPT
-  propPrompt?: string;                // GENERATE_PROP_PROMPT
-  segmentPrompt?: string;             // GENERATE_SEGMENT_PROMPT
-  segmentOptimizePrompt?: string;     // OPTIMIZE_SEGMENT_PROMPT
-  characterVariationPrompt?: string;  // GENERATE_VARIATION_PROMPT
-  propVariationPrompt?: string;  // GENERATE_PROP_VARIATION_PROMPT
   // 图片生成
   characterImage?: string;            // GENERATE_CHARACTER_IMAGE
   sceneImage?: string;                // GENERATE_SCENE_IMAGE
   propImage?: string;                 // GENERATE_PROP_IMAGE
   // 视频生成
-  segmentVideoPrompt?: string;        // GENERATE_SEGMENT_VIDEO_PROMPT
 }
 
 /** 提示词模版组 */
@@ -55,65 +46,40 @@ export interface ProjectTemplateContext {
 
 /** 模版 key → 组属性名 映射 */
 export const TEMPLATE_KEY_TO_GROUP_PROP: Record<string, keyof GroupTemplates> = {
-  SYSTEM_CHARA_DESIGNER: 'systemCharacterDesigner',
-  SYSTEM_SCENE_DESIGNER: 'systemSceneDesigner',
-  SYSTEM_PROP_DESIGNER: 'systemPropDesigner',
-  SYSTEM_SEGMENT_DESIGNER: 'systemSegmentDesigner',
+  SYSTEM_CHARA_DESIGNER_RULE: 'systemCharacterDesignerRule',
+  SYSTEM_SCENE_DESIGNER_RULE: 'systemSceneDesignerRule',
+  SYSTEM_PROP_DESIGNER_RULE: 'systemPropDesignerRule',
+  SYSTEM_SEGMENT_DESIGNER_RULE: 'systemSegmentDesignerRule',
   SYSTEM_SEGMENT_OPTIMIZE: 'systemSegmentOptimize',
-  SYSTEM_SEGMENT_SPLIT: 'systemSegmentSplit',
-  GENERATE_CHARACTER_PROMPT: 'characterPrompt',
-  GENERATE_SCENE_PROMPT: 'scenePrompt',
-  GENERATE_PROP_PROMPT: 'propPrompt',
-  GENERATE_SEGMENT_PROMPT: 'segmentPrompt',
-  OPTIMIZE_SEGMENT_PROMPT: 'segmentOptimizePrompt',
-  GENERATE_CHARACTER_IMAGE: 'characterImage',
   GENERATE_SCENE_IMAGE: 'sceneImage',
   GENERATE_PROP_IMAGE: 'propImage',
-  GENERATE_SEGMENT_VIDEO_PROMPT: 'segmentVideoPrompt',
-  GENERATE_VARIATION_PROMPT: 'characterVariationPrompt',
-  GENERATE_PROP_VARIATION_PROMPT: 'propVariationPrompt',
+  GENERATE_CHARACTER_IMAGE: 'characterImage',
 };
 
 /** 组属性名 → 显示名称 */
 export const GROUP_TEMPLATE_NAMES: Record<keyof GroupTemplates, string> = {
-  systemCharacterDesigner: '角色系统提示词',
-  systemSceneDesigner: '场景系统提示词',
-  systemPropDesigner: '道具系统提示词',
-  systemSegmentDesigner: '片段拆分系统提示词',
-  systemSegmentSplit: '剧本直接分片系统提示词',
+  systemCharacterDesignerRule: '角色设计规则',
+  systemSceneDesignerRule: '场景设计规则',
+  systemPropDesignerRule: '道具设计规则',
+  systemSegmentDesignerRule: '片段拆分文字分镜规则',
+
   systemSegmentOptimize: '片段文字分镜优化系统提示词',
-  characterPrompt: '角色视觉提示词润色',
-  scenePrompt: '场景视觉提示词润色',
-  propPrompt: '道具视觉提示词润色',
-  segmentPrompt: '片段视频视觉提示词润色',
-  segmentOptimizePrompt: '片段描述优化提示词',
   characterImage: '角色图片生成',
   sceneImage: '场景图片生成',
   propImage: '道具图片生成',
-  segmentVideoPrompt: '片段视频生成',
-  characterVariationPrompt: '角色造型视觉提示词润色',
-  propVariationPrompt: '道具造型视觉提示词润色',
 };
 
 /** 组内模版可用变量映射 */
 export const GROUP_TEMPLATE_VARIABLES: Record<keyof GroupTemplates, string[]> = {
-  systemCharacterDesigner: [],
-  systemSceneDesigner: [],
-  systemPropDesigner: [],
-  systemSegmentDesigner: [],
+  systemCharacterDesignerRule: [],
+  systemSceneDesignerRule: [],
+  systemPropDesignerRule: [],
+  systemSegmentDesignerRule: [],
+
   systemSegmentOptimize: [],
-  systemSegmentSplit: ['{segmentDuration}'],
-  characterPrompt: ['{desc}', '{genre}', '{visualStyle}', '{story}'],
-  scenePrompt: ['{desc}', '{genre}', '{visualStyle}', '{story}'],
-  propPrompt: ['{desc}', '{genre}', '{visualStyle}', '{story}'],
-  segmentPrompt: ['{scriptText}', '{storyParagraphs}', '{shotDescriptions}', '{visualstyle}', '{genre}', '{segmentName}', '{segmentIndex}', '{segmentDuration}', '{videoRatio}', '{story}'],
-  segmentOptimizePrompt: ['{existingVideoPrompt}', '{segmentName}', '{segmentIndex}', '{segmentDuration}', '{videoRatio}', '{visualstyle}', '{genre}', '{story}','{scriptText}'],
   characterImage: ['{prompt}', '{visualStyle}', '{name}', '{story}'],
   sceneImage: ['{prompt}', '{visualStyle}', '{location}', '{time}', '{atmosphere}', '{story}'],
   propImage: ['{prompt}', '{visualStyle}', '{name}', '{story}'],
-  segmentVideoPrompt: ['{scenes}', '{segment}', '{transitionFrom}', '{transitionTo}', '{story}', '{visualStyle}'],
-  characterVariationPrompt: ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
-  propVariationPrompt: ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
 };
 
 /** localStorage key */
@@ -121,23 +87,14 @@ export const TEMPLATE_GROUPS_STORAGE_KEY = 'promptTemplateGroups';
 
 /** 所有纳入模版组管理的模版 key 列表 */
 export const GROUP_MANAGED_TEMPLATE_KEYS = [
-  'SYSTEM_CHARA_DESIGNER',
-  'SYSTEM_SCENE_DESIGNER',
-  'SYSTEM_PROP_DESIGNER',
-  'SYSTEM_SEGMENT_DESIGNER',
+  'SYSTEM_CHARA_DESIGNER_RULE',
+  'SYSTEM_SCENE_DESIGNER_RULE',
+  'SYSTEM_PROP_DESIGNER_RULE',
+  'SYSTEM_SEGMENT_DESIGNER_RULE',
   'SYSTEM_SEGMENT_OPTIMIZE',
-  'SYSTEM_SEGMENT_SPLIT',
-  'GENERATE_CHARACTER_PROMPT',
-  'GENERATE_SCENE_PROMPT',
-  'GENERATE_PROP_PROMPT',
-  'GENERATE_SEGMENT_PROMPT',
-  'OPTIMIZE_SEGMENT_PROMPT',
   'GENERATE_CHARACTER_IMAGE',
   'GENERATE_SCENE_IMAGE',
   'GENERATE_PROP_IMAGE',
-  'GENERATE_SEGMENT_VIDEO_PROMPT',
-  'GENERATE_VARIATION_PROMPT',
-  'GENERATE_PROP_VARIATION_PROMPT',
 ] as const;
 
 export type GroupManagedTemplateKey = typeof GROUP_MANAGED_TEMPLATE_KEYS[number];
@@ -155,18 +112,20 @@ export interface TemplateInfo {
 
 /** 单模版列表（用于模版编辑器下拉选择） */
 export const TEMPLATE_LIST: TemplateInfo[] = [
-  { key: 'SYSTEM_SEGMENT_DESIGNER', name: '🤖 S1-片段模式-系统提示词-片段拆分系统设定', description: ' 系统设定，片段拆分系统设定', hasParams: true },
-  { key: 'SYSTEM_SEGMENT_OPTIMIZE', name: '🤖 S1-片段模式-系统提示词-片段文字分镜优化', description: ' 系统设定，片段拆分系统设定', hasParams: true },
-  { key: 'SYSTEM_SEGMENT_TRANSLATE', name: '🤖 S2-片段模式-导演提示词-片段视频转场设定', description: ' 为单个片段生成视频转场提示词', hasParams: true },
-  { key: 'SYSTEM_SEGMENT_SPLIT', name: '🤖 S3-片段模式-系统提示词-直接剧本拆分片段提示词', description: ' 导演系统提示词-导演直接剧本拆分片段', hasParams: true },
-  { key: 'SYSTEM_SCRIPT_ANALYZER', name: '🤖 S4-分镜模式-剧本分析员系统提示词-分析剧本', description: ' 用于剧本解析的系统提示词' },
-  { key: 'SYSTEM_PHOTOGRAPHER', name: '🤖 S5-分镜模式-摄影师系统提示词-分镜', description: ' 用于镜头清单生成的系统提示词' },
-  { key: 'SYSTEM_CHARA_DESIGNER', name: '🤖 S6分镜模式-角色设计师系统提示词', description: ' 用于角色提示词生成的系统提示词' },
-  { key: 'SYSTEM_SCENE_DESIGNER', name: '🤖 S7-分镜模式-场景设计师系统提示词', description: ' 用于场景提示词生成的系统提示词' },
-  { key: 'SYSTEM_VIDEO_DIRECTOR', name: '🤖 S8-分镜模式-导演系统提示词', description: ' 用于视频拍摄提示词生成的系统提示词' },
-  { key: 'SYSTEM_SCRIPT_IMPORTER', name: '🤖 S9-导入模式-影视策划系统提示词', description: ' 用于规划拍摄场景角色的系统提示词' },
-  { key: 'SYSTEM_SCREENWRITER', name: '🤖 S10-编剧系统提示词-写剧本', description: ' 用于剧本生成的系统提示词' },
-  { key: 'SYSTEM_PROP_DESIGNER', name: '🤖 S11-S6分镜模式-道具计师系统提示词', description: ' 用于道具提示词生成的系统提示词' },
+  { key: 'SYSTEM_CHARA_DESIGNER', name: '🤖 S1-系统提示词-角色设计师系统提示词', description: ' 用于角色提示词生成的系统提示词' },
+  { key: 'SYSTEM_SCENE_DESIGNER', name: '🤖 S2-系统提示词-场景设计师系统提示词', description: ' 用于场景提示词生成的系统提示词' },
+  { key: 'SYSTEM_PROP_DESIGNER', name: '🤖 S3-系统提示词-道具计师系统提示词', description: ' 用于道具提示词生成的系统提示词' },
+  { key: 'SYSTEM_SEGMENT_DESIGNER', name: '🤖 S4-片段模式-系统提示词-片段拆分系统设定', description: ' 系统设定，片段拆分系统设定', hasParams: true },
+  { key: 'SYSTEM_SEGMENT_OPTIMIZE', name: '🤖 S5-片段模式-系统提示词-片段文字分镜优化', description: ' 系统设定，片段拆分系统设定', hasParams: true },
+  { key: 'SYSTEM_SEGMENT_TRANSLATE', name: '🤖 S6-片段模式-导演提示词-片段视频转场设定', description: ' 为单个片段生成视频转场提示词', hasParams: true },
+  { key: 'SYSTEM_SEGMENT_SPLIT', name: '🤖 S7-片段模式-系统提示词-直接剧本拆分片段提示词', description: ' 导演系统提示词-导演直接剧本拆分片段', hasParams: true },
+  { key: 'SYSTEM_SCRIPT_ANALYZER', name: '🤖 S8-分镜模式-剧本分析员系统提示词-分析剧本', description: ' 用于剧本解析的系统提示词' },
+  { key: 'SYSTEM_PHOTOGRAPHER', name: '🤖 S9-分镜模式-摄影师系统提示词-分镜', description: ' 用于镜头清单生成的系统提示词' },
+  { key: 'SYSTEM_VIDEO_DIRECTOR', name: '🤖 10-分镜模式-导演系统提示词', description: ' 用于视频拍摄提示词生成的系统提示词' },
+  { key: 'SYSTEM_SCRIPT_IMPORTER', name: '🤖 S11-导入模式-影视策划系统提示词', description: ' 用于规划拍摄场景角色的系统提示词' },
+  { key: 'SYSTEM_SCRIPTWRITER', name: '🤖 S12-编剧系统提示词-写剧本', description: ' 用于剧本生成的系统提示词' },
+  { key: 'SYSTEM_SCRIPTWRITER', name: '🤖 S12-编剧系统提示词-写剧本', description: ' 用于剧本生成的系统提示词' },
+
   { key: 'GENERATE_SEGMENT_PROMPT', name: '📋 O1-片段模式-导演-片段视频文字分镜提示词润色', description: ' 导演-片段视频文字分镜提示词润色', hasParams: true },
   { key: 'GENERATE_CHARACTER_PROMPT', name: '📋 O2-视觉设计师-角色提示词润色', description: ' 为图片模型生成角色提示词', hasParams: true },
   { key: 'GENERATE_VARIATION_PROMPT', name: '📋 O3-视觉设计师-角色造型提示词润色', description: ' 为角色图片模型生成造型提示词', hasParams: true },
@@ -197,23 +156,15 @@ export const TEMPLATE_LIST: TemplateInfo[] = [
 
 /** 模版组模版选项（用于模版组管理下拉选择） */
 export const GROUP_TEMPLATE_OPTIONS: { value: keyof GroupTemplates; label: string }[] = [
-  { value: 'systemCharacterDesigner', label: '🤖 角色系统提示词' },
-  { value: 'systemSceneDesigner', label: '🤖 场景系统提示词' },
-  { value: 'systemPropDesigner', label: '🤖 道具系统提示词' },
-  { value: 'systemSegmentDesigner', label: '🤖 片段拆分系统提示词' },
+  { value: 'systemCharacterDesignerRule', label: '🤖 角色系统提示词规范' },
+  { value: 'systemSceneDesignerRule', label: '🤖 场景系统提示词规范' },
+  { value: 'systemPropDesignerRule', label: '🤖 道具系统提示词规范' },
+  { value: 'systemSegmentDesignerRule', label: '🤖 片段文字分镜规则' },
+
   { value: 'systemSegmentOptimize', label: '🤖 片段文字分镜优化系统提示词' },
-  { value: 'systemSegmentSplit', label: '🤖 剧本直接分片系统提示词' },
-  { value: 'characterPrompt', label: '📝 角色视觉提示词润色' },
-  { value: 'characterVariationPrompt', label: '📝 角色造型视觉提示词润色' },
-  { value: 'propVariationPrompt', label: '📝 道具造型视觉提示词润色' },
-  { value: 'scenePrompt', label: '📝 场景视觉提示词润色' },
-  { value: 'propPrompt', label: '📝 道具视觉提示词润色' },
-  { value: 'segmentPrompt', label: '📝 片段视频视觉提示词润色' },
-  { value: 'segmentOptimizePrompt', label: '📝 片段描述优化提示词' },
   { value: 'characterImage', label: '🎨 角色图片生成' },
   { value: 'sceneImage', label: '🎨 场景图片生成' },
   { value: 'propImage', label: '🎨 道具图片生成' },
-  { value: 'segmentVideoPrompt', label: '🎬 片段视频生成' },
 ];
 
 /** 单模版可用变量映射 */
@@ -239,7 +190,7 @@ export const TEMPLATE_VARIABLES: Record<string, string[]> = {
   'GENERATE_SCENE_IMAGE': ['{prompt}', '{visualStyle}','{location}','{time}','{atmosphere}','{story}'],
   'GENERATE_VIDEO_PROMPT': ['{shotSummary}', '{cameraMovement}', '{shotSize}', '{duration}', '{visualStyle}', '{characters}', '{startFrameVisualPrompt}', '{endFrameVisualPrompt}', '{dialogues}','{story}'],
   'GENERATE_TRANSITION_VIDEO': ['{currentShotSummary}', '{nextShotSummary}', '{currentShotSize}', '{nextShotSize}', '{visualStyle}', '{endFrameVisualPrompt}', '{startFrameVisualPrompt}'],
-  'GENERATE_SEGMENT_PROMPT': ['{scriptText}','{storyParagraphs}','{shotDescriptions}', '{visualstyle}','{genre}','{segmentName}','{segmentIndex}','{segmentDuration}','{videoRatio','{story}'],
+  'GENERATE_SEGMENT_PROMPT': ['{scriptText}','{storyParagraphs}','{shotDescriptions}', '{visualstyle}','{genre}','{segmentName}','{segmentIndex}','{segmentDuration}','{videoRatio','{story}','{chars}','{scenes}','{props}'],
   'GENERATE_SEGMENT_VIDEO_PROMPT': ['{scenes}', '{segment}','{transitionFrom}','{transitionTo}','{story}','{visualStyle}'],
   'AI_SPLIT_SEGMENTS': ['{shotsJson}', '{charactersMap}','{scenesMap}','{visualStyle}','{genre}','{propsMap}'],
   'GENERATE_SEGMENTS_FROM_SCRIPT': ['{rawScript}', '{characters}','{scenes}','{visualStyle}','{genre}','{language}','{targetDuration}','{propsMap}','{segmentDuration}'],
