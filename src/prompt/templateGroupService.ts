@@ -5,13 +5,8 @@
 
 import {
   BUILT_IN_TEMPLATE_GROUPS,
-  getAllGroupMeta,
-  getGroupFull,
-  getDefaultGroupFull,
-  getDefaultGroupMeta,
-  BUILT_IN_GROUP_META,
-} from '../prompt';
-import type { TemplateGroupMeta, TemplateGroupFull } from '../prompt';
+  getDefaultGroupFull
+} from '.';
 import {
   GROUP_MANAGED_TEMPLATE_KEYS,
   GroupTemplates,
@@ -19,7 +14,7 @@ import {
   PromptTemplateGroup,
   TEMPLATE_GROUPS_STORAGE_KEY,
   TEMPLATE_KEY_TO_GROUP_PROP,
-} from '../types/promptTemplate';
+} from './promptTemplate';
 import { getCustomTemplate, PROMPT_TEMPLATES, renderTemplate } from './promptTemplates';
 
 /**

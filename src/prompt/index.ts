@@ -4,31 +4,23 @@
  */
 
 // 导入所有组文件（触发注册）
+import './groups/3d-animation';
+import './groups/ancient-chinese';
 import './groups/default';
 import './groups/realistic';
-import './groups/ancient-chinese';
-import './groups/3d-animation';
 
 // 导出类型
-export type { TemplateGroupMeta, TemplateGroupFull, TemplateLoader, RegisteredGroup } from './types';
+export type { RegisteredGroup, TemplateGroupFull, TemplateGroupMeta, TemplateLoader } from './types';
 
 // 导出注册表函数
 export {
-  registerGroup,
-  getAllGroupMeta,
-  getGroupMetaById,
-  getGroupFull,
-  getAllGroupsFull,
-  getDefaultGroupId,
-  getDefaultGroupMeta,
-  getDefaultGroupFull,
-  getBuiltInGroupIds,
-  BUILT_IN_GROUP_META,
+  BUILT_IN_GROUP_META, getAllGroupMeta, getAllGroupsFull, getBuiltInGroupIds, getDefaultGroupFull, getDefaultGroupId,
+  getDefaultGroupMeta, getGroupFull, getGroupMetaById, registerGroup
 } from './registry';
 
 // 兼容旧 API：导出 BUILT_IN_TEMPLATE_GROUPS（延迟加载所有组）
+import type { PromptTemplateGroup } from './promptTemplate';
 import { getAllGroupsFull } from './registry';
-import type { PromptTemplateGroup } from '../types/promptTemplate';
 
 export const BUILT_IN_TEMPLATE_GROUPS: PromptTemplateGroup[] = new Proxy([] as PromptTemplateGroup[], {
   get(target, prop) {

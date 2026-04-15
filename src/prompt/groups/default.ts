@@ -3,9 +3,9 @@
  * 包含全部模版的完整内容，作为所有风格组的降级兜底
  */
 
-import { GroupTemplates } from '../../types/promptTemplate';
+import { GroupTemplates } from '../promptTemplate';
+import { BUILT_IN_GROUP_META, registerGroup } from '../registry';
 import { TemplateGroupMeta } from '../types';
-import { registerGroup, BUILT_IN_GROUP_META } from '../registry';
 
 export const meta: TemplateGroupMeta = {
   id: 'default',

@@ -1,8 +1,8 @@
 // services/modelproviders/deepseekService.ts
 
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "../../prompt/promptTemplates";
 import { Scene, ScriptData, Shot } from "../../types";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString, LogContext } from "../../utils/apiHelper";
-import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // DeepSeek 配置
 const DEEPSEEK_CONFIG = {

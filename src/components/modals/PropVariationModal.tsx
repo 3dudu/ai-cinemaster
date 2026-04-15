@@ -1,7 +1,7 @@
 import { Box, Copy, Download, Edit2, Loader2, Plus, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { renderTemplate } from '../../prompt/promptTemplates';
 import { ModelService } from '../../services/modelService';
-import { renderTemplate } from '../../services/promptTemplates';
 import { addMediaHistory } from '../../services/storageService';
 import { ProjectState, Properties, PropertieVariation, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';

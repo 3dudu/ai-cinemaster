@@ -1,8 +1,8 @@
 // services/modelproviders/yunwuService.ts
 
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "../../prompt/promptTemplates";
 import { Scene, ScriptData, Shot } from "../../types";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString, createAsyncTaskLog, fetchTaskStatus, LogContext, pollTask } from "../../utils/apiHelper";
-import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // 云雾API配置
 const YUNWU_CONFIG = {

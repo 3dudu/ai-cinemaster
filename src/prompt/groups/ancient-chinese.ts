@@ -3,9 +3,9 @@
  * 针对中国古风、仙侠题材优化的模版
  */
 
-import { GroupTemplates } from '../../types/promptTemplate';
+import { GroupTemplates } from '../promptTemplate';
+import { BUILT_IN_GROUP_META, registerGroup } from '../registry';
 import { TemplateGroupMeta } from '../types';
-import { registerGroup, BUILT_IN_GROUP_META } from '../registry';
 
 export const meta: TemplateGroupMeta = {
   id: 'ancient-chinese',

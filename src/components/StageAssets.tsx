@@ -1,7 +1,7 @@
 import { AlertCircle, Box, Camera, Download, Drama, Edit2, Expand, Loader2, MapPin, Mic, Palette, Plus, RefreshCw, Shirt, Sparkles, Trash2, Upload, User, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
+import { renderGroupTemplate } from "../prompt/templateGroupService";
 import { ModelService } from '../services/modelService';
-import { renderGroupTemplate } from "../services/templateGroupService";
 import { addLibraryCharacter, addLibraryProp, addLibraryScene, deleteLibraryCharacter, deleteLibraryProp, deleteLibraryScene } from '../services/seriesService';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Properties, Scene, SeriesRecord } from '../types';

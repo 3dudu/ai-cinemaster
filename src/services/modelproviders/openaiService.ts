@@ -1,8 +1,8 @@
 // services/modelproviders/openaiService.ts
 
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "../../prompt/promptTemplates";
 import { Scene, ScriptData, Shot } from "../../types";
 import { fetchWithRetry as apiFetchWithRetry, cleanJsonString } from "../../utils/apiHelper";
-import { MODEL_GENERATION_CONFIG, renderTemplate } from "../promptTemplates";
 
 // OpenAI 配置
 const OPENAI_CONFIG = {

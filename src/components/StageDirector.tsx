@@ -1,8 +1,8 @@
 import { AlertCircle, ArrowLeft, ArrowRight, ArrowRightLeft, Box, Camera, Check, ChevronLeft, ChevronRight, Clapperboard, Clock, Download, Drama, Edit, Film, ListVideo, Loader2, MapPin, MessageSquare, NotebookPen, NotepadText, Play, RefreshCw, Shirt, Sparkles, Trash, Upload, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { renderTemplate } from "../prompt/promptTemplates";
 import { modelConfigEventBus } from '../services/modelConfigEvents';
 import { ModelService } from '../services/modelService';
-import { renderTemplate } from "../services/promptTemplates";
 import { addMediaHistory, getAllModelConfigs } from '../services/storageService';
 import { AIModelConfig, Character, Keyframe, ProjectState, Properties, Scene, SeriesRecord, Shot } from '../types';
 import CustomSelect from './common/CustomSelect';

@@ -1,7 +1,7 @@
 import { GenerateContentResponse, GoogleGenAI, Type } from "@google/genai";
+import { renderTemplate } from "../../prompt/promptTemplates";
 import { Scene, ScriptData, Shot } from "../../types";
 import { cleanJsonString, retryOperation } from "../../utils/apiHelper";
-import { renderTemplate } from "../promptTemplates";
 
 // Module-level variable to store the key at runtime
 let runtimeApiKey: string = "";

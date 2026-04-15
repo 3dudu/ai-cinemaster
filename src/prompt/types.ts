@@ -3,7 +3,7 @@
  * 元数据与模版内容分离，支持延迟加载
  */
 
-import { TemplateGroupMatchRules, GroupTemplates } from '../types/promptTemplate';
+import { GroupTemplates, TemplateGroupMatchRules } from './promptTemplate';
 
 /** 模版组元数据（轻量，用于匹配） */
 export interface TemplateGroupMeta {

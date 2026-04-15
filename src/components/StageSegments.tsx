@@ -1,6 +1,6 @@
+import { renderGroupTemplate } from '@/prompt/templateGroupService';
 import { ModelService } from '@/services/modelService';
 import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
-import { renderGroupTemplate } from '@/services/templateGroupService';
 import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RotateCcw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
@@ -768,7 +768,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         let scene = activeScenes.find((s) => s.id === sceneId);
         if (scene && scene?.referenceImage) {
           referenceImages.push(scene.referenceImage);
-          imageLabels.push(`图${imageIndex}: ${scene.location}`);
+          currentDescription.replaceAll(`${scene.location}`, `@图${imageIndex}（${scene.location}）`);
           scenes.push(scene.location);
           imageIndex++;
         }
@@ -776,6 +776,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       
       // Add character images
       const voices: string[] = [];
+      const voicesLabels: string[] = [];
       let voiceIndex = 1;
       selectedSegment.characterIds?.forEach((charId) => {
         let character = activeCharacters.find((c) => c.id === charId);
@@ -785,21 +786,21 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             const selectedVar = character.variations.find(v => v.id === variation);
             if(selectedVar?.referenceImage){
               referenceImages.push(selectedVar.referenceImage);
-              imageLabels.push(`图${imageIndex}: ${character.name}`);
+              currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
               imageIndex++;
             }else if(character?.referenceImage){
               referenceImages.push(character.referenceImage);
-              imageLabels.push(`图${imageIndex}: ${character.name}`);
+              currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
               imageIndex++;
             }
           }else if(character?.referenceImage){
             referenceImages.push(character.referenceImage);
-            imageLabels.push(`图${imageIndex}: ${character.name}`);
+              currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
             imageIndex++;
           }
           if(character?.voiceUrl){
             voices.push(character.voiceUrl);
-            imageLabels.push(`音频${voiceIndex}: ${character.name}`);
+            voicesLabels.push(`@音频${voiceIndex} 作为（${character.name}）声音参考`);
             voiceIndex++;
           }
         }
@@ -814,16 +815,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             const selectedVar = prop.variations?.find(v => v.id === variation);
             if (selectedVar?.referenceImage) {
               referenceImages.push(selectedVar.referenceImage);
-              imageLabels.push(`图${imageIndex}: ${prop.name}`);
+              currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
               imageIndex++;
             } else if (prop?.referenceImage) {
               referenceImages.push(prop.referenceImage);
-              imageLabels.push(`图${imageIndex}: ${prop.name}`);
+              currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
               imageIndex++;
             }
           } else if (prop?.referenceImage) {
             referenceImages.push(prop.referenceImage);
-            imageLabels.push(`图${imageIndex}: ${prop.name}`);
+              currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
             imageIndex++;
           }
         }
@@ -835,14 +836,14 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         // 优先使用缓存的尾帧缩略图
         if(lastSegment.lastFrameThumbnail){
           referenceImages.push(lastSegment.lastFrameThumbnail);
-          imageLabels.push(`图${imageIndex}: 首帧参考`);
+          imageLabels.push(`@图${imageIndex} 作为首帧约束`);
           imageIndex++;
         } else if(lastSegment.videoUrl){
           // fallback：实时提取尾帧
           const lastframe = await getVideoLastFrame(lastSegment.videoUrl);
           if(lastframe){
             referenceImages.push(lastframe);
-            imageLabels.push(`图${imageIndex}: 首帧参考`);
+            imageLabels.push(`@图${imageIndex} 作为首帧约束`);
             imageIndex++;
           }
         }
@@ -853,7 +854,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         selectedSegment.transitionFrom,selectedSegment.transitionTo,project.globalSettings,project.visualStyle
       );
 
-      const prompt = '## 参考图说明：\n'+imageLabels.map((l,i)=>`${i+1}. ${l}`).join('\n')+'\n\n'+videoPrompt;
+      const prompt = ' **首尾帧控制**：'+imageLabels.join('；')+'\n **角色声音控制**：'+voicesLabels.join('；')+'\n\n'+videoPrompt;
 
       const videoUrl = await ModelService.generateVideo(
           prompt,
@@ -966,7 +967,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             let scene = activeScenes.find((s) => s.id === sceneId);
             if (scene?.referenceImage) {
               referenceImages.push(scene.referenceImage);
-              imageLabels.push(`图${imageIndex}: ${scene.location}`);
+              currentDescription.replaceAll(`${scene.location}`, `@图${imageIndex}（${scene.location}）`);
               scenes.push(scene.location);
               imageIndex++;
             }
@@ -974,6 +975,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
           const voices: string[] = [];
           let voiceIndex = 1;
+          const voicesLabels: string[] = [];
           segment.characterIds?.forEach((charId) => {
             let character = activeCharacters.find((c) => c.id === charId);
             if (character) {
@@ -982,21 +984,21 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 const selectedVar = character.variations?.find(v => v.id === variation);
                 if (selectedVar?.referenceImage) {
                   referenceImages.push(selectedVar.referenceImage);
-                  imageLabels.push(`图${imageIndex}: ${character.name}`);
+                  currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
                   imageIndex++;
                 } else if (character.referenceImage) {
                   referenceImages.push(character.referenceImage);
-                  imageLabels.push(`图${imageIndex}: ${character.name}`);
+                  currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
                   imageIndex++;
                 }
               } else if (character.referenceImage) {
                 referenceImages.push(character.referenceImage);
-                imageLabels.push(`图${imageIndex}: ${character.name}`);
+                  currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
                 imageIndex++;
               }
               if(character?.voiceUrl){
                 voices.push(character.voiceUrl);
-                imageLabels.push(`音频${voiceIndex}: ${character.name}`);
+                voicesLabels.push(`@音频${voiceIndex} 作为（${character.name}）声音参考`);
                 voiceIndex++;
               }
             }
@@ -1011,16 +1013,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 const selectedVar = prop.variations?.find(v => v.id === variation);
                 if (selectedVar?.referenceImage) {
                   referenceImages.push(selectedVar.referenceImage);
-                  imageLabels.push(`图${imageIndex}: ${prop.name}`);
+                  currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
                   imageIndex++;
                 } else if (prop.referenceImage) {
                   referenceImages.push(prop.referenceImage);
-                  imageLabels.push(`图${imageIndex}: ${prop.name}`);
+                  currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
                   imageIndex++;
                 }
               } else if (prop.referenceImage) {
                 referenceImages.push(prop.referenceImage);
-                imageLabels.push(`图${imageIndex}: ${prop.name}`);
+                  currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
                 imageIndex++;
               }
             }
@@ -1043,19 +1045,19 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             // 优先使用缓存的尾帧缩略图
             if(lastSegment.lastFrameThumbnail){
               referenceImages.push(lastSegment.lastFrameThumbnail);
-              imageLabels.push(`图${imageIndex}: 首帧参考`);
+              imageLabels.push(`@图${imageIndex} 作为首帧约束`);
               imageIndex++;
             } else if(lastSegment.videoUrl){
               // fallback：实时提取尾帧
               const lastframe = await getVideoLastFrame(lastSegment.videoUrl);
               if(lastframe){
                 referenceImages.push(lastframe);
-                imageLabels.push(`图${imageIndex}: 首帧参考`);
+                imageLabels.push(`@图${imageIndex} 作为首帧约束`);
                 imageIndex++;
               }
             }
           }
-          const prompt = '## 参考图说明：\n' + imageLabels.map((l, i) => `${i + 1}. ${l}`).join('\n') + '\n\n' + videoPrompt;
+          const prompt = ' **首尾帧控制**：'+imageLabels.join('；')+'\n **角色声音控制**：'+voicesLabels.join('；')+'\n\n'+videoPrompt;
 
           const videoUrl = await ModelService.generateVideo(
             prompt,

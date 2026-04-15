@@ -88,13 +88,25 @@ export default defineConfig(({ mode }) => {
         assetsDir: 'assets',
         rollupOptions: {
           output: {
-            manualChunks: {
-              // 拆分React核心全家桶为单独chunk
-              reactVendor: ['react', 'react-dom'],
-              // 拆分大体积UI组件库（如Antd/MUI/Element-React）
-              uiLib: ['lucide-react'],
-              // 拆分大体积工具库（如axios/echarts/lodash/moment）
-              utilsLib: ['@google/genai'],
+            // 使用函数形式的 manualChunks 实现精细分包
+            manualChunks(id) {
+              // ---- 第三方大体积库 ----
+              if (id.includes('/node_modules/framer-motion/')) return 'vendor-framer-motion';
+              if (id.includes('/node_modules/react-resizable-panels/')) return 'vendor-resizable-panels';
+              if (id.includes('/node_modules/@radix-ui/')) return 'vendor-radix-ui';
+              if (id.includes('/node_modules/ai/') || id.includes('/node_modules/@ai-sdk/')) return 'vendor-ai-sdk';
+              if (id.includes('/node_modules/@google/genai/')) return 'utilsLib';
+              if (id.includes('/node_modules/lucide-react/')) return 'uiLib';
+              if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/')) return 'reactVendor';
+
+              // ---- CutOSEditor 编辑器组件 ----
+              if (id.includes('/components/CutOSEditor/')) return 'cutos-editor';
+
+              // ---- 提示词组模版 ----
+              if (id.includes('/prompt/groups/')) {
+                const match = id.match(/groups\/([\w-]+)\.ts$/);
+                return match ? `prompt-${match[1]}` : 'prompt-groups';
+              }
             }
           }
         }

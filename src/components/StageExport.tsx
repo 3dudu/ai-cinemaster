@@ -1,9 +1,11 @@
 import { AlertCircle, ArrowRightLeft, BarChart3, Check, CheckCircle, Download, Film, Loader2, X } from 'lucide-react';
-import React, { useCallback, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useState } from 'react';
 import { initializeCozeConfig, submitWorkflow } from '../services/modelproviders/cozeService';
 import { ProjectState } from '../types';
 import { uploadFileToService } from "../utils/fileUploadUtils";
-import CutOSEditor from './CutOSEditor';
+
+// 延迟加载 CutOSEditor 编辑器模块（按需加载，减少主包体积）
+const CutOSEditor = lazy(() => import('./CutOSEditor'));
 
 interface Props {
   project: ProjectState;
@@ -721,11 +723,22 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
              </div>
           </div>
         </div>
-      <CutOSEditor
-        project={project}
-        open={showCutOSEditor}
-        onClose={() => setShowCutOSEditor(false)}
-      />
+      {showCutOSEditor && (
+        <Suspense fallback={
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+            <div className="flex items-center gap-3 text-slate-300">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>加载编辑器...</span>
+            </div>
+          </div>
+        }>
+          <CutOSEditor
+            project={project}
+            open={showCutOSEditor}
+            onClose={() => setShowCutOSEditor(false)}
+          />
+        </Suspense>
+      )}
       </div>
     </div>
   );

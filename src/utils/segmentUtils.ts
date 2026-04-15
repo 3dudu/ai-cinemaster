@@ -1,6 +1,6 @@
+import { renderTemplate } from "../prompt/promptTemplates";
+import { renderGroupTemplate } from "../prompt/templateGroupService";
 import { ModelService } from '../services/modelService';
-import { renderTemplate } from "../services/promptTemplates";
-import { renderGroupTemplate } from "../services/templateGroupService";
 import { Character, Properties, Scene, Segment, Shot } from '../types';
 
 /**
@@ -121,17 +121,17 @@ export async function generateSegmentDescription(
   const videoRatio = imageSize=="2560x1440" ? "16:9" : "9:16";
 
   let prompt: string;
+  let sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
   if (existingVideoPrompt) {
     // 优化模式：在现有提示词基础上优化
     prompt = renderGroupTemplate('OPTIMIZE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story}, existingVideoPrompt, segment.name, segmentIndex, segmentDuration, videoRatio, visualstyle, genre, story,scriptText);
+    sysctemPrompt = renderGroupTemplate('SYSTEM_SEGMENT_OPTIMIZE',{ visualStyle:visualstyle, genre, globalSettings:story})||sysctemPrompt;
   } else {
     // 重新生成模式
     prompt = renderGroupTemplate('GENERATE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story},scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story);
   }
 
   try {
-    const sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
-
     const response = await ModelService.generateSegmentPropmt(prompt,sysctemPrompt);
     return response || '';
   } catch (error) {

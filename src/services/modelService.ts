@@ -1,14 +1,14 @@
 // services/modelService.ts
 // 模型调用包装类，根据启用的配置动态选择模型提供商
 
+import { MODEL_GENERATION_CONFIG, renderTemplate } from "../prompt/promptTemplates";
+import { renderGroupTemplate } from "../prompt/templateGroupService";
 import { AIModelConfig, Scene, ScriptData, Segment, Shot } from "../types";
 import { cleanJsonString } from "../utils/apiHelper";
 import { uploadFileToService } from "../utils/fileUploadUtils";
 import { audioUrlToBase64, imageUrlToBase64 } from "../utils/imageUtils";
 import { getEnabledConfigByType } from "./modelConfigService";
-import { MODEL_GENERATION_CONFIG, renderTemplate } from "./promptTemplates";
 import { getAllModelConfigs } from "./storageService";
-import { renderGroupTemplate } from "./templateGroupService";
 
 const loadDeepseekModule = () => import("./modelproviders/deepseekService");
 const loadGeminiModule = () => import("./modelproviders/geminiService");

@@ -3,9 +3,9 @@
  * 针对3D动画、卡通风格优化的模版
  */
 
-import { GroupTemplates } from '../../types/promptTemplate';
+import { GroupTemplates } from '../promptTemplate';
+import { BUILT_IN_GROUP_META, registerGroup } from '../registry';
 import { TemplateGroupMeta } from '../types';
-import { registerGroup, BUILT_IN_GROUP_META } from '../registry';
 
 export const meta: TemplateGroupMeta = {
   id: '3d-animation',
