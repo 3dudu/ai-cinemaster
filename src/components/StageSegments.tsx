@@ -1579,7 +1579,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none whitespace-nowrap">
                   <input
                     type="checkbox"
-                    checked={selectedSegment.useTailFrameRef !== false}
+                    checked={selectedSegment.useTailFrameRef}
                     onChange={(e) => {
                       const updated = (project.segments || []).map(s =>
                         s.id === selectedSegment.id ? { ...s, useTailFrameRef: e.target.checked } : s

@@ -23,7 +23,7 @@ export const downloadImage = async (imageUrl: string, filename: string, dialogIn
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Download failed:', error);
-    dialogInstance.toast({ message: '下载失败，请重试。'+error?.message, type: 'error' });
+    dialogInstance.toast({ message: `下载失败，请重试。${error}`, type: 'error' });
   }
 };
 
@@ -144,7 +144,7 @@ const FileUploadModal: React.FC<Props> = ({
       }
     } catch (error) {
       console.error('Upload error:', error);
-      dialog.toast({ message: '上传失败，请重试。'+error?.message, type: 'error' });
+      dialog.toast({ message: `上传失败，请重试。${error}`, type: 'error' });
     } finally {
       setUploading(false);
     }

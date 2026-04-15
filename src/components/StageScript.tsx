@@ -1811,7 +1811,7 @@ const StageScript: React.FC<Props> = ({
     );
   };
 
-  const handleSaveStoryParagraphs = (paragraphs: { id: number; text: string; sceneRefId: string }[]) => {
+  const handleSaveStoryParagraphs = (paragraphs: { id: number; text: string; sceneRefId: string;duration: number}[]) => {
     if (!project.scriptData || !editingStoryParagraphsSceneId) return;
 
     const newData = { ...project.scriptData };
@@ -1843,6 +1843,7 @@ const StageScript: React.FC<Props> = ({
         onSave={handleSaveStoryParagraphs}
         paragraphs={project.scriptData?.storyParagraphs || []}
         sceneId={editingStoryParagraphsSceneId}
+        segmentDuration={project.segmentDuration}
       />
     );
   };

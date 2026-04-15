@@ -133,6 +133,7 @@ export async function generateSegmentDescription(
     if(!sysctemPrompt){
       sysctemPrompt = renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
     }
+    sysctemPrompt=sysctemPrompt+'/n'+renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER_RULE',{ visualStyle:visualstyle, genre, globalSettings:story});
   } else {
     // 重新生成模式
     sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});

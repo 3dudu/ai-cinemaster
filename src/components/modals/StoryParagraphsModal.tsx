@@ -5,6 +5,7 @@ interface StoryParagraph {
   id: number;
   text: string;
   sceneRefId: string;
+  duration: number;
 }
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   onSave: (paragraphs: StoryParagraph[]) => void;
   paragraphs: StoryParagraph[];
   sceneId: string;
+  segmentDuration: number;
 }
 
 const StoryParagraphsModal: React.FC<Props> = ({
@@ -20,7 +22,8 @@ const StoryParagraphsModal: React.FC<Props> = ({
   onClose,
   onSave,
   paragraphs,
-  sceneId
+  sceneId,
+  segmentDuration
 }) => {
   const [tempParagraphs, setTempParagraphs] = useState<StoryParagraph[]>([]);
 
@@ -39,7 +42,8 @@ const StoryParagraphsModal: React.FC<Props> = ({
     const newParagraph: StoryParagraph = {
       id: newId,
       text: '',
-      sceneRefId: sceneId
+      sceneRefId: sceneId,
+      duration: segmentDuration
     };
     setTempParagraphs([...tempParagraphs, newParagraph]);
   };
