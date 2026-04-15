@@ -348,6 +348,9 @@ export class TemplateGroupService {
           genre: args[6] || '剧情片',
           story: args[7] || '',
           scriptText: args[8] || '',
+          chars: args[9] || '',
+          scenes: args[10] || '',
+          props: args[11] || ''
         };
       case 'GENERATE_SEGMENT_VIDEO_PROMPT':
         return {

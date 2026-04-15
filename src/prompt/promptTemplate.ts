@@ -178,7 +178,7 @@ export const TEMPLATE_VARIABLES: Record<string, string[]> = {
   'GENERATE_CHARACTER_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{story}'],
   'GENERATE_VARIATION_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
   'GENERATE_PROP_VARIATION_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
-  'OPTIMIZE_SEGMENT_PROMPT': ['{existingVideoPrompt}', '{segmentName}', '{segmentIndex}', '{segmentDuration}', '{videoRatio}', '{visualstyle}', '{genre}', '{story}','{scriptText}'],
+  'OPTIMIZE_SEGMENT_PROMPT': ['{existingVideoPrompt}', '{segmentName}', '{segmentIndex}', '{segmentDuration}', '{videoRatio}', '{visualstyle}', '{genre}', '{story}','{scriptText}','{chars}','{scenes}','{props}'],
   'GENERATE_SCENE_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{story}'],
   'JOIN_IMAGES': ['{imageCount}', '{imageSize}'],
   'IMAGE_GENERATION_WITH_REFERENCE': ['{prompt}', '{visualStyle}'],

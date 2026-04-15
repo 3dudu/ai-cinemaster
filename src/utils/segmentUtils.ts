@@ -112,9 +112,9 @@ export async function generateSegmentDescription(
 
     return `分镜${idx + 1}：${shot.actionSummary} 场景：${scene?.location || '未知'} 角色：${shotChars}。`;
   }).join('\n');
-    const characters_str = characters?.map(c => `${c.id}: ${c.name}`).join(';') || '';
-    const props_str = props?.map(c => `${c.id}: ${c.name}`).join(';') || '';
-    const scenes_str = scenes?.map(s => `${s.id}: ${s.location}`).join(';') || '';
+    const characters_str = characters?.map(c => `${c.name}`).join(';') || '';
+    const props_str = props?.map(c => `${c.name}`).join(';') || '';
+    const scenes_str = scenes?.map(s => `${s.location}`).join(';') || '';
   /*
   const storyLine = segment.sceneIds.map(sceneId => {
     const stories = storyParagraphs.filter(p => String(p.sceneRefId) == String(sceneId));
@@ -127,7 +127,8 @@ export async function generateSegmentDescription(
   let sysctemPrompt: string;
   if (existingVideoPrompt) {
     // 优化模式：在现有提示词基础上优化
-    prompt = renderGroupTemplate('OPTIMIZE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story}, existingVideoPrompt, segment.name, segmentIndex, segmentDuration, videoRatio, visualstyle, genre, story,scriptText);
+    prompt = renderGroupTemplate('OPTIMIZE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story}, existingVideoPrompt, segment.name, segmentIndex, 
+      segmentDuration, videoRatio, visualstyle, genre, story,scriptText,characters_str,scenes_str,props_str);
     sysctemPrompt = renderGroupTemplate('SYSTEM_SEGMENT_OPTIMIZE',{ visualStyle:visualstyle, genre, globalSettings:story});
     if(!sysctemPrompt){
       sysctemPrompt = renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
