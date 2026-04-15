@@ -1,6 +1,6 @@
 import { Download, Layers, NotebookPen, RotateCcw, Save, Upload, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { BUILT_IN_TEMPLATE_GROUPS } from '../../config/templateGroups';
+import { BUILT_IN_TEMPLATE_GROUPS, getGroupFull } from '../../prompt';
 import { PROMPT_TEMPLATES } from '../../services/promptTemplates';
 import { TemplateGroupService } from '../../services/templateGroupService';
 import {
@@ -262,7 +262,7 @@ const PromptTemplateModal: React.FC<{
     if (!selectedGroupId) return;
 
     // 使用服务获取原始模版内容
-    const builtInGroup = BUILT_IN_TEMPLATE_GROUPS.find(g => g.id === selectedGroupId) || BUILT_IN_TEMPLATE_GROUPS[0];
+    const builtInGroup = getGroupFull(selectedGroupId) || BUILT_IN_TEMPLATE_GROUPS[0];
     const content = TemplateGroupService.getGroupTemplateRaw(selectedTemplateKey, builtInGroup);
     if (content) {
       setGroupTemplateContent(content);

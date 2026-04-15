@@ -3,7 +3,15 @@
  * 提供模版组匹配、获取、管理等功能
  */
 
-import { BUILT_IN_TEMPLATE_GROUPS, DEFAULT_TEMPLATE_GROUP } from '../config/templateGroups';
+import {
+  BUILT_IN_TEMPLATE_GROUPS,
+  getAllGroupMeta,
+  getGroupFull,
+  getDefaultGroupFull,
+  getDefaultGroupMeta,
+  BUILT_IN_GROUP_META,
+} from '../prompt';
+import type { TemplateGroupMeta, TemplateGroupFull } from '../prompt';
 import {
   GROUP_MANAGED_TEMPLATE_KEYS,
   GroupTemplates,
@@ -82,7 +90,7 @@ export class TemplateGroupService {
    * 获取默认模版组
    */
   static getDefaultGroup(): PromptTemplateGroup {
-    return DEFAULT_TEMPLATE_GROUP;
+    return getDefaultGroupFull();
   }
 
   /**
@@ -103,7 +111,7 @@ export class TemplateGroupService {
     }
 
     // 无匹配，返回 default 组
-    return DEFAULT_TEMPLATE_GROUP;
+    return getDefaultGroupFull();
   }
 
   /**
@@ -161,8 +169,9 @@ export class TemplateGroupService {
     }
 
     // 2. 尝试从 default 组获取
-    if (group.id !== 'default' && DEFAULT_TEMPLATE_GROUP.templates[groupProp!]) {
-      return DEFAULT_TEMPLATE_GROUP.templates[groupProp!]!;
+    const defaultGroup = getDefaultGroupFull();
+    if (group.id !== 'default' && defaultGroup.templates[groupProp!]) {
+      return defaultGroup.templates[groupProp!]!;
     }
 
     // 3. 降级到 PROMPT_TEMPLATES
@@ -210,7 +219,7 @@ export class TemplateGroupService {
     }
 
     // 匹配模版组
-    const group = context ? this.matchGroup(context) : DEFAULT_TEMPLATE_GROUP;
+    const group = context ? this.matchGroup(context) : getDefaultGroupFull();
     console.log('use group', group);
     // 解析模版内容
     const templateContent = this.resolveTemplate(group, templateKey);
@@ -360,7 +369,7 @@ export class TemplateGroupService {
    * @returns 原始模版内容
    */
   static getGroupTemplateRaw(templateKey: string, group?: PromptTemplateGroup): string {
-    const targetGroup = group || DEFAULT_TEMPLATE_GROUP;
+    const targetGroup = group || getDefaultGroupFull();
 
     // 先尝试从 TEMPLATE_KEY_TO_GROUP_PROP 映射获取
     let groupProp = TEMPLATE_KEY_TO_GROUP_PROP[templateKey] as keyof GroupTemplates | undefined;
@@ -383,8 +392,9 @@ export class TemplateGroupService {
     }
 
     // 尝试从 default 组获取
-    if (targetGroup.id !== 'default' && DEFAULT_TEMPLATE_GROUP.templates[groupProp!]) {
-      return DEFAULT_TEMPLATE_GROUP.templates[groupProp!]!;
+    const defaultGroup = getDefaultGroupFull();
+    if (targetGroup.id !== 'default' && defaultGroup.templates[groupProp!]) {
+      return defaultGroup.templates[groupProp!]!;
     }
 
     // 降级到 PROMPT_TEMPLATES
