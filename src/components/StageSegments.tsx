@@ -835,7 +835,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         }
       });
       // 检查是否启用尾帧参考（默认 true）
-      const useTailFrameRef = selectedSegment.useTailFrameRef !== false;
+      const useTailFrameRef = selectedSegment.useTailFrameRef == true;
       if(segmentIndex>0 && useTailFrameRef){
         const lastSegment = segments[segmentIndex-1];
         // 优先使用缓存的尾帧缩略图
@@ -1046,7 +1046,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           );
 
           // 检查是否启用尾帧参考（默认 true）
-          const useTailFrameRef = segment.useTailFrameRef !== false;
+          const useTailFrameRef = segment.useTailFrameRef == true;
           if(i>0 && useTailFrameRef){
             const lastSegment = segments[i-1];
             // 优先使用缓存的尾帧缩略图
