@@ -587,7 +587,7 @@ const PromptTemplateModal: React.FC<{
                       </div>
 
                       {/* 模版选择和编辑 */}
-                      <div className="md:p-4 p-2 border-b border-slate-600 bg-slate-700 flex items-center gap-3">
+                      <div className="md:p-4 p-2 border-b border-slate-600 bg-slate-700 flex items-center gap-3 sticky top-0 z-10">
                         <CustomSelect
                           className="flex-1"
                           options={groupTemplateOptions}
@@ -624,7 +624,7 @@ const PromptTemplateModal: React.FC<{
                       )}
 
                       {/* 模版编辑器 */}
-                      <div className={`${isMobile ? 'h-[252px]' : 'h-full flex-1 overflow-hidden'}`}>
+                      <div className={`h-full flex-1 overflow-hidden`}>
                         <textarea
                           value={groupTemplateContent}
                           onChange={(e) => setGroupTemplateContent(e.target.value)}

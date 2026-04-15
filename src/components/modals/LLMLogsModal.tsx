@@ -876,13 +876,13 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
             <div className="flex gap-3">
               <button
                 onClick={() => setShowClearConfirm(false)}
-                className="flex-1 py-2.5 bg-slate-700 text-slate-300 hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
+                className="flex-1 py-2 bg-slate-700 text-slate-300 hover:bg-slate-600 rounded-lg transition-colors cursor-pointer"
               >
                 取消
               </button>
               <button
                 onClick={handleClearLogs}
-                className="flex-1 py-2.5 bg-red-600 text-white hover:bg-red-500 rounded-lg transition-colors cursor-pointer"
+                className="flex-1 py-2 bg-red-600 text-white hover:bg-red-500 rounded-lg transition-colors cursor-pointer"
               >
                 确认清理
               </button>

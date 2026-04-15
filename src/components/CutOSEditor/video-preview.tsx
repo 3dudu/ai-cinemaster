@@ -1213,7 +1213,7 @@ export function VideoPreview() {
               {showCaptions && captionData && captionData.type === "classic" && (
                 <div className="pointer-events-none absolute bottom-6 left-0 right-0 z-30 flex justify-center px-8">
                   <div
-                    className="max-w-[90%] rounded-md px-5 py-2.5"
+                    className="max-w-[90%] rounded-md px-5 py-2"
                     style={{
                       background: "linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.9) 100%)",
                       boxShadow: "0 4px 20px rgba(0,0,0,0.5)",

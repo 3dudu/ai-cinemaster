@@ -75,7 +75,7 @@ const CreateTypeDialog: React.FC<CreateTypeDialogProps> = ({
 
         <button
           onClick={onClose}
-          className="w-full px-4 py-2.5 bg-slate-800 hover:bg-slate-600 text-slate-300 hover:text-slate-50 font-medium rounded-lg transition-colors"
+          className="w-full px-4 py-2 bg-slate-800 hover:bg-slate-600 text-slate-300 hover:text-slate-50 font-medium rounded-lg transition-colors"
         >
           取消
         </button>

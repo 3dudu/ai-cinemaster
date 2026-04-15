@@ -73,7 +73,7 @@ export const PromptDialog: React.FC<PromptDialogProps> = ({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all"
+              className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-50 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all"
               placeholder="请输入..."
             />
           </div>
@@ -81,13 +81,13 @@ export const PromptDialog: React.FC<PromptDialogProps> = ({
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-600 text-slate-300 font-medium rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-600 text-slate-300 font-medium rounded-lg transition-colors"
             >
               {cancelText}
             </button>
             <button
               onClick={() => onConfirm(inputValue)}
-              className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors"
+              className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors"
             >
               {confirmText}
             </button>
