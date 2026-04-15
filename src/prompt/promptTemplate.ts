@@ -26,11 +26,12 @@ export interface GroupTemplates {
   propPrompt?: string;                // GENERATE_PROP_PROMPT
   segmentPrompt?: string;             // GENERATE_SEGMENT_PROMPT
   segmentOptimizePrompt?: string;     // OPTIMIZE_SEGMENT_PROMPT
+  characterVariationPrompt?: string;  // GENERATE_VARIATION_PROMPT
+  propVariationPrompt?: string;  // GENERATE_PROP_VARIATION_PROMPT
   // 图片生成
   characterImage?: string;            // GENERATE_CHARACTER_IMAGE
   sceneImage?: string;                // GENERATE_SCENE_IMAGE
   propImage?: string;                 // GENERATE_PROP_IMAGE
-  characterVariationPrompt?: string; //GENERATE_VARIATION_PROMPT
   // 视频生成
   segmentVideoPrompt?: string;        // GENERATE_SEGMENT_VIDEO_PROMPT
 }
@@ -70,6 +71,7 @@ export const TEMPLATE_KEY_TO_GROUP_PROP: Record<string, keyof GroupTemplates> = 
   GENERATE_PROP_IMAGE: 'propImage',
   GENERATE_SEGMENT_VIDEO_PROMPT: 'segmentVideoPrompt',
   GENERATE_VARIATION_PROMPT: 'characterVariationPrompt',
+  GENERATE_PROP_VARIATION_PROMPT: 'propVariationPrompt',
 };
 
 /** 组属性名 → 显示名称 */
@@ -90,6 +92,7 @@ export const GROUP_TEMPLATE_NAMES: Record<keyof GroupTemplates, string> = {
   propImage: '道具图片生成',
   segmentVideoPrompt: '片段视频生成',
   characterVariationPrompt: '角色造型视觉提示词润色',
+  propVariationPrompt: '道具造型视觉提示词润色',
 };
 
 /** 组内模版可用变量映射 */
@@ -110,6 +113,7 @@ export const GROUP_TEMPLATE_VARIABLES: Record<keyof GroupTemplates, string[]> = 
   propImage: ['{prompt}', '{visualStyle}', '{name}', '{story}'],
   segmentVideoPrompt: ['{scenes}', '{segment}', '{transitionFrom}', '{transitionTo}', '{story}', '{visualStyle}'],
   characterVariationPrompt: ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
+  propVariationPrompt: ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
 };
 
 /** localStorage key */
@@ -133,6 +137,7 @@ export const GROUP_MANAGED_TEMPLATE_KEYS = [
   'GENERATE_PROP_IMAGE',
   'GENERATE_SEGMENT_VIDEO_PROMPT',
   'GENERATE_VARIATION_PROMPT',
+  'GENERATE_PROP_VARIATION_PROMPT',
 ] as const;
 
 export type GroupManagedTemplateKey = typeof GROUP_MANAGED_TEMPLATE_KEYS[number];
@@ -164,14 +169,15 @@ export const TEMPLATE_LIST: TemplateInfo[] = [
   { key: 'SYSTEM_PROP_DESIGNER', name: '🤖 S11-S6分镜模式-道具计师系统提示词', description: ' 用于道具提示词生成的系统提示词' },
   { key: 'GENERATE_SEGMENT_PROMPT', name: '📋 O1-片段模式-导演-片段视频文字分镜提示词润色', description: ' 导演-片段视频文字分镜提示词润色', hasParams: true },
   { key: 'GENERATE_CHARACTER_PROMPT', name: '📋 O2-视觉设计师-角色提示词润色', description: ' 为图片模型生成角色提示词', hasParams: true },
-  { key: 'GENERATE_VARIATION_PROMPT', name: '📋 O3-视觉设计师-造型提示词润色', description: ' 为图片模型生成造型提示词', hasParams: true },
+  { key: 'GENERATE_VARIATION_PROMPT', name: '📋 O3-视觉设计师-角色造型提示词润色', description: ' 为角色图片模型生成造型提示词', hasParams: true },
   { key: 'GENERATE_SCENE_PROMPT', name: '📋 O4-视觉设计师-场景提示词润色', description: ' 为图片模型生成场景提示词', hasParams: true },
   { key: 'GENERATE_KEYFRAME_PROMPT', name: '📋 O5-视觉设计师-关键帧提示词生成提示词', description: ' 为关键帧生成连环画风格提示词', hasParams: true },
   { key: 'GENERATE_VIDEO_PROMPT', name: '📋 O6-导演-视频拍摄提示词生成提示词', description: ' 为单个镜头生成视频拍摄提示词', hasParams: true },
   { key: 'GENERATE_TRANSITION_VIDEO', name: '📋 O7-导演-转场视频提示词生成提示词', description: ' 生成镜头之间的转场视频提示词', hasParams: true },
   { key: 'GENERATE_SCRIPT', name: '📋 O8-编剧-剧本生成提示词', description: ' 根据提示词创作影视剧本', hasParams: true },
   { key: 'GENERATE_PROP_PROMPT', name: '📋 O9-视觉设计师-道具提示词润色', description: ' 为图片模型生成道具提示词', hasParams: true },
-  { key: 'OPTIMIZE_SEGMENT_PROMPT', name: '📋 10-视觉设计师-片段描述优化提示词', description: ' 片段描述优化提示词', hasParams: true },
+  { key: 'OPTIMIZE_SEGMENT_PROMPT', name: '📋 O10-视觉设计师-片段描述优化提示词', description: ' 片段描述优化提示词', hasParams: true },
+  { key: 'GENERATE_PROP_VARIATION_PROMPT', name: '📋 O11-视觉设计师-道具造型提示词润色', description: ' 为道具图片模型生成造型提示词', hasParams: true },
   { key: 'GENERATE_SEGMENT_VIDEO_PROMPT', name: '🎨 V1-片段模式-导演-片段视频最终生成提示词', description: ' 导演-片段视频最终生成', hasParams: true },
   { key: 'GENERATE_CHARACTER_IMAGE', name: '🎨 V2-视觉设计师-角色图片生成提示词', description: ' 生成角色三视图加大头照', hasParams: true },
   { key: 'GENERATE_SCENE_IMAGE', name: '🎨 V3-视觉设计师-场景图片生成提示词', description: ' 生成场景图片', hasParams: true },
@@ -199,6 +205,7 @@ export const GROUP_TEMPLATE_OPTIONS: { value: keyof GroupTemplates; label: strin
   { value: 'systemSegmentSplit', label: '🤖 剧本直接分片系统提示词' },
   { value: 'characterPrompt', label: '📝 角色视觉提示词润色' },
   { value: 'characterVariationPrompt', label: '📝 角色造型视觉提示词润色' },
+  { value: 'propVariationPrompt', label: '📝 道具造型视觉提示词润色' },
   { value: 'scenePrompt', label: '📝 场景视觉提示词润色' },
   { value: 'propPrompt', label: '📝 道具视觉提示词润色' },
   { value: 'segmentPrompt', label: '📝 片段视频视觉提示词润色' },
@@ -219,6 +226,7 @@ export const TEMPLATE_VARIABLES: Record<string, string[]> = {
   'GENERATE_SCRIPT': ['{prompt}', '{duration}', '{genre}', '{lang}','{story}'],
   'GENERATE_CHARACTER_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{story}'],
   'GENERATE_VARIATION_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
+  'GENERATE_PROP_VARIATION_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{variation}','{variationDesc}'],
   'OPTIMIZE_SEGMENT_PROMPT': ['{existingVideoPrompt}', '{segmentName}', '{segmentIndex}', '{segmentDuration}', '{videoRatio}', '{visualstyle}', '{genre}', '{story}','{scriptText}'],
   'GENERATE_SCENE_PROMPT': ['{desc}', '{genre}', '{visualStyle}','{story}'],
   'JOIN_IMAGES': ['{imageCount}', '{imageSize}'],

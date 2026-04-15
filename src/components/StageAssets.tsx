@@ -119,7 +119,7 @@ const StageAssets: React.FC<Props> = ({
       // Find the item
       let imagesize = '2560x1440';
       let new_prompt = prompt;
-      const genre = isSeriesMode ? series?.genre : project.scriptData?.genre;
+      const genre =  project?.genre || series?.genre || project?.scriptData?.genre;
       if (type === 'character') {
         imagesize = '2560x1440';
         const char = characters.find(c => String(c.id) === String(id));
@@ -127,7 +127,7 @@ const StageAssets: React.FC<Props> = ({
         prompt = char?.visualPrompt || '';
         new_prompt = prompt;
         if (char) {
-          prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, genre || '剧情片', project.visualStyle, project.globalSettings);
+          prompt = char.visualPrompt || await ModelService.generateVisualPrompts('character', char, genre || '剧情片', project.visualStyle,null,null, project.globalSettings);
           new_prompt = renderGroupTemplate('GENERATE_CHARACTER_IMAGE', { visualStyle: project.visualStyle, genre: genre || '剧情片', globalSettings: project.globalSettings }, localStyle, prompt, char.name, project.globalSettings);
         }
       } else if (type === 'scene') {
@@ -136,7 +136,7 @@ const StageAssets: React.FC<Props> = ({
         prompt = scene?.visualPrompt || '';
         new_prompt = prompt;
         if (scene) {
-          prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle, project.globalSettings);
+          prompt = scene.visualPrompt || await ModelService.generateVisualPrompts('scene', scene, genre || '剧情片', project.visualStyle,null,null,project.globalSettings);
           new_prompt = renderGroupTemplate('GENERATE_SCENE_IMAGE', { visualStyle: project.visualStyle, genre: genre || '剧情片', globalSettings: project.globalSettings }, localStyle, prompt, scene.location, scene.time, scene.atmosphere, project.globalSettings);
         }
       } else {
@@ -146,7 +146,7 @@ const StageAssets: React.FC<Props> = ({
         prompt = prop?.visualPrompt || '';
         new_prompt = prompt;
         if (prop) {
-          prompt = prop.visualPrompt || await ModelService.generateVisualPrompts('prop', prop, genre || '剧情片', project.visualStyle, project.globalSettings);
+          prompt = prop.visualPrompt || await ModelService.generateVisualPrompts('prop', prop, genre || '剧情片', project.visualStyle,null,null,project.globalSettings);
           new_prompt = renderGroupTemplate('GENERATE_PROP_IMAGE', { visualStyle: project.visualStyle, genre: genre || '剧情片', globalSettings: project.globalSettings }, localStyle, prompt, prop.name, project.globalSettings);
         }
       }

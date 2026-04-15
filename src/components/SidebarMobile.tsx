@@ -138,6 +138,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
       <PromptTemplateModal
         isOpen={showPromptTemplates}
         onClose={() => setShowPromptTemplates(false)}
+        isMobile={true}
       />
       {/* Project Settings Modal */}
       <ProjectSettingsModal

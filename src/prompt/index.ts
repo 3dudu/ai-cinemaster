@@ -4,9 +4,13 @@
  */
 
 // 导入所有组文件（触发注册）
+import './groups/default';
+
+import './groups/2d-90s-japanese-anime';
 import './groups/3d-animation';
 import './groups/ancient-chinese';
-import './groups/default';
+import './groups/real-ancient-chinese';
+import './groups/real-urban-modern';
 import './groups/realistic';
 
 // 导出类型

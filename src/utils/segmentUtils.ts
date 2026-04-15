@@ -121,13 +121,17 @@ export async function generateSegmentDescription(
   const videoRatio = imageSize=="2560x1440" ? "16:9" : "9:16";
 
   let prompt: string;
-  let sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
+  let sysctemPrompt: string;
   if (existingVideoPrompt) {
     // 优化模式：在现有提示词基础上优化
     prompt = renderGroupTemplate('OPTIMIZE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story}, existingVideoPrompt, segment.name, segmentIndex, segmentDuration, videoRatio, visualstyle, genre, story,scriptText);
-    sysctemPrompt = renderGroupTemplate('SYSTEM_SEGMENT_OPTIMIZE',{ visualStyle:visualstyle, genre, globalSettings:story})||sysctemPrompt;
+    sysctemPrompt = renderGroupTemplate('SYSTEM_SEGMENT_OPTIMIZE',{ visualStyle:visualstyle, genre, globalSettings:story});
+    if(!sysctemPrompt){
+      sysctemPrompt = renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
+    }
   } else {
     // 重新生成模式
+    sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
     prompt = renderGroupTemplate('GENERATE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story},scriptText,description,shotDescriptions, visualstyle, genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story);
   }
 

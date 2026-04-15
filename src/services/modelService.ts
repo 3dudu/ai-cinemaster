@@ -670,7 +670,7 @@ export class ModelService {
    * @param genre - 题材类型
    */
   static async generateVisualPrompts(
-    type: "character" | "scene" | 'variation' | 'prop',
+    type: "character" | "scene" | 'variation' | 'prop' | 'prop-variation',
     data: any,
     genre: string,
     visualStyle: string,
@@ -696,17 +696,21 @@ export class ModelService {
     const desc = JSON.stringify(newdata);
     let prompt = "";
     if(type=='variation'){
-      prompt = renderTemplate('GENERATE_VARIATION_PROMPT', genre,desc,visualStyle,variationName,variationPrompt);
+      prompt = renderGroupTemplate('GENERATE_VARIATION_PROMPT', { visualStyle, genre, globalSettings:story },genre,desc,visualStyle,variationName,variationPrompt);
     }else if(type=='prop'){
       prompt = renderGroupTemplate('GENERATE_PROP_PROMPT', { visualStyle, genre, globalSettings:story }, genre,desc,visualStyle);
+    }else if(type=='prop-variation'){
+      prompt = renderGroupTemplate('GENERATE_PROP_VARIATION_PROMPT', { visualStyle, genre, globalSettings:story }, genre,desc,visualStyle);
     }else{
       prompt = renderGroupTemplate(type=='character'?'GENERATE_CHARACTER_PROMPT':'GENERATE_SCENE_PROMPT', { visualStyle, genre, globalSettings:story }, genre,desc,visualStyle,story);
     }
-    let visualPrompt = renderGroupTemplate('SYSTEM_CHARA_DESIGNER', { visualStyle, genre, globalSettings:story });
+    let visualPrompt=""
     if(type=='scene'){
       visualPrompt=renderGroupTemplate('SYSTEM_SCENE_DESIGNER', { visualStyle, genre, globalSettings:story });
-    }else if(type=='prop'){
+    }else if(type=='prop' || type=='prop-variation'){
       visualPrompt=renderGroupTemplate('SYSTEM_PROP_DESIGNER', { visualStyle, genre, globalSettings:story });
+    }else{
+      visualPrompt = renderGroupTemplate('SYSTEM_CHARA_DESIGNER', { visualStyle, genre, globalSettings:story });
     }
     switch (provider.provider) {
       case 'deepseek':

@@ -1,6 +1,6 @@
 import { Copy, Download, Edit2, Loader2, Plus, RefreshCw, Shirt, Sparkles, Upload, User, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { renderTemplate } from '../../prompt/promptTemplates';
+import { renderGroupTemplate } from "../../prompt/templateGroupService";
 import { ModelService } from '../../services/modelService';
 import { addMediaHistory } from '../../services/storageService';
 import { Character, CharacterVariation, ProjectState, SeriesRecord } from '../../types';
@@ -174,10 +174,10 @@ const WardrobeModal: React.FC<Props> = ({
       try {
           // IMPORTANT: Use Base Look as reference to maintain facial consistency
           const refImages = character.referenceImage ? [character.referenceImage] : [];
-          const prompt = character.visualPrompt || await ModelService.generateVisualPrompts('character', character, project.scriptData?.genre || '剧情片',project.visualStyle,project.globalSettings);
+          const prompt = character.visualPrompt || await ModelService.generateVisualPrompts('character', character, project.scriptData?.genre || '剧情片',project.visualStyle,null,null,project.globalSettings);
 
           // Enhance prompt to emphasize character consistency
-          const enhancedPrompt = renderTemplate('GENERATE_CHARACTER_VARIATION',
+          const enhancedPrompt = renderGroupTemplate('GENERATE_CHARACTER_VARIATION',{ visualStyle:project.visualStyle, genre:project.scriptData?.genre || '剧情片', globalSettings:project.globalSettings },
             character.name,
             localStyle,
             variation.visualPrompt,

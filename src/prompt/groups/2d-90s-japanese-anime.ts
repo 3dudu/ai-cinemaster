@@ -133,12 +133,12 @@ function loadTemplates(): GroupTemplates {
 
 ### 视图定义
 
-| 位置 | 视图 | 角度 | 景别 | 要求 | 提示词 |
-|---|---|---|---|---|---|
-| 左一 | 人像特写 | 正面平视 | 头顶至锁骨 | 从头顶到锁骨完整展示，面部占60%+ | portrait closeup、face detail |
-| 左二 | 正视图 | 正面 0° | 全身立像 | 面对镜头、双臂自然、从头到脚完整 | front view、full body head to toe |
-| 右二 | 侧视图 | 右侧 90° | 全身立像 | 纯侧面轮廓清晰、从头到脚完整 | side view、profile、full body head to toe |
-| 右一 | 后视图 | 后方 180° | 全身立像 | 后脑/背部/发尾/脚部清晰 | back view、rear view、full body head to toe |
+| 视图 | 角度 | 景别 | 要求 | 提示词 |
+|---|---|---|---|---|
+| 人像特写 | 正面平视 | 头顶至锁骨 | 从头顶到锁骨完整展示，面部占60%+ | portrait closeup、face detail |
+| 正视图 | 正面 0° | 全身立像 | 面对镜头、双臂自然、从头到脚完整 | front view、full body head to toe |
+| 侧视图 | 右侧 90° | 全身立像 | 纯侧面轮廓清晰、从头到脚完整 | side view、profile、full body head to toe |
+| 后视图 | 后方 180° | 全身立像 | 后脑/背部/发尾/脚部清晰 | back view、rear view、full body head to toe |
 
 ### 画面规范
 
@@ -539,6 +539,8 @@ systemPropDesigner:`## 你的身份
 - 对话文字
 `,
 systemSegmentOptimize:`
+你是一个专业的好莱坞影视导演，擅长各种拍摄手法和叙事技巧。现在需要将多个分镜的拍摄方式告诉豆包摄影师，生成演员和摄影能理解的分镜描述。内容连贯，包含场景，角色，动作，对话，机位，角度，运镜，景别的描述。
+使用下面的规则表，参考案例，为了达到具体 **表现效果**，使用**中英文提示词**，**速度参数**，**距离参数**的组合方式，分别从 机位、角度、镜头运动、景别阐述拍摄方式。
 
 ## 情绪 → 面容/眼神词映射
 

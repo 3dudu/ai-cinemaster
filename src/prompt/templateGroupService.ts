@@ -15,7 +15,7 @@ import {
   TEMPLATE_GROUPS_STORAGE_KEY,
   TEMPLATE_KEY_TO_GROUP_PROP,
 } from './promptTemplate';
-import { getCustomTemplate, PROMPT_TEMPLATES, renderTemplate } from './promptTemplates';
+import { PROMPT_TEMPLATES, renderTemplate } from './promptTemplates';
 
 /**
  * 模版组服务
@@ -95,7 +95,7 @@ export class TemplateGroupService {
    */
   static matchGroup(context: ProjectTemplateContext): PromptTemplateGroup {
     const allGroups = this.getAllGroups();
-
+    
     // 按 priority 降序排序
     const sortedGroups = [...allGroups].sort((a, b) => b.matchRules.priority - a.matchRules.priority);
 
@@ -104,7 +104,6 @@ export class TemplateGroupService {
         return group;
       }
     }
-
     // 无匹配，返回 default 组
     return getDefaultGroupFull();
   }
@@ -114,7 +113,6 @@ export class TemplateGroupService {
    */
   private static isGroupMatch(group: PromptTemplateGroup, context: ProjectTemplateContext): boolean {
     const rules = group.matchRules;
-
     // 如果没有任何匹配规则，则不匹配（除了 default 组）
     if (!rules.visualStyle && !rules.genre && !rules.globalSettings) {
       return group.id === 'default';
@@ -200,19 +198,21 @@ export class TemplateGroupService {
     context: ProjectTemplateContext | null,
     ...args: any[]
   ): string {
+    console.log('renderGroupTemplate', templateKey, context, args);
     // 如果不是模版组管理的模版，使用原有逻辑
     if (!this.isGroupManagedTemplate(templateKey)) {
       return renderTemplate(templateKey, ...args);
     }
 
     // 先检查是否有单模版级别的自定义（优先级最高）
+    /*
     const customContent = getCustomTemplate(templateKey);
     if (customContent) {
       // 使用原有的变量提取和替换逻辑
       const variables = this.extractVariablesForGroupTemplate(templateKey, args);
       return this.replaceVariables(customContent, variables);
     }
-
+    */
     // 匹配模版组
     const group = context ? this.matchGroup(context) : getDefaultGroupFull();
     console.log('use group', group);

@@ -165,7 +165,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
         // Just remove series reference
         const proj = episodes.find(p => p.id === projectId);
         if (proj) {
-          const updatedProj = { ...proj, seriesRefId: undefined };
+          const updatedProj = { ...proj, seriesRefId: '' };
           await saveProjectToDB(updatedProj);
         }
       }
@@ -227,8 +227,8 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       scriptData: effectiveScriptData ? {
         ...effectiveScriptData,
         // Clear refIds since they're now standalone
-        characters: effectiveScriptData.characters?.map(c => ({ ...c, refId: undefined })),
-        scenes: effectiveScriptData.scenes?.map(s => ({ ...s, refId: undefined })),
+        characters: effectiveScriptData.characters?.map(c => ({ ...c, refId: '' })),
+        scenes: effectiveScriptData.scenes?.map(s => ({ ...s, refId: '' })),
       } : ep.scriptData
     };
     

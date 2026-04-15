@@ -1,4 +1,4 @@
-import { Download, Layers, NotebookPen, RotateCcw, Save, Upload, X } from 'lucide-react';
+import { Copy, Download, Layers, List, NotebookPen, RotateCcw, Save, Trash2, Upload, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { BUILT_IN_TEMPLATE_GROUPS, getGroupFull } from '../../prompt';
 import {
@@ -18,7 +18,8 @@ import { useDialog } from '../dialog';
 const PromptTemplateModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-}> = ({ isOpen, onClose }) => {
+  isMobile: boolean
+}> = ({ isOpen, onClose,isMobile=false }) => {
   const dialog = useDialog();
   const [activeTab, setActiveTab] = useState<'single' | 'group'>('single');
 
@@ -28,7 +29,7 @@ const PromptTemplateModal: React.FC<{
   const [currentContent, setCurrentContent] = useState('');
 
   // ===== 模版组管理状态 =====
-  const [selectedGroupId, setSelectedGroupId] = useState<string>('default');
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(isMobile?'':'default');
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<keyof GroupTemplates>('characterImage');
   const [groupTemplateContent, setGroupTemplateContent] = useState('');
   const [groups, setGroups] = useState<PromptTemplateGroup[]>([]);
@@ -210,24 +211,47 @@ const PromptTemplateModal: React.FC<{
   };
 
   // 删除模版组
-  const handleDeleteGroup = async () => {
-    if (!selectedGroup || selectedGroup.isBuiltIn) {
+  const handleDeleteGroup = async (groupId?: string) => {
+    const targetGroup = groupId ? groups.find(g => g.id === groupId) : selectedGroup;
+    if (!targetGroup || targetGroup.isBuiltIn) {
       dialog.toast({ message: '内置模版组不可删除', type: 'warning' });
       return;
     }
 
     const confirmed = await dialog.confirm({
       title: '确认删除',
-      message: `确定要删除模版组"${selectedGroup.name}"吗？`,
+      message: `确定要删除模版组"${targetGroup.name}"吗？`,
       type: 'warning',
     });
 
     if (confirmed) {
-      TemplateGroupService.deleteCustomGroup(selectedGroupId);
+      TemplateGroupService.deleteCustomGroup(targetGroup.id);
       dialog.toast({ message: '模版组已删除', type: 'success' });
       reloadGroups();
-      setSelectedGroupId('default');
+      if (selectedGroupId === targetGroup.id) {
+        setSelectedGroupId('default');
+      }
     }
+  };
+
+  // 复制模版组
+  const handleDuplicateGroup = (group: PromptTemplateGroup) => {
+    const newId = `custom-${Date.now()}`;
+    const newGroup: PromptTemplateGroup = {
+      ...group,
+      id: newId,
+      name: `${group.name} (副本)`,
+      isBuiltIn: false,
+      matchRules: {
+        ...group.matchRules,
+        priority: (group.matchRules.priority || 0) + 1,
+      },
+    };
+
+    TemplateGroupService.addCustomGroup(newGroup);
+    dialog.toast({ message: '模版组已复制', type: 'success' });
+    reloadGroups();
+    setSelectedGroupId(newId);
   };
 
   // 更新组基本信息
@@ -345,7 +369,7 @@ const PromptTemplateModal: React.FC<{
         </div>
 
         {/* 内容区域 */}
-        <div className="flex-1 overflow-hidden flex flex-col bg-slate-700">
+        <div className="flex-1 flex overflow-hidden flex-col bg-slate-700">
           {activeTab === 'single' ? (
             <>
               {/* 单模版编辑 - 工具栏 */}
@@ -405,7 +429,7 @@ const PromptTemplateModal: React.FC<{
               </div>
 
               {/* 编辑器 */}
-              <div className="flex-1 overflow-hidden">
+              <div className={`flex-1 overflow-hidden`}>
                 <textarea
                   value={currentContent}
                   onChange={(e) => setCurrentContent(e.target.value)}
@@ -418,14 +442,15 @@ const PromptTemplateModal: React.FC<{
           ) : (
             <>
               {/* 模版组管理 - 左右布局 */}
-              <div className="flex-1 overflow-hidden flex">
+              <div className="flex-1 flex overflow-hidden">
                 {/* 左侧：模版组列表 */}
-                <div className="w-64 border-r border-slate-600 flex flex-col bg-slate-800">
+                {(!selectedGroupId || !isMobile) && (
+                <div className="md:w-64 w-full border-r border-slate-600 flex flex-col bg-slate-800">
                   <div className="p-3 border-b border-slate-600 flex items-center justify-between">
                     <span className="text-sm font-medium text-slate-300">模版组列表</span>
                     <button
                       onClick={handleCreateGroup}
-                      className="p-1.5 bg-green-600 hover:bg-green-500 rounded text-slate-50 text-xs"
+                      className="p-1.5 px-2.5 bg-green-600 hover:bg-green-500 rounded text-slate-50 text-xs"
                       title="新建模版组"
                     >
                       +
@@ -436,17 +461,39 @@ const PromptTemplateModal: React.FC<{
                       <div
                         key={group.id}
                         onClick={() => setSelectedGroupId(group.id)}
-                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                        className={`p-3 rounded-lg cursor-pointer transition-colors relative group bg-slate-700/50 ${
                           selectedGroupId === group.id
                             ? 'bg-blue-600/20 border border-blue-500'
                             : 'hover:bg-slate-700 border border-transparent'
                         }`}
                       >
+                        {/* 右上角操作按钮 */}
+                        <div 
+                          className="absolute top-2 right-2 flex gap-1 opacity-100 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => handleDuplicateGroup(group)}
+                            className="p-1 bg-slate-600 hover:bg-slate-500 rounded text-slate-300 hover:text-slate-100 transition-colors"
+                            title="复制"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                          {!group.isBuiltIn && (
+                            <button
+                              onClick={() => handleDeleteGroup(group.id)}
+                              className="p-1 bg-red-600/30 hover:bg-red-600 rounded text-red-400 hover:text-white transition-colors"
+                              title="删除"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${
                             group.isBuiltIn ? 'bg-blue-400' : 'bg-green-400'
                           }`} />
-                          <span className="text-sm font-medium text-slate-200 truncate">{group.name}</span>
+                          <span className="text-sm font-medium text-slate-200 truncate pr-12">{group.name}</span>
                         </div>
                         <div className="text-xs text-slate-400 mt-1 truncate">
                           {group.description || '无描述'}
@@ -461,16 +508,22 @@ const PromptTemplateModal: React.FC<{
                     ))}
                   </div>
                 </div>
+                )}
 
                 {/* 右侧：模版组详情 */}
-                <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex flex-col w-full overflow-hidden">
                   {selectedGroup ? (
-                    <>
+                    <div className='overflow-y-auto h-full'>
                       {/* 组信息编辑 */}
-                      <div className="p-4 border-b border-slate-600 space-y-3 bg-slate-800">
+                      <div className="md:p-4 p-2 border-b border-slate-600 space-y-3 bg-slate-800">
                         <div className="flex gap-3">
+                            <button
+                            onClick={()=>setSelectedGroupId(null)}
+                            className="px-3 py-2 bg-slate-600 text-slate-300 hover:bg-slate-500 rounded-lg text-sm flex items-center gap-1"
+                          >
+                            <List className="w-3 h-3" />
+                          </button>
                           <div className="flex-1">
-                            <label className="text-xs text-slate-400 mb-1 block">组名称</label>
                             <input
                               type="text"
                               value={selectedGroup.name}
@@ -479,17 +532,9 @@ const PromptTemplateModal: React.FC<{
                               disabled={selectedGroup.isBuiltIn}
                             />
                           </div>
-                          <div className="w-24">
-                            <label className="text-xs text-slate-400 mb-1 block">优先级</label>
-                            <input
-                              type="number"
-                              value={selectedGroup.matchRules.priority}
-                              onChange={(e) => handleUpdateMatchRule('priority', parseInt(e.target.value) || 0)}
-                              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 text-sm"
-                            />
-                          </div>
                         </div>
-                        <div>
+                         <div className="flex gap-3">
+                          <div className="flex-1">
                           <label className="text-xs text-slate-400 mb-1 block">描述</label>
                           <input
                             type="text"
@@ -498,6 +543,16 @@ const PromptTemplateModal: React.FC<{
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 text-sm"
                           />
                         </div>
+                         <div className="">
+                            <label className="text-xs text-slate-400 mb-1 block">优先级</label>
+                            <input
+                              type="number"
+                              value={selectedGroup.matchRules.priority}
+                              onChange={(e) => handleUpdateMatchRule('priority', parseInt(e.target.value) || 0)}
+                              className="w-[64px] px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 text-sm"
+                            />
+                          </div>
+                          </div>
                         <div className="grid grid-cols-3 gap-3">
                           <div>
                             <label className="text-xs text-slate-400 mb-1 block">匹配视觉风格 (逗号分隔)</label>
@@ -532,7 +587,7 @@ const PromptTemplateModal: React.FC<{
                       </div>
 
                       {/* 模版选择和编辑 */}
-                      <div className="p-4 border-b border-slate-600 bg-slate-700 flex items-center gap-3">
+                      <div className="md:p-4 p-2 border-b border-slate-600 bg-slate-700 flex items-center gap-3">
                         <CustomSelect
                           className="flex-1"
                           options={groupTemplateOptions}
@@ -556,14 +611,6 @@ const PromptTemplateModal: React.FC<{
                             保存
                           </button>
                         </div>
-                        {!selectedGroup.isBuiltIn && (
-                          <button
-                            onClick={handleDeleteGroup}
-                            className="px-3 py-2 bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-slate-50 rounded-lg text-sm"
-                          >
-                            删除组
-                          </button>
-                        )}
                       </div>
 
                       {/* 变量提示 */}
@@ -577,7 +624,7 @@ const PromptTemplateModal: React.FC<{
                       )}
 
                       {/* 模版编辑器 */}
-                      <div className="flex-1 overflow-hidden">
+                      <div className={`${isMobile ? 'h-[252px]' : 'h-full flex-1 overflow-hidden'}`}>
                         <textarea
                           value={groupTemplateContent}
                           onChange={(e) => setGroupTemplateContent(e.target.value)}
@@ -586,7 +633,7 @@ const PromptTemplateModal: React.FC<{
                           spellCheck={false}
                         />
                       </div>
-                    </>
+                    </div>
                   ) : (
                     <div className="flex-1 flex items-center justify-center text-slate-400">
                       请选择一个模版组

@@ -1,6 +1,6 @@
 import { Box, Copy, Download, Edit2, Loader2, Plus, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { renderTemplate } from '../../prompt/promptTemplates';
+import { renderGroupTemplate } from "../../prompt/templateGroupService";
 import { ModelService } from '../../services/modelService';
 import { addMediaHistory } from '../../services/storageService';
 import { ProjectState, Properties, PropertieVariation, SeriesRecord } from '../../types';
@@ -149,6 +149,8 @@ const PropVariationModal: React.FC<Props> = ({
         },
         project.scriptData?.genre || '剧情片',
         localStyle,
+        editingVariationId ? editVarName : newVarName,
+        editingVariationId ? editVarPrompt : newVarPrompt,
         project.globalSettings
       );
       if (prompt) {
@@ -179,16 +181,17 @@ const PropVariationModal: React.FC<Props> = ({
       const basePrompt =
         prop.visualPrompt ||
         (await ModelService.generateVisualPrompts(
-          'prop',
+          'prop-variation',
           prop,
           project.scriptData?.genre || '剧情片',
           project.visualStyle,
+          null,null,
           project.globalSettings
         ));
 
       // Enhance prompt for prop variation
-      const enhancedPrompt = renderTemplate(
-        'GENERATE_PROP_VARIATION',
+      const enhancedPrompt = renderGroupTemplate(
+        'GENERATE_PROP_VARIATION',{ visualStyle:project.visualStyle, genre:project.scriptData?.genre || '剧情片', globalSettings:project.globalSettings },
         prop.name,
         localStyle,
         variation.visualPrompt,
@@ -198,7 +201,7 @@ const PropVariationModal: React.FC<Props> = ({
       const imageUrl = await ModelService.generateImage(
         enhancedPrompt,
         refImages,
-        'variation',
+        'prop',
         localStyle,
         '2560x1440',
         1,

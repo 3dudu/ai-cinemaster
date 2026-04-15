@@ -105,7 +105,7 @@ const CharacterAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, character
         variations: []
       };
 
-      const prompt = await ModelService.generateVisualPrompts('character', tempChar, genre, visualStyle,project.globalSettings);
+      const prompt = await ModelService.generateVisualPrompts('character', tempChar, genre, visualStyle,null,null,project.globalSettings);
       setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
       dialog.toast({ message: `生成视觉提示失败，请重试。${e}`, type: 'error'});

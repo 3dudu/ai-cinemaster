@@ -97,7 +97,7 @@ const SceneAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, scene, genre 
         visualPrompt: ''
       };
 
-      const prompt = await ModelService.generateVisualPrompts('scene', tempScene, genre, visualStyle,project.globalSettings);
+      const prompt = await ModelService.generateVisualPrompts('scene', tempScene, genre, visualStyle,null,null,project.globalSettings);
       setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
       dialog.toast({ message: `生成视觉提示失败，请重试.${e}`, type: 'error'});

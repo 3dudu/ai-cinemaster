@@ -768,7 +768,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         let scene = activeScenes.find((s) => s.id === sceneId);
         if (scene && scene?.referenceImage) {
           referenceImages.push(scene.referenceImage);
-          currentDescription.replaceAll(`${scene.location}`, `@图${imageIndex}（${scene.location}）`);
+          currentDescription = currentDescription.replaceAll(`${scene.location} `, `@图${imageIndex}（${scene.location}）`);
           scenes.push(scene.location);
           imageIndex++;
         }
@@ -786,16 +786,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             const selectedVar = character.variations.find(v => v.id === variation);
             if(selectedVar?.referenceImage){
               referenceImages.push(selectedVar.referenceImage);
-              currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
+              currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
               imageIndex++;
             }else if(character?.referenceImage){
               referenceImages.push(character.referenceImage);
-              currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
+              currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
               imageIndex++;
             }
           }else if(character?.referenceImage){
             referenceImages.push(character.referenceImage);
-              currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
+              currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
             imageIndex++;
           }
           if(character?.voiceUrl){
@@ -815,16 +815,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             const selectedVar = prop.variations?.find(v => v.id === variation);
             if (selectedVar?.referenceImage) {
               referenceImages.push(selectedVar.referenceImage);
-              currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
+              currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
               imageIndex++;
             } else if (prop?.referenceImage) {
               referenceImages.push(prop.referenceImage);
-              currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
+              currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
               imageIndex++;
             }
           } else if (prop?.referenceImage) {
             referenceImages.push(prop.referenceImage);
-              currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
+              currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
             imageIndex++;
           }
         }
@@ -854,7 +854,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         selectedSegment.transitionFrom,selectedSegment.transitionTo,project.globalSettings,project.visualStyle
       );
 
-      const prompt = ' **首尾帧控制**：'+imageLabels.join('；')+'\n **角色声音控制**：'+voicesLabels.join('；')+'\n\n'+videoPrompt;
+      const prompt = `${imageLabels.length>0?`**首尾帧控制**：${imageLabels.join('；')}`:''}${voicesLabels.length>0?`\n **角色声音控制**：${voicesLabels.join('；')}`:''}\n\n${videoPrompt}` ;
 
       const videoUrl = await ModelService.generateVideo(
           prompt,
@@ -967,7 +967,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             let scene = activeScenes.find((s) => s.id === sceneId);
             if (scene?.referenceImage) {
               referenceImages.push(scene.referenceImage);
-              currentDescription.replaceAll(`${scene.location}`, `@图${imageIndex}（${scene.location}）`);
+              currentDescription = currentDescription.replaceAll(`${scene.location} `, `@图${imageIndex}（${scene.location}）`);
               scenes.push(scene.location);
               imageIndex++;
             }
@@ -984,16 +984,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 const selectedVar = character.variations?.find(v => v.id === variation);
                 if (selectedVar?.referenceImage) {
                   referenceImages.push(selectedVar.referenceImage);
-                  currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
+                  currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
                   imageIndex++;
                 } else if (character.referenceImage) {
                   referenceImages.push(character.referenceImage);
-                  currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
+                  currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
                   imageIndex++;
                 }
               } else if (character.referenceImage) {
                 referenceImages.push(character.referenceImage);
-                  currentDescription.replaceAll(`${character.name}`, `@图${imageIndex}（${character.name}）`);
+                  currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
                 imageIndex++;
               }
               if(character?.voiceUrl){
@@ -1013,16 +1013,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 const selectedVar = prop.variations?.find(v => v.id === variation);
                 if (selectedVar?.referenceImage) {
                   referenceImages.push(selectedVar.referenceImage);
-                  currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
+                  currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
                   imageIndex++;
                 } else if (prop.referenceImage) {
                   referenceImages.push(prop.referenceImage);
-                  currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
+                  currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
                   imageIndex++;
                 }
               } else if (prop.referenceImage) {
                 referenceImages.push(prop.referenceImage);
-                  currentDescription.replaceAll(`${prop.name}`, `@图${imageIndex}（${prop.name}）`);
+                  currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
                 imageIndex++;
               }
             }
@@ -1057,7 +1057,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               }
             }
           }
-          const prompt = ' **首尾帧控制**：'+imageLabels.join('；')+'\n **角色声音控制**：'+voicesLabels.join('；')+'\n\n'+videoPrompt;
+          const prompt = `${imageLabels.length>0?`**首尾帧控制**：${imageLabels.join('；')}`:''}${voicesLabels.length>0?`\n **角色声音控制**：${voicesLabels.join('；')}`:''}\n\n${videoPrompt}` ;
 
           const videoUrl = await ModelService.generateVideo(
             prompt,

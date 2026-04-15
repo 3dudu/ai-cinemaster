@@ -2,8 +2,7 @@ import { Box, Copy, Loader2, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { ModelService } from '../../services/modelService';
 import { generateId } from '../../services/seriesService';
-import { Properties, ProjectState } from '../../types';
-import CustomSelect from '../common/CustomSelect';
+import { ProjectState, Properties } from '../../types';
 import { useDialog } from '../dialog';
 
 interface Props {
@@ -128,7 +127,7 @@ const PropAddModal: React.FC<Props> = ({ isOpen, onClose, onSave, prop, genre = 
         variations: []
       };
 
-      const prompt = await ModelService.generateVisualPrompts('prop', tempProp, genre, visualStyle, project?.globalSettings);
+      const prompt = await ModelService.generateVisualPrompts('prop', tempProp, genre, visualStyle,null,null,project?.globalSettings);
       setFormData({ ...formData, visualPrompt: prompt });
     } catch (e) {
       dialog.toast({ message: `生成视觉提示失败，请重试。${e}`, type: 'error' });
