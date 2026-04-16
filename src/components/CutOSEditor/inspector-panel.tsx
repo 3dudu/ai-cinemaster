@@ -3,16 +3,18 @@
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle, Loader2, MessageSquarePlus, Mic, Send, Zap } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { getModelConfigByType } from '../../services/modelConfigService'
 import { useVideoAgent } from "./agent/use-agent"
 import { AutoEnhanceModal } from "./auto-enhance-modal"
 import { useEditor } from "./editor-context"
+
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "./ui/dialog"
 
 export function InspectorPanel() {
@@ -72,7 +74,7 @@ function AgentTab() {
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop())
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" })
-        const dashScopeKey = getProviderById("qwen")?.apiKey
+        const dashScopeKey = (await getModelConfigByType("wan",'stt'))?.apiKey;
         if (!dashScopeKey) {
           setTranscriptionError("请先在模型设置中配置 DashScope API Key")
           setIsTranscribing(false)

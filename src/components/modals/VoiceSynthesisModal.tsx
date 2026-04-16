@@ -46,6 +46,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
   const audioChunksRef = React.useRef<Blob[]>([]);
   const [recordedBlobUrl, setRecordedBlobUrl] = useState<string | null>(null);
   const recordedBlobRef = React.useRef<Blob | null>(null);
+  const [selectedDeviceId, setSelectedDeviceId] = useState('');
 
   // Check if in series mode
   const isSeriesMode = !!series && !!updateSeries;
@@ -237,7 +238,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.stop();
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({audio: { deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined }});
       const mimeType = 'audio/mp4';
       const options = { mimeType: mimeType };
 
@@ -288,6 +289,18 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
     recordedBlobRef.current = null;
   };
 
+  useEffect(() => {
+  const getDevices = async () => {
+    // 先请求权限
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter(d => d.kind === 'audioinput');
+    // 可选：默认选中系统默认设备（deviceId 为 'default'）
+    const defaultDevice = inputs.find(d => d.deviceId === 'default');
+    if (defaultDevice) setSelectedDeviceId(defaultDevice.deviceId);
+  };
+  getDevices();
+}, []);
   // Confirm and upload recording
   const confirmRecordingUpload = async () => {
     const audioBlob = recordedBlobRef.current;

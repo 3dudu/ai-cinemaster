@@ -50,7 +50,7 @@ const PROVIDER_MODEL_TYPES: Record<string, readonly string[]> = {
   minimax: ['image2video'] as const,
   kling: ['image2video'] as const,
   sora: ['image2video'] as const,
-  wan: ['image2video'] as const,
+  wan: ['image2video','stt'] as const,
   bigmore: ['text2image','image2video'] as const,
   skyreels: ['image2video'] as const,
   baidu: ['tts'] as const,
