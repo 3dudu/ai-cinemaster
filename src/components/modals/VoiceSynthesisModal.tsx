@@ -1,4 +1,4 @@
-import { AudioLines, AudioWaveform, Download, Loader2, Mic, Settings, Speech, Upload, X } from 'lucide-react';
+import { AudioLines, AudioWaveform, CheckIcon, Download, Loader2, Mic, Settings, Speech, Upload, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { VOICE_LIBRARY, VOICE_LIBRARY_TYPE_NAMES } from '../../config/voiceLibrary';
 import { ModelService } from '../../services/modelService';
@@ -398,7 +398,7 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
 
   return (
     <div className="absolute inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-8 animate-in fade-in duration-200">
-      <div className="bg-slate-800 border border-slate-600 w-full max-w-2xl max-h-[85vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-slate-800 border border-slate-600 w-full max-w-2xl max-h-[80vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
         {/* Modal Header */}
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between shrink-0 bg-slate-600/80">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
@@ -458,24 +458,8 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                         <audio
                           controls
                           src={recordedBlobUrl}
-                          className="h-8 flex-1"
+                          className="h-8 flex-1 w-full"
                         />
-                        <button
-                          onClick={confirmRecordingUpload}
-                          disabled={isUploading}
-                          className="px-2 py-2 bg-green-600 hover:bg-green-500 text-white rounded text-xs transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
-                          title="确认上传"
-                        >
-                          {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : '✓'}
-                        </button>
-                        <button
-                          onClick={cancelRecordingPreview}
-                          disabled={isUploading}
-                          className="px-2 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
-                          title="取消"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
                       </>
                     )}
                     {/* Generated voice player */}
@@ -508,6 +492,23 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                       <AudioLines className="w-4 h-4" />
                     )}
                   </button>
+                {recordedBlobUrl ? <><button
+                          onClick={confirmRecordingUpload}
+                          disabled={isUploading}
+                          className="px-2 py-2 bg-green-600 hover:bg-green-500 text-white rounded text-xs transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                          title="确认上传"
+                        >
+                      {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckIcon className="w-4 h-4" />}
+                        </button>
+                      <button
+                          onClick={cancelRecordingPreview}
+                          disabled={isUploading}
+                          className="px-2 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-xs transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+                          title="取消"
+                        >
+                          <X className="w-4 h-4" />
+                        </button></>
+                       : <>
                   <button
                     onClick={toggleRecording}
                     disabled={isGenerating || isUploading}
@@ -535,7 +536,8 @@ const VoiceSynthesisModal: React.FC<VoiceSynthesisModalProps> = ({
                     ) : (
                       <Upload className="w-4 h-4" />
                     )}
-                  </button>
+                  </button></>
+                }
                   <input
                     ref={audioFileInputRef}
                     type="file"
