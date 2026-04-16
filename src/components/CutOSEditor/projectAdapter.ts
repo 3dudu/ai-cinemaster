@@ -124,7 +124,7 @@ function segmentToMedia(segment: Segment, index: number): CutOSMediaFile | null 
     name: segment.name || `片段 ${index + 1}`,
     duration: `${Math.floor(durationNum / 60)}:${String(Math.floor(durationNum % 60)).padStart(2, '0')}`,
     durationSeconds: durationNum,
-    thumbnail: null,
+    thumbnail: segment.firstFrameThumbnail,
     type: 'video/mp4',
     objectUrl: videoUrl,
     storageUrl: videoUrl.startsWith('http') ? videoUrl : undefined,

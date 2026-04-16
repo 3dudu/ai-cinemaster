@@ -778,12 +778,13 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                 whileTap={{ scale: 0.98 }}
               >
                 <Images className="h-3.5 w-3.5" />
-                从图库选择
+                图库选择
               </motion.button>
             </div>
 
             {/* Media items */}
             <AnimatePresence mode="popLayout">
+              <div className="grid grid-cols-2 gap-2">
               {filteredFiles.map((media, index) => (
                 <motion.div
                   key={media.id}
@@ -939,6 +940,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                   </div>
                 </motion.div>
               ))}
+              </div>
             </AnimatePresence>
 
             {filteredFiles.length === 0 && searchQuery && !showNlpResults && !isSearching && (

@@ -213,7 +213,7 @@ function App() {
           />
         );
       case 'export':
-        return <StageExport project={project} updateProject={updateProject} />;
+        return <StageExport project={project} updateProject={updateProject} isMobile={isMobile} />;
       case 'images':
         return <StageImage project={project} updateProject={updateProject} />;
       default:

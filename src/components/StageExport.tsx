@@ -10,9 +10,10 @@ const CutOSEditor = lazy(() => import('./CutOSEditor'));
 interface Props {
   project: ProjectState;
   updateProject: (updates: Partial<ProjectState>) => void;
+  isMobile: boolean;
 }
 
-const StageExport: React.FC<Props> = ({ project, updateProject }) => {
+const StageExport: React.FC<Props> = ({ project, updateProject,isMobile=false }) => {
   const [isMerging, setIsMerging] = useState(false);
   const [mergeError, setMergeError] = useState<string | null>(null);
   const [selectedShotIds, setSelectedShotIds] = useState<Set<string>>(new Set());
@@ -736,6 +737,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject }) => {
             project={project}
             open={showCutOSEditor}
             onClose={() => setShowCutOSEditor(false)}
+            isMobile={isMobile}
           />
         </Suspense>
       )}

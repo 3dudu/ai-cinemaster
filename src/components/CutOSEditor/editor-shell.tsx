@@ -3,7 +3,7 @@
  * 布局、文案、动效与 CutOS 原版保持一致
  */
 import { motion } from 'framer-motion';
-import { ArrowLeft, Download, Loader2, Save } from 'lucide-react';
+import { Download, Loader2, Save } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { EditorProvider, useEditor } from './editor-context';
 import { ExportModal } from './export-modal';
@@ -19,18 +19,23 @@ interface EditorShellProps {
   initialData: CutOSTimelineData;
   projectTitle?: string;
   onClose: () => void;
+  isMobile: boolean;
 }
 
 function EditorContent({
   onClose,
   projectTitle,
   projectResolution,
+  isMobile=false,
 }: {
   onClose: () => void;
   projectTitle?: string;
   projectResolution?: string;
+  isMobile: boolean;
 }) {
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showMediaPanel, setShowMediaPanel] = useState(false);
+  const [showInspectorPanel, setShowInspectorPanel] = useState(false);
   const {
     hasUnsavedChanges,
     saveProject,
@@ -139,21 +144,8 @@ function EditorContent({
   return (
     <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-[var(--bg-primary)]">
       {/* Top Bar - 与 CutOS 一致 */}
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-600 bg-[var(--bg-elevated)] px-4">
+      <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-600 bg-[var(--bg-elevated)] px-2">
         <div className="flex items-center gap-3">
-          <motion.div whileHover="hover" whileTap={{ scale: 0.97 }}>
-            <Button variant="ghost" size="sm" className="gap-2 cursor-pointer" onClick={onClose}>
-              <motion.div
-                variants={{
-                  hover: { x: -3, transition: { type: 'spring', stiffness: 400, damping: 20 } },
-                }}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </motion.div>
-              返回
-            </Button>
-          </motion.div>
-          <div className="h-4 w-px bg-slate-400" />
           <span className="text-sm font-semibold text-[var(--text-primary)]">
             {projectTitle || 'AI 剪辑'}
           </span>
@@ -188,29 +180,33 @@ function EditorContent({
       {/* Main Content - 与 CutOS 相同：左媒体库 | 中预览 | 右 Inspector */}
       {/* v2 API: defaultSize 为数字 1-100 表示百分比 */}
       <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
-        <ResizablePanel defaultSize={25} minSize={60}>
+        <ResizablePanel defaultSize={isMobile?25:60} minSize={40}>
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={15} minSize={15} maxSize={20}>
+            {(!isMobile || showMediaPanel) && (
+            <ResizablePanel defaultSize={isMobile?55:15} minSize={15} maxSize={isMobile?55:20}>
               <div className="h-full min-w-0 border-r border-slate-600 bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
                 <MediaPanel />
               </div>
             </ResizablePanel>
-            <ResizableHandle withHandle />
+            )}
+            <ResizableHandle withHandle onClick={()=>{setShowMediaPanel(!showMediaPanel);setShowInspectorPanel(false)}}/>
             <ResizablePanel defaultSize={55} minSize={50}>
               <div className="h-full min-w-0 overflow-hidden flex flex-col">
                 <VideoPreview />
               </div>
             </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+            <ResizableHandle withHandle onClick={()=>{setShowInspectorPanel(!showInspectorPanel);setShowMediaPanel(false)}}/>
+            {(!isMobile || showInspectorPanel)  && (
+            <ResizablePanel defaultSize={isMobile?55:15} minSize={15} maxSize={isMobile?55:20}>
               <div className="h-full min-w-0 border-l border-slate-600 bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
                 <InspectorPanel />
               </div>
             </ResizablePanel>
-          </ResizablePanelGroup>
+            )}
+            </ResizablePanelGroup>
         </ResizablePanel>
         <ResizableHandle className="bg-transparent after:bg-transparent hover:bg-slate-400/50 transition-colors" />
-        <ResizablePanel defaultSize={30} minSize={30}>
+        <ResizablePanel defaultSize={30} minSize={isMobile?35:25}>
           <div className="h-full border-t border-slate-600 bg-[var(--bg-elevated)]">
             <Timeline />
           </div>
@@ -220,13 +216,14 @@ function EditorContent({
   );
 }
 
-export function EditorShell({ initialData, projectTitle, onClose }: EditorShellProps) {
+export function EditorShell({ initialData, projectTitle, onClose,isMobile=false }: EditorShellProps) {
   return (
     <EditorProvider>
       <EditorContentWithData
         initialData={initialData}
         projectTitle={projectTitle}
         onClose={onClose}
+        isMobile={isMobile}
       />
     </EditorProvider>
   );
@@ -236,10 +233,12 @@ function EditorContentWithData({
   initialData,
   projectTitle,
   onClose,
+  isMobile=false,
 }: {
   initialData: CutOSTimelineData;
   projectTitle?: string;
   onClose: () => void;
+  isMobile: boolean
 }) {
   const { loadTimelineData } = useEditor();
 
@@ -256,5 +255,5 @@ function EditorContentWithData({
     loadTimelineData(data);
   }, [initialData, loadTimelineData]);
 
-  return <EditorContent onClose={onClose} projectTitle={projectTitle} projectResolution={initialData.projectResolution} />;
+  return <EditorContent onClose={onClose} projectTitle={projectTitle} projectResolution={initialData.projectResolution} isMobile={isMobile} />;
 }

@@ -4,7 +4,6 @@
  */
 import React from 'react';
 import type { ProjectState } from '../../types';
-import { STYLES } from '../constants';
 import { EditorShell } from './editor-shell';
 import { projectToCutOSTimeline } from './projectAdapter';
 
@@ -12,9 +11,10 @@ interface CutOSEditorProps {
   project: ProjectState;
   open: boolean;
   onClose: () => void;
+  isMobile: boolean;
 }
 
-const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose }) => {
+const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose,isMobile=false }) => {
   if (!open) return null;
 
   const { media, clips ,projectResolution} = projectToCutOSTimeline(project);
@@ -27,7 +27,7 @@ const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose }) => 
           <p className="mb-4 text-sm text-[var(--text-secondary)]">
             暂无已完成的视频镜头，请先在导演阶段生成视频片段。
           </p>
-          <button onClick={onClose} className={STYLES.button.secondary}>
+          <button onClick={onClose} className='h-12 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)] border border-[var(--btn-primary-bg)] shadow-lg shadow-[var(--btn-primary-shadow)] rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all'>
             关闭
           </button>
         </div>
@@ -41,6 +41,7 @@ const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose }) => 
         initialData={{ media, clips, projectResolution }}
         projectTitle={project.title}
         onClose={onClose}
+        isMobile={isMobile}
       />
     </div>
   );
