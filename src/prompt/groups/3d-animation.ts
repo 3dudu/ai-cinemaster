@@ -9,11 +9,11 @@ import { TemplateGroupMeta } from '../types';
 
 export const meta: TemplateGroupMeta = {
   id: '3d-animation',
-  name: '3D动画',
+  name: '3D漫',
   description: '针对3D动画、卡通风格优化的模版组，强调卡通渲染、夸张表现',
   isBuiltIn: true,
   matchRules: {
-    visualStyle: ['3D', '3D卡通', '卡通', '动画', '二次元', '动漫', '3D动画', '动画电影'],
+    visualStyle: ['3D漫', '3D卡通', '卡通', '动画', '二次元', '动漫', '3D动画'],
     priority: 20,
   },
 };

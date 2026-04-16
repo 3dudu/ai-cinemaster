@@ -8,8 +8,8 @@ import { BUILT_IN_GROUP_META, registerGroup } from '../registry';
 import { TemplateGroupMeta } from '../types';
 
 export const meta: TemplateGroupMeta = {
-  id: '2d-animation',
-  name: '2D动画',
+  id: '2d-animation-jp',
+  name: '日式2d动画',
   description: '90年代日式动画质感,极致手绘质感、细腻线条、温馨治愈氛围的视觉创作',
   isBuiltIn: true,
   matchRules: {

@@ -1,4 +1,4 @@
-import { Copy, Download, Layers, List, NotebookPen, RotateCcw, Save, Trash2, Upload, X } from 'lucide-react';
+import { Copy, Download, Layers, List, NotebookPen, RefreshCw, RotateCcw, Save, Trash2, Upload, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { BUILT_IN_TEMPLATE_GROUPS, getGroupFull } from '../../prompt';
 import {
@@ -448,13 +448,22 @@ const PromptTemplateModal: React.FC<{
                 <div className="md:w-64 w-full border-r border-slate-600 flex flex-col bg-slate-800">
                   <div className="p-3 border-b border-slate-600 flex items-center justify-between">
                     <span className="text-sm font-medium text-slate-300">模版组列表</span>
-                    <button
-                      onClick={handleCreateGroup}
-                      className="p-1.5 px-2.5 bg-green-600 hover:bg-green-500 rounded text-slate-50 text-xs"
-                      title="新建模版组"
-                    >
-                      +
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={reloadGroups}
+                        className="p-1.5 bg-slate-600 hover:bg-slate-500 rounded text-slate-300 hover:text-slate-100 transition-colors"
+                        title="刷新列表"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={handleCreateGroup}
+                        className="p-1.5 px-2.5 bg-green-600 hover:bg-green-500 rounded text-slate-50 text-xs"
+                        title="新建模版组"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-1">
                     {groups.map(group => (

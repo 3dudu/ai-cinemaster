@@ -24,14 +24,14 @@ export const LANGUAGE_OPTIONS = [
 
 export const STYLE_OPTIONS = [
   { label: '仙侠古装', value: '仙侠古装' },
-  { label: '可爱卡通', value: '可爱卡通' },
-  { label: '古典水墨', value: '古典水墨' },
+  { label: '3D漫', value: '3D漫' },
+  { label: '国风3D', value: '国风3D' },
   { label: '赛博朋克', value: '赛博朋克' },
   { label: '未来机甲', value: '未来机甲' },
-  { label: '二次元', value: '二次元' },
-  { label: '真人写实', value: '真人写实' },
-  { label: '蜡笔画风格', value: '蜡笔画风格' },
-  { label: '现代城市风', value: '现代城市风' },
+  { label: '真人古风', value: '真人古风' },
+  { label: '日式2d动画', value: '日式2d动画' },
+  { label: '国风二次元', value: '国风二次元' },
+  { label: '现代都市', value: '现代都市' },
   { label: '沙雕漫', value: '沙雕漫' },
   { label: '自定义', value: 'custom' }
 ];
