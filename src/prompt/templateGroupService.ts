@@ -23,7 +23,7 @@ import { PROMPT_TEMPLATES, renderTemplate } from './promptTemplates';
 const groupTemplateKeys: (keyof GroupTemplates)[] = [
       'systemCharacterDesignerRule', 'systemSceneDesignerRule', 'systemPropDesignerRule',
       'systemSegmentDesignerRule',
-      'systemSegmentOptimize',
+      'systemSegmentOptimizeRule',
       'characterImage', 'sceneImage', 'propImage'
 ];
 export class TemplateGroupService {

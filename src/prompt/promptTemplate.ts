@@ -19,7 +19,7 @@ export interface GroupTemplates {
   systemPropDesignerRule?: string;        //
   systemSegmentDesignerRule?: string;     // SYSTEM_SEGMENT_DESIGNER_RULE
 
-  systemSegmentOptimize?: string      //SYSTEM_SEGMENT_OPTIMIZE
+  systemSegmentOptimizeRule?: string      //SYSTEM_SEGMENT_OPTIMIZE_RULE
   // 图片生成
   characterImage?: string;            // GENERATE_CHARACTER_IMAGE
   sceneImage?: string;                // GENERATE_SCENE_IMAGE
@@ -50,7 +50,7 @@ export const TEMPLATE_KEY_TO_GROUP_PROP: Record<string, keyof GroupTemplates> = 
   SYSTEM_SCENE_DESIGNER_RULE: 'systemSceneDesignerRule',
   SYSTEM_PROP_DESIGNER_RULE: 'systemPropDesignerRule',
   SYSTEM_SEGMENT_DESIGNER_RULE: 'systemSegmentDesignerRule',
-  SYSTEM_SEGMENT_OPTIMIZE: 'systemSegmentOptimize',
+  SYSTEM_SEGMENT_OPTIMIZE_RULE: 'systemSegmentOptimizeRule',
   GENERATE_SCENE_IMAGE: 'sceneImage',
   GENERATE_PROP_IMAGE: 'propImage',
   GENERATE_CHARACTER_IMAGE: 'characterImage',
@@ -63,7 +63,7 @@ export const GROUP_TEMPLATE_NAMES: Record<keyof GroupTemplates, string> = {
   systemPropDesignerRule: '道具设计规则',
   systemSegmentDesignerRule: '片段拆分文字分镜规则',
 
-  systemSegmentOptimize: '片段文字分镜优化系统提示词',
+  systemSegmentOptimizeRule: '片段文字分镜优化系统提示词',
   characterImage: '角色图片生成',
   sceneImage: '场景图片生成',
   propImage: '道具图片生成',
@@ -76,7 +76,7 @@ export const GROUP_TEMPLATE_VARIABLES: Record<keyof GroupTemplates, string[]> = 
   systemPropDesignerRule: [],
   systemSegmentDesignerRule: [],
 
-  systemSegmentOptimize: [],
+  systemSegmentOptimizeRule: [],
   characterImage: ['{prompt}', '{visualStyle}', '{name}', '{story}'],
   sceneImage: ['{prompt}', '{visualStyle}', '{location}', '{time}', '{atmosphere}', '{story}'],
   propImage: ['{prompt}', '{visualStyle}', '{name}', '{story}'],
@@ -91,7 +91,7 @@ export const GROUP_MANAGED_TEMPLATE_KEYS = [
   'SYSTEM_SCENE_DESIGNER_RULE',
   'SYSTEM_PROP_DESIGNER_RULE',
   'SYSTEM_SEGMENT_DESIGNER_RULE',
-  'SYSTEM_SEGMENT_OPTIMIZE',
+  'SYSTEM_SEGMENT_OPTIMIZE_RULE',
   'GENERATE_CHARACTER_IMAGE',
   'GENERATE_SCENE_IMAGE',
   'GENERATE_PROP_IMAGE',
@@ -161,7 +161,7 @@ export const GROUP_TEMPLATE_OPTIONS: { value: keyof GroupTemplates; label: strin
   { value: 'systemPropDesignerRule', label: '🤖 道具系统提示词规范' },
   { value: 'systemSegmentDesignerRule', label: '🤖 片段文字分镜规则' },
 
-  { value: 'systemSegmentOptimize', label: '🤖 片段文字分镜优化系统提示词' },
+  { value: 'systemSegmentOptimizeRule', label: '🤖 片段文字分镜优化系统提示词' },
   { value: 'characterImage', label: '🎨 角色图片生成' },
   { value: 'sceneImage', label: '🎨 场景图片生成' },
   { value: 'propImage', label: '🎨 道具图片生成' },

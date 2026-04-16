@@ -134,10 +134,12 @@ export async function generateSegmentDescription(
       sysctemPrompt = renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
     }
     sysctemPrompt=sysctemPrompt+'/n'+renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER_RULE',{ visualStyle:visualstyle, genre, globalSettings:story});
+    sysctemPrompt=sysctemPrompt+'/n## 光影参考 /n'+renderGroupTemplate('SYSTEM_SEGMENT_OPTIMIZE_RULE',{ visualStyle:visualstyle, genre, globalSettings:story});
   } else {
     // 重新生成模式
     sysctemPrompt=renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER',{ visualStyle:visualstyle, genre, globalSettings:story});
     sysctemPrompt=sysctemPrompt+'/n'+renderGroupTemplate('SYSTEM_SEGMENT_DESIGNER_RULE',{ visualStyle:visualstyle, genre, globalSettings:story});
+    sysctemPrompt=sysctemPrompt+'/n## 光影参考 /n'+renderGroupTemplate('SYSTEM_SEGMENT_OPTIMIZE_RULE',{ visualStyle:visualstyle, genre, globalSettings:story});
     prompt = renderGroupTemplate('GENERATE_SEGMENT_PROMPT', { visualStyle:visualstyle, genre, globalSettings:story},scriptText,description,shotDescriptions, visualstyle, 
       genre,segment.name,segmentIndex,segmentDuration||15,videoRatio,story,characters_str,scenes_str,props_str);
   }
