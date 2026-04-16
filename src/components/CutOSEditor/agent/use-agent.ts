@@ -286,7 +286,7 @@ export function useVideoAgent() {
     const apiKey = activeModel.apiKey
     if (!apiKey) return null
     return {
-      apiBase: "https://ark.cn-beijing.volces.com/api/v3",
+      apiBase: activeModel.provider=='doubao'?"https://ark.cn-beijing.volces.com/api/v3":"https://api.deepseek.com",
       apiKey,
       endpoint: "/chat/completions",
       model: activeModel.model
