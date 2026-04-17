@@ -36,7 +36,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
   ];
 
   return (
-    <div className="w-full bg-slate-600 border-b border-slate-600 flex flex-col">
+    <aside className="w-full bg-slate-600 border-b border-slate-600 flex flex-col">
       {/* 顶部栏 */}
       <div className="flex fixed top-0 h-12 z-60 items-center justify-between px-2 py-2">
         {/* 左侧：Logo 和 返回按钮 */}
@@ -148,7 +148,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
         project={project}
         updateProject={updateProject}
       />
-    </div>
+    </aside>
   );
 };
 

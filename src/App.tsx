@@ -173,53 +173,87 @@ function App() {
 
   const renderStage = () => {
     if (!project) return null;
+
+    // 始终渲染 StageChat 和 StageImage，用 display:none 缓存状态
+    const chatComponent = (
+      <div style={{ display: project.stage === 'chat' ? 'block' : 'none' }} className="h-full">
+        <StageChat isMobile={isMobile} />
+      </div>
+    );
+
     switch (project.stage) {
       case 'script':
         return (
-          <StageScript 
-            project={project} 
-            updateProject={updateProject} 
-            isMobile={isMobile}
-            series={series}
-            updateSeries={updateSeries}
-          />
+          <>
+            <StageScript
+              project={project}
+              updateProject={updateProject}
+              isMobile={isMobile}
+              series={series}
+              updateSeries={updateSeries}
+            />
+            {chatComponent}
+          </>
         );
       case 'assets':
         return (
-          <StageAssets 
-            project={project} 
-            updateProject={updateProject}
-            series={series}
-            updateSeries={updateSeries}
-            isMobile={isMobile}
-          />
+          <>
+            <StageAssets
+              project={project}
+              updateProject={updateProject}
+              series={series}
+              updateSeries={updateSeries}
+              isMobile={isMobile}
+            />
+            {chatComponent}
+          </>
         );
       case 'director':
         return (
-          <StageDirector
-            project={project}
-            updateProject={updateProject}
-            isMobile={isMobile}
-            series={series}
-            updateSeries={updateSeries}
-          />
+          <>
+            <StageDirector
+              project={project}
+              updateProject={updateProject}
+              isMobile={isMobile}
+              series={series}
+              updateSeries={updateSeries}
+            />
+            {chatComponent}
+          </>
         );
       case 'segments':
         return (
-          <StageSegments
-            project={project}
-            updateProject={updateProject}
-            isMobile={isMobile}
-            series={series}
-            updateSeries={updateSeries}
-          />
+          <>
+            <StageSegments
+              project={project}
+              updateProject={updateProject}
+              isMobile={isMobile}
+              series={series}
+              updateSeries={updateSeries}
+            />
+            {chatComponent}
+          </>
         );
       case 'export':
-        return <StageExport project={project} updateProject={updateProject} isMobile={isMobile} />;
+        return (
+          <>
+            <StageExport project={project} updateProject={updateProject} isMobile={isMobile} />
+            {chatComponent}
+          </>
+        );
       case 'images':
-        return <StageImage project={project} updateProject={updateProject} />;
+          return (
+            <>
+              <StageImage project={project} updateProject={updateProject} />
+              {chatComponent}
+            </>
+        );
       case 'chat':
-        return <StageChat isMobile={isMobile} />;
+        return (
+          <>
+            {chatComponent}
+          </>
+        );
       default:
         return <div className="text-slate-50">未知阶段</div>;
     }
