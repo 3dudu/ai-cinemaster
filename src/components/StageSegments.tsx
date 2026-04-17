@@ -1,12 +1,13 @@
 import { renderGroupTemplate } from '@/prompt/templateGroupService';
 import { ModelService } from '@/services/modelService';
 import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
-import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RefreshCw, RotateCcw, Sparkles, Trash, Video, X } from 'lucide-react';
+import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, Maximize2, Minimize2, NotebookPen, Play, Plus, RefreshCw, RotateCcw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Properties, Scene, Segment, SeriesRecord } from '../types';
 import { generateVideoThumbnail, getVideoDuration, getVideoFrameAtTime, getVideoLastFrame } from "../utils/imageUtils";
 import CustomSelect from './common/CustomSelect';
+import RichMentionEditor, { RichMentionEditorRef } from './RichMentionEditor';
 
 import {
   aiConvertShotsToSegments,
@@ -98,12 +99,13 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [mentionPickerOpen, setMentionPickerOpen] = useState(false);
   const [mentionPickerPosition, setMentionPickerPosition] = useState({ top: 0, left: 0 });
   const [mentionSearchText, setMentionSearchText] = useState('');
-  const [mentionStartPos, setMentionStartPos] = useState<number | null>(null);
-  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false); // 描述区高度扩展
+  const [isReplacingMention, setIsReplacingMention] = useState(false); // 是否在替换模式
 
   // Refs for auto-scroll to selected segment
   const segmentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const richEditorRef = useRef<RichMentionEditorRef>(null);
 
   // Helper function to get character with full library data (in series mode)
   const getCharacterWithAssets = useCallback(
@@ -1230,116 +1232,70 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     setEditingScript(false);
   }, []);
 
-  // @ Mention: Calculate cursor position for floating picker
-  const getCaretCoordinates = useCallback((element: HTMLTextAreaElement) => {
-    const rect = element.getBoundingClientRect();
-    const text = element.value.substring(0, element.selectionStart);
-    
-    // Create a mirror div to measure text position
-    const mirror = document.createElement('div');
-    const computed = window.getComputedStyle(element);
-    
-    mirror.style.position = 'absolute';
-    mirror.style.visibility = 'hidden';
-    mirror.style.whiteSpace = 'pre-wrap';
-    mirror.style.wordWrap = 'break-word';
-    mirror.style.width = computed.width;
-    mirror.style.font = computed.font;
-    mirror.style.padding = computed.padding;
-    mirror.style.border = computed.border;
-    mirror.style.boxSizing = computed.boxSizing;
-    
-    mirror.textContent = text;
-    document.body.appendChild(mirror);
-    
-    const span = document.createElement('span');
-    span.textContent = '|';
-    mirror.appendChild(span);
-    
-    const coordinates = {
-      top: rect.top + span.offsetTop + parseInt(computed.lineHeight) - element.scrollTop,
-      left: rect.left + span.offsetLeft
-    };
-    
-    document.body.removeChild(mirror);
-    return coordinates;
+  // @ Mention: Handle textarea input for @ detection (简化版，用于 RichMentionEditor)
+  const handleDescriptionChange = useCallback((value: string) => {
+    setDescriptionDraft(value);
   }, []);
 
-  // @ Mention: Handle textarea input for @ detection
-  const handleDescriptionInput = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    const cursorPos = e.target.selectionStart;
-    setDescriptionDraft(value);
+  // @ Mention: 触发 picker
+  const handleMentionTrigger = useCallback((position: { top: number; left: number }, searchText: string, atIndex: number) => {
+    setMentionPickerPosition(position);
+    setMentionPickerOpen(true);
+    setMentionSearchText(searchText);
+    // atIndex 由 RichMentionEditor 内部存储，用于插入 mention
+  }, []);
 
-    // Check if user is typing @
-    const textBeforeCursor = value.substring(0, cursorPos);
-    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
-    
-    if (lastAtIndex !== -1) {
-      // Check if there's a space or newline between @ and cursor (which would close the picker)
-      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
-      if (!textAfterAt.includes(' ') && !textAfterAt.includes('\n')) {
-        // Open mention picker
-        const searchText = textAfterAt.toLowerCase();
-        setMentionSearchText(searchText);
-        setMentionStartPos(lastAtIndex);
-        
-        // Calculate position
-        const coords = getCaretCoordinates(e.target);
-        setMentionPickerPosition({ top: coords.top, left: coords.left });
-        setMentionPickerOpen(true);
-      } else {
-        setMentionPickerOpen(false);
-      }
-    } else {
-      setMentionPickerOpen(false);
-    }
-  }, [getCaretCoordinates]);
+  // @ Mention: 关闭 picker
+  const handleMentionClose = useCallback(() => {
+    setMentionPickerOpen(false);
+    setIsReplacingMention(false);
+  }, []);
+
+  // @ Mention: 点击已有 mention 触发替换
+  const handleMentionClick = useCallback((position: { top: number; left: number }, type: 'character' | 'scene' | 'prop', id: string, name: string, startOffset: number) => {
+    setMentionPickerPosition(position);
+    setMentionPickerOpen(true);
+    setIsReplacingMention(true);
+    setMentionSearchText(''); // 替换模式不搜索，显示全部
+  }, []);
 
   // @ Mention: Handle selection from picker
   const handleSelectMention = useCallback((type: 'character' | 'scene' | 'prop', item: { id: string; name: string }, variationId?: string) => {
-    if (descriptionTextareaRef.current === null || mentionStartPos === null) return;
-    
-    const textarea = descriptionTextareaRef.current;
-    
-    // Calculate the end position of the @ mention search text
-    const mentionEndPos = mentionStartPos + 1 + mentionSearchText.length;
-    
-    // Replace the @ and search text with the selected name (without @ symbol)
-    const beforeAt = descriptionDraft.substring(0, mentionStartPos);
-    const afterMention = descriptionDraft.substring(mentionEndPos);
-    const newText = beforeAt + item.name + ' ' + afterMention;
-    
-    const savedScrollTop = textarea.scrollTop;
+    if (isReplacingMention) {
+      // 替换模式：调用 replaceMention
+      richEditorRef.current?.replaceMention(type, item.id, item.name);
+    } else {
+      // 插入模式：调用 insertMention
+      richEditorRef.current?.insertMention(type, item.id, item.name);
+    }
 
-    // Update local state first
-    setDescriptionDraft(newText);
+    // 关闭 picker
     setMentionPickerOpen(false);
-    
-        // Update segment's characterIds or sceneIds AND videoPrompt (to prevent reset)
-        if (selectedSegment) {
-          const field = type === 'character' ? 'characterIds' : 'sceneIds';
-          const currentIds = selectedSegment[field] || [];
-          if (!currentIds.includes(item.id)) {
-            const updatedSegment: Segment = {
-              ...selectedSegment,
-              videoPrompt: newText,  // Include updated description to prevent reset
-              [field]: [...currentIds, item.id],
-              lastModified: Date.now()
-            };
-            // If character with variation, update characterVariations
-            if (type === 'character' && variationId) {
-              updatedSegment.characterVariations = {
-                ...selectedSegment.characterVariations,
-                [item.id]: variationId
-              };
-            }
-            handleSaveSegment(updatedSegment);
-          } else if (type === 'character' && variationId) {
+    setIsReplacingMention(false);
+
+    // Update segment's characterIds or sceneIds
+    if (selectedSegment) {
+      const field = type === 'character' ? 'characterIds' : type === 'scene' ? 'sceneIds' : 'propIds';
+      const currentIds = (selectedSegment as any)[field] || [];
+      if (!currentIds.includes(item.id)) {
+        const updatedSegment: Segment = {
+          ...selectedSegment,
+          lastModified: Date.now()
+        };
+        (updatedSegment as any)[field] = [...currentIds, item.id];
+
+        // If character with variation, update characterVariations
+        if (type === 'character' && variationId) {
+          updatedSegment.characterVariations = {
+            ...selectedSegment.characterVariations,
+            [item.id]: variationId
+          };
+        }
+        handleSaveSegment(updatedSegment);
+      } else if (type === 'character' && variationId) {
         // Character already in list, but update variation
         const updatedSegment: Segment = {
           ...selectedSegment,
-          description: newText,  // Include updated description to prevent reset
           characterVariations: {
             ...selectedSegment.characterVariations,
             [item.id]: variationId
@@ -1347,22 +1303,26 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           lastModified: Date.now()
         };
         handleSaveSegment(updatedSegment);
+      } else if (type === 'prop' && variationId) {
+        // Prop with variation
+        const updatedSegment: Segment = {
+          ...selectedSegment,
+          propVariations: {
+            ...(selectedSegment as any).propVariations,
+            [item.id]: variationId
+          },
+          lastModified: Date.now()
+        };
+        handleSaveSegment(updatedSegment);
       }
     }
-    
-    // Set cursor position after inserted text (use requestAnimationFrame for reliability)
-    const newCursorPos = beforeAt.length + item.name.length + 1; // +1 for space
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-      textarea.scrollTop = savedScrollTop;
-    });
-  }, [descriptionDraft, mentionStartPos, mentionSearchText, selectedSegment, handleSaveSegment]);
+  }, [isReplacingMention, selectedSegment, handleSaveSegment]);
 
   // @ Mention: Close picker on click outside
-  const handleDescriptionKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleDescriptionKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setMentionPickerOpen(false);
+      setIsReplacingMention(false);
     }
   }, []);
 
@@ -1714,24 +1674,31 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                {/* Description */}
               <div className="mb-4">
                 <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
-                <div 
-                  className={`relative h-[35vh] ${
-                    selectedSegment && generatingDescription.has(selectedSegment.id) 
-                      ? 'ai-generating-border' 
+                <div
+                  className={`relative ${descriptionExpanded ? 'h-[70vh]' : 'h-[45vh]'} ${
+                    selectedSegment && generatingDescription.has(selectedSegment.id)
+                      ? 'ai-generating-border'
                       : ''
                   }`}
                 >
-                  <textarea
-                    ref={descriptionTextareaRef}
+                  <RichMentionEditor
+                    ref={richEditorRef}
                     value={descriptionDraft}
-                    onChange={handleDescriptionInput}
+                    onChange={handleDescriptionChange}
                     onKeyDown={handleDescriptionKeyDown}
                     placeholder="输入片段描述... 使用 @ 提及角色或场景"
-                    className={`w-full h-full p-3 pb-14 text-sm bg-slate-800 border rounded-lg resize-none focus:outline-none text-slate-50 placeholder:text-slate-600 ${
+                    className={`border ${
                       selectedSegment && generatingDescription.has(selectedSegment.id)
                         ? 'border-transparent'
-                        : 'border-slate-600 focus:border-slate-500'
+                        : 'border-slate-600'
                     }`}
+                    characters={activeCharacters || []}
+                    scenes={activeScenes || []}
+                    props={activeProps || []}
+                    onMentionTrigger={handleMentionTrigger}
+                    onMentionClose={handleMentionClose}
+                    mentionPickerOpen={mentionPickerOpen}
+                    onMentionClick={handleMentionClick}
                   />
                   {/* @ Mention Picker */}
                   {mentionPickerOpen && (
@@ -1896,6 +1863,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </span>
                     {/* 右边按钮组 */}
                     <div className="flex items-center gap-2">
+                      {/* 高度切换按钮 */}
+                      <button
+                        onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                        className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] font-bold tracking-wider rounded transition-colors flex items-center gap-1.5 cursor-pointer"
+                        title={descriptionExpanded ? '缩小编辑区' : '扩大编辑区'}
+                      >
+                        {descriptionExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+                        {descriptionExpanded ? '缩小' : '扩大'}
+                      </button>
                       {/* 复制按钮 */}
                       <button
                         onClick={() => navigator.clipboard.writeText(descriptionDraft)}

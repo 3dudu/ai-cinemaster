@@ -307,4 +307,24 @@
   animation: glowWave 8s linear infinite;
 }
 
+/* RichMentionEditor 样式 */
+.rich-mention-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #475569;
+  pointer-events: none;
+  position: absolute;
+}
+
+.rich-mention-editor .mention-tag {
+  transition: all 0.15s ease;
+}
+
+.rich-mention-editor .mention-tag:hover {
+  filter: brightness(1.2);
+  transform: scale(1.02);
+}
+
+.rich-mention-editor .mention-tag svg {
+  flex-shrink: 0;
+}
 

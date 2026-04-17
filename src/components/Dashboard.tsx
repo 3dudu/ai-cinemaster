@@ -480,7 +480,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-300 p-4 pt-2 md:p-12 font-sans">
       <div className="max-w-7xl mx-auto">
-        <header className={`border-b border-slate-900 pb-4 ${isMobile ? '' : 'mb-16 flex items-end'} justify-between`}>
+        <header className={`border-b border-slate-900 pb-4 ${isMobile ? '' : 'mb-6 flex items-end'} justify-between`}>
           <div className='flex items-center justify-between'>
             <h1 className="text-3xl font-light text-slate-50 tracking-tight m-2 flex items-center gap-3">
               剧集库
