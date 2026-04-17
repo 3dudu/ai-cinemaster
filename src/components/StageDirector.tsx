@@ -583,7 +583,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
       // Save to media history
       if (videoUrl) {
         const fileName = `Shot${shot.id}_video`;
-        await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video',prompt);
+        await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video',prompt,shot.id);
       }
 
       updateShot(shot.id, (s) => ({
@@ -818,10 +818,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
               }
             }
           } catch (e) {
-            if(e.message?.includes("enough")){
+            if(JSON.stringify(e).includes("enough")){
               await dialog.toast({ message: '余额不足，请充值', type: 'error' });
             }else{
-              await dialog.toast({ message: '镜头 '+shot.id+' 帧图片生成失败，请重试'+e?.message, type: 'error' });
+              await dialog.toast({ message: `镜头 ${shot.id} 帧图片生成失败，请重试 ${e}`, type: 'error' });
             }
           }
       }
@@ -960,7 +960,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
 
               await handleGenerateVideo(updatedShot,true);
           } catch (e) {
-              dialog.toast({ message: `镜头 ${shot.id} 生成视频失败: ${e.message}`, type: 'error' });
+              dialog.toast({ message: `镜头 ${shot.id} 生成视频失败: ${e}`, type: 'error' });
           }
 
           // Small delay between shots
@@ -1122,10 +1122,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
             }
           }
         } catch (e) {
-            if(e.message?.includes("enough")){
+            if(JSON.stringify(e).includes("enough")){
                 await dialog.toast({ message: '余额不足，请充值', type: 'error' });
             }else{
-                await dialog.toast({ message: '镜头 '+shot.id+' 帧图片生成失败，请重试'+e?.message, type: 'error' });
+                await dialog.toast({ message: `镜头 ${shot.id} 帧图片生成失败，请重试 ${e}`, type: 'error' });
             }
         }
     }

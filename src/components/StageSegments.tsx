@@ -1,11 +1,11 @@
 import { renderGroupTemplate } from '@/prompt/templateGroupService';
 import { ModelService } from '@/services/modelService';
 import { createLightweightCharacters, createLightweightScenes, mergeToLibrary, remapScriptDataRefs } from '@/services/seriesService';
-import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RotateCcw, Sparkles, Trash, Video, X } from 'lucide-react';
+import { Box, ChevronLeft, ChevronRight, Clapperboard, Copy, Edit, Film, ListVideo, Loader2, NotebookPen, Play, Plus, RefreshCw, RotateCcw, Sparkles, Trash, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Properties, Scene, Segment, SeriesRecord } from '../types';
-import { generateVideoThumbnail, getVideoLastFrame } from "../utils/imageUtils";
+import { generateVideoThumbnail, getVideoDuration, getVideoFrameAtTime, getVideoLastFrame } from "../utils/imageUtils";
 import CustomSelect from './common/CustomSelect';
 
 import {
@@ -74,6 +74,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   const [previewModalOpen, setPreviewModalOpen] = useState(false);  // 预览模态框状态
   const [aiSplitting, setAiSplitting] = useState(false);  // AI 分镜等待遮罩
   const [curProjectid, setCurProjectid] = useState<string | null>(null);
+  const [refreshingTailFrame, setRefreshingTailFrame] = useState(false);  // 刷新尾帧中
+  const [tailFrameTime, setTailFrameTime] = useState<number>(0);  // 尾帧时间点（秒）
+  const [prevSegmentDuration, setPrevSegmentDuration] = useState<number>(0);  // 前一片段视频时长
+  const [refreshingFirstFrame, setRefreshingFirstFrame] = useState<Set<string>>(new Set());  // 刷新首帧中的片段ID集合
 
   // 实时更新视频生成耗时
   useEffect(() => {
@@ -465,6 +469,26 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     }
   }, [selectedSegment]);
 
+  // Get previous segment's video duration
+  useEffect(() => {
+    const fetchDuration = async () => {
+      if (activeSegmentIndex > 0) {
+        const prevSegment = (project.segments || [])[activeSegmentIndex - 1];
+        if (prevSegment?.videoUrl) {
+          const duration = await getVideoDuration(prevSegment.videoUrl);
+          setPrevSegmentDuration(duration);
+          // 默认设置为视频末尾
+          setTailFrameTime(Math.max(0, duration - 0.5));
+        } else {
+          setPrevSegmentDuration(0);
+        }
+      } else {
+        setPrevSegmentDuration(0);
+      }
+    };
+    fetchDuration();
+  }, [activeSegmentIndex, project.segments]);
+
   // Save description changes
   const handleSaveDescription = useCallback(() => {
     if (!selectedSegment) return;
@@ -478,6 +502,71 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     handleSaveSegment(updatedSegment);
     dialog.toast({ message: '描述已保存' ,type: 'success'});
   }, [selectedSegment, descriptionDraft, transitionFromDraft, transitionToDraft, handleSaveSegment, dialog]);
+
+  // Refresh last frame thumbnail from previous segment
+  const handleRefreshTailFrame = useCallback(async (timeSeconds: number) => {
+    if (!selectedSegment || activeSegmentIndex <= 0) return;
+
+    const segments = project.segments || [];
+    const prevSegment = segments[activeSegmentIndex - 1];
+
+    if (!prevSegment?.videoUrl) {
+      dialog.toast({ message: '前一片段没有视频', type: 'warning' });
+      return;
+    }
+
+    setRefreshingTailFrame(true);
+    try {
+      const frame = await getVideoFrameAtTime(prevSegment.videoUrl, timeSeconds);
+      if (frame) {
+        // Update previous segment's lastFrameThumbnail
+        const updatedSegments = segments.map(s =>
+          s.id === prevSegment.id ? { ...s, lastFrameThumbnail: frame } : s
+        );
+        updateProject({ segments: updatedSegments });
+        dialog.toast({ message: '尾帧已更新', type: 'success' });
+      } else {
+        dialog.toast({ message: '获取帧失败', type: 'error' });
+      }
+    } catch (error) {
+      dialog.toast({ message: '刷新尾帧失败', type: 'error' });
+    } finally {
+      setRefreshingTailFrame(false);
+    }
+  }, [selectedSegment, activeSegmentIndex, project.segments, updateProject, dialog]);
+
+  // Refresh first frame thumbnail for a segment
+  const handleRefreshFirstFrame = useCallback(async (segmentId: string) => {
+    const segments = project.segments || [];
+    const segment = segments.find(s => s.id === segmentId);
+
+    if (!segment?.videoUrl) {
+      dialog.toast({ message: '片段没有视频', type: 'warning' });
+      return;
+    }
+
+    setRefreshingFirstFrame(prev => new Set(prev).add(segmentId));
+    try {
+      const thumbnail = await generateVideoThumbnail(segment.videoUrl, 2);
+      if (thumbnail) {
+        const updatedSegments = segments.map(s =>
+          s.id === segmentId ? { ...s, firstFrameThumbnail: thumbnail, lastModified: Date.now() } : s
+        );
+        updateProject({ segments: updatedSegments });
+        dialog.toast({ message: '首帧已更新', type: 'success' });
+      } else {
+        dialog.toast({ message: '获取首帧失败', type: 'error' });
+      }
+    } catch (error) {
+      dialog.toast({ message: '刷新首帧失败', type: 'error' });
+    } finally {
+      setRefreshingFirstFrame(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(segmentId);
+        return newSet;
+      });
+    }
+  }, [project.segments, updateProject, dialog]);
 
   // Reconvert shots to segments
   const handleReconvertSegments = useCallback(async () => {
@@ -881,7 +970,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       if (videoUrl) {
         // Save to media history
         const fileName = `Segment_${selectedSegment.name||selectedSegment.id}_video`;
-        await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video',prompt);
+        await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video',prompt,selectedSegment.id);
 
         // 提取首帧和尾帧缩略图
         const [firstFrame, lastFrame] = await Promise.all([
@@ -1085,7 +1174,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           if (videoUrl) {
             // Save to media history
             const fileName = `Segment_${segment.name || segment.id}_video`;
-            await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video', prompt);
+            await addMediaHistory(project.id, videoUrl, fileName, 'video', 'video', prompt,segment.id);
 
             // 提取首帧和尾帧缩略图
             const [firstFrame, lastFrame] = await Promise.all([
@@ -1567,7 +1656,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   {generatingVideo === selectedSegment.id ? (
                     <>
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      {!isMobile && `生成中 ${videoElapsedSeconds}s`}
+                      {`${!isMobile && '生成中'}${videoElapsedSeconds}s`}
                     </>
                   ) : (
                     <>
@@ -1576,10 +1665,11 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </>
                   )}
                 </button>
+                {activeSegmentIndex > 0 && (
                 <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none whitespace-nowrap">
                   <input
                     type="checkbox"
-                    checked={selectedSegment.useTailFrameRef}
+                    checked={selectedSegment.useTailFrameRef === true}
                     onChange={(e) => {
                       const updated = (project.segments || []).map(s =>
                         s.id === selectedSegment.id ? { ...s, useTailFrameRef: e.target.checked } : s
@@ -1588,8 +1678,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     }}
                     className="w-3 h-3 rounded border-slate-500 accent-indigo-500"
                   />
-                  尾帧参考
+                  自动首帧
                 </label>
+                )}
               </div>
               </div>
             </div>
@@ -2059,6 +2150,71 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 </div>
               </div>
 
+              {/* Tail Frame Reference */}
+              {selectedSegment?.useTailFrameRef && activeSegmentIndex > 0 && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-400 tracking-wide">前一片段尾帧</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max={prevSegmentDuration > 0 ? prevSegmentDuration.toFixed(1) : undefined}
+                        step="0.5"
+                        value={tailFrameTime}
+                        onChange={(e) => setTailFrameTime(parseFloat(e.target.value) || 0)}
+                        className="w-16 px-2 py-1 text-xs bg-slate-800 border border-slate-600 rounded text-slate-200"
+                        placeholder="秒"
+                      />
+                      {prevSegmentDuration > 0 && (
+                        <span className="text-[10px] text-slate-500">/{prevSegmentDuration.toFixed(1)}s</span>
+                      )}
+                      <button
+                        onClick={() => handleRefreshTailFrame(tailFrameTime)}
+                        disabled={refreshingTailFrame}
+                        className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer"
+                        title="刷新尾帧"
+                      >
+                        {refreshingTailFrame ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-slate-800 rounded-lg p-2">
+                    {(() => {
+                      const prevSegment = (project.segments || [])[activeSegmentIndex - 1];
+                      if (!prevSegment?.videoUrl) {
+                        return <span className="text-xs text-slate-500">前一片段无视频</span>;
+                      }
+                      if (!prevSegment.lastFrameThumbnail) {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">无尾帧缓存</span>
+                            <button
+                              onClick={() => handleRefreshTailFrame(tailFrameTime)}
+                              disabled={refreshingTailFrame}
+                              className="text-xs text-indigo-400 hover:text-indigo-300"
+                            >
+                              获取
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <img
+                          src={prevSegment.lastFrameThumbnail}
+                          alt="前一片段尾帧"
+                          className="w-full h-auto rounded"
+                        />
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
               {/* Transition From */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
@@ -2144,15 +2300,33 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   />
                 </div>
               </div>
-
             </div>
               {/* Save Button */}
+              <div className='flex ajust-between items-center px-2 md:px-4 py-2 gap-2'>
               <button
                 onClick={handleSaveDescription}
-                className="m-4 px-2 md:px-4 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center justify-center gap-2 hover:bg-slate-600 border border-slate-600 cursor-pointer"
+                className="flex-1 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs font-bold tracking-wide transition-all flex items-center justify-center gap-2 hover:bg-slate-600 border border-slate-600 cursor-pointer"
               >
                 保存描述
               </button>
+              <button
+                  onClick={handleGenerateSegmentVideo}
+                  disabled={generatingVideo === selectedSegment.id || batchGeneratingVideos}
+                  className="flex-1 py-2 rounded-lg bg-slate-700 text-slate-50 text-xs gap-2 font-bold tracking-wide transition-all flex items-center justify-center hover:bg-slate-600 border border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {generatingVideo === selectedSegment.id ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      {`生成中 ${videoElapsedSeconds}s`}
+                    </>
+                  ) : (
+                    <>
+                      <Video className="w-3 h-3" />
+                      {(selectedSegment.videoUrl ? '重新生成视频' : '生成视频')}
+                    </>
+                  )}
+                </button>
+                </div>
             </div>
             )}
           </>
@@ -2236,6 +2410,23 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                           {segment.name}
                         </span>
                         <div className="flex gap-1">
+                          {segment.videoUrl && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRefreshFirstFrame(segment.id);
+                              }}
+                              disabled={refreshingFirstFrame.has(segment.id)}
+                              className="p-1 group-hover:bg-slate-700 rounded text-slate-400 group-hover:text-slate-200 transition-colors cursor-pointer disabled:opacity-50"
+                              title="刷新首帧缩略图"
+                            >
+                              {refreshingFirstFrame.has(segment.id) ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-3 h-3" />
+                              )}
+                            </button>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

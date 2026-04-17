@@ -185,3 +185,45 @@ export async function getVideoLastFrame(url: string): Promise<string | null> {
     video.src = url;
   });
 }
+
+/**
+ * 获取视频指定时间的帧
+ * @param url - 视频 URL
+ * @param timeSeconds - 指定时间点（秒）
+ * @returns Promise<string | null> - base64 图片数据或 null
+ */
+export async function getVideoFrameAtTime(url: string, timeSeconds: number): Promise<string | null> {
+  return generateVideoThumbnail(url, timeSeconds);
+}
+
+/**
+ * 获取视频时长
+ * @param url - 视频 URL
+ * @returns Promise<number> - 视频时长（秒）
+ */
+export async function getVideoDuration(url: string): Promise<number> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+
+    const timeout = setTimeout(() => {
+      console.warn("Video duration fetch timeout for URL:", url);
+      resolve(0);
+    }, 10000);
+
+    video.onloadedmetadata = () => {
+      clearTimeout(timeout);
+      resolve(video.duration || 0);
+    };
+
+    video.onerror = () => {
+      clearTimeout(timeout);
+      console.error("Error loading video for duration:", url);
+      resolve(0);
+    };
+
+    video.src = url;
+  });
+}

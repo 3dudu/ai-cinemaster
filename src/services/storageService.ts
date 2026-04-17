@@ -309,6 +309,7 @@ export interface MediaFile {
   fileType: 'image' | 'video' | 'audio';
   mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition' | 'prop';
   prompt: string;
+  shotId: string;
 }
 
 /**
@@ -463,7 +464,8 @@ export const addMediaHistory = async (
   fileName: string,
   fileType: 'image' | 'video' | 'audio',
   mediaType: 'character' | 'scene' | 'full' | 'start' | 'end' | 'video' | 'transition'|'prop',
-  prompt: string
+  prompt: string,
+  shotId: string = ''
 ): Promise<void> => {
   const filehash = await md5Hash(fileUrl);
   const db = await openDB();
@@ -478,7 +480,8 @@ export const addMediaHistory = async (
         timestamp: Date.now(),
         fileType,
         mediaType,
-        prompt
+        prompt,
+        shotId
       };
 
       // Get existing project history

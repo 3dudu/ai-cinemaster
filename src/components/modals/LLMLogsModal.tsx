@@ -197,7 +197,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
 
         updated = true;
         const fileName = `Segment_${log.shotId}_video`;
-        await addMediaHistory(targetProject.id, finalUrl, fileName, 'video', 'video',log.requestParams.content[0].text);
+        await addMediaHistory(targetProject.id, finalUrl, fileName, 'video', 'video',log.requestParams.content[0].text,log.shotId);
         dialog.toast({ message: `已关联到片段 ${matchingSegment.name || matchingSegment.id}`, type: 'success' });
       } else {
         // 如果在 segments 中没找到，再尝试关联到 Shot.interval.videoUrl
@@ -224,7 +224,7 @@ const LLMLogsModal: React.FC<Props> = ({ isOpen, onClose, isMobile = false, proj
           }
 
           const fileName = `Shot_${log.shotId}_video`;
-          await addMediaHistory(targetProject.id, finalUrl, fileName, 'video', 'video',log.requestParams.content[0].text);
+          await addMediaHistory(targetProject.id, finalUrl, fileName, 'video', 'video',log.requestParams.content[0].text,log.shotId);
           dialog.toast({ message: `已关联到镜头 ${log.shotId}`, type: 'success' });
         } else {
           dialog.toast({ message: '未找到对应镜头', type: 'warning' });

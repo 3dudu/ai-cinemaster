@@ -1,6 +1,6 @@
-import { ArrowRightLeft, Cloud, Download, Images, Loader2, NotebookPen, Search, Trash2, X } from 'lucide-react';
+import { ArrowRightLeft, Cloud, Download, Images, Loader2, NotebookPen, RotateCcw, Search, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, loadSeriesFromDB, md5Hash, MediaFile, saveProjectToDB, saveSeriesToDB, updateMediaHistoryFileUrl } from '../../services/storageService';
+import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, loadProjectFromDB, loadSeriesFromDB, md5Hash, MediaFile, saveProjectToDB, saveSeriesToDB, updateMediaHistoryFileUrl, addMediaHistory } from '../../services/storageService';
 import { ProjectState, SeriesRecord } from '../../types';
 import { uploadFileToService } from '../../utils/fileUploadUtils';
 import CustomSelect from '../common/CustomSelect';
@@ -23,6 +23,7 @@ interface ImageItem {
   islocal?: boolean;
   prompt?: string;
   timestamp: number;
+  shotId?: string;
 }
 
 interface Props {
@@ -58,6 +59,7 @@ const ImageSelectorModal: React.FC<Props> = ({
   const [selectedPrompt, setSelectedPrompt] = useState<{title: string, prompt: string, timestamp?: number} | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
   const [uploadingStatus, setUploadingStatus] = useState<string | null>(null);
+  const [associatingUrl, setAssociatingUrl] = useState<string | null>(null);
 
   // 加载所有项目和连续剧
   useEffect(() => {
@@ -156,6 +158,108 @@ const ImageSelectorModal: React.FC<Props> = ({
       setShowPromptModal(true);
     }
   }, []);
+
+  // 将历史视频还原到当前shot或segment
+  const handleRestoreVideo = useCallback(async (image: ImageItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!image.shotId || !image.projectId || !image.imageUrl) {
+      dialog.toast({ message: '缺少必要信息', type: 'error' });
+      return;
+    }
+
+    const confirmed = await dialog.confirm({
+      title: '还原视频',
+      message: `确定要将此视频还原到对应的${image.type === 'video-transition' ? '转场' : '片段/镜头'}吗？这将覆盖现有视频。`,
+      type: 'warning'
+    });
+    if (!confirmed) return;
+
+    setAssociatingUrl(image.id);
+    try {
+      // 先将外部 URL 转换成本地服务器文件
+      let finalUrl = image.imageUrl;
+      const fileType = `${image.projectId}/video/${image.shotId}`;
+
+      try {
+        const uploadResponse = await uploadFileToService({
+          fileType,
+          fileUrl: image.imageUrl
+        });
+
+        if (uploadResponse.success && uploadResponse.data?.fileUrl) {
+          finalUrl = uploadResponse.data.fileUrl;
+        }
+      } catch (uploadError) {
+        console.warn(`文件上传出错:`, uploadError, '，使用原始URL');
+      }
+
+      // 判断是否更新当前打开的项目
+      const isCurrentProject = project && project.id === image.projectId;
+      const targetProject = isCurrentProject ? project : await loadProjectFromDB(image.projectId);
+
+      if (!targetProject) {
+        dialog.toast({ message: '未找到项目', type: 'error' });
+        return;
+      }
+
+      let updated = false;
+      const segments = targetProject.segments || [];
+
+      // 先尝试从 segments 中查找匹配的 segment（shotId 可能是 segmentId）
+      const matchingSegment = segments.find(seg => seg.id === image.shotId);
+      if (matchingSegment) {
+        const updatedSegments = segments.map((seg) =>
+          seg.id === image.shotId ? { ...seg, videoUrl: finalUrl } : seg
+        );
+        await saveProjectToDB({ ...targetProject, segments: updatedSegments });
+
+        // 通知其他组件刷新
+        if (isCurrentProject && updateProject) {
+          updateProject({ segments: updatedSegments });
+        }
+
+        updated = true;
+        const fileName = `Segment_${image.shotId}_video`;
+        await addMediaHistory(targetProject.id, finalUrl, fileName, 'video', 'video', image.prompt || '', image.shotId);
+        dialog.toast({ message: `已还原到片段 ${matchingSegment.name || matchingSegment.id}`, type: 'success' });
+      } else {
+        // 如果在 segments 中没找到，再尝试关联到 Shot.interval.videoUrl
+        const updatedShots = targetProject.shots.map((shot) => {
+          if (shot.id === image.shotId) {
+            updated = true;
+            return {
+              ...shot,
+              interval: {
+                ...shot.interval,
+                videoUrl: finalUrl
+              }
+            };
+          }
+          return shot;
+        });
+
+        if (updated) {
+          await saveProjectToDB({ ...targetProject, shots: updatedShots });
+
+          // 通知其他组件刷新
+          if (isCurrentProject && updateProject) {
+            updateProject({ shots: updatedShots });
+          }
+
+          const fileName = `Shot_${image.shotId}_video`;
+          await addMediaHistory(targetProject.id, finalUrl, fileName, 'video', 'video', image.prompt || '', image.shotId);
+          dialog.toast({ message: `已还原到镜头 ${image.shotId}`, type: 'success' });
+        } else {
+          dialog.toast({ message: '未找到对应镜头或片段', type: 'warning' });
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to restore video:', error);
+      dialog.toast({ message: `还原失败: ${error.message}`, type: 'error' });
+    } finally {
+      setAssociatingUrl(null);
+    }
+  }, [project, updateProject, dialog]);
 
   // 收集所有图片数据
   const [allImages, setAllImages] = useState<ImageItem[]>([]);
@@ -380,7 +484,7 @@ const ImageSelectorModal: React.FC<Props> = ({
               title: shotLabel,
               subtitle: `镜头视频 - ${shot.actionSummary.substring(0, 30)}...`,
               downname: `${selectedProject.scriptData?.title || ''}-镜头-${shot.id}`,
-              mediaType: 'video'
+              mediaType: 'video',
             });
           }
   
@@ -506,7 +610,8 @@ const ImageSelectorModal: React.FC<Props> = ({
             ishistory: true,
             islocal: isLocalFile(file.fileUrl),
             prompt: file.prompt,
-            timestamp: file.timestamp
+            timestamp: file.timestamp,
+            shotId: file.shotId,
           });
         }
       }
@@ -920,6 +1025,21 @@ const ImageSelectorModal: React.FC<Props> = ({
                         title="删除历史记录"
                       >
                         <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                    {/* 还原视频按钮 - 视频、有shotId、历史记录时显示 */}
+                    {image.mediaType === 'video' && image.shotId && image.ishistory && (
+                      <button
+                        onClick={(e) => handleRestoreVideo(image, e)}
+                        disabled={!!associatingUrl}
+                        className="pointer-events-auto p-2 bg-slate-700/50 text-slate-50 rounded-full hover:bg-slate-800 hover:text-slate-50 transition-colors border border-white/10 backdrop-blur cursor-pointer disabled:opacity-50"
+                        title="还原视频到片段/镜头"
+                      >
+                        {associatingUrl === image.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-3 h-3" />
+                        )}
                       </button>
                     )}
                     {/* 查看提示词按钮 - 历史记录且包含提示词时显示 */}
