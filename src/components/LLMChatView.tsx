@@ -3,7 +3,7 @@
  * 支持 Modal 和 Stage 两种使用场景
  */
 
-import { Bot, ChevronDown, Loader2, MessageSquare, Plus, Send, Square, User, X } from 'lucide-react';
+import { Bot, Check, ChevronDown, Copy, Loader2, MessageSquare, Plus, Send, Square, User, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -232,7 +232,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
   return (
     <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
       {/* Header */}
-        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
+        <div className="h-14 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-slate-700 text-slate-50 flex items-center justify-center rounded-lg">
             <MessageSquare className="w-4 h-4" />
@@ -246,7 +246,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
             <button
               onClick={() => setShowAgentDropdown(!showAgentDropdown)}
               disabled={isStreaming}
-              className="flex items-center gap-1.5 bg-slate-700 border border-slate-600 text-slate-50 text-xs px-2 py-1.5 rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 bg-slate-700 border border-slate-600 text-slate-50 text-sm px-2 py-1.5 rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50"
             >
               <span>{getSelectedAgent().emoji}</span>
               <span className="max-w-[80px] truncate">{getSelectedAgent().name}</span>
@@ -267,7 +267,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                   >
                     <span className="text-base">{agent.emoji}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-slate-50 font-medium">{agent.name}</div>
+                      <div className="text-sm text-slate-50 font-medium">{agent.name}</div>
                       <div className="text-[10px] text-slate-400 truncate">{agent.description}</div>
                     </div>
                   </button>
@@ -302,7 +302,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-500">
-            <p className="text-xs">开始与 AI 对话</p>
+            <p className="text-sm">开始与 AI 对话</p>
             <p className="text-[10px] mt-1 text-slate-600">输入问题，按 Enter 发送</p>
           </div>
         ) : (
@@ -313,7 +313,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
             >
               {/* AI 助手头像 */}
               {message.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
                   <Bot className="w-3.5 h-3.5 text-slate-300" />
                 </div>
               )}
@@ -331,11 +331,30 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                     <ReactMarkdown
                       remarkPlugins={[remarkBreaks]}
                       components={{
-                        pre: ({ children }) => (
-                          <pre className="bg-slate-900 rounded-lg p-2 overflow-x-auto text-[10px]">
-                            {children}
-                          </pre>
-                        ),
+                        pre: ({ children, ...props }) => {
+                          const [copied, setCopied] = useState(false);
+                          const preRef = useRef<HTMLPreElement>(null);
+                          const handleCopy = () => {
+                            const text = preRef.current?.innerText ?? '';
+                            navigator.clipboard.writeText(text);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          };
+                          return (
+                            <div className="relative group">
+                              <pre ref={preRef} className="bg-slate-900 rounded-lg p-2 pr-8 overflow-x-auto text-[10px] mb-2" {...props}>
+                                {children}
+                              </pre>
+                              <button
+                                onClick={handleCopy}
+                                className="absolute bottom-1.5 right-1.5 p-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="复制代码"
+                              >
+                                {copied ? <Check size={12} /> : <Copy size={12} />}
+                              </button>
+                            </div>
+                          );
+                        },
                         code: ({ className, children, ...props }) => {
                           const isInline = !className;
                           return isInline ? (
@@ -348,11 +367,11 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                             </code>
                           );
                         },
-                        p: ({ children }) => <p className="mb-1.5 last:mb-0 text-xs">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc pl-3 mb-1.5 text-xs">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal pl-3 mb-1.5 text-xs">{children}</ol>,
+                        p: ({ children }) => <p className="mb-1.5 last:mb-0 text-sm">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-3 mb-1.5 text-sm">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-3 mb-1.5 text-sm">{children}</ol>,
                         h1: ({ children }) => <h1 className="text-sm font-bold mb-1.5">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-xs font-bold mb-1">{children}</h2>,
+                        h2: ({ children }) => <h2 className="text-sm font-bold mb-1">{children}</h2>,
                         h3: ({ children }) => <h3 className="text-[11px] font-bold mb-1">{children}</h3>,
                       }}
                     >
@@ -360,13 +379,13 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                     </ReactMarkdown>
                   </div>
                 ) : (
-                  <p className="text-xs whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-sm whitespace-pre-wrap select-text">{message.content}</p>
                 )}
               </div>
 
               {/* 用户头像 */}
               {message.role === 'user' && (
-                <div className="w-7 h-7 rounded-full bg-slate-500 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-slate-500 flex items-center justify-center flex-shrink-0">
                   <User className="w-3.5 h-3.5 text-slate-200" />
                 </div>
               )}
@@ -379,7 +398,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
       {/* Error Message */}
       {error && (
         <div className="px-4 py-1.5 bg-red-900/20 border-t border-red-900/30">
-          <p className="text-xs text-red-400">{error}</p>
+          <p className="text-sm text-red-400">{error}</p>
         </div>
       )}
 
@@ -417,7 +436,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
               placeholder="输入消息..."
               disabled={isStreaming || llmConfigs.length === 0}
               rows={1}
-              className="w-full bg-slate-700 border border-slate-600 text-slate-50 px-3 py-2.5 pr-10 text-xs rounded-xl focus:outline-none focus:border-slate-500 resize-none disabled:opacity-50 placeholder:text-slate-500"
+              className="w-full bg-slate-700 border border-slate-600 text-slate-50 px-3 py-2.5 pr-10 text-sm rounded-xl focus:outline-none focus:border-slate-500 resize-none disabled:opacity-50 placeholder:text-slate-500"
               style={{
                 minHeight: '40px',
                 maxHeight: '100px',
