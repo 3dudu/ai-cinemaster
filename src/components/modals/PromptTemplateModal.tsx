@@ -168,12 +168,6 @@ const PromptTemplateModal: React.FC<{
     if (activeTab === 'group') {
       reloadGroups();
     }
-  }, [activeTab]);
-
-  // ===== Agent 系统提示词逻辑 =====
-
-  // 加载 Agent 列表
-  useEffect(() => {
     if (activeTab === 'agent') {
       reloadAgents();
     }
@@ -789,13 +783,13 @@ const PromptTemplateModal: React.FC<{
                         {/* 标签 */}
                         <div className="flex items-center gap-2 text-xs">
                           <div className={`px-2 py-1 rounded ${
-                            editingAgent.isBuiltIn 
+                            editingAgent?.isBuiltIn 
                               ? 'bg-blue-600/20 text-blue-400' 
                               : 'bg-green-600/20 text-green-400'
                           }`}>
-                            {editingAgent.isBuiltIn ? '内置 Agent' : '自定义 Agent'}
+                            {editingAgent?.isBuiltIn ? '内置 Agent' : '自定义 Agent'}
                           </div>
-                          {editingAgent.isBuiltIn && (
+                          {editingAgent?.isBuiltIn && (
                             <span className="text-slate-500">可修改系统提示词，不可删除</span>
                           )}
                         </div>
@@ -805,7 +799,7 @@ const PromptTemplateModal: React.FC<{
                       <div className="md:p-4 p-2 border-b border-slate-600 bg-slate-700 flex items-center justify-between sticky top-0 z-10">
                         <span className="text-sm font-medium text-slate-300">系统提示词</span>
                         <div className="flex gap-2">
-                          {editingAgent.isBuiltIn && (
+                          {editingAgent?.isBuiltIn && (
                             <button
                               onClick={handleResetAgent}
                               className="px-3 py-2 bg-slate-600 text-slate-300 hover:bg-slate-500 rounded-lg text-sm flex items-center gap-1"

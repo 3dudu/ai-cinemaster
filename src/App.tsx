@@ -7,6 +7,7 @@ import SeriesManagerModal from './components/modals/SeriesManagerModal';
 import Sidebar from './components/Sidebar';
 import SidebarMobile from './components/SidebarMobile';
 import StageAssets from './components/StageAssets';
+import StageChat from './components/StageChat';
 import StageDirector from './components/StageDirector';
 import StageExport from './components/StageExport';
 import StageImage from './components/StageImage';
@@ -120,7 +121,7 @@ function App() {
     });
   };
 
-  const setStage = (stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images') => {
+  const setStage = (stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images' | 'chat') => {
     updateProject({ stage });
   };
 
@@ -190,6 +191,7 @@ function App() {
             updateProject={updateProject}
             series={series}
             updateSeries={updateSeries}
+            isMobile={isMobile}
           />
         );
       case 'director':
@@ -216,6 +218,8 @@ function App() {
         return <StageExport project={project} updateProject={updateProject} isMobile={isMobile} />;
       case 'images':
         return <StageImage project={project} updateProject={updateProject} />;
+      case 'chat':
+        return <StageChat isMobile={isMobile} />;
       default:
         return <div className="text-slate-50">未知阶段</div>;
     }
@@ -299,8 +303,8 @@ function App() {
           />
         )}
 
-      <main className={`transition-allduration-300 ease-in-out ${isMobile ? 'ml-0' : (sidebarCollapsed ? 'ml-20' : 'xl:ml-72 ml-20')} flex-1 h-screen overflow-hidden relative`}
-      style={ isMobile ? { paddingBottom: 'calc(112px + env(safe-area-inset-top))'} : {}}>
+      <main className={`transition-allduration-300 ease-in-out ${isMobile ? 'ml-0 pt-12' : (sidebarCollapsed ? 'ml-20' : 'xl:ml-72 ml-20')} flex-1 h-screen overflow-hidden relative`}
+      style={ isMobile ? { paddingBottom: 'calc(64px + env(safe-area-inset-top))'} : {}}>
         {renderStage()}
         {showSettings && (
           <>

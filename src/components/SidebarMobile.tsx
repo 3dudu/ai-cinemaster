@@ -1,4 +1,4 @@
-import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderOpen, Images, List, ListVideo, NotebookPen, Settings, Sparkles } from 'lucide-react';
+import { Aperture, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderOpen, Images, List, ListVideo, MessageSquare, NotebookPen, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import { ThemeToggle } from './common/ThemeToggle';
@@ -8,7 +8,7 @@ import ModalSettings from './modals/SystemSettingsModal';
 
 interface SidebarMobileProps {
   currentStage: string;
-  setStage: (stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images') => void;
+  setStage: (stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images' | 'chat') => void;
   onExit: () => void;
   onOpenSettings : () => void;
   projectName?: string;
@@ -23,7 +23,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showPromptTemplates, setShowPromptTemplates] = useState(false);
-  
+
 
   const navItems = [
     { id: 'assets', label: '资产', icon: Drama },
@@ -31,13 +31,14 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
     { id: 'director', label: '导演', icon: Clapperboard },
     { id: 'segments', label: '片段', icon: ListVideo },
     { id: 'images', label: '媒体', icon: Images },
+    { id: 'chat', label: '对话', icon: MessageSquare },
     { id: 'export', label: '成片', icon: Film },
   ];
 
   return (
-    <aside className="top-0 left-0 right-0 z-60 select-none bg-slate-600 border-b border-slate-600 flex flex-col">
+    <div className="w-full bg-slate-600 border-b border-slate-600 flex flex-col">
       {/* 顶部栏 */}
-      <div className="flex items-center justify-between px-2 py-2">
+      <div className="flex fixed top-0 h-12 items-center justify-between px-2 py-2">
         {/* 左侧：Logo 和 返回按钮 */}
         <div className="flex items-center gap-2">
           <button
@@ -104,7 +105,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
       </div>
 
       {/* 导航 */}
-      <nav className="fixed bottom-0 left-0 right-0 py-2 h-16 z-60 flex border-t border-slate-600 items-center justify-around px-4 py-0 overflow-hidden select-none bg-slate-600 border-b border-slate-600">
+      <nav className="fixed bottom-0 left-0 right-0 py-2 h-16 z-60 flex border-t border-slate-600 items-center justify-between py-0 overflow-hidden select-none bg-slate-600 border-b border-slate-600">
         {navItems.map((item) => {
           const isActive = currentStage === item.id;
           return (
@@ -147,7 +148,7 @@ const SidebarMobile: React.FC<SidebarMobileProps> = ({ currentStage, setStage, o
         project={project}
         updateProject={updateProject}
       />
-    </aside>
+    </div>
   );
 };
 

@@ -144,7 +144,7 @@ function EditorContent({
   return (
     <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-[var(--bg-primary)]">
       {/* Top Bar - 与 CutOS 一致 */}
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-600 bg-[var(--bg-elevated)] px-2">
+      <div className="h-12 border-b border-slate-600 bg-slate-700 md:px-4 px-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold text-[var(--text-primary)] line-clamp-2">
             {projectTitle || 'AI 剪辑'}
@@ -206,8 +206,8 @@ function EditorContent({
             </ResizablePanelGroup>
         </ResizablePanel>
         <ResizableHandle className="bg-transparent after:bg-transparent hover:bg-slate-400/50 transition-colors" />
-        <ResizablePanel defaultSize={30} minSize={isMobile?35:25}>
-          <div className="h-full border-t border-slate-600 bg-[var(--bg-elevated)]">
+        <ResizablePanel defaultSize={20} minSize={isMobile?35:25}>
+          <div className="border-t border-slate-600 bg-[var(--bg-elevated)] overflow-x-hidden overflow-y-auto h-full">
             <Timeline />
           </div>
         </ResizablePanel>

@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Clipboard, Copy, CopyPlus, Eye, EyeOff, Film, Lock, Redo2, Scissors, Trash2, Undo2, Unlock, Video, Volume2, VolumeX } from "lucide-react"
+import { Clipboard, Copy, CopyPlus, Eye, EyeOff, Film, Lock, Redo2, ScanEye, Scissors, Trash2, Undo2, Unlock, Video, Volume2, VolumeX } from "lucide-react"
 import type React from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { DEFAULT_CLIP_EFFECTS, DEFAULT_CLIP_TRANSFORM, PIXELS_PER_SECOND, TimelineClip, useEditor } from "./editor-context"
@@ -812,7 +812,7 @@ export function Timeline() {
     <div className="flex h-full flex-col">
       {/* Timeline Header */}
       <div className="flex items-center justify-between border-b border-slate-600 px-2 py-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto">
           {/* Editing Toolbar */}
           <div className="flex items-center gap-1">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -908,7 +908,7 @@ export function Timeline() {
             {formatRulerTime(currentTime)}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-0">
           <motion.button 
             onClick={zoomToFit}
             className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
@@ -916,7 +916,7 @@ export function Timeline() {
             whileTap={{ scale: 0.95 }}
             title="缩放以适应所有片段"
           >
-            适应
+          <ScanEye className="h-3.5 w-3.5" />
           </motion.button>
           <div className="flex items-center gap-1">
             <motion.button 
@@ -947,7 +947,7 @@ export function Timeline() {
       </div>
 
       {/* Timeline Tracks */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
+      <div className="flex flex-1 min-h-0">
         {/* Track Labels - 与右侧轨道对齐：先 ruler 占位 (h-6)，再 4 轨道 (h-12) */}
         <div className="w-24 shrink-0 flex flex-col border-r border-slate-600 bg-[var(--bg-secondary)]">
           {/* Ruler spacer - 与时间标尺等高 */}
@@ -1002,7 +1002,7 @@ export function Timeline() {
         {/* Timeline Grid - scroll-smooth 实现平滑滚动 */}
         <div
           ref={timelineRef}
-          className={`relative flex-1 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-thin select-none scroll-smooth ${
+          className={`relative flex-1 min-w-0 overflow-x-auto scrollbar-thin select-none scroll-smooth ${
             isScrubbing ? "cursor-ew-resize" : trimState ? "cursor-ew-resize" : draggedClip ? "cursor-grabbing" : dropTargetTrack ? "cursor-copy" : ""
           }`}
           onMouseDown={handleTimelineMouseDown}

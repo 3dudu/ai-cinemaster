@@ -36,7 +36,7 @@ const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose,isMobi
   }
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-[var(--bg-primary)]">
+    <div className="absolute top-12 inset-0 z-50 flex flex-col bg-[var(--bg-primary)]">
       <EditorShell
         initialData={{ media, clips, projectResolution }}
         projectTitle={project.title}

@@ -1,0 +1,457 @@
+/**
+ * LLM Chat View - 可复用的聊天主体组件
+ * 支持 Modal 和 Stage 两种使用场景
+ */
+
+import { Bot, ChevronDown, Loader2, MessageSquare, Plus, Send, Square, User, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import { ChatAgent, getChatAgents, getDefaultAgent } from '../services/chatAgentService';
+import {
+  buildApiMessages,
+  ChatMessage,
+  getLLMConfigs,
+  isTokenLimitError,
+  streamChat,
+  trimMessages,
+} from '../services/llmChatService';
+import { AIModelConfig } from '../types';
+import CustomSelect from './common/CustomSelect';
+
+interface ChatMessageUI {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+}
+
+interface LLMChatViewProps {
+  isMobile?: boolean;
+  onClose?: () => void;
+  showCloseButton?: boolean;
+}
+
+const LLMChatView: React.FC<LLMChatViewProps> = ({
+  isMobile = false,
+  onClose,
+  showCloseButton = false,
+}) => {
+  const [messages, setMessages] = useState<ChatMessageUI[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [llmConfigs, setLLMConfigs] = useState<AIModelConfig[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+
+  // Agent 相关状态
+  const [agents, setAgents] = useState<ChatAgent[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
+  const [showAgentDropdown, setShowAgentDropdown] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const agentDropdownRef = useRef<HTMLDivElement>(null);
+
+  // 加载 LLM 模型配置
+  useEffect(() => {
+    getLLMConfigs().then(configs => {
+      setLLMConfigs(configs);
+      if (configs.length > 0 && !selectedModelId) {
+        setSelectedModelId(configs[0].id);
+      }
+    });
+  }, [selectedModelId]);
+
+  // 加载 Agent 配置
+  useEffect(() => {
+    const loadedAgents = getChatAgents();
+    setAgents(loadedAgents);
+    if (loadedAgents.length > 0 && !selectedAgentId) {
+      const defaultAgent = getDefaultAgent();
+      setSelectedAgentId(defaultAgent.id);
+    }
+  }, [selectedAgentId]);
+
+  // 点击外部关闭 Agent 下拉菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (agentDropdownRef.current && !agentDropdownRef.current.contains(event.target as Node)) {
+        setShowAgentDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 自动滚动到底部
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // 聚焦输入框
+  useEffect(() => {
+    if (!isStreaming) {
+      inputRef.current?.focus();
+    }
+  }, [isStreaming]);
+
+  // 获取当前选中的模型配置
+  const getSelectedConfig = useCallback(() => {
+    return llmConfigs.find(c => c.id === selectedModelId);
+  }, [llmConfigs, selectedModelId]);
+
+  // 获取当前选中的 Agent
+  const getSelectedAgent = useCallback(() => {
+    return agents.find(a => a.id === selectedAgentId) || getDefaultAgent();
+  }, [agents, selectedAgentId]);
+
+  // 生成唯一 ID
+  const generateId = () => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+  // 发送消息
+  const handleSend = async () => {
+    if (!inputText.trim() || isStreaming) return;
+
+    const config = getSelectedConfig();
+    if (!config) {
+      setError('请先选择一个模型');
+      return;
+    }
+
+    const userMessage: ChatMessageUI = {
+      id: generateId(),
+      role: 'user',
+      content: inputText.trim(),
+      timestamp: Date.now(),
+    };
+
+    const assistantMessage: ChatMessageUI = {
+      id: generateId(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    };
+
+    // 添加用户消息
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
+    setIsStreaming(true);
+    setError(null);
+
+    // 添加空的 assistant 消息（用于 streaming 填充）
+    setMessages(prev => [...prev, assistantMessage]);
+
+    // 构建 API 请求
+    const history: ChatMessage[] = [...messages, userMessage].map(m => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    const selectedAgent = getSelectedAgent();
+    let apiMessages = buildApiMessages(history, selectedAgent.systemPrompt);
+    let retryCount = 0;
+    const maxRetries = 2;
+
+    const doStream = async (messagesToSend: ChatMessage[]): Promise<void> => {
+      abortControllerRef.current = new AbortController();
+
+      let fullContent = '';
+
+      await streamChat(
+        config,
+        messagesToSend,
+        {
+          onChunk: (text) => {
+            fullContent += text;
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === assistantMessage.id
+                  ? { ...m, content: fullContent }
+                  : m
+              )
+            );
+          },
+          onDone: () => {
+            setIsStreaming(false);
+            abortControllerRef.current = null;
+          },
+          onError: (err) => {
+            // 检查是否是 token 超限错误
+            if (isTokenLimitError(err) && retryCount < maxRetries) {
+              retryCount++;
+              // 截断消息后重试
+              const trimmed = trimMessages(messagesToSend);
+              if (trimmed.length < messagesToSend.length) {
+                doStream(trimmed);
+                return;
+              }
+            }
+
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === assistantMessage.id
+                  ? { ...m, content: `错误: ${err.message}` }
+                  : m
+              )
+            );
+            setIsStreaming(false);
+            abortControllerRef.current = null;
+          },
+        },
+        abortControllerRef.current.signal
+      );
+    };
+
+    doStream(apiMessages);
+  };
+
+  // 停止生成
+  const handleStop = () => {
+    abortControllerRef.current?.abort();
+    setIsStreaming(false);
+  };
+
+  // 新建对话
+  const handleNewChat = () => {
+    setMessages([]);
+    setInputText('');
+    setError(null);
+    inputRef.current?.focus();
+  };
+
+  // 键盘事件处理
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
+      {/* Header */}
+        <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-slate-700 text-slate-50 flex items-center justify-center rounded-lg">
+            <MessageSquare className="w-4 h-4" />
+          </div>
+          <h2 className="text-base font-bold text-slate-50 tracking-wide">AI 对话</h2>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Agent 选择器 */}
+          <div className="relative" ref={agentDropdownRef}>
+            <button
+              onClick={() => setShowAgentDropdown(!showAgentDropdown)}
+              disabled={isStreaming}
+              className="flex items-center gap-1.5 bg-slate-700 border border-slate-600 text-slate-50 text-xs px-2 py-1.5 rounded-lg hover:bg-slate-600 transition-colors disabled:opacity-50"
+            >
+              <span>{getSelectedAgent().emoji}</span>
+              <span className="max-w-[80px] truncate">{getSelectedAgent().name}</span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            </button>
+            {showAgentDropdown && (
+              <div className="absolute top-full right-0 mt-1 w-56 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-10 max-h-80 overflow-y-auto">
+                {agents.map(agent => (
+                  <button
+                    key={agent.id}
+                    onClick={() => {
+                      setSelectedAgentId(agent.id);
+                      setShowAgentDropdown(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left hover:bg-slate-600 transition-colors flex items-start gap-2 ${
+                      selectedAgentId === agent.id ? 'bg-slate-600/50' : ''
+                    }`}
+                  >
+                    <span className="text-base">{agent.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-slate-50 font-medium">{agent.name}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{agent.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 新建对话 */}
+          <button
+            onClick={handleNewChat}
+            disabled={messages.length === 0}
+            className="p-1.5 text-slate-400 hover:text-slate-50 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title="新建对话"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+
+          {/* 关闭按钮 - 仅 Modal 场景显示 */}
+          {showCloseButton && onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 bg-slate-700 hover:text-slate-100 hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-500">
+            <p className="text-xs">开始与 AI 对话</p>
+            <p className="text-[10px] mt-1 text-slate-600">输入问题，按 Enter 发送</p>
+          </div>
+        ) : (
+          messages.map(message => (
+            <div
+              key={message.id}
+              className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              {/* AI 助手头像 */}
+              {message.role === 'assistant' && (
+                <div className="w-7 h-7 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-3.5 h-3.5 text-slate-300" />
+                </div>
+              )}
+
+              {/* 消息气泡 */}
+              <div
+                className={`max-w-[80%] rounded-xl px-3 py-2 ${
+                  message.role === 'user'
+                    ? 'bg-slate-600 text-slate-50'
+                    : 'bg-slate-700/50 text-slate-200'
+                }`}
+              >
+                {message.role === 'assistant' ? (
+                  <div className="prose prose-invert prose-sm max-w-none">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkBreaks]}
+                      components={{
+                        pre: ({ children }) => (
+                          <pre className="bg-slate-900 rounded-lg p-2 overflow-x-auto text-[10px]">
+                            {children}
+                          </pre>
+                        ),
+                        code: ({ className, children, ...props }) => {
+                          const isInline = !className;
+                          return isInline ? (
+                            <code className="bg-slate-900/50 px-1 py-0.5 rounded text-[10px]" {...props}>
+                              {children}
+                            </code>
+                          ) : (
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                        p: ({ children }) => <p className="mb-1.5 last:mb-0 text-xs">{children}</p>,
+                        ul: ({ children }) => <ul className="list-disc pl-3 mb-1.5 text-xs">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-3 mb-1.5 text-xs">{children}</ol>,
+                        h1: ({ children }) => <h1 className="text-sm font-bold mb-1.5">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-xs font-bold mb-1">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-[11px] font-bold mb-1">{children}</h3>,
+                      }}
+                    >
+                      {message.content || (isStreaming && message.id === messages[messages.length - 1]?.id ? '...' : '')}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-xs whitespace-pre-wrap">{message.content}</p>
+                )}
+              </div>
+
+              {/* 用户头像 */}
+              {message.role === 'user' && (
+                <div className="w-7 h-7 rounded-full bg-slate-500 flex items-center justify-center flex-shrink-0">
+                  <User className="w-3.5 h-3.5 text-slate-200" />
+                </div>
+              )}
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="px-4 py-1.5 bg-red-900/20 border-t border-red-900/30">
+          <p className="text-xs text-red-400">{error}</p>
+        </div>
+      )}
+
+      {/* Input Area */}
+      <div className="px-4 py-3 border-t border-slate-700 bg-slate-600/80">
+        <div className="flex items-center justify-between mb-1.5 text-[10px] text-slate-500">
+          {/* 模型选择 */}
+          <CustomSelect
+            options={llmConfigs.map(config => ({
+              value: config.id,
+              label: config.provider || config.model,
+            }))}
+            value={selectedModelId}
+            onChange={setSelectedModelId}
+            disabled={isStreaming}
+            placeholder="暂无可用模型"
+            dropdownPosition="top"
+            size="sm"
+          />
+          <span>Enter 发送 · Shift+Enter 换行</span>
+          {isStreaming && (
+            <span className="flex items-center gap-1 text-slate-400">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              正在生成...
+            </span>
+          )}
+        </div>
+        <div className="flex items-end gap-2">
+          <div className="flex-1 relative">
+            <textarea
+              ref={inputRef}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="输入消息..."
+              disabled={isStreaming || llmConfigs.length === 0}
+              rows={1}
+              className="w-full bg-slate-700 border border-slate-600 text-slate-50 px-3 py-2.5 pr-10 text-xs rounded-xl focus:outline-none focus:border-slate-500 resize-none disabled:opacity-50 placeholder:text-slate-500"
+              style={{
+                minHeight: '40px',
+                maxHeight: '100px',
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = Math.min(target.scrollHeight, 100) + 'px';
+              }}
+            />
+          </div>
+          {/* 发送/停止按钮 */}
+          {isStreaming ? (
+            <button
+              onClick={handleStop}
+              className="p-2.5 mb-2 bg-red-600 hover:bg-red-700 text-slate-50 rounded-xl transition-colors"
+              title="停止生成"
+            >
+              <Square className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSend}
+              disabled={!inputText.trim() || llmConfigs.length === 0}
+              className="p-2.5 mb-2 bg-slate-600 hover:bg-slate-500 text-slate-50 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="发送"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LLMChatView;
