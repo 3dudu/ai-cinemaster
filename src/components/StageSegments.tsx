@@ -1673,9 +1673,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-4 border-b border-slate-600">
+            <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-2 border-b border-slate-600">
                {/* Description */}
-              <div className={`mb-4 ${descriptionExpanded ? 'h-full' : isMobile?'h-full':''}`}>
+              <div className={`mb-4 ${descriptionExpanded ? 'h-full' : isMobile?'h-full':'h-[45vh]'}`}>
                 <div
                   className={`relative h-full ${
                     selectedSegment && generatingDescription.has(selectedSegment.id)
@@ -1918,55 +1918,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   </div>
                 </div>
               </div>
-              {/* Scenes Selection */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold text-slate-500 tracking-wide">
-                    场景 ({(selectedSegment?.sceneIds || []).length})
-                  </label>
-                  {availableScenesInline.length > 0 && (
-                    <CustomSelect
-                      value=""
-                      onChange={(val) => { if (val) handleToggleSceneInline(val); }}
-                      options={availableScenesInline.map(s => ({ value: s.id, label: s.location }))}
-                      placeholder="+ 添加场景"
-                      className="w-64" size='sm'
-                    />
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(selectedSegment?.sceneIds || []).map(sceneId => {
-                    const scene = getSceneWithAssets(sceneId) || activeScenes.find(s => s.id === sceneId);
-                    if (!scene) return null;
-                    return (
-                      <div key={sceneId} className="relative group flex items-center gap-1.5 px-2 py-1 bg-slate-700 border border-slate-600 rounded-lg">
-                        {scene.referenceImage ? (
-                          <img
-                            src={scene.referenceImage}
-                            alt={scene.location}
-                            className="w-12 h-9 rounded object-cover cursor-pointer hover:ring-1 ring-indigo-400"
-                            onClick={() => setPreviewImage(scene.referenceImage)}
-                          />
-                        ) : (
-                          <div className="w-8 h-6 rounded bg-slate-600 flex items-center justify-center">
-                            <Film className="w-3 h-3 text-slate-400" />
-                          </div>
-                        )}
-                        <span className="text-xs text-slate-300 max-w-[80px] truncate">{scene.location}</span>
-                        <button
-                          onClick={() => handleToggleSceneInline(sceneId)}
-                          className="opacity-100 group-hover:opacity-100 p-0.5 hover:bg-red-900/30 hover:text-red-400 rounded transition-all cursor-pointer"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                  {(selectedSegment?.sceneIds || []).length === 0 && (
-                    <span className="text-xs text-slate-500">未选择场景</span>
-                  )}
-                </div>
-              </div>
 
               {/* Characters Selection */}
               <div className="space-y-2">
@@ -2006,12 +1957,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                       : availableLooks[0];
                     
                     return (
-                      <div key={charId} className="relative group flex items-center gap-1.5 px-2 py-1 bg-slate-700 border border-slate-600 rounded-lg">
+                      <div key={charId} className="relative group flex items-center gap-1.5 px-1 py-1 bg-slate-700 border border-slate-600 rounded-lg">
                         {currentLook?.image ? (
                           <img
                             src={currentLook.image}
                             alt={character.name}
-                            className="w-10 h-10 rounded-full object-cover cursor-pointer hover:ring-1 ring-indigo-400"
+                            className="w-8 h-8 rounded-full object-cover cursor-pointer hover:ring-1 ring-indigo-400"
                             onClick={() => setPreviewImage(currentLook.image!)}
                           />
                         ) : (
@@ -2044,6 +1995,56 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   })}
                   {(selectedSegment?.characterIds || []).length === 0 && (
                     <span className="text-xs text-slate-500">未选择角色</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Scenes Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-500 tracking-wide">
+                    场景 ({(selectedSegment?.sceneIds || []).length})
+                  </label>
+                  {availableScenesInline.length > 0 && (
+                    <CustomSelect
+                      value=""
+                      onChange={(val) => { if (val) handleToggleSceneInline(val); }}
+                      options={availableScenesInline.map(s => ({ value: s.id, label: s.location }))}
+                      placeholder="+ 添加场景"
+                      className="w-64" size='sm'
+                    />
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedSegment?.sceneIds || []).map(sceneId => {
+                    const scene = getSceneWithAssets(sceneId) || activeScenes.find(s => s.id === sceneId);
+                    if (!scene) return null;
+                    return (
+                      <div key={sceneId} className="relative group flex items-center gap-1.5 px-1 py-1 bg-slate-700 border border-slate-600 rounded-lg">
+                        {scene.referenceImage ? (
+                          <img
+                            src={scene.referenceImage}
+                            alt={scene.location}
+                            className="w-11 h-8 rounded object-cover cursor-pointer hover:ring-1 ring-indigo-400"
+                            onClick={() => setPreviewImage(scene.referenceImage)}
+                          />
+                        ) : (
+                          <div className="w-11 h-8 rounded bg-slate-600 flex items-center justify-center">
+                            <Film className="w-3 h-3 text-slate-400" />
+                          </div>
+                        )}
+                        <span className="text-xs text-slate-300 max-w-[80px] truncate">{scene.location}</span>
+                        <button
+                          onClick={() => handleToggleSceneInline(sceneId)}
+                          className="opacity-100 group-hover:opacity-100 p-0.5 hover:bg-red-900/30 hover:text-red-400 rounded transition-all cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {(selectedSegment?.sceneIds || []).length === 0 && (
+                    <span className="text-xs text-slate-500">未选择场景</span>
                   )}
                 </div>
               </div>
@@ -2086,16 +2087,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                       : availableLooks[0];
 
                     return (
-                      <div key={propId} className="relative group flex items-center gap-1.5 px-2 py-1 bg-amber-900/30 border border-amber-700/50 rounded-lg">
+                      <div key={propId} className="relative group flex items-center gap-1.5 px-1 py-1 bg-amber-900/30 border border-amber-700/50 rounded-lg">
                         {currentLook?.image ? (
                           <img
                             src={currentLook.image}
                             alt={prop.name}
-                            className="w-10 h-10 rounded-lg object-cover cursor-pointer hover:ring-1 ring-amber-400"
+                            className="w-8 h-8 rounded object-cover cursor-pointer hover:ring-1 ring-amber-400"
                             onClick={() => setPreviewImage(currentLook.image!)}
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-lg bg-amber-800 flex items-center justify-center text-xs text-amber-400">
+                          <div className="w-8 h-8 rounded bg-amber-800 flex items-center justify-center text-xs text-amber-400">
                             <Box className="w-4 h-4" />
                           </div>
                         )}
@@ -2194,7 +2195,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               )}
 
               {/* Transition From */}
-              <div className="mb-4">
+              <div className="mb-0">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-400 tracking-wide flex items-center gap-1">
                     <ChevronLeft className="w-3 h-3" />
@@ -2237,7 +2238,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               </div>
 
               {/* Transition To */}
-              <div className="mb-4">
+              <div className="mb-0">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-slate-400 tracking-wide flex items-center gap-1">
                     <ChevronRight className="w-3 h-3" />
