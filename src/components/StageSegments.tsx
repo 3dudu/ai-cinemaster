@@ -1598,7 +1598,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 })}
                 </div>
               {/* Action Buttons */}
-              <div className="absolute top-4 md:top-6 right-2 flex items-center gap-2 justify-end">
+              <div className="absolute top-4 md:top-6 right-0 flex items-center gap-2 justify-end">
                 {!editingScript && (
                 <button
                   onClick={handleOpenEditScript}
