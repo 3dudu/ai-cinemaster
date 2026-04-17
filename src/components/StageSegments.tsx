@@ -1649,11 +1649,14 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             {editingScript && (
             <div className={`${isMobile ? 'w-full' : 'md:w-[55%] lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 3xl:w-[720px]'} bg-slate-700/50 flex flex-col h-full relative z-20`}>
 
-            <div className="md:p-4 p-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
+            <div className="md:px-4 px-2 py-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
               <div className="flex items-center gap-3">
               <h3 className="text-sm font-bold text-slate-50 flex items-center gap-2">
                 <NotebookPen className="w-4 h-4 text-slate-500" />
-                描述提示词编辑
+                提示词编辑
+                <span className="text-xs text-slate-400 font-mono">
+                  片段 {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
+                </span>
               </h3>
               </div>
 
@@ -1672,10 +1675,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             </div>
             <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-4 border-b border-slate-600">
                {/* Description */}
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-slate-400 mb-2 tracking-wide">片段描述</label>
+              <div className={`mb-4 ${descriptionExpanded ? 'h-full' : isMobile?'h-full':''}`}>
                 <div
-                  className={`relative ${descriptionExpanded ? 'h-[70vh]' : 'h-[45vh]'} ${
+                  className={`relative h-full ${
                     selectedSegment && generatingDescription.has(selectedSegment.id)
                       ? 'ai-generating-border'
                       : ''
@@ -1870,7 +1872,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         title={descriptionExpanded ? '缩小编辑区' : '扩大编辑区'}
                       >
                         {descriptionExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
-                        {descriptionExpanded ? '缩小' : '扩大'}
+                        {isMobile ? '' : descriptionExpanded ? '缩小' : '扩大'}
                       </button>
                       {/* 复制按钮 */}
                       <button
@@ -1880,7 +1882,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         title="复制描述"
                       >
                         <Copy className="w-3 h-3" />
-                        复制
+                        {isMobile?'':'复制'}
                       </button>
                       {/* 重置按钮：当 videoPrompt 和 description 不同时显示 */}
                       {selectedSegment.videoPrompt !== selectedSegment.description && selectedSegment.description && (
@@ -1890,7 +1892,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                           title="重置为原始描述"
                         >
                           <RotateCcw className="w-3 h-3" />
-                          重置
+                          {isMobile?'':'重置'}
                         </button>
                       )}
                       {/* AI生成按钮 */}
@@ -1903,12 +1905,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                         {generatingDescription.has(selectedSegment.id) ? (
                           <>
                             <Loader2 className="w-3 h-3 animate-spin" />
-                            生成中...
+                            {isMobile?'':'生成中...'}
                           </>
                         ) : (
                           <>
                             <Sparkles className="w-3 h-3" />
-                            AI生成
+                            {isMobile?'':'AI生成'}
                           </>
                         )}
                       </button>
@@ -2316,6 +2318,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       </div>
 
       {/* Bottom: Segments List - Horizontal Scroll */}
+    {(!descriptionExpanded || !isMobile) &&(
+      <>
       <div className="pb-1 border-t border-slate-600 bg-slate-700/50">
         <p className="text-xs text-slate-400 font-mono px-3 py-2">
           {(project.segments || []).length} 个片段 · {totalShots} 个分镜 · 总时长 {totalDuration.toFixed(1)} 秒
@@ -2441,6 +2445,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             )}
         </div>
       </div>
+      </>
+    )}
 
       {/* Segment Edit Modal */}
       {editingSegment && segmentEditModalOpen && (
