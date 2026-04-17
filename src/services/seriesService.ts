@@ -628,7 +628,8 @@ export const deleteLibraryCharacter = (
 ): SeriesRecord => {
   const newLibrary = {
     characters: series.library.characters.filter(c => c.id !== charId),
-    scenes: series.library.scenes
+    scenes: series.library.scenes,
+    props: series.library.props || []
   };
 
   return {
@@ -1085,7 +1086,8 @@ export const importProjectAsEpisode = (
         updatedProject.scriptData = remapScriptDataRefs(
           updatedProject.scriptData,
           mergeResult.charIdMapping,
-          mergeResult.sceneIdMapping
+          mergeResult.sceneIdMapping,
+          mergeResult.propIdMapping
         );
 
         // Remap shots character references

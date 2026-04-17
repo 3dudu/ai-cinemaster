@@ -811,11 +811,10 @@ export function Timeline() {
   return (
     <div className="flex h-full flex-col">
       {/* Timeline Header */}
-      <div className="flex items-center justify-between border-b border-slate-600 px-4 py-2">
-        <div className="flex items-center gap-3">
-          <div className="text-xs font-medium text-[var(--text-primary)]">时间轴</div>
+      <div className="flex items-center justify-between border-b border-slate-600 px-2 py-2">
+        <div className="flex items-center gap-2">
           {/* Editing Toolbar */}
-          <div className="flex items-center gap-1 border-l border-slate-600 pl-3 ml-3">
+          <div className="flex items-center gap-1">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant={canCut ? "default" : "ghost"}
@@ -930,7 +929,7 @@ export function Timeline() {
             >
               −
             </motion.button>
-            <div className="px-2 text-xs text-[var(--text-muted)] font-mono min-w-[48px] text-center">
+            <div className="px-0 text-xs text-[var(--text-muted)] font-mono text-center">
               {zoomLevel}%
             </div>
             <motion.button 

@@ -110,7 +110,7 @@ export interface ProjectState {
   title: string;
   createdAt: number;
   lastModified: number;
-  stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images';
+  stage: 'script' | 'assets' | 'director' | 'segments' | 'export' | 'images' | 'chat';
   seed?: number;
   seriesRefId?: string; // Reference to SeriesRecord.id (if this project is an episode of a series)
   // Script Phase Data

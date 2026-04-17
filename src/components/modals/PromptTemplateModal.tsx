@@ -1,5 +1,5 @@
-import { Copy, Download, Layers, List, NotebookPen, RefreshCw, RotateCcw, Save, Trash2, Upload, X } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { Copy, Download, Layers, List, MessageSquare, NotebookPen, RefreshCw, RotateCcw, Save, Trash2, Upload, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BUILT_IN_TEMPLATE_GROUPS, getGroupFull } from '../../prompt';
 import {
   GROUP_TEMPLATE_OPTIONS,
@@ -12,6 +12,16 @@ import {
 } from '../../prompt/promptTemplate';
 import { PROMPT_TEMPLATES } from '../../prompt/promptTemplates';
 import { TemplateGroupService } from '../../prompt/templateGroupService';
+import {
+  addChatAgent,
+  ChatAgent,
+  deleteChatAgent,
+  exportAgents,
+  getChatAgents,
+  importAgents,
+  resetAgentToDefault,
+  updateChatAgent,
+} from '../../services/chatAgentService';
 import CustomSelect from '../common/CustomSelect';
 import { useDialog } from '../dialog';
 
@@ -21,7 +31,7 @@ const PromptTemplateModal: React.FC<{
   isMobile: boolean
 }> = ({ isOpen, onClose,isMobile=false }) => {
   const dialog = useDialog();
-  const [activeTab, setActiveTab] = useState<'single' | 'group'>('single');
+  const [activeTab, setActiveTab] = useState<'single' | 'agent' | 'group'>('single');
 
   // ===== 单模版编辑状态 =====
   const [selectedKey, setSelectedKey] = useState<string>('SYSTEM_SEGMENT_DESIGNER');
@@ -33,6 +43,17 @@ const PromptTemplateModal: React.FC<{
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<keyof GroupTemplates>('characterImage');
   const [groupTemplateContent, setGroupTemplateContent] = useState('');
   const [groups, setGroups] = useState<PromptTemplateGroup[]>([]);
+
+  // ===== Agent 系统提示词状态 =====
+  const [agents, setAgents] = useState<ChatAgent[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
+  const [editingAgent, setEditingAgent] = useState<ChatAgent | null>(null);
+  const [agentName, setAgentName] = useState('');
+  const [agentDescription, setAgentDescription] = useState('');
+  const [agentEmoji, setAgentEmoji] = useState('🤖');
+  const [agentSystemPrompt, setAgentSystemPrompt] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   // 模板列表
   const templates: TemplateInfo[] = useMemo(() => TEMPLATE_LIST, []);
@@ -148,6 +169,175 @@ const PromptTemplateModal: React.FC<{
       reloadGroups();
     }
   }, [activeTab]);
+
+  // ===== Agent 系统提示词逻辑 =====
+
+  // 加载 Agent 列表
+  useEffect(() => {
+    if (activeTab === 'agent') {
+      reloadAgents();
+    }
+  }, [activeTab]);
+
+  const reloadAgents = () => {
+    const loadedAgents = getChatAgents();
+    setAgents(loadedAgents);
+    if (loadedAgents.length > 0 && !selectedAgentId) {
+      setSelectedAgentId(loadedAgents[0].id);
+    }
+  };
+
+  // 当选中的 Agent 变化时，更新编辑状态
+  useEffect(() => {
+    if (activeTab === 'agent' && selectedAgentId) {
+      const agent = agents.find(a => a.id === selectedAgentId);
+      if (agent) {
+        setEditingAgent(agent);
+        setAgentName(agent.name);
+        setAgentDescription(agent.description);
+        setAgentEmoji(agent.emoji);
+        setAgentSystemPrompt(agent.systemPrompt);
+      }
+    }
+  }, [activeTab, selectedAgentId, agents]);
+
+  // 点击外部关闭 Emoji 选择器
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 新建 Agent
+  const handleCreateAgent = () => {
+    const newAgent = addChatAgent({
+      name: '新 Agent',
+      description: '自定义 Agent',
+      emoji: '🤖',
+      systemPrompt: '你是一个 AI 助手。',
+    });
+    reloadAgents();
+    setSelectedAgentId(newAgent.id);
+    dialog.toast({ message: 'Agent 已创建', type: 'success' });
+  };
+
+  // 保存 Agent
+  const handleSaveAgent = () => {
+    if (!selectedAgentId || !agentName.trim()) {
+      dialog.toast({ message: '请填写 Agent 名称', type: 'warning' });
+      return;
+    }
+    updateChatAgent(selectedAgentId, {
+      name: agentName.trim(),
+      description: agentDescription,
+      emoji: agentEmoji,
+      systemPrompt: agentSystemPrompt,
+    });
+    reloadAgents();
+    dialog.toast({ message: 'Agent 已保存', type: 'success' });
+  };
+
+  // 重置 Agent 到默认
+  const handleResetAgent = async () => {
+    if (!selectedAgentId) return;
+    const agent = agents.find(a => a.id === selectedAgentId);
+    if (!agent?.isBuiltIn) {
+      dialog.toast({ message: '只有内置 Agent 可以重置', type: 'warning' });
+      return;
+    }
+
+    const confirmed = await dialog.confirm({
+      title: '确认重置',
+      message: `确定要将 Agent"${agent.name}"重置为默认值吗？`,
+      type: 'warning',
+    });
+
+    if (confirmed) {
+      resetAgentToDefault(selectedAgentId);
+      reloadAgents();
+      // 重新加载编辑状态
+      const resetAgent = getChatAgents().find(a => a.id === selectedAgentId);
+      if (resetAgent) {
+        setAgentName(resetAgent.name);
+        setAgentDescription(resetAgent.description);
+        setAgentEmoji(resetAgent.emoji);
+        setAgentSystemPrompt(resetAgent.systemPrompt);
+      }
+      dialog.toast({ message: 'Agent 已重置', type: 'success' });
+    }
+  };
+
+  // 删除 Agent
+  const handleDeleteAgent = async (agentId?: string) => {
+    const targetAgent = agentId ? agents.find(a => a.id === agentId) : editingAgent;
+    if (!targetAgent) return;
+
+    if (targetAgent.isBuiltIn) {
+      dialog.toast({ message: '内置 Agent 不可删除', type: 'warning' });
+      return;
+    }
+
+    const confirmed = await dialog.confirm({
+      title: '确认删除',
+      message: `确定要删除 Agent"${targetAgent.name}"吗？`,
+      type: 'warning',
+    });
+
+    if (confirmed) {
+      deleteChatAgent(targetAgent.id);
+      reloadAgents();
+      if (selectedAgentId === targetAgent.id) {
+        const remaining = getChatAgents();
+        setSelectedAgentId(remaining.length > 0 ? remaining[0].id : '');
+      }
+      dialog.toast({ message: 'Agent 已删除', type: 'success' });
+    }
+  };
+
+  // 导出 Agent
+  const handleExportAgents = () => {
+    const json = exportAgents();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-agents-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // 导入 Agent
+  const handleImportAgents = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const result = importAgents(text);
+        if (result.success) {
+          dialog.toast({ message: result.message, type: 'success' });
+          reloadAgents();
+        } else {
+          dialog.toast({ message: result.message, type: 'error' });
+        }
+      } catch (e) {
+        console.error('Import failed:', e);
+        dialog.toast({ message: '导入失败', type: 'error' });
+      }
+    };
+    input.click();
+  };
+
+  // 常用 Emoji 列表
+  const EMOJI_OPTIONS = ['💬', '📝', '🎨', '🎬', '🤖', '🎭', '📚', '💡', '🔧', '🚀', '🎯', '✨', '🌟', '🔮', '🧠', '💻'];
 
   const reloadGroups = () => {
     setGroups(TemplateGroupService.getAllGroups());
@@ -353,7 +543,18 @@ const PromptTemplateModal: React.FC<{
             }`}
           >
             <NotebookPen className="w-4 h-4" />
-            单模版编辑
+            单模版
+          </button>
+          <button
+            onClick={() => setActiveTab('agent')}
+            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+              activeTab === 'agent'
+                ? 'bg-slate-800 text-slate-50 border-b-2 border-blue-500'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            Agent
           </button>
           <button
             onClick={() => setActiveTab('group')}
@@ -364,7 +565,7 @@ const PromptTemplateModal: React.FC<{
             }`}
           >
             <Layers className="w-4 h-4" />
-            模版组管理
+            模版组
           </button>
         </div>
 
@@ -437,6 +638,210 @@ const PromptTemplateModal: React.FC<{
                   placeholder="在此编辑提示词模板..."
                   spellCheck={false}
                 />
+              </div>
+            </>
+          ) : activeTab === 'agent' ? (
+            <>
+              {/* Agent 系统提示词 - 左右布局 */}
+              <div className="flex-1 flex overflow-hidden">
+                {/* 左侧：Agent 列表 */}
+                {(!selectedAgentId || !isMobile) && (
+                <div className="md:w-64 w-full border-r border-slate-600 flex flex-col bg-slate-800">
+                  <div className="p-3 border-b border-slate-600 flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-300">Agent 列表</span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={reloadAgents}
+                        className="p-1.5 bg-slate-600 hover:bg-slate-500 rounded text-slate-300 hover:text-slate-100 transition-colors"
+                        title="刷新列表"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={handleCreateAgent}
+                        className="p-1.5 px-2.5 bg-green-600 hover:bg-green-500 rounded text-slate-50 text-xs"
+                        title="新建 Agent"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    {agents.map(agent => (
+                      <div
+                        key={agent.id}
+                        onClick={() => setSelectedAgentId(agent.id)}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors relative group bg-slate-700/50 ${
+                          selectedAgentId === agent.id
+                            ? 'bg-blue-600/20 border border-blue-500'
+                            : 'hover:bg-slate-700 border border-transparent'
+                        }`}
+                      >
+                        {/* 右上角删除按钮 */}
+                        {!agent.isBuiltIn && (
+                          <div 
+                            className="absolute top-2 right-2 flex gap-1 opacity-100 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => handleDeleteAgent(agent.id)}
+                              className="p-1 bg-red-600/30 hover:bg-red-600 rounded text-red-400 hover:text-white transition-colors"
+                              title="删除"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{agent.emoji}</span>
+                          <span className="text-sm font-medium text-slate-200 truncate pr-8">{agent.name}</span>
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1 truncate">
+                          {agent.description || '无描述'}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className={`w-2 h-2 rounded-full ${
+                            agent.isBuiltIn ? 'bg-blue-400' : 'bg-green-400'
+                          }`} />
+                          <span className="text-xs text-slate-500">
+                            {agent.isBuiltIn ? '内置' : '自定义'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                )}
+
+                {/* 右侧：Agent 详情编辑 */}
+                {(!isMobile || selectedAgentId) && (
+                <div className="flex flex-col w-full overflow-hidden">
+                  {selectedAgentId ? (
+                    <div className='overflow-y-auto h-full'>
+                      {/* Agent 信息编辑 */}
+                      <div className="md:p-4 p-2 border-b border-slate-600 space-y-3 bg-slate-800">
+                        <div className="flex gap-3">
+                          <button
+                            onClick={()=>setSelectedAgentId('')}
+                            className="px-3 py-2 bg-slate-600 text-slate-300 hover:bg-slate-500 rounded-lg text-sm flex items-center gap-1 md:hidden"
+                          >
+                            <List className="w-3 h-3" />
+                          </button>
+                          
+                          {/* Emoji 选择 */}
+                          <div className="flex flex-col gap-1">
+                            <div className="relative" ref={emojiPickerRef}>
+                              <button
+                                type="button"
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                className="w-10 h-10 flex items-center justify-center bg-slate-700 border border-slate-600 rounded-lg text-xl hover:bg-slate-600 transition-colors"
+                              >
+                                {agentEmoji}
+                              </button>
+                              {showEmojiPicker && (
+                                <div className="absolute top-full left-0 mt-1 p-2 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-20 flex flex-wrap gap-1 w-[180px]">
+                                  {EMOJI_OPTIONS.map(emoji => (
+                                    <button
+                                      key={emoji}
+                                      type="button"
+                                      onClick={() => {
+                                        setAgentEmoji(emoji);
+                                        setShowEmojiPicker(false);
+                                      }}
+                                      className={`w-7 h-7 flex items-center justify-center rounded transition-colors ${
+                                        agentEmoji === emoji 
+                                          ? 'bg-blue-600 text-white' 
+                                          : 'hover:bg-slate-600'
+                                      }`}
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* 名称 */}
+                          <div className="flex-1">
+                            <input
+                              type="text"
+                              value={agentName}
+                              onChange={(e) => setAgentName(e.target.value)}
+                              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 text-sm"
+                              placeholder="Agent 名称"
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* 描述 */}
+                        <div>
+                          <label className="text-xs text-slate-400 mb-1 block">描述</label>
+                          <input
+                            type="text"
+                            value={agentDescription}
+                            onChange={(e) => setAgentDescription(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 text-sm"
+                            placeholder="简短描述 Agent 的用途"
+                          />
+                        </div>
+                        
+                        {/* 标签 */}
+                        <div className="flex items-center gap-2 text-xs">
+                          <div className={`px-2 py-1 rounded ${
+                            editingAgent.isBuiltIn 
+                              ? 'bg-blue-600/20 text-blue-400' 
+                              : 'bg-green-600/20 text-green-400'
+                          }`}>
+                            {editingAgent.isBuiltIn ? '内置 Agent' : '自定义 Agent'}
+                          </div>
+                          {editingAgent.isBuiltIn && (
+                            <span className="text-slate-500">可修改系统提示词，不可删除</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 系统提示词编辑 */}
+                      <div className="md:p-4 p-2 border-b border-slate-600 bg-slate-700 flex items-center justify-between sticky top-0 z-10">
+                        <span className="text-sm font-medium text-slate-300">系统提示词</span>
+                        <div className="flex gap-2">
+                          {editingAgent.isBuiltIn && (
+                            <button
+                              onClick={handleResetAgent}
+                              className="px-3 py-2 bg-slate-600 text-slate-300 hover:bg-slate-500 rounded-lg text-sm flex items-center gap-1"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              重置
+                            </button>
+                          )}
+                          <button
+                            onClick={handleSaveAgent}
+                            className="px-3 py-2 bg-blue-600 text-slate-50 hover:bg-blue-500 rounded-lg text-sm flex items-center gap-1"
+                          >
+                            <Save className="w-3 h-3" />
+                            保存
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 系统提示词编辑器 */}
+                      <div className="h-full flex-1 overflow-hidden">
+                        <textarea
+                          value={agentSystemPrompt}
+                          onChange={(e) => setAgentSystemPrompt(e.target.value)}
+                          className="select-text w-full h-full bg-slate-800 text-slate-100 p-4 font-mono text-sm resize-none focus:border-slate-500 focus:outline-none"
+                          placeholder="在此编辑 Agent 的系统提示词..."
+                          spellCheck={false}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-slate-400">
+                      请选择一个 Agent
+                    </div>
+                  )}
+                </div>
+                )}
               </div>
             </>
           ) : (
@@ -520,6 +925,7 @@ const PromptTemplateModal: React.FC<{
                 )}
 
                 {/* 右侧：模版组详情 */}
+                 {(!isMobile || selectedGroup) && (
                 <div className="flex flex-col w-full overflow-hidden">
                   {selectedGroup ? (
                     <div className='overflow-y-auto h-full'>
@@ -528,7 +934,7 @@ const PromptTemplateModal: React.FC<{
                         <div className="flex gap-3">
                             <button
                             onClick={()=>setSelectedGroupId(null)}
-                            className="px-3 py-2 bg-slate-600 text-slate-300 hover:bg-slate-500 rounded-lg text-sm flex items-center gap-1"
+                            className="px-3 py-2 bg-slate-600 text-slate-300 hover:bg-slate-500 rounded-lg text-sm flex items-center gap-1 md:hidden"
                           >
                             <List className="w-3 h-3" />
                           </button>
@@ -649,6 +1055,7 @@ const PromptTemplateModal: React.FC<{
                     </div>
                   )}
                 </div>
+                )}
               </div>
             </>
           )}
@@ -658,24 +1065,38 @@ const PromptTemplateModal: React.FC<{
         <div className="p-4 border-t border-slate-700 flex justify-between items-center text-sm text-slate-400 bg-slate-600/80 shrink-0">
           <div className="flex items-center gap-2">
             <button
-              onClick={activeTab === 'single' ? handleExport : handleExportGroups}
+              onClick={
+                activeTab === 'single' 
+                  ? handleExport 
+                  : activeTab === 'agent' 
+                    ? handleExportAgents 
+                    : handleExportGroups
+              }
               className="flex items-center p-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded transition-colors cursor-pointer"
               title="导出"
             >
               <Download className="w-4 h-4" />
             </button>
             <button
-              onClick={activeTab === 'single' ? handleImport : handleImportGroups}
+              onClick={
+                activeTab === 'single' 
+                  ? handleImport 
+                  : activeTab === 'agent' 
+                    ? handleImportAgents 
+                    : handleImportGroups
+              }
               className="flex items-center p-1 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded transition-colors cursor-pointer"
               title="导入"
             >
               <Upload className="w-4 h-4" />
             </button>
-            <span>变量使用 {`{var}`} 格式</span>
+            <span>{activeTab !== 'agent' && `变量使用 {var} 格式`}</span>
           </div>
           <div className="flex items-center gap-2">
             {activeTab === 'single' ? (
               <span>字符数：{currentContent.length}</span>
+            ) : activeTab === 'agent' ? (
+              <span>{agents.length} 个 Agent</span>
             ) : (
               <span>{groups.length} 个模版组</span>
             )}

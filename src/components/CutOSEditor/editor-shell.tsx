@@ -146,7 +146,7 @@ function EditorContent({
       {/* Top Bar - 与 CutOS 一致 */}
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-600 bg-[var(--bg-elevated)] px-2">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-[var(--text-primary)]">
+          <span className="text-sm font-semibold text-[var(--text-primary)] line-clamp-2">
             {projectTitle || 'AI 剪辑'}
           </span>
           <span className="text-xs text-[var(--text-muted)]">{resolutionDisplay}</span>
@@ -190,7 +190,7 @@ function EditorContent({
             </ResizablePanel>
             )}
             <ResizableHandle withHandle onClick={()=>{setShowMediaPanel(!showMediaPanel);setShowInspectorPanel(false)}}/>
-            <ResizablePanel defaultSize={55} minSize={50}>
+            <ResizablePanel defaultSize={45} minSize={50}>
               <div className="h-full min-w-0 overflow-hidden flex flex-col">
                 <VideoPreview />
               </div>

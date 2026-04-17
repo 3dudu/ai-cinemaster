@@ -1,8 +1,9 @@
-import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderOpen, Github as GithubIcon, Images, ListVideo, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
+import { Aperture, BookOpen, ChevronLeft, Clapperboard, Drama, Edit, Film, FolderOpen, Github as GithubIcon, Images, ListVideo, MessageSquare, NotebookPen, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { ProjectState } from '../types';
 import { ThemeToggle } from './common/ThemeToggle';
 import ImageSelectorModal from './modals/ImageSelectorModal';
+import LLMChatModal from './modals/LLMChatModal';
 import ProjectSettingsModal from './modals/ProjectSettingsModal';
 import PromptTemplateModal from './modals/PromptTemplateModal';
 import ModalSettings from './modals/SystemSettingsModal';
@@ -32,6 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showImageBrowser, setShowImageBrowser] = useState(false);
   const [showPromptTemplates, setShowPromptTemplates] = useState(false);
+  const [showLLMChat, setShowLLMChat] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -192,6 +194,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
                 </a>
                 )}
                 <ThemeToggle size="sm"  />
+                          <button
+            onClick={() => setShowLLMChat(true)}
+            className="text-slate-500 hover:text-slate-50 transition-colors p-2 hover:bg-slate-700 rounded-lg cursor-pointer"
+            title="AI 对话"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </button>
               </div>
             </div>
           </>
@@ -240,6 +249,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
               </a>
             )}
               <ThemeToggle size="sm" />
+          <button
+            onClick={() => setShowLLMChat(true)}
+            className="text-slate-500 hover:text-slate-50 transition-colors p-2 hover:bg-slate-700 rounded-lg cursor-pointer"
+            title="AI 对话"
+          >
+            <MessageSquare className="w-4 h-4" />
+          </button>
             </div>
           </div>
           </div>
@@ -268,6 +284,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
         isOpen={showPromptTemplates}
         onClose={() => setShowPromptTemplates(false)}
         isMobile={false}
+      />
+
+      {/* LLM Chat Modal */}
+      <LLMChatModal
+        isOpen={showLLMChat}
+        onClose={() => setShowLLMChat(false)}
       />
 
       {/* Project Settings Modal */}

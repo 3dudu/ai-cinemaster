@@ -45,6 +45,13 @@ export const createDefaultModelConfigs = async (): Promise<void> => {
   }
 };
 
+export const getModelConfigsByType = async (
+  modelType: AIModelConfig['modelType']
+): Promise<AIModelConfig[] | null> => {
+  const allConfigs = await getAllModelConfigs();
+  return allConfigs.filter(c => c.modelType === modelType) || null;
+};
+
 export const getModelConfigByType = async (
   provider: AIModelConfig['provider'],
   modelType: AIModelConfig['modelType']

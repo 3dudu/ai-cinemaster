@@ -19,13 +19,15 @@ interface Props {
   updateProject: (updates: Partial<ProjectState>) => void;
   series?: SeriesRecord | null;
   updateSeries?: (series: SeriesRecord) => void;
+  isMobile: boolean;
 }
 
 const StageAssets: React.FC<Props> = ({ 
   project, 
   updateProject, 
   series, 
-  updateSeries
+  updateSeries,
+  isMobile=false
 }) => {
   const dialog = useDialog();
   
@@ -703,7 +705,7 @@ const StageAssets: React.FC<Props> = ({
               }`}
             >
               {allCharactersReady ? <RefreshCw className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-              {allCharactersReady ? '重新批量生成' : '生成所有角色'}
+              {!isMobile && (allCharactersReady ? '重新批量生成' : '生成所有角色')}
             </button>
             </div>
           </div>
@@ -864,7 +866,7 @@ const StageAssets: React.FC<Props> = ({
               }`}
             >
               {allScenesReady ? <RefreshCw className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-              {allScenesReady ? '重新批量生成' : '生成所有场景'}
+              {!isMobile && (allScenesReady ? '重新批量生成' : '生成所有场景')}
             </button>
             </div>
           </div>
@@ -1006,7 +1008,7 @@ const StageAssets: React.FC<Props> = ({
               }`}
               >
                 {allPropsReady ? <RefreshCw className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-                {allPropsReady ? '重新批量生成' : '生成所有道具'}
+                {!isMobile && (allPropsReady ? '重新批量生成' : '生成所有道具')}
               </button>
             </div>
           </div>

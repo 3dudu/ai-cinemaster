@@ -492,7 +492,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             </button>
 </div>
           </div>
-          <div className="flex gap-2 md:gap-3 flex-end justify-end flex-wrap">
+          <div className="flex gap-1 md:gap-3 flex-end justify-end flex-wrap">
             <button
               onClick={handleCreate}
               className="group flex items-center gap-3 px-6 py-3 bg-slate-600/50 text-slate-50 hover:bg-slate-600 transition-colors cursor-pointer"
