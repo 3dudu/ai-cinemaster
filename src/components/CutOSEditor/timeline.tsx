@@ -1014,7 +1014,7 @@ export function Timeline() {
           } as React.CSSProperties}
         >
           {/* Time Ruler - Dynamic based on zoom level */}
-          <div className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-slate-600 bg-[var(--bg-elevated)]">
+          <div className="sticky top-0 z-10 flex h-6 shrink-0 border-b border-slate-600 bg-slate-800">
             {(() => {
               // Calculate ruler segments based on zoom
               // At 100% zoom: 10px/sec, show every 8 seconds (80px segments)
@@ -1299,7 +1299,7 @@ export function Timeline() {
       {/* Context Menu - 与 CutOS 一致，增加 Paste、Duplicate */}
       {contextMenu && (
         <div
-          className="fixed z-50 bg-[var(--bg-elevated)] border border-slate-600 rounded-md shadow-lg py-1 min-w-[160px] animate-in fade-in slide-in-from-top-1 duration-150"
+          className="fixed z-50 bg-slate-800 border border-slate-600 rounded-md shadow-lg py-1 min-w-[160px] animate-in fade-in slide-in-from-top-1 duration-150"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >

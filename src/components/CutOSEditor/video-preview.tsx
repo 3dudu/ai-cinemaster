@@ -1114,7 +1114,7 @@ export function VideoPreview() {
             objectFit: 'contain',
           } : undefined}
         >
-          {previewMedia && activeClip ? (
+          {previewMedia ? (
             <>
               {/* Background video - shown when chromakey is enabled and background clip exists */}
               {chromakeyEnabled && backgroundMedia && backgroundClip && (
@@ -1330,7 +1330,6 @@ export function VideoPreview() {
                           </button>
                         </div>
                       </div>
-
                       <button
                         onClick={toggleFullscreen}
                         className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
@@ -1409,6 +1408,7 @@ export function VideoPreview() {
             >
               <SkipForward className="h-4 w-4" />
             </button>
+            {activeClip && (<>
             <div className="w-px h-6 bg-slate-400 mx-1" />
             <button
               onClick={toggleFullscreen}
@@ -1416,7 +1416,7 @@ export function VideoPreview() {
               title={isFullscreen ? "退出全屏 (ESC)" : "进入全屏 (F)"}
             >
               {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-            </button>
+            </button></>)}
           </div>
         </div>
       </div>

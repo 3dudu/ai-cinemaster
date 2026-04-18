@@ -1664,14 +1664,33 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               <div className="flex items-center gap-3">
               <h3 className="text-sm font-bold text-slate-50 flex items-center gap-2">
                 <NotebookPen className="w-4 h-4 text-slate-500" />
-                提示词编辑
-                <span className="text-xs text-slate-400 font-mono">
-                  片段 {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
-                </span>
+                {`${selectedSegment.name||`片段 ${activeSegmentIndex+1}`}`}
               </h3>
               </div>
 
+
               <div className="flex items-center gap-1">
+              {/* Duration selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 whitespace-nowrap">时长</span>
+                <CustomSelect
+                  value={(selectedSegment?.estimatedDuration || project.segmentDuration || 8).toString()}
+                  onChange={(val) => {
+                    const updated = (project.segments || []).map(s =>
+                      s.id === selectedSegment.id ? { ...s, estimatedDuration: parseInt(val) || 8 } : s
+                    );
+                    updateProject({ segments: updated });
+                  }}
+                  options={Array.from({ length: 12 }, (_, i) => ({
+                    value: (i + 4).toString(),
+                    label: `${i + 4} 秒`,
+                  }))}
+                  className="w-24"
+                />
+              </div>
+                <span className="text-xs text-slate-400 font-mono">
+                  {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
+                </span>
                   <button onClick={goToPrevSegment} disabled={activeSegmentIndex <= 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
                       <ChevronLeft className="w-4 h-4" />
                   </button>

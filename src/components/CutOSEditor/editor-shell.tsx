@@ -144,7 +144,7 @@ function EditorContent({
   return (
     <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-[var(--bg-primary)]">
       {/* Top Bar - 与 CutOS 一致 */}
-      <div className="h-12 border-b border-slate-600 bg-slate-700 md:px-4 px-2 flex items-center justify-between shrink-0">
+      <div className="h-12 border-b border-slate-600 bg-slate-800 md:px-4 px-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold text-[var(--text-primary)] line-clamp-2">
             {projectTitle || 'AI 剪辑'}
@@ -184,7 +184,7 @@ function EditorContent({
           <ResizablePanelGroup direction="horizontal" className="h-full">
             {(!isMobile || showMediaPanel) && (
             <ResizablePanel defaultSize={isMobile?55:15} minSize={15} maxSize={isMobile?55:20}>
-              <div className="h-full min-w-0 border-r border-slate-600 bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
+              <div className="h-full min-w-0 border-r border-slate-600 bg-slate-800 overflow-hidden flex flex-col">
                 <MediaPanel />
               </div>
             </ResizablePanel>
@@ -198,7 +198,7 @@ function EditorContent({
             <ResizableHandle withHandle onClick={()=>{setShowInspectorPanel(!showInspectorPanel);setShowMediaPanel(false)}}/>
             {(!isMobile || showInspectorPanel)  && (
             <ResizablePanel defaultSize={isMobile?55:15} minSize={15} maxSize={isMobile?55:20}>
-              <div className="h-full min-w-0 border-l border-slate-600 bg-[var(--bg-elevated)] overflow-hidden flex flex-col">
+              <div className="h-full min-w-0 border-l border-slate-600 bg-slate-800 overflow-hidden flex flex-col">
                 <InspectorPanel />
               </div>
             </ResizablePanel>
@@ -206,8 +206,8 @@ function EditorContent({
             </ResizablePanelGroup>
         </ResizablePanel>
         <ResizableHandle className="bg-transparent after:bg-transparent hover:bg-slate-400/50 transition-colors" />
-        <ResizablePanel defaultSize={20} minSize={isMobile?35:25}>
-          <div className="border-t border-slate-600 bg-[var(--bg-elevated)] overflow-x-hidden overflow-y-auto h-full">
+        <ResizablePanel defaultSize={20} minSize={isMobile?35:22}>
+          <div className="border-t border-slate-600 bg-slate-800 overflow-x-hidden overflow-y-auto h-full">
             <Timeline />
           </div>
         </ResizablePanel>

@@ -27,10 +27,10 @@ export function MediaPanel() {
     <div className="flex h-full flex-col">
       {/* Custom Animated Tabs */}
       <div className="border-b border-slate-600 px-3 py-2">
-        <div className="relative grid w-full grid-cols-2 rounded-md bg-[var(--bg-secondary)] p-1">
+        <div className="relative grid w-full grid-cols-2 rounded-md bg-slate-600 p-1">
           {/* Animated background indicator */}
           <motion.div
-            className="absolute inset-y-1 rounded-sm bg-[var(--bg-primary)] shadow-sm"
+            className="absolute inset-y-1 rounded-sm bg-slate-800 shadow-sm"
             initial={false}
             animate={{
               x: activeTab === "media" ? "0%" : "100%",
@@ -52,7 +52,7 @@ export function MediaPanel() {
               <motion.button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative z-10 flex items-center justify-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${isActive ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className={`relative z-10 flex items-center justify-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${isActive ? "text-slate-100 bg-slate-800" : "text-slate-400 hover:text-slate-50"
                   }`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -72,7 +72,7 @@ export function MediaPanel() {
                 <span>{tab.label}</span>
                 {isActive && tab.id === "agent" && (
                   <motion.div
-                    className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[var(--accent)]"
+                    className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-slate-100"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 500, damping: 20 }}
@@ -699,7 +699,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
             placeholder={hasIndexedMedia ? "按名称搜索或描述你要找的内容..." : "搜索媒体..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-md border border-[var(--border-secondary)] bg-[var(--bg-primary)] pl-8 pr-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+            className="w-full pl-8 pr-3 py-2 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
           />
         </div>
         {/* NLP Search hint */}
@@ -761,7 +761,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
           /* Media grid */
           <div className="space-y-2">
             {/* Add more buttons */}
-            <div className="flex pt-2 gap-2 sticky top-0 z-10 bg-[var(--bg-primary)]">
+            <div className="flex pt-2 gap-2 sticky top-0 z-10 bg-slate-800">
               <motion.button
                 onClick={() => fileInputRef.current?.click()}
                 className="flex-1 flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-600 py-2 text-xs text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
@@ -798,7 +798,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                     layout: { duration: 0.2 }
                   }}
                   whileHover={{ scale: media.isUploading ? 1 : 1.02, y: media.isUploading ? 0 : -2 }}
-                  className={`group relative aspect-video overflow-hidden rounded border bg-[var(--bg-deep)] ${
+                  className={`group relative aspect-video overflow-hidden rounded border bg-slate-700 ${
                     media.isUploading
                       ? "border-[var(--accent)]/50 opacity-70"
                       : "border-slate-600 hover:border-[var(--accent)] cursor-grab active:cursor-grabbing"

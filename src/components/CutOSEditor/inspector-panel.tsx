@@ -177,7 +177,7 @@ function AgentTab() {
         <motion.button
           onClick={() => setShowAutoEnhanceModal(true)}
           disabled={isLoading || timelineClips.length === 0}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-[var(--accent)]/20 to-[var(--accent)]/10 border border-[var(--accent)]/30 px-3 py-2.5 text-[11px] font-medium text-[var(--accent)] hover:from-[var(--accent)]/30 hover:to-[var(--accent)]/20 hover:border-[var(--accent)]/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+          className="w-full flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-[var(--accent)]/20 to-[var(--accent)]/10 border border-slate-200/30 px-3 py-2.5 text-[11px] font-medium text-[var(--accent)] hover:from-[var(--accent)]/30 hover:to-[var(--accent)]/20 hover:border-slate-200/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
           whileHover={{ scale: isLoading || timelineClips.length === 0 ? 1 : 1.02 }}
           whileTap={{ scale: isLoading || timelineClips.length === 0 ? 1 : 0.98 }}
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -190,7 +190,7 @@ function AgentTab() {
           </motion.div>
           <span>自动增强视频</span>
         </motion.button>
-        <p className="mt-1.5 text-[9px] text-[var(--text-tertiary)]/80 text-center">
+        <p className="mt-1.5 text-[9px] text-slate-50/80 text-center">
           AI + 视频 RAG 智能增强
         </p>
       </div>
@@ -221,7 +221,7 @@ function AgentTab() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             >
-              <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-slate-600">
+              <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-slate-700 text-slate-50 border border-slate-600">
                 你好！我是你的 AI 剪辑助手。我可以分割、裁剪、删除、移动片段，还能应用效果。告诉我你想做什么！
               </div>
             </motion.div>
@@ -344,7 +344,7 @@ function AgentTab() {
             value={input}
             onChange={handleInputChange}
             disabled={isLoading || isRecording}
-            className="flex-1 rounded-md border border-slate-600 bg-[var(--bg-primary)] px-3 py-2.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
+            className="w-full py-2 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
           />
           {input.trim() ? (
             <motion.button
