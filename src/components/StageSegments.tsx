@@ -549,7 +549,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
     setRefreshingFirstFrame(prev => new Set(prev).add(segmentId));
     try {
-      const thumbnail = await generateVideoThumbnail(segment.videoUrl, 2);
+      const thumbnail = await generateVideoThumbnail(segment.videoUrl, 0.5);
       if (thumbnail) {
         const updatedSegments = segments.map(s =>
           s.id === segmentId ? { ...s, firstFrameThumbnail: thumbnail, lastModified: Date.now() } : s
@@ -976,7 +976,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
         // 提取首帧和尾帧缩略图
         const [firstFrame, lastFrame] = await Promise.all([
-          generateVideoThumbnail(videoUrl, 2),
+          generateVideoThumbnail(videoUrl, 0.5),
           getVideoLastFrame(videoUrl),
         ]);
 
@@ -1180,7 +1180,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
 
             // 提取首帧和尾帧缩略图
             const [firstFrame, lastFrame] = await Promise.all([
-              generateVideoThumbnail(videoUrl, 2),
+              generateVideoThumbnail(videoUrl, 0.5),
               getVideoLastFrame(videoUrl),
             ]);
 

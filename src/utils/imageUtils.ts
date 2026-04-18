@@ -155,7 +155,7 @@ export async function getVideoLastFrame(url: string): Promise<string | null> {
 
     video.onloadedmetadata = () => {
       // 跳转到最后一帧（duration - 0.1秒）
-      video.currentTime = Math.max(0, video.duration - 0.1);
+      video.currentTime = Math.max(0, video.duration - 0.5);
     };
 
     video.onseeked = () => {
