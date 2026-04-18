@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.4.6",
   "scripts": {
-    "start": "node index.js",
+    "start": "node index.js"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.33",
