@@ -58,7 +58,7 @@ function startServer(port, staticFilesDir) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const uploadDir = path.resolve(__dirname, '../upload');
+  const uploadDir = path.resolve(__dirname, './upload');
   startServer(PORT,uploadDir);
 }
 

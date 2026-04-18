@@ -21,7 +21,7 @@ function getStorageRoot() {
     return path.join(process.env.ELECTRON_USER_DATA_PATH, 'upload');
   }
   // 3. 最后使用配置文件中的路径（兼容独立服务器模式）
-  return path.resolve(__dirname, '../../', config.storage.local.path);
+  return path.resolve(__dirname, '../', config.storage.local.path);
 }
 
 class FileStorageService {
