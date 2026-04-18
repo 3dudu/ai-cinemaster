@@ -43,6 +43,14 @@ export interface ImageLibraryProps {
   onClose?: () => void;
   /** 标题（可选，默认"媒体库"） */
   title?: string;
+  /** 初始过滤类型（用于初始化 activeTab） */
+  filterType?: 'all' | 'character' | 'scene' | 'prop' | 'keyframe' | 'video';
+  /** 是否显示搜索框（默认 true） */
+  showSearch?: boolean;
+  /** 是否显示项目选择器（默认 true） */
+  showProjectSelector?: boolean;
+  /** 是否显示批量上传按钮和底部状态栏（默认 true） */
+  showFooter?: boolean;
   /** 自定义 header 渲染函数 */
   renderHeader?: (props: {
     remoteImageCount: number;
@@ -51,6 +59,8 @@ export interface ImageLibraryProps {
     showVideo: boolean;
     setShowVideo: (show: boolean) => void;
     displayImagesLength: number;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
   }) => React.ReactNode;
 }
 
@@ -62,11 +72,15 @@ const ImageLibrary: React.FC<ImageLibraryProps> = ({
   onSelectImage,
   onClose,
   title = '媒体库',
+  filterType = 'all',
+  showSearch = true,
+  showProjectSelector = true,
+  showFooter = true,
   renderHeader,
 }) => {
   const dialog = useDialog();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'prop' | 'keyframe' | 'video'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'scene' | 'prop' | 'keyframe' | 'video'>(filterType);
   const [allProjects, setAllProjects] = useState<ProjectState[]>([]);
   const [seriesList, setSeriesList] = useState<SeriesRecord[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -924,7 +938,9 @@ const ImageLibrary: React.FC<ImageLibraryProps> = ({
         uploadingStatus,
         showVideo,
         setShowVideo,
-        displayImagesLength: displayImages.length
+        displayImagesLength: displayImages.length,
+        searchQuery,
+        setSearchQuery
       })}
 
       {/* 标签页 */}
