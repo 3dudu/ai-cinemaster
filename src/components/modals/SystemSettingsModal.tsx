@@ -1,4 +1,4 @@
-import { Check, Database, Download, Edit, Eye, EyeOff, Film, Globe, Image, Key, Link, Music, Plus, Sparkles, Tags, Trash2, Upload, X } from 'lucide-react';
+import { Check, ChevronDown, Database, Download, Edit, Eye, EyeOff, Film, Globe, Image, Key, Link, Music, Plus, Sparkles, Tags, Trash2, Upload, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { triggerModelConfigChanged } from '../../services/modelConfigEvents';
 import { createDefaultModelConfigs, saveModelConfigWithExclusiveEnabled, toggleConfigEnabled } from '../../services/modelConfigService';
@@ -17,19 +17,19 @@ interface Props {
 }
 
 const PROVIDER_OPTIONS = [
-  { value: 'doubao', label: 'Doubao (火山引擎)', apiUrl: 'https://www.volcengine.com/product/doubao' },
-  { value: 'deepseek', label: 'DeepSeek', apiUrl: 'https://platform.deepseek.com/' },
-  { value: 'openai', label: 'OpenAI', apiUrl: 'https://platform.openai.com/' },
-  { value: 'gemini', label: 'Gemini (Google)', apiUrl: 'https://ai.google.dev/' },
-  { value: 'yunwu', label: 'Yunwu (云雾)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
-  { value: 'minimax', label: 'Minimax (海螺，云雾中转)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
-  { value: 'kling', label: 'Kling (可灵，云雾中转)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
-  { value: 'sora', label: 'sora (sora，云雾中转)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
-  { value: 'wan', label: '通义万相 (云雾中转)', apiUrl: 'https://yunwu.ai/register?aff=osWa' },
-  { value: 'bigmore', label: 'bigmoreai中转', apiUrl: 'https://bigmoreai.com/#/docs/veoo' },
-  { value: 'skyreels', label: 'SkyReels ', apiUrl: 'https://skyreels.ai/' },
-  { value: 'baidu', label: 'Baidu (百度)', apiUrl: 'https://cloud.baidu.com/' },
-  { value: 'nanobanana', label: 'nanobananaapi', apiUrl: 'https://nanobananaapi.dev/zh/docs' },
+  { value: 'doubao', label: 'Doubao (火山引擎)', docUrl: 'https://www.volcengine.com/product/doubao', apiUrl: 'https://ark.cn-beijing.volces.com/api/v3' },
+  { value: 'deepseek', label: 'DeepSeek', docUrl: 'https://platform.deepseek.com/', apiUrl: 'https://api.deepseek.com/v1' },
+  { value: 'openai', label: 'OpenAI', docUrl: 'https://platform.openai.com/', apiUrl: 'https://api.openai.com/v1' },
+  { value: 'gemini', label: 'Gemini (Google)', docUrl: 'https://ai.google.dev/', apiUrl: 'https://generativelanguage.googleapis.com/v1beta' },
+  { value: 'yunwu', label: 'Yunwu (云雾)', docUrl: 'https://yunwu.ai/register?aff=osWa', apiUrl: 'https://api.yunwu.ai/v1' },
+  { value: 'minimax', label: 'Minimax (海螺，云雾中转)', docUrl: 'https://yunwu.ai/register?aff=osWa', apiUrl: 'https://api.minimaxi.chat/v1' },
+  { value: 'kling', label: 'Kling (可灵，云雾中转)', docUrl: 'https://yunwu.ai/register?aff=osWa', apiUrl: 'https://api.klingai.com/v1' },
+  { value: 'sora', label: 'sora (sora，云雾中转)', docUrl: 'https://yunwu.ai/register?aff=osWa', apiUrl: 'https://api.sora.com/v1' },
+  { value: 'wan', label: '通义万相 (云雾中转)', docUrl: 'https://yunwu.ai/register?aff=osWa', apiUrl: 'https://dashscope.aliyuncs.com/api/v1' },
+  { value: 'bigmore', label: 'bigmoreai中转', docUrl: 'https://bigmoreai.com/#/docs/veoo', apiUrl: 'https://api.bigmoreai.com/v1' },
+  { value: 'skyreels', label: 'SkyReels ', docUrl: 'https://skyreels.ai/', apiUrl: 'https://api.skyreels.ai/v1' },
+  { value: 'baidu', label: 'Baidu (百度)', docUrl: 'https://cloud.baidu.com/', apiUrl: 'https://tsn.baidu.com/text2audio' },
+  { value: 'nanobanana', label: 'nanobananaapi', docUrl: 'https://nanobananaapi.dev/zh/docs', apiUrl: 'https://v2.nanobananaapi.com/api/v1' },
 ] as const;
 
 const MODEL_TYPE_OPTIONS = [
@@ -103,6 +103,91 @@ const getModelTypeColorStyles = (modelType: AIModelConfig['modelType']) => {
   return colorMap[modelType] || colorMap.llm;
 };
 
+// 定义每种模型类型支持的模型列表
+const MODEL_OPTIONS_BY_TYPE: Record<string, string[]> = {
+  llm: [
+    // Doubao
+    'doubao-pro-32k',
+    'doubao-pro-128k',
+    'doubao-lite-32k',
+    'doubao-lite-128k',
+    'seed-2.0',
+    'seed-1.8',
+    // DeepSeek
+    'deepseek-chat',
+    'deepseek-coder',
+    // OpenAI
+    'gpt-4o',
+    'gpt-4o-mini',
+    'gpt-4-turbo',
+    'gpt-3.5-turbo',
+    // Gemini
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-pro',
+    'gemini-1.5-flash',
+    // Yunwu
+    'yunwu-pro',
+    'yunwu-flash',
+  ],
+  text2image: [
+    // Doubao
+    'doubao-image-2410',
+    // OpenAI
+    'dall-e-3',
+    'dall-e-2',
+    // Gemini
+    'imagen-3',
+    'imagen-2',
+    // Yunwu
+    'yunwu-image',
+    // nanobanana
+    'seedream3.0',
+    'seedream2.0',
+    // bigmore
+    'flux-3',
+    'flux-2',
+    'flux-1',
+  ],
+  image2video: [
+    // Doubao
+    'doubao-video-2412',
+    // OpenAI
+    'sora-1',
+    // Gemini
+    'veo-2',
+    'veo-1',
+    // minimax
+    'minimax-video-01',
+    // kling
+    'kling-video-1',
+    'kling-video-1.5',
+    // wan
+    'wanx-video',
+    // skyreels
+    'skyreels-v1',
+    // bigmore
+    'luma-photon',
+    'pika-2',
+    // bigmore
+    'seedance1.5',
+    'seedance2.0',
+  ],
+  tts: [
+    // Baidu
+    'baidu-tts',
+  ],
+  stt: [
+    // wan
+    'qwen-audio',
+  ],
+};
+
+// 获取指定模型类型的模型列表
+const getModelsForType = (modelType: AIModelConfig['modelType']) => {
+  return MODEL_OPTIONS_BY_TYPE[modelType] || [];
+};
+
 const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false, project, updateProject }) => {
   const dialog = useDialog();
   const [configs, setConfigs] = useState<AIModelConfig[]>([]);
@@ -119,6 +204,8 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false,
     description: ''
   });
   const [showApiKey, setShowApiKey] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [modelSearchText, setModelSearchText] = useState('');
 
   const loadConfigs = async () => {
     try {
@@ -328,12 +415,13 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false,
   };
 
   const resetForm = () => {
+    const defaultProvider = PROVIDER_OPTIONS.find(p => p.value === 'doubao');
     setFormData({
       provider: 'doubao',
       modelType: 'llm',
       model: '',
       apiKey: '',
-      apiUrl: '',
+      apiUrl: defaultProvider?.apiUrl || '',
       enabled: false,
       description: ''
     });
@@ -389,11 +477,13 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false,
                   onChange={(value) => {
                     const supportedProviders = getProvidersForModelType(value as AIModelConfig['modelType']);
                     const firstSupportedProvider = supportedProviders[0]?.value as AIModelConfig['provider'];
+                    const selectedProvider = PROVIDER_OPTIONS.find(p => p.value === firstSupportedProvider);
                     setFormData({
                       ...formData,
                       modelType: value as AIModelConfig['modelType'],
                       provider: firstSupportedProvider || 'doubao',
-                      model: ''
+                      model: '',
+                      apiUrl: selectedProvider?.apiUrl || ''
                     });
                   }}
                   placeholder="选择模型类型"
@@ -407,10 +497,12 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false,
                   options={getProvidersForModelType(formData.modelType).map(opt => ({ value: opt.value, label: opt.label }))}
                   value={formData.provider}
                   onChange={(value) => {
+                    const selectedProvider = PROVIDER_OPTIONS.find(p => p.value === value);
                     setFormData({
                       ...formData,
                       provider: value as AIModelConfig['provider'],
-                      model: ''
+                      model: '',
+                      apiUrl: selectedProvider?.apiUrl || ''
                     });
                   }}
                   placeholder="选择服务提供商"
@@ -418,9 +510,9 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false,
                 {/* API Key 申请链接 */}
                 {(() => {
                   const selectedProvider = PROVIDER_OPTIONS.find(p => p.value === formData.provider);
-                  return selectedProvider?.apiUrl ? (
+                  return selectedProvider?.docUrl ? (
                     <a
-                      href={selectedProvider.apiUrl}
+                      href={selectedProvider.docUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors mt-1"
@@ -458,19 +550,80 @@ const SystemSettingsModal: React.FC<Props> = ({ isOpen, onClose, isMobile=false,
                 </div>
               </div>
 
-              {/* Model Name - Optional */}
+              {/* Model Name - Optional with searchable dropdown */}
               <div className="space-y-2">
                 <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
                   <Sparkles className="w-3 h-3" />
                   模型名称 <span className="text-slate-400 font-normal">(可选)</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.model}
-                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
-                  placeholder="输入具体的模型名称（如：gpt-4、claude-3-sonnet）"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.model}
+                    onChange={(e) => {
+                      setFormData({ ...formData, model: e.target.value });
+                      setModelSearchText(e.target.value);
+                    }}
+                    onFocus={() => setShowModelDropdown(true)}
+                    className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 pr-10 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all font-mono placeholder:text-slate-600"
+                    placeholder="选择或输入模型名称..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowModelDropdown(!showModelDropdown)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showModelDropdown && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowModelDropdown(false)}
+                      />
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto">
+                        <div className="sticky top-0 bg-slate-800 border-b border-slate-700 p-2">
+                          <input
+                            type="text"
+                            value={modelSearchText}
+                            onChange={(e) => setModelSearchText(e.target.value)}
+                            placeholder="搜索模型..."
+                            className="w-full bg-slate-700 border border-slate-600 text-slate-50 px-3 py-1.5 text-xs rounded focus:border-slate-500 focus:outline-none font-mono"
+                            autoFocus
+                          />
+                        </div>
+                        {getModelsForType(formData.modelType)
+                          .filter(model => model.toLowerCase().includes(modelSearchText.toLowerCase()))
+                          .map((model, index) => (
+                            <button
+                              key={index}
+                              onClick={() => {
+                                setFormData({ ...formData, model });
+                                setModelSearchText(model);
+                                setShowModelDropdown(false);
+                              }}
+                              className={`w-full px-3 py-2 text-left text-sm font-mono hover:bg-slate-700 transition-colors ${
+                                formData.model === model ? 'bg-slate-700 text-slate-50' : 'text-slate-300'
+                              }`}
+                            >
+                              {model}
+                            </button>
+                          ))}
+                        {modelSearchText && !getModelsForType(formData.modelType).includes(modelSearchText) && (
+                          <button
+                            onClick={() => {
+                              setFormData({ ...formData, model: modelSearchText });
+                              setShowModelDropdown(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm font-mono text-indigo-400 hover:bg-slate-700 border-t border-slate-700 transition-colors"
+                          >
+                            使用 "{modelSearchText}"
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* API URL */}

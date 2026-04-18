@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import LLMChatView from './LLMChatView';
+import LLMChatView from './common/LLMChatView';
 
 interface StageChatProps {
   isMobile?: boolean;

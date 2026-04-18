@@ -9,6 +9,7 @@ interface ConfirmDialogProps {
   cancelText?: string;
   onClose: () => void;
   onConfirm: () => void;
+  onCancel?: () => void;
 }
 
 const typeConfig = {
@@ -25,6 +26,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelText = '取消',
   onClose,
   onConfirm,
+  onCancel,
 }) => {
   const config = typeConfig[type];
   const Icon = config.icon;
@@ -32,7 +34,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   return (
     <div
       className="fixed inset-0 z-[999] flex items-center justify-center"
-      onClick={onClose}
+      onClick={onCancel}
     >
       <div className="absolute inset-0 bg-slate-700/60 backdrop-blur-sm" />
       <div

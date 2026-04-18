@@ -7,7 +7,7 @@ import { addMediaHistory } from '../services/storageService';
 import { Character, ProjectState, Properties, Scene, Segment, SeriesRecord } from '../types';
 import { generateVideoThumbnail, getVideoDuration, getVideoFrameAtTime, getVideoLastFrame } from "../utils/imageUtils";
 import CustomSelect from './common/CustomSelect';
-import RichMentionEditor, { RichMentionEditorRef } from './RichMentionEditor';
+import RichMentionEditor, { RichMentionEditorRef } from './common/RichMentionEditor';
 
 import {
   aiConvertShotsToSegments,

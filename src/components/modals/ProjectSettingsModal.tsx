@@ -1,5 +1,7 @@
 import { ChevronDown, ChevronUp, Clock, Film, Image as ImageIcon, RefreshCw, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { TemplateGroupService } from '../../prompt/templateGroupService';
+import { PromptTemplateGroup } from '../../prompt/promptTemplate';
 import { getEnabledConfigByType } from '../../services/modelConfigService';
 import { ModelService } from '../../services/modelService';
 import { getAllModelConfigs } from '../../services/storageService';
@@ -94,6 +96,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
   const [localSegmentDuration, setLocalSegmentDuration] = useState(project?.segmentDuration || 15);
   const [localGlobalSettings, setLocalGlobalSettings] = useState(project?.globalSettings || '');
   const [showModelProviders, setShowModelProviders] = useState(false);
+  const [matchedTemplateGroup, setMatchedTemplateGroup] = useState<PromptTemplateGroup | null>(null);
 
   // Load model configs when modal opens
   useEffect(() => {
@@ -124,8 +127,41 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
       setLocalSegmentDuration(project.segmentDuration || 15);
       setLocalGlobalSettings(project.globalSettings || '');
+
+      // 匹配模板组
+      const finalStyle = (() => {
+        const currentStyle = project.visualStyle || '真人写实';
+        const isCustomStyle = !STYLE_OPTIONS.some(opt => opt.value === currentStyle);
+        return isCustomStyle ? currentStyle : currentStyle;
+      })();
+      const finalGenre = (() => {
+        const currentGenre = project.genre || '剧情片';
+        const isCustomGenre = !GENRE_OPTIONS.some(opt => opt.value === currentGenre);
+        return isCustomGenre ? currentGenre : currentGenre;
+      })();
+      const matchedGroup = TemplateGroupService.matchGroup({
+        visualStyle: finalStyle,
+        genre: finalGenre,
+        globalSettings: project.globalSettings || ''
+      });
+      setMatchedTemplateGroup(matchedGroup);
     }
   }, [isOpen, project]);
+
+  // 监听 style, genre, globalSettings 变化，重新匹配模板组
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
+    const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
+
+    const matchedGroup = TemplateGroupService.matchGroup({
+      visualStyle: finalStyle || '真人写实',
+      genre: finalGenre || '剧情片',
+      globalSettings: localGlobalSettings || ''
+    });
+    setMatchedTemplateGroup(matchedGroup);
+  }, [localStyle, localGenre, localGlobalSettings, customStyleInput, customGenreInput, isOpen]);
 
   const initSystemModelProviders = async () => {
     const llm = await getEnabledConfigByType('llm');
@@ -223,21 +259,6 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               </div>
             </div>
           </div>
-
-          {/* Global Settings */}
-          <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">补充信息</label>
-            <textarea
-              value={localGlobalSettings}
-              onChange={(e) => setLocalGlobalSettings(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
-              placeholder="画面风格、历史年代等，如：赛博朋克，2077年"
-              rows={2}
-            />
-            <p className="text-[10px] text-slate-500">
-              设置整个剧的画面风格、历史年代等全局统一设定
-            </p>
-          </div>
           {/* Language and Visual Style in one row */}
           <div className="grid grid-cols-2 gap-3">
             {/* Language Selection */}
@@ -303,6 +324,58 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               )}
             </div>
           </div>
+          {/* Global Settings */}
+          <div className="space-y-2">
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">补充信息</label>
+            <span className="text-[10px] text-slate-500">
+              设置整个剧的画面风格、历史年代等全局统一设定
+            </span>
+            <textarea
+              value={localGlobalSettings}
+              onChange={(e) => setLocalGlobalSettings(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+              placeholder="画面风格、历史年代等，如：赛博朋克，2077年"
+              rows={2}
+            />
+          </div>
+
+          {/* Matched Template Group */}
+          {matchedTemplateGroup && (
+            <div className="space-y-2 p-3 bg-slate-900/50 border border-slate-600 rounded-lg">
+              <div className="flex items-center justify-between">
+                <label className="text-[12px] font-bold text-slate-400 tracking-widest">匹配的模板组</label>
+                {matchedTemplateGroup.isBuiltIn && (
+                  <span className="text-[10px] text-slate-500 bg-slate-700 px-2 py-0.5 rounded">内置</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-200">{matchedTemplateGroup.name}</span>
+                <span className="text-xs text-slate-500">({matchedTemplateGroup.id})</span>
+              </div>
+              {matchedTemplateGroup.description && (
+                <p className="text-[11px] text-slate-400 leading-relaxed">{matchedTemplateGroup.description}</p>
+              )}
+              {matchedTemplateGroup.matchRules && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {matchedTemplateGroup.matchRules.visualStyle?.map((keyword, i) => (
+                    <span key={`vs-${i}`} className="text-[10px] bg-orange-900/50 text-orange-300 px-1.5 py-0.5 rounded border border-orange-500/30">
+                      风格: {keyword}
+                    </span>
+                  ))}
+                  {matchedTemplateGroup.matchRules.genre?.map((keyword, i) => (
+                    <span key={`g-${i}`} className="text-[10px] bg-purple-900/50 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/30">
+                      题材: {keyword}
+                    </span>
+                  ))}
+                  {matchedTemplateGroup.matchRules.globalSettings?.map((keyword, i) => (
+                    <span key={`gs-${i}`} className="text-[10px] bg-blue-900/50 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30">
+                      设定: {keyword}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Duration Selection */}
           <div className="space-y-2">

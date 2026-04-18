@@ -4,10 +4,10 @@
  * 薄壳包装 ImageLibrary
  */
 
-import React, { useMemo } from 'react';
 import { Cloud, Loader2 } from 'lucide-react';
+import React from 'react';
 import { ProjectState } from '../types';
-import ImageLibrary from './ImageLibrary';
+import ImageLibrary from './common/ImageLibrary';
 
 interface StageImageProps {
   project: ProjectState;

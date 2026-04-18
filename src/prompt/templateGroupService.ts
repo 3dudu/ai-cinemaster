@@ -94,21 +94,97 @@ export class TemplateGroupService {
   }
 
   /**
+   * 计算模版组匹配的条件数量和优先级分数
+   * @returns [匹配条件数量, visualStyle匹配, genre匹配, globalSettings匹配, priority]
+   */
+  private static calcMatchScore(group: PromptTemplateGroup, context: ProjectTemplateContext): [number, number, number, number, number] {
+    const rules = group.matchRules;
+
+    // 如果没有任何匹配规则，则不计入（除了 default 组）
+    if (!rules.visualStyle && !rules.genre && !rules.globalSettings) {
+      return [group.id === 'default' ? 0 : -1, 0, 0, 0, rules.priority];
+    }
+
+    let matchCount = 0;
+    let visualStyleMatch = 0;
+    let genreMatch = 0;
+    let globalSettingsMatch = 0;
+
+    // 检查 visualStyle（优先级最高）
+    if (rules.visualStyle && rules.visualStyle.length > 0) {
+      const matched = rules.visualStyle.some(keyword =>
+        context.visualStyle?.toLowerCase().includes(keyword.toLowerCase())
+      );
+      if (matched) {
+        matchCount++;
+        visualStyleMatch = 1;
+      }
+    }
+
+    // 检查 genre（优先级次之）
+    if (rules.genre && rules.genre.length > 0) {
+      const matched = rules.genre.some(keyword =>
+        context.genre?.toLowerCase().includes(keyword.toLowerCase())
+      );
+      if (matched) {
+        matchCount++;
+        genreMatch = 1;
+      }
+    }
+
+    // 检查 globalSettings（优先级最低）
+    if (rules.globalSettings && rules.globalSettings.length > 0) {
+      const matched = rules.globalSettings.some(keyword =>
+        context.globalSettings?.toLowerCase().includes(keyword.toLowerCase())
+      );
+      if (matched) {
+        matchCount++;
+        globalSettingsMatch = 1;
+      }
+    }
+
+    return [matchCount, visualStyleMatch, genreMatch, globalSettingsMatch, rules.priority];
+  }
+
+  /**
    * 根据项目上下文匹配最佳模版组
+   * 匹配优先级：3条件 > 2条件 > 1条件
+   * 相同条件数量时：visualStyle匹配 > genre匹配 > globalSettings匹配
    * @param context 项目上下文（visualStyle, genre, globalSettings）
    * @returns 匹配的模版组，无匹配时返回 default 组
    */
   static matchGroup(context: ProjectTemplateContext): PromptTemplateGroup {
     const allGroups = this.getAllGroups();
-    
-    // 按 priority 降序排序
-    const sortedGroups = [...allGroups].sort((a, b) => b.matchRules.priority - a.matchRules.priority);
 
+    // 按匹配优先级排序：条件数量(降序) > visualStyle(降序) > genre(降序) > globalSettings(降序) > priority(降序)
+    const sortedGroups = [...allGroups].sort((a, b) => {
+      const scoreA = this.calcMatchScore(a, context);
+      const scoreB = this.calcMatchScore(b, context);
+
+      // 按匹配条件数量降序
+      if (scoreB[0] !== scoreA[0]) return scoreB[0] - scoreA[0];
+
+      // 按 visualStyle 匹配降序
+      if (scoreB[1] !== scoreA[1]) return scoreB[1] - scoreA[1];
+
+      // 按 genre 匹配降序
+      if (scoreB[2] !== scoreA[2]) return scoreB[2] - scoreA[2];
+
+      // 按 globalSettings 匹配降序
+      if (scoreB[3] !== scoreA[3]) return scoreB[3] - scoreA[3];
+
+      // 最后按 priority 降序
+      return scoreB[4] - scoreA[4];
+    });
+
+    // 过滤出至少匹配一个条件的组
     for (const group of sortedGroups) {
-      if (this.isGroupMatch(group, context)) {
+      const [matchCount] = this.calcMatchScore(group, context);
+      if (matchCount > 0) {
         return group;
       }
     }
+
     // 无匹配，返回 default 组
     return getDefaultGroupFull();
   }

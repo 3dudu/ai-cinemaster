@@ -7,7 +7,7 @@ import { Bot, Check, ChevronDown, Copy, Loader2, MessageSquare, Plus, Send, Squa
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
-import { ChatAgent, getChatAgents, getDefaultAgent } from '../services/chatAgentService';
+import { ChatAgent, getChatAgents, getDefaultAgent } from '../../services/chatAgentService';
 import {
   buildApiMessages,
   ChatMessage,
@@ -15,9 +15,9 @@ import {
   isTokenLimitError,
   streamChat,
   trimMessages,
-} from '../services/llmChatService';
-import { AIModelConfig } from '../types';
-import CustomSelect from './common/CustomSelect';
+} from '../../services/llmChatService';
+import { AIModelConfig } from '../../types';
+import CustomSelect from './CustomSelect';
 
 interface ChatMessageUI {
   id: string;
@@ -213,12 +213,71 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
     setIsStreaming(false);
   };
 
-  // 新建对话
-  const handleNewChat = () => {
+  // 新建对话 - 自动发送 system 消息给大模型
+  const handleNewChat = async () => {
+    // 如果正在流式输出，先停止
+    if (isStreaming) {
+      abortControllerRef.current?.abort();
+      setIsStreaming(false);
+    }
+
     setMessages([]);
     setInputText('');
     setError(null);
-    inputRef.current?.focus();
+
+    const config = getSelectedConfig();
+    if (!config) {
+      inputRef.current?.focus();
+      return;
+    }
+
+    const selectedAgent = getSelectedAgent();
+
+    // 构建开场白请求：只有 system prompt，没有 user 消息
+    const apiMessages = buildApiMessages([], selectedAgent.systemPrompt);
+
+    const welcomeMessage: ChatMessageUI = {
+      id: generateId(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    };
+
+    setIsStreaming(true);
+    setMessages([welcomeMessage]);
+
+    abortControllerRef.current = new AbortController();
+    let fullContent = '';
+
+    await streamChat(
+      config,
+      apiMessages,
+      {
+        onChunk: (text) => {
+          fullContent += text;
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === welcomeMessage.id
+                ? { ...m, content: fullContent }
+                : m
+            )
+          );
+        },
+        onDone: () => {
+          setIsStreaming(false);
+          abortControllerRef.current = null;
+          inputRef.current?.focus();
+        },
+        onError: () => {
+          // 开场白失败时静默处理，不阻塞用户
+          setMessages([]);
+          setIsStreaming(false);
+          abortControllerRef.current = null;
+          inputRef.current?.focus();
+        },
+      },
+      abortControllerRef.current.signal
+    );
   };
 
   // 键盘事件处理
@@ -258,8 +317,20 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                   <button
                     key={agent.id}
                     onClick={() => {
+                      // 如果切换到同一个 Agent，不做处理
+                      if (agent.id === selectedAgentId) {
+                        setShowAgentDropdown(false);
+                        return;
+                      }
+                      
                       setSelectedAgentId(agent.id);
                       setShowAgentDropdown(false);
+                      
+                      // 如果没有历史消息，自动发送开场白
+                      if (messages.length === 0) {
+                        // 复用 handleNewChat 中的开场白逻辑
+                        handleNewChat();
+                      }
                     }}
                     className={`w-full px-3 py-2 text-left hover:bg-slate-600 transition-colors flex items-start gap-2 ${
                       selectedAgentId === agent.id ? 'bg-slate-600/50' : ''
@@ -268,7 +339,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                     <span className="text-base">{agent.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-slate-50 font-medium">{agent.name}</div>
-                      <div className="text-[10px] text-slate-400 truncate">{agent.description}</div>
+                      <div className="text-sm text-slate-400 truncate">{agent.description}</div>
                     </div>
                   </button>
                 ))}
@@ -303,7 +374,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-500">
             <p className="text-sm">开始与 AI 对话</p>
-            <p className="text-[10px] mt-1 text-slate-600">输入问题，按 Enter 发送</p>
+            <p className="text-sm mt-1 text-slate-600">输入问题，按 Enter 发送</p>
           </div>
         ) : (
           messages.map(message => (
@@ -342,7 +413,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                           };
                           return (
                             <div className="relative group">
-                              <pre ref={preRef} className="bg-slate-900 rounded-lg p-2 pr-8 overflow-x-auto text-[10px] mb-2" {...props}>
+                              <pre ref={preRef} className="bg-slate-900 rounded-lg p-2 pr-8 overflow-x-auto text-sm mb-2" {...props}>
                                 {children}
                               </pre>
                               <button
@@ -358,7 +429,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                         code: ({ className, children, ...props }) => {
                           const isInline = !className;
                           return isInline ? (
-                            <code className="bg-slate-900/50 px-1 py-0.5 rounded text-[10px]" {...props}>
+                            <code className="bg-slate-900/50 px-1 py-0.5 rounded text-sm" {...props}>
                               {children}
                             </code>
                           ) : (
@@ -404,7 +475,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
 
       {/* Input Area */}
       <div className="md:px-4 px-2 py-3 border-t border-slate-700 bg-slate-600/80">
-        <div className="flex items-center justify-between mb-1.5 text-[10px] text-slate-500">
+        <div className="flex items-center justify-between mb-1.5 text-sm text-slate-500">
           {/* 模型选择 */}
           <CustomSelect
             options={llmConfigs.map(config => ({

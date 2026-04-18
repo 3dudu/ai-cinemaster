@@ -3,15 +3,14 @@
  * 由 StageImage（移动端全屏）和 ImageSelectorModal（桌面端 Modal）共同使用
  */
 
-import { ArrowRightLeft, Cloud, Download, Images, Loader2, NotebookPen, RotateCcw, Search, Trash2, X } from 'lucide-react';
+import { ArrowRightLeft, Cloud, Download, Loader2, NotebookPen, RotateCcw, Search, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, loadProjectFromDB, loadSeriesFromDB, md5Hash, MediaFile, saveProjectToDB, saveSeriesToDB, updateMediaHistoryFileUrl, addMediaHistory } from '../services/storageService';
-import { ProjectState, SeriesRecord } from '../types';
-import { uploadFileToService } from '../utils/fileUploadUtils';
-import CustomSelect from './common/CustomSelect';
-import { useDialog } from './dialog';
-import { downloadImage, downloadVideo } from './modals/FileUploadModal';
-import PromptDetailModal from './modals/PromptDetailModal';
+import { addMediaHistory, deleteSingleMediaFile, getAllProjectsMetadata, getAllSeriesFromDB, getProjectMediaHistory, loadProjectFromDB, loadSeriesFromDB, md5Hash, MediaFile, saveProjectToDB, saveSeriesToDB, updateMediaHistoryFileUrl } from '../../services/storageService';
+import { ProjectState, SeriesRecord } from '../../types';
+import { uploadFileToService } from '../../utils/fileUploadUtils';
+import { useDialog } from '../dialog';
+import { downloadImage, downloadVideo } from '../modals/FileUploadModal';
+import PromptDetailModal from '../modals/PromptDetailModal';
 
 export interface ImageItem {
   id: string;
@@ -276,7 +275,7 @@ const ImageLibrary: React.FC<ImageLibraryProps> = ({
     return { prompt: '', timestamp: 0 };
   }, []);
 
-  const getCharacterWithAssets = useCallback((char: import('../types').Character, projectSeriesRefId?: string): import('../types').Character => {
+  const getCharacterWithAssets = useCallback((char: import('../../types').Character, projectSeriesRefId?: string): import('../../types').Character => {
     if (!projectSeriesRefId || !char.refId) return char;
     const series = seriesList.find(s => s.id === projectSeriesRefId);
     if (series?.library?.characters) {
@@ -286,7 +285,7 @@ const ImageLibrary: React.FC<ImageLibraryProps> = ({
     return char;
   }, [seriesList]);
 
-  const getSceneWithAssets = useCallback((scene: import('../types').Scene, projectSeriesRefId?: string): import('../types').Scene => {
+  const getSceneWithAssets = useCallback((scene: import('../../types').Scene, projectSeriesRefId?: string): import('../../types').Scene => {
     if (!projectSeriesRefId || !scene.refId) return scene;
     const series = seriesList.find(s => s.id === projectSeriesRefId);
     if (series?.library?.scenes) {
@@ -296,7 +295,7 @@ const ImageLibrary: React.FC<ImageLibraryProps> = ({
     return scene;
   }, [seriesList]);
 
-  const getPropWithAssets = useCallback((prop: import('../types').Properties, projectSeriesRefId?: string): import('../types').Properties => {
+  const getPropWithAssets = useCallback((prop: import('../../types').Properties, projectSeriesRefId?: string): import('../../types').Properties => {
     if (!projectSeriesRefId || !prop.refId) return prop;
     const series = seriesList.find(s => s.id === projectSeriesRefId);
     if (series?.library?.props) {

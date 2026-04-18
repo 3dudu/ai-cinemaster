@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 import { AlertDialog } from './AlertDialog';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PromptDialog } from './PromptDialog';
@@ -103,6 +103,19 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setDialog({ type: null, options: { message: '' }, resolve: null });
   }, [dialog]);
 
+  const handleCancle = useCallback(() => {
+    if (dialog.resolve) {
+      if (dialog.type === 'confirm') {
+        dialog.resolve(null);
+      } else if (dialog.type === 'prompt') {
+        dialog.resolve(null);
+      } else {
+        dialog.resolve(undefined);
+      }
+    }
+    setDialog({ type: null, options: { message: '' }, resolve: null });
+  }, [dialog]);
+
   const handlePromptConfirm = useCallback((value: string) => {
     if (dialog.resolve) {
       dialog.resolve(value);
@@ -137,6 +150,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           cancelText={(dialog.options as DialogOptions).cancelText}
           onClose={handleClose}
           onConfirm={handleConfirm}
+          onCancel={handleCancle}
         />
       )}
 
