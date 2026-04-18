@@ -1157,8 +1157,8 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
             >
               {/* AI 助手头像 */}
               {message.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-3.5 h-3.5 text-slate-300" />
+                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-3.5 h-3.5 text-slate-100" />
                 </div>
               )}
 
@@ -1166,8 +1166,8 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
               <div
                 className={`max-w-[80%] rounded-xl px-3 py-2 select-text break-all ${
                   message.role === 'user'
-                    ? 'bg-slate-500/80 text-slate-50'
-                    : 'bg-slate-700/50 text-slate-200'
+                    ? 'bg-slate-600 text-slate-200'
+                    : 'bg-slate-700 text-slate-100'
                 }`}
               >
                 {/* 本地视频预览 */}
@@ -1275,8 +1275,8 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
 
               {/* 用户头像 */}
               {message.role === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-slate-500 flex items-center justify-center flex-shrink-0">
-                  <User className="w-3.5 h-3.5 text-slate-200" />
+                <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
+                  <User className="w-3.5 h-3.5 text-slate-100" />
                 </div>
               )}
             </div>
