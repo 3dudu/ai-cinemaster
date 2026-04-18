@@ -179,6 +179,7 @@ export interface AIModelConfig {
   apiUrl: string;
   enabled: boolean;
   description: string;
+  useResponsesApi?: boolean; // 是否使用 Responses API（/v1/responses）而非 Chat API（/chat/completions）
 }
 
 // ==================== Series Types (Plan B) ====================

@@ -3,7 +3,7 @@
  * 支持 Modal 和 Stage 两种使用场景
  */
 
-import { Bot, Check, ChevronDown, Copy, Loader2, MessageSquare, Plus, Send, Square, User, X } from 'lucide-react';
+import { Bot, Check, ChevronDown, Copy, Download, Film, Loader2, MessageSquare, Paperclip, Plus, Send, Square, Upload, User, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -11,19 +11,147 @@ import { ChatAgent, getChatAgents, getDefaultAgent } from '../../services/chatAg
 import {
   buildApiMessages,
   ChatMessage,
+  createVideoMessage,
   getLLMConfigs,
   isTokenLimitError,
-  streamChat,
-  trimMessages,
+  streamLLMChat,
+  trimMessages
 } from '../../services/llmChatService';
 import { AIModelConfig } from '../../types';
+import { uploadLocalVideoFile } from '../../utils/fileUploadUtils';
 import CustomSelect from './CustomSelect';
+
+/**
+ * 多模态消息内容
+ */
+export interface MultimodalContent {
+  fileId?: string;
+  fileName?: string;
+  text?: string;
+}
+
+/**
+ * 消息类型：
+ * - text: 普通文本消息
+ * - video: 视频消息（下载上传流程）
+ * - localVideo: 本地视频（已上传到服务器）
+ */
+type MessageType = 'text' | 'video' | 'localVideo';
+
+/**
+ * 本地上传的本地视频信息
+ */
+interface LocalVideoInfo {
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+}
 
 interface ChatMessageUI {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  type: MessageType;
+  multimodal?: MultimodalContent; // 多模态附加信息
+  localVideo?: LocalVideoInfo; // 本地视频信息
+}
+
+/**
+ * 抖音视频分析结果
+ */
+interface DouyinProcessResult {
+  fileId: string;
+  fileName: string;
+  fileSize: number;
+}
+
+/**
+ * 检测消息是否包含抖音视频分析请求
+ * 需要同时包含：抖音 URL + "分析视频"关键词
+ */
+function detectDouyinVideoRequest(text: string): { url: string; prompt: string } | null {
+  // 抖音 URL 正则
+  const douyinUrlPattern = /https?:\/\/v\.douyin\.com\/[a-zA-Z0-9]+/;
+
+  // 分析视频关键词
+  const analyzePattern = /分析(?:这个)?视频/i;
+
+  // 匹配抖音 URL
+  const urlMatch = text.match(douyinUrlPattern);
+  if (!urlMatch) return null;
+
+  const url = urlMatch[0];
+
+  // 检查是否包含分析关键词
+  if (!analyzePattern.test(text)) return null;
+
+  // 提取用户附加的提示词（去掉 URL 和分析关键词后的内容）
+  let prompt = text
+    .replace(douyinUrlPattern, '')
+    .replace(analyzePattern, '')
+    .trim();
+
+  // 如果没有附加提示词，使用默认提示词
+  if (!prompt) {
+    prompt = '请分析这个视频的内容、主题和亮点';
+  }
+
+  return { url, prompt };
+}
+
+/**
+ * 检测是否请求分析已上传的本地视频
+ * 当消息只包含"分析这个视频"且没有其他视频URL时触发
+ * @param text - 用户输入文本
+ * @param hasLocalVideo - 是否存在已上传的本地视频
+ */
+function detectLocalVideoAnalysisRequest(text: string, hasLocalVideo: boolean): { prompt: string } | null {
+  if (!hasLocalVideo) return null;
+
+  // 只分析"分析这个视频"关键词，不包含其他URL
+  const douyinUrlPattern = /https?:\/\/v\.douyin\.com\/[a-zA-Z0-9]+/;
+
+  // 如果包含抖音URL，跳过（走抖音流程）
+  if (douyinUrlPattern.test(text)) return null;
+
+  // 分析视频关键词
+  const analyzePattern = /分析(?:这个)?视频/i;
+  if (!analyzePattern.test(text)) return null;
+
+  // 提取用户附加的提示词
+  let prompt = text
+    .replace(analyzePattern, '')
+    .trim();
+
+  // 如果没有附加提示词，使用默认提示词
+  if (!prompt) {
+    prompt = '请分析这个视频的内容、主题和亮点';
+  }
+
+  return { prompt };
+}
+
+/**
+ * 从历史消息中查找可复用的 fileId
+ * 查找最近一条包含 fileId 的多模态消息
+ */
+function findReusableFileId(messages: ChatMessageUI[]): { fileId: string; fileName?: string } | null {
+  // 从后往前找最近的一条包含 fileId 的消息
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.multimodal?.fileId) {
+      return {
+        fileId: msg.multimodal.fileId,
+        fileName: msg.multimodal.fileName,
+      };
+    }
+    if (msg.localVideo?.fileUrl) {
+      // 本地视频有 fileUrl 但没有 fileId，需要上传
+      return null;
+    }
+  }
+  return null;
 }
 
 interface LLMChatViewProps {
@@ -49,10 +177,16 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
   const [selectedAgentId, setSelectedAgentId] = useState<string>('');
   const [showAgentDropdown, setShowAgentDropdown] = useState(false);
 
+  // 本地视频上传相关状态
+  const [uploadedLocalVideo, setUploadedLocalVideo] = useState<LocalVideoInfo | null>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const agentDropdownRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 加载 LLM 模型配置
   useEffect(() => {
@@ -120,48 +254,422 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
       return;
     }
 
+    const selectedAgent = getSelectedAgent();
+    const userText = inputText.trim();
+
+    // 检测是否为本地视频分析请求
+    const localVideoRequest = detectLocalVideoAnalysisRequest(userText, !!uploadedLocalVideo);
+
+    // 检查历史消息中是否有可复用的 fileId
+    const reusableFileId = findReusableFileId(messages);
+
+    if (localVideoRequest && (uploadedLocalVideo || reusableFileId)) {
+      // ========== 本地视频分析流程 ==========
+      if (reusableFileId) {
+        // 有可复用的 fileId，直接复用（不重新上传）
+        await handleReuseFileIdAnalysis(
+          userText,
+          localVideoRequest.prompt,
+          reusableFileId,
+          config,
+          selectedAgent.systemPrompt
+        );
+      } else if (uploadedLocalVideo) {
+        // 有本地视频文件，需要上传
+        await handleLocalVideoAnalysis(
+          userText,
+          localVideoRequest.prompt,
+          config,
+          selectedAgent.systemPrompt
+        );
+      }
+      return;
+    }
+
+    // 检测是否为抖音视频分析请求
+    const douyinRequest = detectDouyinVideoRequest(userText);
+
+    if (douyinRequest) {
+      // ========== 抖音视频分析流程 ==========
+      await handleDouyinVideoAnalysis(
+        userText,
+        douyinRequest.url,
+        douyinRequest.prompt,
+        config,
+        selectedAgent.systemPrompt
+      );
+    } else {
+      // ========== 普通聊天流程 ==========
+      const userMessage: ChatMessageUI = {
+        id: generateId(),
+        role: 'user',
+        content: userText,
+        timestamp: Date.now(),
+        type: 'text',
+      };
+
+      const assistantMessage: ChatMessageUI = {
+        id: generateId(),
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+        type: 'text',
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+      setInputText('');
+      setIsStreaming(true);
+      setError(null);
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+      const history: ChatMessage[] = [...messages, userMessage].map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      let apiMessages = buildApiMessages(history, selectedAgent.systemPrompt);
+      let retryCount = 0;
+      const maxRetries = 2;
+
+      const doStream = async (messagesToSend: ChatMessage[]): Promise<void> => {
+        abortControllerRef.current = new AbortController();
+
+        let fullContent = '';
+
+        await streamLLMChat(
+          config,
+          messagesToSend,
+          {
+            onChunk: (text) => {
+              fullContent += text;
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === assistantMessage.id
+                    ? { ...m, content: fullContent }
+                    : m
+                )
+              );
+            },
+            onDone: () => {
+              setIsStreaming(false);
+              abortControllerRef.current = null;
+            },
+            onError: (err) => {
+              if (isTokenLimitError(err) && retryCount < maxRetries) {
+                retryCount++;
+                const trimmed = trimMessages(messagesToSend);
+                if (trimmed.length < messagesToSend.length) {
+                  doStream(trimmed);
+                  return;
+                }
+              }
+
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === assistantMessage.id
+                    ? { ...m, content: `错误: ${err.message}` }
+                    : m
+                )
+              );
+              setIsStreaming(false);
+              abortControllerRef.current = null;
+            },
+          },
+          abortControllerRef.current.signal
+        );
+      };
+
+      doStream(apiMessages);
+    }
+  };
+
+  /**
+   * 处理本地上传视频的分析流程
+   */
+  const handleLocalVideoAnalysis = async (
+    userText: string,
+    prompt: string,
+    config: AIModelConfig,
+    systemPrompt: string
+  ) => {
+    if (!uploadedLocalVideo) return;
+
     const userMessage: ChatMessageUI = {
       id: generateId(),
       role: 'user',
-      content: inputText.trim(),
+      content: userText,
       timestamp: Date.now(),
+      type: 'localVideo',
+      localVideo: uploadedLocalVideo,
     };
 
+    // 进度状态 assistant 消息
     const assistantMessage: ChatMessageUI = {
       id: generateId(),
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
+      type: 'video',
+      multimodal: {
+        text: '正在上传视频到火山引擎...',
+      },
     };
 
-    // 添加用户消息
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setIsStreaming(true);
     setError(null);
 
-    // 添加空的 assistant 消息（用于 streaming 填充）
     setMessages(prev => [...prev, assistantMessage]);
 
-    // 构建 API 请求
-    const history: ChatMessage[] = [...messages, userMessage].map(m => ({
-      role: m.role,
-      content: m.content,
-    }));
+    try {
+      // 获取本地视频文件
+      const videoFileUrl = uploadedLocalVideo.fileUrl;
+      const url = new URL(videoFileUrl);
+      // 获取路径部分（不包含查询参数）
+      const path = url.pathname;
+      // 调用火山引擎上传接口
+      const response = await fetch('/api/douyin/upload-volcengine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileUrl: path,
+          apiKey: config.apiKey,
+        }),
+      });
 
-    const selectedAgent = getSelectedAgent();
-    let apiMessages = buildApiMessages(history, selectedAgent.systemPrompt);
-    let retryCount = 0;
-    const maxRetries = 2;
+      if (!response.ok) {
+        throw new Error(`上传失败: ${response.status}`);
+      }
 
-    const doStream = async (messagesToSend: ChatMessage[]): Promise<void> => {
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('无法读取响应流');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fileId: string | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+
+          try {
+            const event = JSON.parse(trimmed);
+
+            if (event.type === 'progress') {
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === assistantMessage.id
+                    ? {
+                        ...m,
+                        content: event.data?.message || '上传中...',
+                        multimodal: { text: event.data?.message || '上传中...' },
+                      }
+                    : m
+                )
+              );
+            } else if (event.type === 'complete') {
+              fileId = event.data?.id;
+              if (!fileId) {
+                // 尝试其他可能的字段名
+                fileId = event.data?.file_id || event.data?.fileId;
+              }
+            } else if (event.type === 'error') {
+              throw new Error(event.message || '上传失败');
+            }
+          } catch (e) {
+            // 忽略解析错误
+          }
+        }
+      }
+
+      if (!fileId) {
+        throw new Error('未收到上传结果，file_id 缺失');
+      }
+
+      // 更新状态为上传完成
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantMessage.id
+            ? {
+                ...m,
+                content: `✅ 视频已上传到火山引擎\n📎 file_id: ${fileId}\n🎬 正在分析视频...`,
+                multimodal: {
+                  fileId: fileId,
+                  fileName: uploadedLocalVideo.fileName,
+                  text: '视频上传完成，开始分析...',
+                },
+              }
+            : m
+        )
+      );
+
+      // 创建多模态消息
+      const videoMessage = createVideoMessage(fileId, prompt);
+
+      // 新的 assistant 消息用于显示分析结果
+      const analysisMessage: ChatMessageUI = {
+        id: generateId(),
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+        type: 'video',
+        multimodal: {
+          fileId: fileId,
+          fileName: uploadedLocalVideo.fileName,
+          text: prompt,
+        },
+      };
+
+      setMessages(prev => [...prev, analysisMessage]);
+
+      // 构建 API 请求消息
+      const historyMessages: ChatMessage[] = [
+        ...messages,
+        userMessage,
+        assistantMessage,
+      ].map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
+
+      historyMessages.push(videoMessage);
+
+      const apiMessages = buildApiMessages(historyMessages, systemPrompt);
+
       abortControllerRef.current = new AbortController();
-
       let fullContent = '';
 
-      await streamChat(
+      await streamLLMChat(
         config,
-        messagesToSend,
+        apiMessages,
+        {
+          onChunk: (text) => {
+            fullContent += text;
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === analysisMessage.id
+                  ? { ...m, content: fullContent }
+                  : m
+              )
+            );
+          },
+          onDone: () => {
+            setIsStreaming(false);
+            abortControllerRef.current = null;
+            // 分析完成后清除本地视频状态
+            setUploadedLocalVideo(null);
+          },
+          onError: (err) => {
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === analysisMessage.id
+                  ? { ...m, content: `错误: ${err.message}` }
+                  : m
+              )
+            );
+            setIsStreaming(false);
+            abortControllerRef.current = null;
+          },
+        },
+        abortControllerRef.current.signal
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '未知错误';
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantMessage.id
+            ? {
+                ...m,
+                content: `❌ 处理失败: ${errorMessage}`,
+                multimodal: { text: errorMessage },
+              }
+            : m
+        )
+      );
+      setIsStreaming(false);
+      setError(errorMessage);
+    }
+  };
+
+  /**
+   * 处理复用已有 fileId 的视频分析流程（不重新上传）
+   */
+  const handleReuseFileIdAnalysis = async (
+    userText: string,
+    prompt: string,
+    fileInfo: { fileId: string; fileName?: string },
+    config: AIModelConfig,
+    systemPrompt: string
+  ) => {
+    const userMessage: ChatMessageUI = {
+      id: generateId(),
+      role: 'user',
+      content: userText,
+      timestamp: Date.now(),
+      type: 'localVideo',
+      multimodal: {
+        fileId: fileInfo.fileId,
+        fileName: fileInfo.fileName,
+        text: userText,
+      },
+    };
+
+    // assistant 消息用于显示分析结果
+    const assistantMessage: ChatMessageUI = {
+      id: generateId(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      type: 'video',
+      multimodal: {
+        fileId: fileInfo.fileId,
+        fileName: fileInfo.fileName,
+        text: prompt,
+      },
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
+    setIsStreaming(true);
+    setError(null);
+
+    setMessages(prev => [...prev, assistantMessage]);
+
+    try {
+      // 直接使用已有的 fileId，不上传
+      const fileId = fileInfo.fileId;
+
+      // 创建多模态消息
+      const videoMessage = createVideoMessage(fileId, prompt);
+
+      // 构建历史消息
+      const historyMessages: ChatMessage[] = [
+        ...messages,
+        userMessage,
+      ].map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
+
+      historyMessages.push(videoMessage);
+
+      const apiMessages = buildApiMessages(historyMessages, systemPrompt);
+      abortControllerRef.current = new AbortController();
+      let fullContent = '';
+
+      await streamLLMChat(
+        config,
+        apiMessages,
         {
           onChunk: (text) => {
             fullContent += text;
@@ -178,17 +686,6 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
             abortControllerRef.current = null;
           },
           onError: (err) => {
-            // 检查是否是 token 超限错误
-            if (isTokenLimitError(err) && retryCount < maxRetries) {
-              retryCount++;
-              // 截断消息后重试
-              const trimmed = trimMessages(messagesToSend);
-              if (trimmed.length < messagesToSend.length) {
-                doStream(trimmed);
-                return;
-              }
-            }
-
             setMessages(prev =>
               prev.map(m =>
                 m.id === assistantMessage.id
@@ -202,9 +699,284 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
         },
         abortControllerRef.current.signal
       );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '未知错误';
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantMessage.id
+            ? {
+                ...m,
+                content: `❌ 处理失败: ${errorMessage}`,
+                multimodal: { fileId: fileInfo.fileId, fileName: fileInfo.fileName, text: errorMessage },
+              }
+            : m
+        )
+      );
+      setIsStreaming(false);
+      setError(errorMessage);
+    }
+  };
+
+  /**
+   * 处理本地视频文件上传
+   */
+  const handleLocalVideoUpload = async (file: File) => {
+    setIsUploadingVideo(true);
+    setUploadProgress('准备上传...');
+    setError(null);
+
+    try {
+      const result = await uploadLocalVideoFile(file, 'douyin');
+
+      if (result.success && result.data) {
+        setUploadedLocalVideo({
+          fileUrl: result.data.url,
+          fileName: result.data.filename,
+          fileSize: parseInt(result.data.size) || 0,
+        });
+        setUploadProgress('');
+      } else {
+        setError(result.error || '上传失败');
+        setUploadProgress('');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '上传失败');
+      setUploadProgress('');
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
+
+  /**
+   * 触发文件选择
+   */
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  /**
+   * 处理文件选择
+   */
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleLocalVideoUpload(file);
+    }
+    // 清空 input 以便选择相同文件
+    e.target.value = '';
+  };
+
+  /**
+   * 处理抖音视频分析流程
+   */
+  const handleDouyinVideoAnalysis = async (
+    userText: string,
+    url: string,
+    prompt: string,
+    config: AIModelConfig,
+    systemPrompt: string
+  ) => {
+    const userMessage: ChatMessageUI = {
+      id: generateId(),
+      role: 'user',
+      content: userText,
+      timestamp: Date.now(),
+      type: 'video',
+      multimodal: { fileName: url.match(/\/([^\/]+)$/)?.[1] || 'douyin_video' },
     };
 
-    doStream(apiMessages);
+    // 进度状态 assistant 消息
+    const assistantMessage: ChatMessageUI = {
+      id: generateId(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      type: 'video',
+      multimodal: {
+        text: '正在连接抖音服务...',
+      },
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputText('');
+    setIsStreaming(true);
+    setError(null);
+
+    setMessages(prev => [...prev, assistantMessage]);
+
+    try {
+      // 通过 SSE 调用 /api/douyin/process
+      const response = await fetch('/api/douyin/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          apiKey: config.apiKey,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`请求失败: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('无法读取响应流');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let processResult: DouyinProcessResult | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+          const data = trimmed.slice(6);
+          try {
+            const event = JSON.parse(data);
+
+            if (event.type === 'progress') {
+              // 更新进度
+              const { stage, percent, message } = event.data;
+              let displayText = message || '';
+              if (stage === 'parsing') displayText = '正在解析视频链接...';
+              else if (stage === 'downloading') displayText = `正在下载视频 ${percent}%`;
+              else if (stage === 'uploading') displayText = '正在上传到火山引擎...';
+
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === assistantMessage.id
+                    ? {
+                        ...m,
+                        content: displayText,
+                        multimodal: { text: displayText },
+                      }
+                    : m
+                )
+              );
+            } else if (event.type === 'ready') {
+              // 视频处理完成，获取 file_id
+              processResult = event.data;
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === assistantMessage.id
+                    ? {
+                        ...m,
+                        content: `✅ 视频已上传完成\n📎 file_id: ${processResult.fileId}\n🎬 正在分析视频...`,
+                        multimodal: {
+                          fileId: processResult.fileId,
+                          fileName: processResult.fileName,
+                          text: '视频上传完成，开始分析...',
+                        },
+                      }
+                    : m
+                )
+              );
+            } else if (event.type === 'error') {
+              throw new Error(event.data?.message || '处理失败');
+            }
+          } catch (e) {
+            // 忽略解析错误
+          }
+        }
+      }
+
+      if (!processResult) {
+        throw new Error('未收到视频处理结果');
+      }
+
+      // 构建多模态消息并调用 LLM 流式分析
+      const videoMessage = createVideoMessage(processResult.fileId, prompt);
+
+      // 新的 assistant 消息用于显示分析结果
+      const analysisMessage: ChatMessageUI = {
+        id: generateId(),
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+        type: 'video',
+        multimodal: {
+          fileId: processResult.fileId,
+          fileName: processResult.fileName,
+          text: prompt,
+        },
+      };
+
+      setMessages(prev => [...prev, analysisMessage]);
+
+      // 构建 API 请求消息
+      const historyMessages: ChatMessage[] = [
+        ...messages,
+        userMessage,
+        assistantMessage,
+      ].map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
+
+      // 添加视频消息到历史
+      historyMessages.push(videoMessage);
+
+      const apiMessages = buildApiMessages(historyMessages, systemPrompt);
+
+      abortControllerRef.current = new AbortController();
+      let fullContent = '';
+
+      await streamLLMChat(
+        config,
+        apiMessages,
+        {
+          onChunk: (text) => {
+            fullContent += text;
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === analysisMessage.id
+                  ? { ...m, content: fullContent }
+                  : m
+              )
+            );
+          },
+          onDone: () => {
+            setIsStreaming(false);
+            abortControllerRef.current = null;
+          },
+          onError: (err) => {
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === analysisMessage.id
+                  ? { ...m, content: `错误: ${err.message}` }
+                  : m
+              )
+            );
+            setIsStreaming(false);
+            abortControllerRef.current = null;
+          },
+        },
+        abortControllerRef.current.signal
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '未知错误';
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantMessage.id
+            ? {
+                ...m,
+                content: `❌ 处理失败: ${errorMessage}`,
+                multimodal: { text: errorMessage },
+              }
+            : m
+        )
+      );
+      setIsStreaming(false);
+      setError(errorMessage);
+    }
   };
 
   // 停止生成
@@ -241,6 +1013,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
+      type: 'text',
     };
 
     setIsStreaming(true);
@@ -249,7 +1022,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
     abortControllerRef.current = new AbortController();
     let fullContent = '';
 
-    await streamChat(
+    await streamLLMChat(
       config,
       apiMessages,
       {
@@ -391,12 +1164,58 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
 
               {/* 消息气泡 */}
               <div
-                className={`max-w-[80%] rounded-xl px-3 py-2 ${
+                className={`max-w-[80%] rounded-xl px-3 py-2 select-text break-all ${
                   message.role === 'user'
-                    ? 'bg-slate-600 text-slate-50'
+                    ? 'bg-slate-500/80 text-slate-50'
                     : 'bg-slate-700/50 text-slate-200'
                 }`}
               >
+                {/* 本地视频预览 */}
+                {message.type === 'localVideo' && message.localVideo && (
+                  <div className="mb-2">
+                    <div className="flex items-center gap-1.5 mb-1.5 text-xs text-slate-300 bg-slate-800/50 px-2 py-1 rounded-lg">
+                      <Film className="w-3 h-3 text-green-400" />
+                      <span>本地视频</span>
+                      <span className="truncate max-w-[150px]">{message.localVideo.fileName}</span>
+                    </div>
+                    <video
+                      src={message.localVideo.fileUrl}
+                      controls
+                      className="w-full max-w-[300px] h-40 rounded-lg bg-black"
+                    />
+                  </div>
+                )}
+
+                {/* 抖音视频消息标记 */}
+                {message.type === 'video' && message.role === 'user' && !message.localVideo && (
+                  <div className="flex items-center gap-1.5 mb-1.5 text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded-lg">
+                    <Video className="w-3 h-3" />
+                    <span>抖音视频</span>
+                    {message.multimodal?.fileName && (
+                      <span className="truncate max-w-[150px]">{message.multimodal.fileName}</span>
+                    )}
+                  </div>
+                )}
+
+                {/* 视频消息进度/状态显示 */}
+                {message.type === 'video' && message.role === 'assistant' && (
+                  <div className="mb-2">
+                    <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/50 px-2 py-1.5 rounded-lg">
+                      {message.multimodal?.text?.includes('下载') && <Download className="w-3 h-3 text-yellow-400" />}
+                      {message.multimodal?.text?.includes('上传') && <Upload className="w-3 h-3 text-blue-400" />}
+                      {message.multimodal?.text?.includes('分析') && <Loader2 className="w-3 h-3 animate-spin text-green-400" />}
+                      {message.multimodal?.text?.includes('失败') && <X className="w-3 h-3 text-red-400" />}
+                      {message.multimodal?.text?.includes('✅') && <Check className="w-3 h-3 text-green-400" />}
+                      <span className="whitespace-pre-wrap">{message.content}</span>
+                    </div>
+                    {message.multimodal?.fileId && (
+                      <div className="text-xs text-slate-500 mt-1">
+                        file_id: {message.multimodal.fileId}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {message.role === 'assistant' ? (
                   <div className="prose prose-invert prose-sm max-w-none">
                     <ReactMarkdown
@@ -475,6 +1294,60 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
 
       {/* Input Area */}
       <div className="md:px-4 px-2 py-3 border-t border-slate-700 bg-slate-600/80">
+        {/* 本地视频预览区域 */}
+        {uploadedLocalVideo && (
+          <div className="w-64 mb-2 p-2 bg-slate-700/50 rounded-lg border border-slate-600">
+            <div className="flex items-center gap-3">
+              {/* 视频缩略图/图标 */}
+              <div className="w-16 h-12 bg-slate-800 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <video
+                  src={uploadedLocalVideo.fileUrl}
+                  className="w-full h-full object-contain"
+                  muted
+                  preload="metadata"
+                />
+              </div>
+              {/* 视频信息 */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <Film className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <span className="text-sm text-slate-200 truncate">{uploadedLocalVideo.fileName}</span>
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">
+                  {isUploadingVideo ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      {uploadProgress || '上传中...'}
+                    </span>
+                  ) : (
+                    <span>{(uploadedLocalVideo.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                  )}
+                </div>
+              </div>
+              {/* 移除按钮 */}
+              <button
+                onClick={() => setUploadedLocalVideo(null)}
+                className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors"
+                title="移除视频"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {/* 视频播放器 */}
+            <div className="mt-2">
+              <video
+                src={uploadedLocalVideo.fileUrl}
+                controls
+                className="w-full h-32 rounded bg-black object-cover"
+              />
+            </div>
+            {/* 提示 */}
+            <p className="text-xs text-slate-500 mt-1.5">
+              输入&quot;分析这个视频&quot;可让 AI 分析视频内容
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-1.5 text-sm text-slate-500">
           {/* 模型选择 */}
           <CustomSelect
@@ -498,13 +1371,35 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
           )}
         </div>
         <div className="flex items-end gap-2">
+          {/* 视频上传按钮 */}
+          <button
+            onClick={triggerFileSelect}
+            disabled={isStreaming || isUploadingVideo || llmConfigs.length === 0}
+            className="p-2.5 mb-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title="上传本地视频"
+          >
+            {isUploadingVideo ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Paperclip className="w-4 h-4" />
+            )}
+          </button>
+          {/* 隐藏的文件输入 */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
           <div className="flex-1 relative">
             <textarea
               ref={inputRef}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="输入消息..."
+              placeholder={uploadedLocalVideo ? '输入"分析这个视频"分析视频，或直接聊天...' : '输入消息...'}
               disabled={isStreaming || llmConfigs.length === 0}
               rows={1}
               className="w-full bg-slate-700 border border-slate-600 text-slate-50 px-3 py-2.5 pr-10 text-sm rounded-xl focus:outline-none focus:border-slate-500 resize-none disabled:opacity-50 placeholder:text-slate-500"
@@ -531,7 +1426,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
           ) : (
             <button
               onClick={handleSend}
-              disabled={!inputText.trim() || llmConfigs.length === 0}
+              disabled={!inputText.trim() && !uploadedLocalVideo || llmConfigs.length === 0}
               className="p-2.5 mb-2 bg-slate-600 hover:bg-slate-500 text-slate-50 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               title="发送"
             >

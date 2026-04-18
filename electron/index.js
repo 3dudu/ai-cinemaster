@@ -8,6 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import cutosRoutes from './routes/cutos.routes.js';
+import douyinRoutes from './routes/douyin.routes.js';
 import fileRoutes from './routes/file.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 import ttsRoutes from './routes/tts.routes.js';
@@ -26,6 +27,7 @@ app.use(`${API_PREFIX}/file`, fileRoutes);
 app.use(`${API_PREFIX}/sync`, syncRoutes);
 app.use(`${API_PREFIX}/text2audio`, ttsRoutes);
 app.use(`${API_PREFIX}/cutos`, cutosRoutes);
+app.use(`${API_PREFIX}/douyin`, douyinRoutes);
 
 app.get(`${API_PREFIX}/health`, (req, res) => {
   res.json({
@@ -56,7 +58,8 @@ function startServer(port, staticFilesDir) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  startServer(PORT,'upload');
+  const uploadDir = path.resolve(__dirname, '../upload');
+  startServer(PORT,uploadDir);
 }
 
 export { app, startServer };

@@ -1,7 +1,34 @@
 /**
  * 文件上传工具类
- * 支持远程URL和Base64格式文件上传到本地服务
+ * 支持远程URL、Base64格式和本地文件上传到本地服务
  */
+
+// 获取 API 基础路径
+function getApiBaseUrl(): string {
+  // Electron 环境或 Web 环境
+  if (typeof window !== 'undefined' && (window as any).electron?.send) {
+    return '';
+  }
+  // Cloudflare Pages 环境
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) {
+    return (import.meta as any).env.VITE_API_URL;
+  }
+  return '';
+}
+
+/**
+ * 获取文件服务器地址
+ */
+function getFileServerBaseUrl(): string {
+  const uploadServiceUrl = getServerBaseUrl();
+  if (uploadServiceUrl) {
+    // 使用配置的上传服务地址
+    const url = new URL(uploadServiceUrl);
+    return `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}`;
+  }
+  // 默认返回空字符串，使用相对路径
+  return getApiBaseUrl();
+}
 
 /**
  * 上传参数接口
@@ -311,4 +338,80 @@ export async function uploadBase64File(
     base64Data,
     fileName
   });
+}
+
+/**
+ * 上传响应接口（本地文件上传）
+ */
+export interface LocalUploadResponse {
+  success: boolean;
+  data?: {
+    url: string;
+    filename: string;
+    size: string;
+    contentType: string;
+  };
+  message?: string;
+  error?: string;
+}
+
+/**
+ * 上传本地视频文件到服务器
+ * 使用 /api/file/upload 接口（FormData multipart/form-data）
+ * @param file - File 对象（从 input[type=file] 获取）
+ * @param pathPrefix - 可选的路径前缀，如 'douyin' 将上传到 /api/file/upload/douyin
+ * @returns Promise<LocalUploadResponse>
+ */
+export async function uploadLocalVideoFile(
+  file: File,
+  pathPrefix?: string
+): Promise<LocalUploadResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 构建 URL
+    let url = '/api/file/upload';
+    if (pathPrefix) {
+      url = `/api/file/upload/${pathPrefix}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`上传失败: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const apiResponse = await response.json();
+
+    // 处理响应格式
+    if (apiResponse.code !== 200 && apiResponse.code !== undefined) {
+      throw new Error(apiResponse.message || '上传失败');
+    }
+
+    // 处理返回的 URL（如果需要添加域名）
+    let fileUrl = apiResponse.data?.url || '';
+    const processedFileUrl = fileUrl ? processFileUrl(fileUrl) : '';
+
+    return {
+      success: true,
+      data: {
+        url: processedFileUrl,
+        filename: apiResponse.data?.filename || file.name,
+        size: apiResponse.data?.size || String(file.size),
+        contentType: apiResponse.data?.contentType || file.type,
+      },
+      message: apiResponse.message
+    };
+  } catch (error) {
+    console.error('本地视频上传失败:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    };
+  }
 }

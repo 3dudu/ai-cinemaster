@@ -32,7 +32,18 @@ export default defineConfig(({ mode }) => {
           '/api': {
             target: 'http://127.0.0.1:8080/api',
             changeOrigin: true,
-            rewrite: (path) => path.replace(/^\/api/, '')
+            rewrite: (path) => path.replace(/^\/api/, ''),
+            // SSE 关键配置
+            configure: (proxy) => {
+              proxy.on('proxyRes', (proxyRes, req, res) => {
+                // 禁用 nginx/中间件的缓冲（如果有的话）
+                if (proxyRes.headers['content-type']?.includes('text/event-stream')) {
+                  res.setHeader('Cache-Control', 'no-cache');
+                  res.setHeader('Connection', 'keep-alive');
+                  res.setHeader('X-Accel-Buffering', 'no'); // 如果有 nginx
+                }
+              });
+            }
           }
         }
       },

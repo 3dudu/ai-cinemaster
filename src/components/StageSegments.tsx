@@ -858,14 +858,15 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
       const imageLabels: string[] = [];
       const scenes: string[] = [];
       let imageIndex = 1;
+      const mentions:{label:string,index:number}[] = [];
       
       // Add scene images
       selectedSegment.sceneIds?.forEach((sceneId) => {
         let scene = activeScenes.find((s) => s.id === sceneId);
         if (scene && scene?.referenceImage) {
           referenceImages.push(scene.referenceImage);
-          currentDescription = currentDescription.replaceAll(`${scene.location} `, `@图${imageIndex}（${scene.location}）`);
           scenes.push(scene.location);
+          mentions.push({label:scene.location,index:imageIndex});
           imageIndex++;
         }
       });
@@ -882,16 +883,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             const selectedVar = character.variations.find(v => v.id === variation);
             if(selectedVar?.referenceImage){
               referenceImages.push(selectedVar.referenceImage);
-              currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
+              mentions.push({label:character.name,index:imageIndex});
               imageIndex++;
             }else if(character?.referenceImage){
               referenceImages.push(character.referenceImage);
-              currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
+              mentions.push({label:character.name,index:imageIndex});
               imageIndex++;
             }
           }else if(character?.referenceImage){
             referenceImages.push(character.referenceImage);
-              currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
+            mentions.push({label:character.name,index:imageIndex});
             imageIndex++;
           }
           if(character?.voiceUrl){
@@ -911,20 +912,30 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             const selectedVar = prop.variations?.find(v => v.id === variation);
             if (selectedVar?.referenceImage) {
               referenceImages.push(selectedVar.referenceImage);
-              currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
+              mentions.push({label:prop.name,index:imageIndex});
               imageIndex++;
             } else if (prop?.referenceImage) {
               referenceImages.push(prop.referenceImage);
-              currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
+              mentions.push({label:prop.name,index:imageIndex});
               imageIndex++;
             }
           } else if (prop?.referenceImage) {
             referenceImages.push(prop.referenceImage);
-              currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
+            mentions.push({label:prop.name,index:imageIndex});
             imageIndex++;
           }
         }
       });
+      
+      // 使用 currentDescription（可能刚生成），替换 mentions 中的 label
+      mentions.sort((a, b) => b.label.length - a.label.length);
+      mentions.forEach(({ label, index }) => {
+        currentDescription = currentDescription.replaceAll(`${label}`, `@图${index}（${label}）`);
+      });
+      const videoPrompt = renderGroupTemplate('GENERATE_SEGMENT_VIDEO_PROMPT', { visualStyle: project.visualStyle, genre: project.genre, globalSettings: project.globalSettings },scenes.join(','),currentDescription,
+        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.globalSettings,project.visualStyle
+      );
+
       // 检查是否启用尾帧参考（默认 true）
       const useTailFrameRef = selectedSegment.useTailFrameRef == true;
       if(segmentIndex>0 && useTailFrameRef){
@@ -944,11 +955,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           }
         }
       }
-
-      // 使用 currentDescription（可能刚生成）
-      const videoPrompt = renderGroupTemplate('GENERATE_SEGMENT_VIDEO_PROMPT', { visualStyle: project.visualStyle, genre: project.genre, globalSettings: project.globalSettings },scenes.join(','),currentDescription,
-        selectedSegment.transitionFrom,selectedSegment.transitionTo,project.globalSettings,project.visualStyle
-      );
 
       const prompt = `${imageLabels.length>0?`**首尾帧控制**：${imageLabels.join('；')}`:''}${voicesLabels.length>0?`\n **角色声音控制**：${voicesLabels.join('；')}`:''}\n\n${videoPrompt}` ;
 
@@ -1060,13 +1066,14 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
           const imageLabels: string[] = [];
           const scenes: string[] = [];
           let imageIndex = 1;
+          const mentions:{label:string,index:number}[] = [];
 
           segment.sceneIds?.forEach((sceneId) => {
             let scene = activeScenes.find((s) => s.id === sceneId);
             if (scene?.referenceImage) {
               referenceImages.push(scene.referenceImage);
-              currentDescription = currentDescription.replaceAll(`${scene.location} `, `@图${imageIndex}（${scene.location}）`);
               scenes.push(scene.location);
+              mentions.push({label:scene.location,index:imageIndex});
               imageIndex++;
             }
           });
@@ -1082,16 +1089,16 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 const selectedVar = character.variations?.find(v => v.id === variation);
                 if (selectedVar?.referenceImage) {
                   referenceImages.push(selectedVar.referenceImage);
-                  currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
+                  mentions.push({label:character.name,index:imageIndex});
                   imageIndex++;
                 } else if (character.referenceImage) {
                   referenceImages.push(character.referenceImage);
-                  currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
+                  mentions.push({label:character.name,index:imageIndex});
                   imageIndex++;
                 }
               } else if (character.referenceImage) {
                 referenceImages.push(character.referenceImage);
-                  currentDescription = currentDescription.replaceAll(`${character.name} `, `@图${imageIndex}（${character.name}）`);
+                mentions.push({label:character.name,index:imageIndex});
                 imageIndex++;
               }
               if(character?.voiceUrl){
@@ -1111,21 +1118,25 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 const selectedVar = prop.variations?.find(v => v.id === variation);
                 if (selectedVar?.referenceImage) {
                   referenceImages.push(selectedVar.referenceImage);
-                  currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
+                  mentions.push({label:prop.name,index:imageIndex});
                   imageIndex++;
                 } else if (prop.referenceImage) {
                   referenceImages.push(prop.referenceImage);
-                  currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
+                  mentions.push({label:prop.name,index:imageIndex});
                   imageIndex++;
                 }
               } else if (prop.referenceImage) {
                 referenceImages.push(prop.referenceImage);
-                  currentDescription = currentDescription.replaceAll(`${prop.name} `, `@图${imageIndex}（${prop.name}）`);
+                mentions.push({label:prop.name,index:imageIndex});
                 imageIndex++;
               }
             }
           });
-
+          // 使用 currentDescription（可能刚生成），替换 mentions 中的 label
+          mentions.sort((a, b) => b.label.length - a.label.length);
+          mentions.forEach(({ label, index }) => {
+            currentDescription = currentDescription.replaceAll(`${label}`, `@图${index}（${label}）`);
+          });
           const videoPrompt = renderGroupTemplate(
             'GENERATE_SEGMENT_VIDEO_PROMPT',
             { visualStyle: project.visualStyle, genre: project.genre, globalSettings: project.globalSettings },
