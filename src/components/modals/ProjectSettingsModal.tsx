@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp, Clock, Film, Image as ImageIcon, RefreshCw, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { TemplateGroupService } from '../../prompt/templateGroupService';
 import { PromptTemplateGroup } from '../../prompt/promptTemplate';
+import { TemplateGroupService } from '../../prompt/templateGroupService';
 import { getEnabledConfigByType } from '../../services/modelConfigService';
 import { ModelService } from '../../services/modelService';
 import { getAllModelConfigs } from '../../services/storageService';
@@ -234,10 +234,10 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
           </button>
         </div>
 
-        <div className="p-2 md:p-6 space-y-5 flex-1 overflow-y-auto bg-slate-700">
+        <div className="p-2 md:p-6 space-y-2 flex-1 overflow-y-auto bg-slate-700">
           {/* Title Input */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">项目标题</label>
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">项目标题 {project.id}</label>
             <input
               type="text"
               value={localTitle}
@@ -246,15 +246,14 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
               placeholder="输入项目名称..."
             />
             <div className="flex items-center justify-between">
-              <label className="text-[12px] font-bold text-slate-500 tracking-widest">id: {project.id}</label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-1">
                 <label className="text-[12px] font-bold text-slate-500 tracking-widest">seed: {project.seed}</label>
                 <button
                   onClick={regenerateSeed}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-md text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+                  className="p-1.5 hover:bg-slate-800 rounded-md text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
                   title="重新生成随机seed"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <RefreshCw className="w-2.5 h-2.5" />
                 </button>
               </div>
             </div>

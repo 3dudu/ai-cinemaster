@@ -1,7 +1,7 @@
 import { AlertCircle, Aperture, BookOpen, BrainCircuit, ChevronDown, ChevronUp, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { TemplateGroupService } from '../prompt/templateGroupService';
 import { PromptTemplateGroup } from '../prompt/promptTemplate';
+import { TemplateGroupService } from '../prompt/templateGroupService';
 import { getEnabledConfigByType } from '../services/modelConfigService';
 import { ModelService } from '../services/modelService';
 import { createCharacterRef, createLightweightCharacters, createLightweightProps, createLightweightScenes, createSceneRef, generateId, mergeCharactersToLibrary, mergeScenesToLibrary, mergeToLibrary, remapScriptDataRefs, updateLibraryCharacter } from '../services/seriesService';
@@ -920,7 +920,7 @@ const StageScript: React.FC<Props> = ({
     <div className={`flex h-full overflow-y-auto bg-slate-900 text-slate-300 ${isMobile ? 'flex-col' : 'flex-row'}`}>
       {/* Right: Text Editor - Optimized */}
       <div className="h-full flex-1 flex flex-col bg-slate-900 relative">
-        <div className="h-14 border-b border-slate-600 flex items-center justify-between md:px-6 px-2 bg-slate-700 shrink-0">
+        <div className="h-10 md:h-14 border-b border-slate-600 flex items-center justify-between md:px-6 px-2 bg-slate-700 shrink-0">
            <div className="flex items-center gap-3">
               <h2 className="text-lg font-bold text-slate-50 tracking-tight flex items-center gap-3">
               <BookOpen className="w-5 h-5 text-slate-500" />
@@ -996,7 +996,7 @@ const StageScript: React.FC<Props> = ({
       {/* Middle Column: Config Panel - Adjusted Width to w-96 */}
       <div className={`${isMobile ? 'w-full' : 'w-96'} h-full border-l border-slate-600 flex flex-col bg-slate-700 shadow-2xl animate-in slide-in-from-right-10 duration-300 transition-all ease-in-out`}>
         {/* Header - Fixed Height 56px */}
-        <div className="h-14 md:px-6 px-2 border-b border-slate-600 bg-slate-700 flex items-center justify-between shrink-0">
+        <div className="h-10 md:h-14 md:px-6 px-2 border-b border-slate-600 bg-slate-700 flex items-center justify-between shrink-0">
             <h2 className="text-lg font-bold text-slate-50 tracking-tight flex items-center gap-3">
               项目配置
             </h2>
@@ -1447,7 +1447,7 @@ const StageScript: React.FC<Props> = ({
     return (
       <div className="flex flex-col h-full bg-slate-900 animate-in fade-in duration-500">
         {/* Header */}
-        <div className="h-14 md:px-6 px-2 border-b border-slate-600 bg-slate-700 flex items-center justify-between shrink-0 z-20">
+        <div className="h-10 md:h-14 md:px-6 px-2 border-b border-slate-600 bg-slate-700 flex items-center justify-between shrink-0 z-20">
            <div className="flex items-center gap-6">
               <h2 className="text-lg font-bold text-slate-50 tracking-tight flex items-center gap-3">
                  <ScrollText className="w-5 h-5 text-slate-500" />

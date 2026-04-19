@@ -1046,7 +1046,7 @@ const ImageLibrary: React.FC<ImageLibraryProps> = ({
     <>
       {/* 标题栏（默认或自定义） */}
       {!modalMode && (
-        <div className="h-14 px-4 md:px-6 border-b border-slate-600 bg-slate-700 flex items-center justify-between shrink-0">
+        <div className="h-10 md:h-14 px-4 md:px-6 border-b border-slate-600 bg-slate-700 flex items-center justify-between shrink-0">
           <h2 className="text-lg font-bold text-slate-50 flex items-center gap-2">
             <Images className="w-5 h-5 text-slate-500" />
             {title}

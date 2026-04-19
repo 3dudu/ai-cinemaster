@@ -1470,7 +1470,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-hidden">
       {/* Header */}
-      <div className="h-14 border-b border-slate-600 bg-slate-700 md:px-6 px-2 flex items-center justify-between shrink-0">
+      <div className="h-10 md:h-14 border-b border-slate-600 bg-slate-700 md:px-6 px-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <ListVideo className="w-5 h-5 text-slate-500" />
           <div>
@@ -1666,13 +1666,8 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                 <NotebookPen className="w-4 h-4 text-slate-500" />
                 {`${selectedSegment.name||`片段 ${activeSegmentIndex+1}`}`}
               </h3>
-              </div>
-
-
-              <div className="flex items-center gap-1">
               {/* Duration selector */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 whitespace-nowrap">时长</span>
                 <CustomSelect
                   value={(selectedSegment?.estimatedDuration || project.segmentDuration || 8).toString()}
                   onChange={(val) => {
@@ -1683,11 +1678,14 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   }}
                   options={Array.from({ length: 12 }, (_, i) => ({
                     value: (i + 4).toString(),
-                    label: `${i + 4} 秒`,
+                    label: `${i + 4}秒`,
                   }))}
-                  className="w-24"
+                  className="w-16"
+                  size='sm'
                 />
               </div>
+              </div>
+              <div className="flex items-center gap-1">
                 <span className="text-xs text-slate-400 font-mono">
                   {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
                 </span>
@@ -1697,7 +1695,6 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   <button onClick={goToNextSegment} disabled={activeSegmentIndex < 0 || activeSegmentIndex >= (project.segments || []).length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
                       <ChevronRight className="w-4 h-4" />
                   </button>
-                  <div className="w-px h-4 bg-slate-700 mx-2"></div>
                   <button onClick={handleCloseEditScript} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer">
                       <X className="w-4 h-4" />
                   </button>

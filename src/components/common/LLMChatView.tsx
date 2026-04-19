@@ -1064,7 +1064,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
   return (
     <div className="flex flex-col h-full bg-slate-900 overflow-hidden">
       {/* Header */}
-        <div className="h-14 md:px-4 px-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
+        <div className="h-10 md:h-14 md:px-4 px-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-slate-700 text-slate-50 flex items-center justify-center rounded-lg">
             <MessageSquare className="w-4 h-4" />

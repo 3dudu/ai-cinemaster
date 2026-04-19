@@ -714,7 +714,7 @@ const PromptTemplateModal: React.FC<{
                     <div className='overflow-y-auto h-full'>
                       {/* Agent 信息编辑 */}
                       <div className="md:p-4 p-2 border-b border-slate-600 space-y-3 bg-slate-800">
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                           <button
                             onClick={()=>setSelectedAgentId('')}
                             className="px-3 py-2 bg-slate-600 text-slate-300 hover:bg-slate-500 rounded-lg text-sm flex items-center gap-1 md:hidden"
@@ -823,7 +823,7 @@ const PromptTemplateModal: React.FC<{
                         <textarea
                           value={agentSystemPrompt}
                           onChange={(e) => setAgentSystemPrompt(e.target.value)}
-                          className="select-text w-full h-full bg-slate-800 text-slate-100 p-4 font-mono text-sm resize-none focus:border-slate-500 focus:outline-none"
+                          className="select-text w-full h-full bg-slate-800 text-slate-100 p-2 md:p-4 font-mono text-sm resize-none focus:border-slate-500 focus:outline-none"
                           placeholder="在此编辑 Agent 的系统提示词..."
                           spellCheck={false}
                         />
@@ -925,7 +925,7 @@ const PromptTemplateModal: React.FC<{
                     <div className='overflow-y-auto h-full'>
                       {/* 组信息编辑 */}
                       <div className="md:p-4 p-2 border-b border-slate-600 space-y-3 bg-slate-800">
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                             <button
                             onClick={()=>setSelectedGroupId(null)}
                             className="px-3 py-2 bg-slate-600 text-slate-300 hover:bg-slate-500 rounded-lg text-sm flex items-center gap-1 md:hidden"
@@ -942,7 +942,7 @@ const PromptTemplateModal: React.FC<{
                             />
                           </div>
                         </div>
-                         <div className="flex gap-3">
+                         <div className="flex gap-2">
                           <div className="flex-1">
                           <label className="text-xs text-slate-400 mb-1 block">描述</label>
                           <input
@@ -962,7 +962,7 @@ const PromptTemplateModal: React.FC<{
                             />
                           </div>
                           </div>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-3 gap-2">
                           <div>
                             <label className="text-xs text-slate-400 mb-1 block">匹配视觉风格 (逗号分隔)</label>
                             <input
@@ -996,9 +996,9 @@ const PromptTemplateModal: React.FC<{
                       </div>
 
                       {/* 模版选择和编辑 */}
-                      <div className="md:p-4 p-2 border-b border-slate-600 bg-slate-700 flex items-center gap-3 sticky top-0 z-10">
+                      <div className="md:p-4 p-2 border-b border-slate-600 bg-slate-700 flex items-center justify-between gap-2 sticky top-0 z-10">
                         <CustomSelect
-                          className="flex-1"
+                          className="flex-1 max-w-full"
                           options={groupTemplateOptions}
                           value={selectedTemplateKey}
                           onChange={(v) => setSelectedTemplateKey(v as keyof GroupTemplates)}
