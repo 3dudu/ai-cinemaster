@@ -666,11 +666,14 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
     }
   }, []);
 
-  // 处理复制 - 只复制纯文本
+  // 处理复制 - 只复制选中的纯文本
   const handleCopy = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    const selection = window.getSelection();
+    const selectedText = selection?.toString() || '';
+    if (!selectedText) return; // 没有选中内容则不拦截，走默认行为
     e.preventDefault();
-    e.clipboardData.setData('text/plain', value);
-  }, [value]);
+    e.clipboardData.setData('text/plain', selectedText);
+  }, []);
 
   // 点击 mention 标签时弹出替换选择器
   const handleMentionClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
