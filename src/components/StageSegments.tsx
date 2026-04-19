@@ -374,11 +374,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         const insertPos = insertIndex !== null ? insertIndex : newSegments.length;
         newSegments.splice(insertPos, 0, updatedSegment);
         updateProject({ segments: newSegments });
+        setSelectedSegmentId(updatedSegment.id);
       }
       setSegmentEditModalOpen(false);
       setInsertIndex(null);
     },
-    [project.segments, updateProject, editingSegment, insertIndex],
+    [project.segments, updateProject, editingSegment, insertIndex, setSelectedSegmentId],
   );
 
   // Get thumbnail image for segment (priority: firstFrameThumbnail > scene reference image)
