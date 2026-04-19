@@ -233,8 +233,15 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-800">
           {/* Duration */}
           <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">预估时长</label>
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">片段名称</label>
             <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={editedSegment.name}
+              onChange={(e) => setEditedSegment({ ...editedSegment, name: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-50 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="输入片段名称"
+            />
               <CustomSelect
                 value={editedSegment.estimatedDuration.toString()}
                 onChange={(val) => setEditedSegment({ ...editedSegment, estimatedDuration: parseInt(val) || 4 })}
@@ -243,9 +250,6 @@ const SegmentEditModal: React.FC<SegmentEditModalProps> = ({
                   label: `${i + 4} 秒`,
                 }))}
               />
-              <span className="text-xs text-slate-500">
-                建议时长 4-15 秒
-              </span>
             </div>
           </div>
 

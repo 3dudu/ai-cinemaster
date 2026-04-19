@@ -158,6 +158,58 @@ function segmentsToHtml(segments: TextSegment[]): string {
   }).join('');
 }
 
+/**
+ * 从 contenteditable DOM 中提取纯文本
+ * innerText 在 white-space: pre-wrap 模式下对连续 <br> 会产生额外换行，
+ * 需要规范化：把连续超过 2 个 \n 缩回到 2 个。
+ */
+function getPlainTextFromEditor(root: HTMLElement): string {
+  // 使用 innerText 获取浏览器计算后的文本
+  let text = root.innerText || '';
+  // 规范化：连续 3+ 个 \n → 2 个
+  text = text.replace(/\n{3,}/g, '\n\n');
+  return text;
+}
+
+/**
+ * 将 HTML 清洗为纯文本（保留换行）
+ */
+function sanitizeHtmlToPlainText(html: string): string {
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+
+  function cleanNode(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent || '';
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+
+    // 跳过脚本和样式元素
+    if (tag === 'script' || tag === 'style' || tag === 'meta' || tag === 'link') return '';
+
+    // 块级元素前面加换行
+    const blockTags = ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'tr', 'br', 'hr', 'blockquote', 'pre'];
+    const prefix = blockTags.includes(tag) ? '\n' : '';
+
+    // 递归处理子节点
+    let text = '';
+    for (const child of Array.from(node.childNodes)) {
+      text += cleanNode(child);
+    }
+
+    return prefix + text;
+  }
+
+  let result = cleanNode(temp);
+  // 清理多余空行（连续3+换行→2换行）
+  result = result.replace(/\n{3,}/g, '\n\n').trim();
+
+  return result;
+}
+
 const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEditorProps>(({
   value,
   onChange,
@@ -189,8 +241,8 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
       const selection = window.getSelection();
       if (!selection) return;
 
-      // 获取当前文本
-      const text = editor.textContent || '';
+      // 获取当前文本（使用自定义函数避免 innerText 的换行翻倍问题）
+      const text = getPlainTextFromEditor(editor);
       const atIndex = mentionAtIndexRef.current;
       const searchLen = mentionSearchLengthRef.current;
 
@@ -349,8 +401,8 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
       selection.removeAllRanges();
       selection.addRange(newRange);
 
-      // 更新文本状态
-      const newText = editor.textContent || '';
+      // 更新文本状态（使用自定义函数避免 innerText 的换行翻倍问题）
+      const newText = getPlainTextFromEditor(editor);
       lastValueRef.current = newText;
       onChange(newText);
 
@@ -451,12 +503,12 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
     }
   }, []);
 
-  // 处理输入
+  // 处理输入（使用自定义函数避免 innerText 的换行翻倍问题）
   const handleInput = useCallback(() => {
     const editor = editorRef.current;
     if (!editor) return;
 
-    const text = editor.textContent || '';
+    const text = getPlainTextFromEditor(editor);
     
     // 更新 lastValueRef，防止 useEffect 重新渲染
     lastValueRef.current = text;
@@ -529,7 +581,7 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
         e.preventDefault();
         parent.remove();
         if (editorRef.current) {
-          const newText = editorRef.current.textContent || '';
+          const newText = getPlainTextFromEditor(editorRef.current);
           lastValueRef.current = newText;
           onChange(newText);
         }
@@ -562,7 +614,7 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
             if (el.classList.contains('mention-tag')) {
               e.preventDefault();
               el.remove();
-              const newText = editor.textContent || '';
+              const newText = getPlainTextFromEditor(editor);
               lastValueRef.current = newText;
               onChange(newText);
               return;
@@ -580,7 +632,7 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
               // 删除 mention 和后面的空格
               el.remove();
               node.textContent = '';
-              const newText = editor.textContent || '';
+              const newText = getPlainTextFromEditor(editor);
               lastValueRef.current = newText;
               onChange(newText);
               return;
@@ -593,14 +645,32 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
     onKeyDown?.(e);
   }, [onKeyDown, onMentionClose, onChange]);
 
-  // 处理粘贴 - 只取纯文本
+  // 处理粘贴 - 纯文本原样粘贴，HTML 清洗后粘贴
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault();
+
+    const html = e.clipboardData.getData('text/html');
+    if (html) {
+      // HTML 粘贴 → 清洗后提取纯文本
+      const cleanText = sanitizeHtmlToPlainText(html);
+      if (cleanText) {
+        document.execCommand('insertText', false, cleanText);
+      }
+      return;
+    }
+
+    // 纯文本粘贴 → 原样插入
     const text = e.clipboardData.getData('text/plain');
     if (text) {
       document.execCommand('insertText', false, text);
     }
   }, []);
+
+  // 处理复制 - 只复制纯文本
+  const handleCopy = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', value);
+  }, [value]);
 
   // 点击 mention 标签时弹出替换选择器
   const handleMentionClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -639,6 +709,7 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
       onInput={handleInput}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
+      onCopy={handleCopy}
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
       onClick={handleMentionClick}
