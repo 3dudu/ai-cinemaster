@@ -593,6 +593,15 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
     onKeyDown?.(e);
   }, [onKeyDown, onMentionClose, onChange]);
 
+  // 处理粘贴 - 只取纯文本
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    if (text) {
+      document.execCommand('insertText', false, text);
+    }
+  }, []);
+
   // 点击 mention 标签时弹出替换选择器
   const handleMentionClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -629,6 +638,7 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
       contentEditable={!disabled}
       onInput={handleInput}
       onKeyDown={handleKeyDown}
+      onPaste={handlePaste}
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
       onClick={handleMentionClick}
