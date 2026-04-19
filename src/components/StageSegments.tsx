@@ -1686,12 +1686,12 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               </div>
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-xs text-slate-400 font-mono">
-                  {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
-                </span>
                   <button onClick={goToPrevSegment} disabled={activeSegmentIndex <= 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
                       <ChevronLeft className="w-4 h-4" />
                   </button>
+                <span className="text-xs text-slate-400 font-mono">
+                  {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
+                </span>
                   <button onClick={goToNextSegment} disabled={activeSegmentIndex < 0 || activeSegmentIndex >= (project.segments || []).length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
                       <ChevronRight className="w-4 h-4" />
                   </button>
@@ -2349,10 +2349,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     {(!descriptionExpanded || !isMobile) &&(
       <>
       <div className="pb-1 border-t border-slate-600 bg-slate-700/50">
-        <p className="text-xs text-slate-400 font-mono px-3 py-2">
+        <p className="text-xs text-slate-400 font-mono px-3 py-2 pb-1">
           {(project.segments || []).length} 个片段 · {totalShots} 个分镜 · 总时长 {totalDuration.toFixed(1)} 秒
         </p>
-        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="mx-2 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
+        <div ref={scrollContainerRef} onWheel={handleThumbnailWheel} className="mx-1 rounded-lg overflow-x-auto overflow-y-hidden custom-scrollbar">
           {(project.segments || []).length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500">
               <p className="text-xs">暂无片段，请先创建片段</p>
