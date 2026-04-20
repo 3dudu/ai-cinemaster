@@ -485,9 +485,9 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
             <h1 className="text-3xl font-light text-slate-50 tracking-tight m-2 flex items-center gap-3">
               剧集库
             </h1>
-<div className='flex items-center justify-between gap-3'>
-            <ThemeToggle size="sm" className={`text-[12px] text-slate-600 hover:text-red-500 transition-colors font-mono tracking-widest`}/>
-            <button onClick={handleClearKey} className={`z-50 text-[12px] flex items-center justify-center text-text-secondary w-8 h-8 p-1.5 transition-all duration-200 ease-in-out bg-bg-button rounded-lg text-slate-600 hover:text-red-500 transition-colors font-mono tracking-widest cursor-pointer`}>
+<div className='flex items-center justify-between gap-2'>
+            <ThemeToggle size="sm" className={`text-[12px] transition-colors font-mono tracking-widest`}/>
+            <button onClick={handleClearKey} className={`hover:bg-slate-600 hover:border-slate-300 z-50 text-[12px] flex items-center justify-center text-text-secondary w-8 h-8 p-1.5 transition-all duration-200 ease-in-out bg-bg-button rounded-lg text-slate-300 hover:text-red-500 transition-colors font-mono tracking-widest cursor-pointer`}>
             <Power className="w-4 h-4" />
             </button>
 </div>

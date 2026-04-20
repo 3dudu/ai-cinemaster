@@ -962,7 +962,7 @@ const PromptTemplateModal: React.FC<{
                             />
                           </div>
                           </div>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid md:grid-cols-3 grid-cols-1 gap-2">
                           <div>
                             <label className="text-xs text-slate-400 mb-1 block">匹配视觉风格 (逗号分隔)</label>
                             <input
@@ -998,7 +998,7 @@ const PromptTemplateModal: React.FC<{
                       {/* 模版选择和编辑 */}
                       <div className="md:p-4 p-2 border-b border-slate-600 bg-slate-700 flex items-center justify-between gap-2 sticky top-0 z-10">
                         <CustomSelect
-                          className="flex-1 max-w-full"
+                          className="flex-1 md:max-w-full max-w-[170px]"
                           options={groupTemplateOptions}
                           value={selectedTemplateKey}
                           onChange={(v) => setSelectedTemplateKey(v as keyof GroupTemplates)}
@@ -1037,7 +1037,7 @@ const PromptTemplateModal: React.FC<{
                         <textarea
                           value={groupTemplateContent}
                           onChange={(e) => setGroupTemplateContent(e.target.value)}
-                          className="select-text w-full h-full bg-slate-800 text-slate-100 p-4 font-mono text-sm resize-none focus:border-slate-500 focus:outline-none"
+                          className="select-text w-full h-full bg-slate-800 text-slate-100 md:p-4 p-2 font-mono text-sm resize-none focus:border-slate-500 focus:outline-none"
                           placeholder="在此编辑模版内容..."
                           spellCheck={false}
                         />

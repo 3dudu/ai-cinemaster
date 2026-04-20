@@ -1575,10 +1575,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     className="w-full h-full object-contain rounded-lg"
                   />
                 ) : (
-                  <div className="flex w-full h-full flex-col items-center justify-center text-slate-500 aspect-video bg-slate-800/50">
+                  <div className="flex w-full h-full flex-col items-center justify-center text-slate-300 aspect-video bg-slate-800/50">
                     <ListVideo className="w-16 h-16 mb-4 opacity-50" />
                     <p className="text-sm">暂无视频预览</p>
-                    <p className="text-xs text-slate-600">请先生成视频</p>
+                    <p className="text-xs text-slate-200">请先生成视频</p>
                   </div>
                 )}
                 </div>
