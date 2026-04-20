@@ -116,7 +116,7 @@ function detectLocalVideoAnalysisRequest(text: string, hasLocalVideo: boolean): 
   if (douyinUrlPattern.test(text)) return null;
 
   // 分析视频关键词
-  const analyzePattern = /分析(?:这个)?视频/i;
+  const analyzePattern = /[(分析)|(这个)]+?视频/i;
   if (!analyzePattern.test(text)) return null;
 
   // 提取用户附加的提示词
@@ -1213,13 +1213,12 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                       {message.multimodal?.text?.includes('分析') && <Loader2 className="w-3 h-3 animate-spin text-green-400" />}
                       {message.multimodal?.text?.includes('失败') && <X className="w-3 h-3 text-red-400" />}
                       {message.multimodal?.text?.includes('✅') && <Check className="w-3 h-3 text-green-400" />}
-                      <span className="whitespace-pre-wrap">{message.content}</span>
-                    </div>
                     {message.multimodal?.fileId && (
                       <div className="text-xs text-slate-500 mt-1">
-                        file_id: {message.multimodal.fileId}
+                        📎 file_id: {message.multimodal.fileId}
                       </div>
                     )}
+                    </div>
                   </div>
                 )}
 

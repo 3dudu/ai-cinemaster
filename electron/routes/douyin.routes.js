@@ -123,6 +123,8 @@ router.post('/upload-volcengine', async (req, res, next) => {
         purpose || 'user_data'
       );
 
+      await new Promise(resolve => setTimeout(resolve, 4000));
+
       res.write(JSON.stringify({
         type: 'complete',
         data: result
