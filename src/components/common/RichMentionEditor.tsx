@@ -19,6 +19,8 @@ interface RichMentionEditorProps {
   onMentionClose?: () => void;
   mentionPickerOpen?: boolean;
   onMentionClick?: (position: { top: number; left: number }, type: 'character' | 'scene' | 'prop', id: string, name: string, startOffset: number) => void;
+  /** 粘贴后自动解析出 mention 时触发，通知父组件更新 segment 关联数组 */
+  onMentionsDetected?: (mentions: Array<{ type: 'character' | 'scene' | 'prop'; id: string }>) => void;
 }
 
 interface TextSegment {
@@ -224,12 +226,15 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
   onMentionClose,
   mentionPickerOpen = false,
   onMentionClick,
+  onMentionsDetected,
 }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const lastValueRef = useRef<string | null>(null); // null 表示需要初始化
   const mentionAtIndexRef = useRef<number | null>(null); // @ 符号的位置（用于插入）
   const mentionSearchLengthRef = useRef<number>(0); // 搜索文本长度
+  const isPasteActionRef = useRef(false); // 标记是否为粘贴操作
+  const pasteCursorOffsetRef = useRef(0); // 粘贴后光标偏移量
   const replacingMentionElRef = useRef<Element | null>(null); // 被点击要替换的 mention 元素
   
   // 暴露 insertMention 方法给父组件
@@ -446,12 +451,31 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
     const html = segmentsToHtml(segments);
     editor.innerHTML = html;
 
-    // 设置光标到末尾
+    // 判断是否为粘贴场景
+    const isPaste = pasteCursorOffsetRef.current > 0;
+
+    // 设置光标位置
     requestAnimationFrame(() => {
       if (editorRef.current && editorRef.current.contains(document.activeElement)) {
-        setCaretOffset(editorRef.current, value.length);
+        // 粘贴场景恢复到粘贴末尾，其他外部更新到文本末尾
+        const offset = isPaste ? pasteCursorOffsetRef.current : value.length;
+        setCaretOffset(editorRef.current, offset);
+        if (isPaste) {
+          pasteCursorOffsetRef.current = 0;
+        }
       }
     });
+
+    // 粘贴后通知父组件解析出的 mention，用于自动更新 segment 关联数组
+    if (isPaste) {
+      isPasteActionRef.current = false; // 重置粘贴标志
+      const detectedMentions = segments
+        .filter(s => s.type === 'mention' && s.mentionId)
+        .map(s => ({ type: s.mentionType!, id: s.mentionId! }));
+      if (detectedMentions.length > 0) {
+        onMentionsDetected?.(detectedMentions);
+      }
+    }
   }, [segments, value]);
 
   // 获取文本偏移量
@@ -510,8 +534,11 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
 
     const text = getPlainTextFromEditor(editor);
     
-    // 更新 lastValueRef，防止 useEffect 重新渲染
-    lastValueRef.current = text;
+    // 粘贴操作：不更新 lastValueRef，让 useEffect 触发重新渲染以解析 mention
+    // 粘贴时 handlePaste 会设置 isPasteActionRef 为 true
+    if (!isPasteActionRef.current) {
+      lastValueRef.current = text;
+    }
     onChange(text);
 
     // 检测 @ 输入 - 延迟到下一帧确保 selection 更新
@@ -648,23 +675,40 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
   // 处理粘贴 - 纯文本原样粘贴，HTML 清洗后粘贴
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault();
+    const editor = editorRef.current;
+    if (!editor) return;
 
+    // 保存粘贴前的光标偏移量
+    const selection = window.getSelection();
+    let cursorBefore = 0;
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      if (editor.contains(range.startContainer)) {
+        cursorBefore = getTextOffset(editor, range.startContainer, range.startOffset);
+      }
+    }
+
+    let pastedText = '';
     const html = e.clipboardData.getData('text/html');
     if (html) {
       // HTML 粘贴 → 清洗后提取纯文本
-      const cleanText = sanitizeHtmlToPlainText(html);
-      if (cleanText) {
-        document.execCommand('insertText', false, cleanText);
-      }
-      return;
+      pastedText = sanitizeHtmlToPlainText(html);
+    } else {
+      // 纯文本粘贴 → 原样提取
+      pastedText = e.clipboardData.getData('text/plain') || '';
     }
 
-    // 纯文本粘贴 → 原样插入
-    const text = e.clipboardData.getData('text/plain');
-    if (text) {
-      document.execCommand('insertText', false, text);
+    if (pastedText) {
+      // ★ 关键修复：在 execCommand 之前设置标记
+      // execCommand('insertText') 会同步触发 input 事件，
+      // 如果标记在之后设置，handleInput 会在标记为 false 时执行，
+      // 导致 lastValueRef 被错误更新，useEffect 无法识别为外部更新
+      isPasteActionRef.current = true;
+      pasteCursorOffsetRef.current = cursorBefore + pastedText.length;
+
+      document.execCommand('insertText', false, pastedText);
     }
-  }, []);
+  }, [getTextOffset]);
 
   // 处理复制 - 只复制选中的纯文本
   const handleCopy = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {

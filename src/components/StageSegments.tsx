@@ -1330,6 +1330,30 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     }
   }, [isReplacingMention, selectedSegment, handleSaveSegment]);
 
+  // 粘贴后自动解析 mention，更新 segment 关联数组
+  const handleMentionsDetected = useCallback((mentions: Array<{ type: 'character' | 'scene' | 'prop'; id: string }>) => {
+    if (!selectedSegment) return;
+
+    const updatedSegment: Segment = {
+      ...selectedSegment,
+      lastModified: Date.now()
+    };
+    let changed = false;
+
+    for (const m of mentions) {
+      const field = m.type === 'character' ? 'characterIds' : m.type === 'scene' ? 'sceneIds' : 'propIds';
+      const currentIds = (updatedSegment as any)[field] || [];
+      if (!currentIds.includes(m.id)) {
+        (updatedSegment as any)[field] = [...currentIds, m.id];
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      handleSaveSegment(updatedSegment);
+    }
+  }, [selectedSegment, handleSaveSegment]);
+
   // @ Mention: Close picker on click outside
   const handleDescriptionKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -1729,6 +1753,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     onMentionClose={handleMentionClose}
                     mentionPickerOpen={mentionPickerOpen}
                     onMentionClick={handleMentionClick}
+                    onMentionsDetected={handleMentionsDetected}
                   />
                   {/* @ Mention Picker */}
                   {mentionPickerOpen && (
