@@ -177,7 +177,7 @@ function App() {
     // 始终渲染 StageChat 和 StageImage，用 display:none 缓存状态
     const chatComponent = (
       <div style={{ display: project.stage === 'chat' ? 'block' : 'none' }} className="h-full">
-        <StageChat isMobile={isMobile} />
+        <StageChat isMobile={isMobile} projectId={project.id} />
       </div>
     );
 

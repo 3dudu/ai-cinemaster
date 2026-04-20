@@ -18,7 +18,7 @@ import {
   trimMessages
 } from '../../services/llmChatService';
 import { AIModelConfig } from '../../types';
-import { uploadLocalVideoFile } from '../../utils/fileUploadUtils';
+import { getServerBaseUrl, getToken, uploadLocalVideoFile } from '../../utils/fileUploadUtils';
 import CustomSelect from './CustomSelect';
 
 /**
@@ -158,12 +158,14 @@ interface LLMChatViewProps {
   isMobile?: boolean;
   onClose?: () => void;
   showCloseButton?: boolean;
+  projectId: string;
 }
 
 const LLMChatView: React.FC<LLMChatViewProps> = ({
   isMobile = false,
   onClose,
   showCloseButton = false,
+  projectId
 }) => {
   const [messages, setMessages] = useState<ChatMessageUI[]>([]);
   const [inputText, setInputText] = useState('');
@@ -430,7 +432,12 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
       // 获取路径部分（不包含查询参数）
       const path = url.pathname;
       // 调用火山引擎上传接口
-      const response = await fetch('/api/douyin/upload-volcengine', {
+      const uploadServiceUrl = getServerBaseUrl();
+      const token = getToken();
+      const serverUrl = new URL(uploadServiceUrl);
+      const baseurl =  `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ':' + serverUrl.port : ''}`;
+
+      const response = await fetch(baseurl+'/api/douyin/upload-volcengine?token='+token, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -726,7 +733,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
     setError(null);
 
     try {
-      const result = await uploadLocalVideoFile(file, 'douyin');
+      const result = await uploadLocalVideoFile(file,`${projectId}` );
 
       if (result.success && result.data) {
         setUploadedLocalVideo({

@@ -31,9 +31,17 @@ class DouyinDownloadService {
       /RENDER_DATA["\']?\s*[:=]\s*["\']?([^"'\s]+)/
     ];
 
-    // 存储路径
-    this.storagePath = path.resolve(__dirname, '../../', config.storage.local.path);
-
+      // 1. 优先使用用户自定义目录（通过菜单设置）
+    if (process.env.CUSTOM_STORAGE_PATH) {
+      this.storagePath =  process.env.CUSTOM_STORAGE_PATH;
+    }
+    // 2. 其次使用 Electron userData 目录，解决 macOS 权限问题
+    if (process.env.ELECTRON_USER_DATA_PATH) {
+      this.storagePath =  path.join(process.env.ELECTRON_USER_DATA_PATH, 'upload');
+    }
+    // 3. 最后使用配置文件中的路径（兼容独立服务器模式）
+    this.storagePath =  path.resolve(__dirname, '../', config.storage.local.path);
+  // 存储路径
     // 火山引擎 ARK API 配置
     this.volcEngineEndpoint = 'https://ark.cn-beijing.volces.com/api/v3/files';
   }
@@ -380,7 +388,7 @@ class DouyinDownloadService {
     const form = new FormData();
 
     // 添加文件
-    form.append('file', fs.createReadStream(filePath));
+    form.append('file', fs.createReadStream(path.resolve(this.storagePath,filePath)));
     form.append('purpose', purpose);
 
     try {

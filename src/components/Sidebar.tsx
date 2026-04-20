@@ -290,6 +290,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
       <LLMChatModal
         isOpen={showLLMChat}
         onClose={() => setShowLLMChat(false)}
+        projectId={project.id}
       />
 
       {/* Project Settings Modal */}

@@ -8,11 +8,12 @@ import LLMChatView from './common/LLMChatView';
 
 interface StageChatProps {
   isMobile?: boolean;
+  projectId: string;
 }
 
-const StageChat: React.FC<StageChatProps> = ({ isMobile = true }) => {
+const StageChat: React.FC<StageChatProps> = ({ isMobile = true ,projectId}) => {
   return (
-      <LLMChatView isMobile={isMobile} showCloseButton={false} />
+      <LLMChatView isMobile={isMobile} showCloseButton={false} projectId={projectId} />
   );
 };
 

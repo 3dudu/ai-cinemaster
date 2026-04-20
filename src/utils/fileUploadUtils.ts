@@ -64,12 +64,12 @@ const mimeToExtension: Record<string, string> = {
 };
 
 // 获取服务器根地址
-function getServerBaseUrl(): string | null {
+export function getServerBaseUrl(): string | null {
   return localStorage.getItem('cinegen_file_upload_service_url') || null;
 }
 
 // 获取 token
-function getToken(): string {
+export function getToken(): string {
   const uploadServiceUrl = getServerBaseUrl();
   if (!uploadServiceUrl) return '';
   
@@ -371,11 +371,11 @@ export async function uploadLocalVideoFile(
     formData.append('file', file);
 
     // 构建 URL
-    let url = '/api/file/upload';
-    if (pathPrefix) {
-      url = `/api/file/upload/${pathPrefix}`;
-    }
-
+    const uploadServiceUrl = getServerBaseUrl();
+    const token = getToken();
+    const serverUrl = new URL(uploadServiceUrl);
+    const baseurl =  `${serverUrl.protocol}//${serverUrl.hostname}${serverUrl.port ? ':' + serverUrl.port : ''}`;
+    const url = `${baseurl}/api/file/upload/${pathPrefix}?token=`+token;
     const response = await fetch(url, {
       method: 'POST',
       body: formData,
