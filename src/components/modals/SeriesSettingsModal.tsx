@@ -1,4 +1,4 @@
-import { Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getEnabledConfigByType } from '../../services/modelConfigService';
 import { ModelService } from '../../services/modelService';
@@ -38,6 +38,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
   const [localLlmProvider, setLocalLlmProvider] = useState('');
   const [localText2imageProvider, setLocalText2imageProvider] = useState('');
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState('');
+  const [showModelProviders, setShowModelProviders] = useState(false);
 
   // Load model configs when modal opens
   useEffect(() => {
@@ -172,7 +173,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
 
   return (
     <div className="fixed inset-0 z-60 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200 select-text">
-      <div className="bg-slate-600/80 border border-slate-600 w-[480px] max-w-[90vw] h-[80vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col select-text">
+      <div className="bg-slate-600/80 border border-slate-600 w-[480px] max-w-[90vw] h-[65vh] overflow-hidden rounded-2xl shadow-2xl flex flex-col select-text">
         <div className="h-16 px-6 border-b border-slate-600 flex items-center justify-between bg-slate-600/80">
           <h3 className="text-lg font-bold text-slate-50 flex items-center gap-2">
             <Settings className="w-5 h-5 text-slate-400" />
@@ -186,7 +187,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
           </button>
         </div>
 
-        <div className="p-2 md:p-6 space-y-5 flex-1 overflow-y-auto bg-slate-700">
+        <div className="p-2 md:p-6 space-y-2 flex-1 overflow-y-auto bg-slate-700">
           {/* Title Input */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">剧集标题</label>
@@ -197,21 +198,6 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
               className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
               placeholder="输入剧集名称..."
             />
-          </div>
-
-          {/* Global Settings */}
-          <div className="space-y-2">
-            <label className="text-[12px] font-bold text-slate-500 tracking-widest">补充信息</label>
-            <textarea
-              value={localGlobalSettings}
-              onChange={(e) => setLocalGlobalSettings(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
-              placeholder="画面风格、历史年代等，如：赛博朋克，2077年"
-              rows={2}
-            />
-            <p className="text-[10px] text-slate-500">
-              设置整个剧的画面风格、历史年代等全局统一设定，新分集将继承此设置
-            </p>
           </div>
 
           {/* Language and Visual Style in one row */}
@@ -279,7 +265,20 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
               )}
             </div>
           </div>
-
+          {/* Global Settings */}
+          <div className="space-y-2">
+            <label className="text-[12px] font-bold text-slate-500 tracking-widest">补充信息</label>
+            <textarea
+              value={localGlobalSettings}
+              onChange={(e) => setLocalGlobalSettings(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all"
+              placeholder="画面风格、历史年代等，如：赛博朋克，2077年"
+              rows={2}
+            />
+            <p className="text-[10px] text-slate-500">
+              设置整个剧的画面风格、历史年代等全局统一设定，新分集将继承此设置
+            </p>
+          </div>
           {/* Duration Selection */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">每集时长</label>
@@ -297,7 +296,6 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
                   {opt.label}
                 </button>
               ))}
-            </div>
             {localDuration === 'custom' && (
               <div>
                 <input
@@ -309,6 +307,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
                 />
               </div>
             )}
+            </div>
           </div>
 
           {/* Image Count Selection */}
@@ -324,10 +323,17 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
 
           {/* Divider */}
           <div className="border-t border-slate-600 pt-4">
-            <p className="text-[12px] font-bold text-slate-500 tracking-widest mb-4">模型供应商</p>
+            <button
+              onClick={() => setShowModelProviders(!showModelProviders)}
+              className="flex items-center justify-between w-full cursor-pointer"
+            >
+              <p className="text-[12px] font-bold text-slate-500 tracking-widest">模型供应商</p>
+              {showModelProviders ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+            </button>
           </div>
 
           {/* LLM Provider Selection */}
+          {showModelProviders && (<>
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest flex items-center gap-2">
               <Sparkles className="w-3 h-3" />
@@ -389,6 +395,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
               dropdownPosition="top"
             />
           </div>
+          </>)}
         </div>
 
         <div className="p-6 border-t border-slate-600 flex gap-3 shrink-0">
