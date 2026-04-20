@@ -13,6 +13,7 @@ import { getModelConfigsByType } from './modelConfigService';
 export type ContentPart =
   | { type: 'input_video'; file_id: string }
   | { type: 'input_text'; text: string }
+  | { type: 'video_url'; video_url:{url: string}  }
   | { type: 'text'; text: string }; // 兼容纯文本格式
 
 export interface ChatMessage {
@@ -256,7 +257,7 @@ export function isTokenLimitError(error: Error): boolean {
  */
 export interface ResponsesMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: string | ContentPart[];
 }
 
 /**
