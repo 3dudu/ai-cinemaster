@@ -164,8 +164,7 @@ class FileStorageService {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     const ext = path.extname(originalName);
-    const baseName = path.basename(originalName, ext);
-    return `${baseName}_${timestamp}_${random}${ext}`;
+    return `${timestamp}_${random}${ext}`;
   }
 
   /**
