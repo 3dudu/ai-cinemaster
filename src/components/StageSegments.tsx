@@ -780,6 +780,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
     const segments = project.segments || [];
     if (activeSegmentIndex > 0) {
       setSelectedSegmentId(segments[activeSegmentIndex - 1].id);
+      if(!segments[activeSegmentIndex - 1].videoUrl){
+        setEditingScript(true);
+      }
     }
   }, [activeSegmentIndex, project.segments])
 
@@ -1579,17 +1582,28 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
         {selectedSegment ? (
           <>
             {/* Left: Video Preview (2/3) */}
-            <div className={`${editingScript && isMobile?'hidden':''} ${editingScript ? 'border-r' : ''} border-slate-600 p-2 md:p-4 flex flex-col flex-1 overflow-y-auto transition-all duration-500 ease-in-out`}>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-bold text-slate-50 flex items-center gap-2">
+            <div className={`${(editingScript || !selectedSegment.videoUrl) && isMobile?'hidden':''} ${editingScript ? 'border-r' : ''} border-slate-600 flex flex-col flex-1 overflow-y-auto transition-all duration-500 ease-in-out`}>
+              <div className="px-2 py-1 flex items-center justify-between bg-slate-600/50 border-b border-slate-600">
+                <h3 className="text-sm py-1.5 font-bold text-slate-50 flex items-center gap-2">
                   <Play className="w-4 h-4 text-slate-500" />
                   {`${selectedSegment.name||`片段 ${activeSegmentIndex+1}`}`}
                 </h3>
-                <span className="text-xs text-slate-400 font-mono">
-                  片段 {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
-                </span>
+                {(selectedSegment.videoUrl && !editingScript) && (
+                <div className="flex items-center gap-1">
+                  <button onClick={goToPrevSegment} disabled={activeSegmentIndex <= 0} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  <span className="text-xs text-slate-400 font-mono">
+                    {(project.segments || []).findIndex(s => s.id === selectedSegment.id) + 1} / {(project.segments || []).length}
+                  </span>
+                  <button onClick={goToNextSegment} disabled={activeSegmentIndex < 0 || activeSegmentIndex >= (project.segments || []).length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                )}
               </div>
-              <div className="flex-1 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600">
+              <div className="flex-1 md:m-4 m-2 bg-slate-700 flex-col rounded-lg overflow-hidden flex items-center justify-center border border-slate-600">
                 <div className={`w-full h-full aspect-[9/16] bg-slate-800/50 rounded-lg border-1 border-slate-600 relative shadow-lg
                    ${(generatingVideo === selectedSegment.id || batchGeneratingVideos)&&'ai-generating-border'}`}>
                 {selectedSegment.videoUrl ? (
@@ -1609,7 +1623,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
               </div>
               {/* Shot Thumbnails */}
               <div className="relative md:h-16 h-14">
-                <div className="md:pt-4 pt-2 flex gap-2 overflow-x-auto pb-">
+                <div className="md:pl-4 pl-2 flex gap-2 overflow-x-auto">
                 {selectedSegment.shotIds.map((shotId, idx) => {
                   const shot = project.shots.find((s) => s.id === shotId);
                   const thumbnail = shot?.keyframes?.find((k) => k.type === 'start')?.imageUrl;
@@ -1632,9 +1646,9 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                     </div>
                   );
                 })}
-                </div>
+              </div>
               {/* Action Buttons */}
-              <div className="absolute top-4 md:top-6 right-0 flex items-center gap-2 justify-end">
+              <div className="absolute top-2.5 md:top-2 md:right-4 right-2 flex items-center gap-2 justify-end">
                 {!editingScript && (
                 <button
                   onClick={handleOpenEditScript}
@@ -1652,7 +1666,7 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   {generatingVideo === selectedSegment.id ? (
                     <>
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      {`${!isMobile && '生成中'}${videoElapsedSeconds}s`}
+                      {`${!isMobile ? '生成中':''}${videoElapsedSeconds}s`}
                     </>
                   ) : (
                     <>
@@ -1682,11 +1696,10 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
             </div>
 
             {/* Right: Description Editor (1/3) */}
-            {editingScript && (
+            {(editingScript || !selectedSegment.videoUrl) && (
             <div className={`${isMobile ? 'w-full' : 'md:w-[55%] lg:w-[480px] xl:w-[560px] 2xl:w-[640px] 3xl:w-[720px]'} bg-slate-700/50 flex flex-col h-full relative z-20`}>
-
-            <div className="md:px-4 px-2 py-2 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
-              <div className="flex items-center gap-3">
+            <div className="md:px-4 px-2 py-1 border-b border-slate-600 flex items-center justify-between bg-slate-600/50 shrink-0">
+              <div className="flex items-center gap-2">
               <h3 className="text-sm font-bold text-slate-50 flex items-center gap-2">
                 <NotebookPen className="w-4 h-4 text-slate-500" />
                 {`${selectedSegment.name||`片段 ${activeSegmentIndex+1}`}`}
@@ -1720,12 +1733,14 @@ const StageSegments: React.FC<StageSegmentsProps> = ({
                   <button onClick={goToNextSegment} disabled={activeSegmentIndex < 0 || activeSegmentIndex >= (project.segments || []).length - 1} className="p-2 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-50 disabled:opacity-20 transition-colors cursor-pointer">
                       <ChevronRight className="w-4 h-4" />
                   </button>
+                  {selectedSegment.videoUrl && (
                   <button onClick={handleCloseEditScript} className="p-2 hover:bg-red-900/20 rounded text-slate-400 hover:text-red-400 transition-colors cursor-pointer">
                       <X className="w-4 h-4" />
                   </button>
+                  )}
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-2 border-b border-slate-600">
+            <div className="flex-1 overflow-y-auto md:p-4 p-2 space-y-0 border-b border-slate-600">
                {/* Description */}
               <div className={`mb-4 ${descriptionExpanded ? 'h-full' : isMobile?'h-full':'h-[45vh]'}`}>
                 <div
