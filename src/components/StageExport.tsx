@@ -363,10 +363,10 @@ const StageExport: React.FC<Props> = ({ project, updateProject,isMobile=false })
              </span>
           </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-0 md:p-6">
-        <div className="mx-auto space-y-8">
+      <div className="flex-1 w-full overflow-y-auto p-0 md:p-6">
+        <div className=" space-y-8 flex items-center justify-center ">
           {/* Main Status Panel */}
-          <div className="bg-slate-800 md:border border-slate-600 md:rounded-xl p-2 sm:p-6 shadow-2xl relative overflow-hidden group">
+          <div className="w-6xl bg-slate-800 md:border border-slate-600 md:rounded-xl p-2 sm:p-6 shadow-2xl relative overflow-hidden group">
              {/* Background Decoration */}
              <div className="absolute top-0 right-0 p-48 bg-slate-900/5 blur-[120px] rounded-full pointer-events-none"></div>
              <div className="absolute bottom-0 left-0 p-32 bg-green-900/5 blur-[100px] rounded-full pointer-events-none"></div>
@@ -723,7 +723,6 @@ const StageExport: React.FC<Props> = ({ project, updateProject,isMobile=false })
                </button>
              </div>
           </div>
-        </div>
       {showCutOSEditor && (
         <Suspense fallback={
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
@@ -741,6 +740,7 @@ const StageExport: React.FC<Props> = ({ project, updateProject,isMobile=false })
           />
         </Suspense>
       )}
+        </div>
       </div>
     </div>
   );
