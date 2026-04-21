@@ -173,6 +173,10 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     [project.shots]
   );
 
+  const totalDuration = useCallback((senceid?: string) => {
+    return (project.shots || []).filter(s => !senceid || s.sceneId === senceid).reduce((sum, s) => sum + s.interval?.duration, 0);
+  }, [project.shots]);
+
   const updateShot = useCallback((shotId: string, transform: (s: Shot) => Shot) => {
     const newShots = project.shots.map(s => s.id === shotId ? transform(s) : s);
     updateProject({ shots: newShots });
@@ -562,8 +566,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
     prompt = prompt + (dialogueText?"\n###对白\n "+dialogueText:"");
     prompt = prompt+"\n\n##按照上面描述生成 "+localStyle+" 风格的视频！";
 
-    const referenceImages = getRefImagesForShot(shot);
-
+    const referenceImages = imageCount >0 ? getRefImagesForShot(shot) : [];
     try {
       const videoUrl = await ModelService.generateVideo(
           prompt,
@@ -1367,7 +1370,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
           <div className="flex items-center gap-4">
               <h2 className="text-lg font-bold text-slate-50 flex items-center gap-3">
                   <Clapperboard className="w-5 h-5 text-slate-500" />
-                  分镜
+                  分镜 ( {totalDuration()}s )
               </h2>
               {!isMobile && (
               <span className="text-xs text-slate-500 mr-4 font-mono">
@@ -1464,6 +1467,7 @@ const StageDirector: React.FC<Props> = ({ project, updateProject, isMobile=false
  <div className={`md:px-6 px-2 sticky top-0 z-10 flex bg-slate-900 items-center gap-2 border-b border-slate-600 py-2`}>
                     <MapPin className="w-4 h-4 text-slate-500" />
                     <span className="text-xs font-bold text-slate-400 tracking-widest">场景：{scene?.location || '未知场景'}
+                       -{totalDuration(scene.id)}s
                     </span>
                  <div className="flex-1 flex justify-end items-center gap-2">
                   {imageCount>0 && (

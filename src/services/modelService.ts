@@ -1147,19 +1147,23 @@ export class ModelService {
     }else{
       processedVoiceUrls = voiceUrls;
     }
-    let processedReferenceImages = [];
-    if (referenceImages && referenceImages.length > 0) {
-      for(let i=0;i<referenceImages.length;i++){
-        try{
-          const baseurl = await imageUrlToBase64(referenceImages[i]);
-          processedReferenceImages.push(baseurl);
-        }catch(error){
-          console.error('转换参考图片为Base64失败:', error);
-          processedReferenceImages.push(referenceImages[i]);
+    let processedReferenceImages = null;
+    console.log(provider.description);
+    if(provider.description.indexOf("1.5") < 0 ){
+      if(referenceImages && referenceImages.length > 0) {
+        processedReferenceImages = [];
+        for(let i=0;i<referenceImages.length;i++){
+          try{
+            const baseurl = await imageUrlToBase64(referenceImages[i]);
+            processedReferenceImages.push(baseurl);
+          }catch(error){
+            console.error('转换参考图片为Base64失败:', error);
+            processedReferenceImages.push(referenceImages[i]);
+          }
         }
+      }else{
+        processedReferenceImages = referenceImages;
       }
-    }else{
-      processedReferenceImages = referenceImages;
     }
 
     let videoUrl: string;

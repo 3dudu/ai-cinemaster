@@ -173,6 +173,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
   const [llmConfigs, setLLMConfigs] = useState<AIModelConfig[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [newVideoUpload, setNewVideoUpload] = useState(false);
 
   // Agent 相关状态
   const [agents, setAgents] = useState<ChatAgent[]>([]);
@@ -263,7 +264,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
     const localVideoRequest = detectLocalVideoAnalysisRequest(userText, !!uploadedLocalVideo);
 
     // 检查历史消息中是否有可复用的 fileId
-    const reusableFileId = findReusableFileId(messages);
+    const reusableFileId = !newVideoUpload && findReusableFileId(messages);
 
     if (localVideoRequest && (uploadedLocalVideo || reusableFileId)) {
       // ========== 本地视频分析流程 ==========
@@ -284,6 +285,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
           config,
           selectedAgent.systemPrompt
         );
+        setNewVideoUpload(false);
       }
       return;
     }
@@ -520,6 +522,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
         )
       );
 
+      await new Promise(resolve => setTimeout(resolve, 3000));
       // 创建多模态消息
       const videoMessage = createVideoMessage(fileId, prompt);
 
@@ -769,6 +772,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
     if (file) {
       handleLocalVideoUpload(file);
     }
+    setNewVideoUpload(true);
     // 清空 input 以便选择相同文件
     e.target.value = '';
   };
@@ -1210,7 +1214,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
                     <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/50 px-2 py-1.5 rounded-lg">
                       {message.multimodal?.text?.includes('下载') && <Download className="w-3 h-3 text-yellow-400" />}
                       {message.multimodal?.text?.includes('上传') && <Upload className="w-3 h-3 text-blue-400" />}
-                      {message.multimodal?.text?.includes('分析') && <Loader2 className="w-3 h-3 animate-spin text-green-400" />}
+                      {/*message.multimodal?.text?.includes('分析') && <Loader2 className="w-3 h-3 animate-spin text-green-400" />*/}
                       {message.multimodal?.text?.includes('失败') && <X className="w-3 h-3 text-red-400" />}
                       {message.multimodal?.text?.includes('✅') && <Check className="w-3 h-3 text-green-400" />}
                     {message.multimodal?.fileId && (
