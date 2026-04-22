@@ -1,11 +1,14 @@
 import { ChevronDown, ChevronUp, Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { PromptTemplateGroup } from '../../prompt/promptTemplate';
+import { TemplateGroupService } from '../../prompt/templateGroupService';
 import { getEnabledConfigByType } from '../../services/modelConfigService';
 import { ModelService } from '../../services/modelService';
 import { createNewSeries } from '../../services/seriesService';
 import { getAllModelConfigs } from '../../services/storageService';
 import { SeriesRecord } from '../../types';
 import CustomSelect from '../common/CustomSelect';
+
 import {
   DURATION_OPTIONS,
   GENRE_OPTIONS,
@@ -39,6 +42,7 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
   const [localText2imageProvider, setLocalText2imageProvider] = useState('');
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState('');
   const [showModelProviders, setShowModelProviders] = useState(false);
+  const [matchedTemplateGroup, setMatchedTemplateGroup] = useState<PromptTemplateGroup | null>(null);
 
   // Load model configs when modal opens
   useEffect(() => {
@@ -120,6 +124,23 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         setLocalText2imageProvider('');
         setLocalImage2videoProvider('');
       }
+      // 匹配模板组
+      const finalStyle = (() => {
+        const currentStyle = series.visualStyle || '真人写实';
+        const isCustomStyle = !STYLE_OPTIONS.some(opt => opt.value === currentStyle);
+        return isCustomStyle ? currentStyle : currentStyle;
+      })();
+      const finalGenre = (() => {
+        const currentGenre = series.genre || '剧情片';
+        const isCustomGenre = !GENRE_OPTIONS.some(opt => opt.value === currentGenre);
+        return isCustomGenre ? currentGenre : currentGenre;
+      })();
+      const matchedGroup = TemplateGroupService.matchGroup({
+        visualStyle: finalStyle,
+        genre: finalGenre,
+        globalSettings: series.globalSettings || ''
+      });
+      setMatchedTemplateGroup(matchedGroup);
     }
   }, [isOpen, series]);
 
@@ -279,6 +300,44 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
               设置整个剧的画面风格、历史年代等全局统一设定，新分集将继承此设置
             </p>
           </div>
+
+          {/* Matched Template Group */}
+          {matchedTemplateGroup && (
+            <div className="space-y-2 p-3 bg-slate-900/50 border border-slate-600 rounded-lg">
+              <div className="flex items-center justify-between">
+                <label className="text-[12px] font-bold text-slate-400 tracking-widest">匹配的模板组</label>
+                {matchedTemplateGroup.isBuiltIn && (
+                  <span className="text-[10px] text-slate-500 bg-slate-700 px-2 py-0.5 rounded">内置</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-200">{matchedTemplateGroup.name}</span>
+                <span className="text-xs text-slate-500">({matchedTemplateGroup.id})</span>
+              </div>
+              {matchedTemplateGroup.description && (
+                <p className="text-[11px] text-slate-400 leading-relaxed">{matchedTemplateGroup.description}</p>
+              )}
+              {matchedTemplateGroup.matchRules && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {matchedTemplateGroup.matchRules.visualStyle?.map((keyword, i) => (
+                    <span key={`vs-${i}`} className="text-[10px] bg-orange-900/50 text-orange-300 px-1.5 py-0.5 rounded border border-orange-500/30">
+                      风格: {keyword}
+                    </span>
+                  ))}
+                  {matchedTemplateGroup.matchRules.genre?.map((keyword, i) => (
+                    <span key={`g-${i}`} className="text-[10px] bg-purple-900/50 text-purple-300 px-1.5 py-0.5 rounded border border-purple-500/30">
+                      题材: {keyword}
+                    </span>
+                  ))}
+                  {matchedTemplateGroup.matchRules.globalSettings?.map((keyword, i) => (
+                    <span key={`gs-${i}`} className="text-[10px] bg-blue-900/50 text-blue-300 px-1.5 py-0.5 rounded border border-blue-500/30">
+                      设定: {keyword}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {/* Duration Selection */}
           <div className="space-y-2">
             <label className="text-[12px] font-bold text-slate-500 tracking-widest">每集时长</label>

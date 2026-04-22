@@ -246,7 +246,7 @@ export const generateVideo = async (
     body: JSON.stringify(requestBody),
   }, 1, {
     modelType: 'image2video',
-    modelId: runtimeImageModel,
+    modelId: runtimeVideoModel,
     projectId,
     seriesId,
     shotId
