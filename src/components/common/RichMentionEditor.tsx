@@ -161,14 +161,70 @@ function segmentsToHtml(segments: TextSegment[]): string {
 }
 
 /**
+ * 创建 TreeWalker 过滤器（SHOW_TEXT | SHOW_ELEMENT）：
+ * - 跳过 contenteditable="false" 元素（mention 标签）内部的所有节点
+ * - 接受文本节点和 <br> 元素（<br> 在 innerText 中对应一个 \n 字符）
+ * - 其他元素节点用 SKIP（不计数但继续遍历子节点）
+ */
+function createEditableTextAndBrFilter(root: Node): NodeFilter {
+  return {
+    acceptNode: (node: Node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node as HTMLElement;
+
+        // 跳过 contenteditable="false" 子树（mention 标签）
+        if (el.contentEditable === 'false') return NodeFilter.FILTER_REJECT;
+
+        // <br> 接受，在遍历中计为 1 个字符（\n）
+        if (el.tagName === 'BR') return NodeFilter.FILTER_ACCEPT;
+
+        // 其他元素：跳过自身但继续遍历子节点
+        return NodeFilter.FILTER_SKIP;
+      }
+
+      // 文本节点：检查是否在 contenteditable="false" 内部
+      let parent = node.parentElement;
+      while (parent && parent !== root) {
+        if ((parent as HTMLElement).contentEditable === 'false') {
+          return NodeFilter.FILTER_REJECT;
+        }
+        parent = parent.parentElement;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  };
+}
+
+/** 计算单个节点的"纯文本等效长度"（文本节点=文本长度，<br>=1） */
+function getNodeTextLen(node: Node): number {
+  if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'BR') {
+    return 1; // \n
+  }
+  return node.textContent?.length || 0;
+}
+
+/**
  * 从 contenteditable DOM 中提取纯文本
- * innerText 在 white-space: pre-wrap 模式下对连续 <br> 会产生额外换行，
- * 需要规范化：把连续超过 2 个 \n 缩回到 2 个。
+ * 使用 TreeWalker 遍历，与 getTextOffset/setCaretOffset 使用相同的过滤规则：
+ * - 跳过 contenteditable="false" 的 mention 标签内部文本
+ * - <br> 转为 \n
+ * 确保偏移量在两套函数之间完全一致
  */
 function getPlainTextFromEditor(root: HTMLElement): string {
-  // 使用 innerText 获取浏览器计算后的文本
-  let text = root.innerText || '';
-  // 规范化：连续 3+ 个 \n → 2 个
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, createEditableTextAndBrFilter(root));
+  const parts: string[] = [];
+  let node: Node | null;
+
+  while ((node = walker.nextNode())) {
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'BR') {
+      parts.push('\n');
+    } else {
+      parts.push(node.textContent || '');
+    }
+  }
+
+  let text = parts.join('');
+  // 规范化：连续 3+ 个 \n → 2 个（与之前 innerText 行为保持一致）
   text = text.replace(/\n{3,}/g, '\n\n');
   return text;
 }
@@ -274,8 +330,8 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
 
       const mentionHtml = `<span class="${baseClass} ${colorClass} cursor-pointer" contenteditable="false" data-mention-type="${type}" data-mention-id="${id}">${icon}${name}</span>`;
 
-      // 直接操作 DOM - 找到 @ 符号所在的文本节点
-      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
+      // 直接操作 DOM - 找到 @ 符号所在的文本节点（遍历文本 + <br>，与 innerText 对齐）
+      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, createEditableTextAndBrFilter(editor));
       let currentOffset = 0;
       let atNode: Node | null = null;
       let atNodeOffset = 0;
@@ -283,6 +339,13 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
       // 遍历所有文本节点，找到包含目标 @ 位置的节点
       while (walker.nextNode()) {
         const node = walker.currentNode;
+        
+        // 跳过 <br> 元素（@ 不可能在 <br> 中）
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          currentOffset += 1; // <br> 计为 \n
+          continue;
+        }
+        
         const nodeText = node.textContent || '';
         const nodeLen = nodeText.length;
         
@@ -478,9 +541,9 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
     }
   }, [segments, value]);
 
-  // 获取文本偏移量
+  // 获取文本偏移量（遍历文本节点 + <br>，跳过 mention 标签内部，与 innerText 对齐）
   const getTextOffset = useCallback((root: Node, node: Node, offset: number): number => {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, createEditableTextAndBrFilter(root));
     let totalOffset = 0;
     let currentNode: Node | null;
     
@@ -488,21 +551,21 @@ const RichMentionEditor = React.forwardRef<RichMentionEditorRef, RichMentionEdit
       if (currentNode === node) {
         return totalOffset + offset;
       }
-      totalOffset += currentNode.textContent?.length || 0;
+      totalOffset += getNodeTextLen(currentNode);
     }
     
     return totalOffset;
   }, []);
 
-  // 设置光标偏移量
+  // 设置光标偏移量（遍历文本节点 + <br>，跳过 mention 标签内部，与 innerText 对齐）
   const setCaretOffset = useCallback((root: HTMLElement, offset: number) => {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, createEditableTextAndBrFilter(root));
     let currentOffset = 0;
     let node: Node | null;
     
     while ((node = walker.nextNode())) {
-      const nodeLength = node.textContent?.length || 0;
-      if (currentOffset + nodeLength >= offset) {
+      const nodeLength = getNodeTextLen(node);
+      if (currentOffset + nodeLength >= offset && node.nodeType === Node.TEXT_NODE) {
         const selection = window.getSelection();
         if (selection) {
           const range = document.createRange();
