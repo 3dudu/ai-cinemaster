@@ -118,12 +118,12 @@ export function getChatAgents(): ChatAgent[] {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     try {
-      const parsed = JSON.parse(saved);
+      const parsed:ChatAgent[] = JSON.parse(saved);
       // 确保内置 Agent 始终存在
-      const builtInIds = DEFAULT_AGENTS.map(a => a.id);
-      const customAgents = parsed.filter((a: ChatAgent) => !builtInIds.includes(a.id));
+      const customIds = parsed.map(a => a.id);
+      const defaultAgents = DEFAULT_AGENTS.filter((a: ChatAgent) => !customIds.includes(a.id));
       // 合并内置 Agent（使用最新版本）和自定义 Agent
-      return [...DEFAULT_AGENTS, ...customAgents];
+      return [...defaultAgents, ...parsed];
     } catch (e) {
       console.error('Failed to parse chat agents:', e);
       return [...DEFAULT_AGENTS];

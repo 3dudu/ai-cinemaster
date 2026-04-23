@@ -3,7 +3,7 @@
  * 支持 Modal 和 Stage 两种使用场景
  */
 
-import { Bot, Check, ChevronDown, Copy, Download, Film, Loader2, MessageSquare, Paperclip, Plus, Send, Square, Upload, User, Video, X } from 'lucide-react';
+import { Check, ChevronDown, Copy, Download, Film, Loader2, MessageSquare, Paperclip, Plus, Send, Square, Upload, User, Video, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
@@ -1169,7 +1169,7 @@ const LLMChatView: React.FC<LLMChatViewProps> = ({
               {/* AI 助手头像 */}
               {message.role === 'assistant' && (
                 <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-3.5 h-3.5 text-slate-100" />
+                  {getSelectedAgent().emoji}
                 </div>
               )}
 
