@@ -183,7 +183,7 @@ function EditorContent({
         <ResizablePanel defaultSize={isMobile?25:60} minSize={40}>
           <ResizablePanelGroup direction="horizontal" className="h-full">
             {(!isMobile || showMediaPanel) && (
-            <ResizablePanel defaultSize={isMobile?55:15} minSize={15} maxSize={isMobile?55:20}>
+            <ResizablePanel defaultSize={isMobile?35:15} minSize={15} maxSize={isMobile?35:20}>
               <div className="h-full min-w-0 border-r border-slate-600 bg-slate-800 overflow-hidden flex flex-col">
                 <MediaPanel />
               </div>
@@ -197,7 +197,7 @@ function EditorContent({
             </ResizablePanel>
             <ResizableHandle withHandle onClick={()=>{setShowInspectorPanel(!showInspectorPanel);setShowMediaPanel(false)}}/>
             {(!isMobile || showInspectorPanel)  && (
-            <ResizablePanel defaultSize={isMobile?55:15} minSize={15} maxSize={isMobile?55:20}>
+            <ResizablePanel defaultSize={isMobile?40:15} minSize={15} maxSize={isMobile?40:20}>
               <div className="h-full min-w-0 border-l border-slate-600 bg-slate-800 overflow-hidden flex flex-col">
                 <InspectorPanel />
               </div>
