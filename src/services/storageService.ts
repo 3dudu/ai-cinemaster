@@ -819,8 +819,8 @@ export const saveLLMLog = async (log: LLMCallLog): Promise<void> => {
   // 截短 requestParams 和 response 中的 base64 数据
   const truncatedLog: LLMCallLog = {
     ...log,
-    requestParams: truncateBase64InData(log.requestParams, 8192),
-    response: truncateBase64InData(log.response, 8192)
+    requestParams: truncateBase64InData(log.requestParams, 1000),
+    response: truncateBase64InData(log.response, 1000)
   };
   const db = await openDB();
   return new Promise((resolve, reject) => {

@@ -27,7 +27,6 @@ export const parseScriptToData = async (prompt: string, language: string = 'ф╕нц
     contents: prompt,
     config: {
       responseMimeType: "application/json",
-      maxOutputTokens: 8192, 
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -150,7 +149,6 @@ export const generateShotListForScene = async (
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        maxOutputTokens: 8192,
         responseSchema: {
           type: Type.ARRAY,
           items: {
@@ -226,8 +224,7 @@ export const generateScript = async (
     model: 'gemini-2.5-flash',
     contents: prompt,
     config: {
-      systemInstruction: renderTemplate('SYSTEM_SCRIPTWRITER'),
-      maxOutputTokens: 8192,
+      systemInstruction: renderTemplate('SYSTEM_SCRIPTWRITER')
     }
   }));
 
@@ -243,8 +240,7 @@ export const generateCommonPrompts = async (prompt: string,systemPrompt: string 
      model: 'gemini-2.5-flash',
      contents: prompt,
      config: {
-      systemInstruction: systemPrompt,
-      maxOutputTokens: 8192,
+      systemInstruction: systemPrompt
      }
    }));
    return (response.text || "").trim();
@@ -360,7 +356,6 @@ export const importScriptToData = async (
     contents: prompt,
     config: {
       responseMimeType: "application/json",
-      maxOutputTokens: 8192, 
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -475,7 +470,6 @@ const ai = getAiClient();
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        maxOutputTokens: 8192,
         responseSchema: {
           type: Type.ARRAY,
           items: {
@@ -541,7 +535,6 @@ const ai = getAiClient();
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        maxOutputTokens: 8192,
         responseSchema: {
           type: Type.ARRAY,
           items: {

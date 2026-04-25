@@ -293,36 +293,28 @@ const extractVariablesForTemplate = (key: string, args: any[]): Record<string, a
 // 模型生成参数配置
 export const MODEL_GENERATION_CONFIG = {
   PARSE_SCRIPT: {
-    temperature: 0.6,
-    max_tokens: 8192
+    temperature: 0.6
   },
   GENERATE_SHOTS: {
-    temperature: 0.6,
-    max_tokens: 8192
+    temperature: 0.6
   },
   GENERATE_SCRIPT: {
-    temperature: 0.8,
-    max_tokens: 8192
+    temperature: 0.8
   },
   GENERATE_VISUAL_PROMPT: {
-    temperature: 0.8,
-    max_tokens: 8192
+    temperature: 0.8
   },
   GENERATE_VIDEO_PROMPT: {
-    temperature: 0.8,
-    max_tokens: 8192
+    temperature: 0.8
   },
   IMPORT_SCRIPT: {
-    temperature: 0.4,
-    max_tokens: 8192
+    temperature: 0.4
   },
   AI_SPLIT_SEGMENTS: {
-    temperature: 0.6,
-    max_tokens: 8192
+    temperature: 0.6
   },
   GENERATE_SEGMENTS_FROM_SCRIPT: {
-    temperature: 0.6,
-    max_tokens: 8192
+    temperature: 0.6
   },
 };
 
