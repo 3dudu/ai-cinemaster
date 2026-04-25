@@ -2,18 +2,24 @@
 
 @theme {
   /* 定义Tailwind颜色变量 */
-    --color-bg-progress: var(--bg-progress);
-      --color-dark-bg-progress: var(--color-slate-900);
-        --color-light-bg-progress: var(--color-slate-900);
+  --color-bg-selected: var(--bg-selected);
+  --color-bg-progress: var(--bg-progress);
 
 
+  --color-dark-bg-selected: var(--color-slate-600);
+  --color-dark-bg-progress: var(--color-slate-900);
 
+  
+  --color-light-bg-selected: var(--color-slate-600);
+  --color-light-bg-progress: var(--color-slate-900);
+  
 }
 
 @layer base {
 
   /* 浅色主题下调整olive颜色 */
   :root[data-theme="light"] {
+
     --color-slate-50: var(--color-olive-950);
     --color-slate-100: var(--color-olive-900);
     --color-slate-200: var(--color-olive-800);
@@ -25,15 +31,16 @@
     --color-slate-800: var(--color-olive-100);
     --color-slate-900: var(--color-olive-100);
     --color-slate-950: var(--color-olive-50);
-    --bg-progress: var(--color-light-bg-progress);
 
+    --bg-selected: var(--color-light-bg-selected);
+    --bg-progress: var(--color-light-bg-progress);
   }
 
   /* 默认深色主题 */
   :root[data-theme="dark"] {
-        --bg-progress: var(--color-dark-bg-progress);
-
-    }
+    --bg-selected: var(--color-dark-bg-selected);
+    --bg-progress: var(--color-dark-bg-progress);
+  }
 
   /* 跟随系统主题 */
   @media (prefers-color-scheme: light) {
@@ -50,16 +57,17 @@
       --color-slate-800: var(--color-olive-100);
       --color-slate-900: var(--color-olive-100);
       --color-slate-950: var(--color-olive-50);
-            --bg-progress: var(--color-light-bg-progress);
 
+      --bg-selected: var(--color-light-bg-selected);
+      --bg-progress: var(--color-light-bg-progress);
     }
   }
 
     /* 跟随系统主题 */
   @media (prefers-color-scheme: dark) {
     :root[data-theme="system"] {
-            --bg-progress: var(--color-dark-bg-progress);
-
+      --bg-selected: var(--color-dark-bg-selected);
+      --bg-progress: var(--color-dark-bg-progress);
     }
   }
   
