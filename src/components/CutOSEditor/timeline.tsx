@@ -820,7 +820,7 @@ export function Timeline() {
                 variant={canCut ? "default" : "ghost"}
                 size="sm"
                 className={`h-7 w-7 p-0 transition-colors ${
-                  canCut ? "bg-[var(--accent)] text-[var(--accent-on)] shadow-md" : ""
+                  canCut ? "bg-blue-500 text-white shadow-md" : ""
                 }`}
                 onClick={handleCut}
                 disabled={!canCut}
@@ -904,14 +904,14 @@ export function Timeline() {
               </Button>
             </motion.div>
           </div>
-          <div className="font-mono text-xs text-[var(--text-muted)] bg-[var(--bg-secondary)] px-2 py-0.5 rounded">
+          <div className="font-mono text-xs text-slate-500 bg-slate-900 px-2 py-0.5 rounded">
             {formatRulerTime(currentTime)}
           </div>
         </div>
         <div className="flex items-center gap-0">
           <motion.button 
             onClick={zoomToFit}
-            className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+            className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-900 hover:text-slate-100 cursor-pointer"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="缩放以适应所有片段"
@@ -922,20 +922,20 @@ export function Timeline() {
             <motion.button 
               onClick={zoomOut}
               disabled={zoomLevel <= 25}
-              className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-900 hover:text-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               whileHover={{ scale: zoomLevel > 25 ? 1.05 : 1 }}
               whileTap={{ scale: zoomLevel > 25 ? 0.95 : 1 }}
               title="缩小（最大10分钟）"
             >
               −
             </motion.button>
-            <div className="px-0 text-xs text-[var(--text-muted)] font-mono text-center">
+            <div className="px-0 text-xs text-slate-500 font-mono text-center">
               {zoomLevel}%
             </div>
             <motion.button 
               onClick={zoomIn}
               disabled={zoomLevel >= 500}
-              className="rounded px-2 py-1 text-xs text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-900 hover:text-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               whileHover={{ scale: zoomLevel < 500 ? 1.05 : 1 }}
               whileTap={{ scale: zoomLevel < 500 ? 0.95 : 1 }}
               title="放大（最大精度）"
@@ -949,7 +949,7 @@ export function Timeline() {
       {/* Timeline Tracks */}
       <div className="flex flex-1 min-h-0">
         {/* Track Labels - 与右侧轨道对齐：先 ruler 占位 (h-6)，再 4 轨道 (h-12) */}
-        <div className="w-24 shrink-0 flex flex-col border-r border-slate-600 bg-[var(--bg-secondary)]">
+        <div className="w-24 shrink-0 flex flex-col border-r border-slate-600 bg-slate-900">
           {/* Ruler spacer - 与时间标尺等高 */}
           <div className="h-6 shrink-0 border-b border-slate-600" />
           {tracks.map((track) => {
@@ -963,7 +963,7 @@ export function Timeline() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); e.preventDefault(); setTrackMuted(track, !isMuted) }}
-                    className={`min-w-[22px] min-h-[22px] flex items-center justify-center rounded cursor-pointer transition-colors ${isMuted ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+                    className={`min-w-[22px] min-h-[22px] flex items-center justify-center rounded cursor-pointer transition-colors ${isMuted ? "text-blue-500" : "text-slate-500 hover:text-slate-100"}`}
                     title={isMuted ? "取消静音" : "静音轨道"}
                   >
                     {track.startsWith("V") ? (
@@ -978,7 +978,7 @@ export function Timeline() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); e.preventDefault(); setTrackLocked(track, !isLocked) }}
-                    className={`min-w-[22px] min-h-[22px] flex items-center justify-center rounded cursor-pointer transition-colors ${isLocked ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+                    className={`min-w-[22px] min-h-[22px] flex items-center justify-center rounded cursor-pointer transition-colors ${isLocked ? "text-blue-500" : "text-slate-500 hover:text-slate-100"}`}
                     title={isLocked ? "解锁轨道" : "锁定轨道"}
                   >
                     {isLocked ? <Lock className="h-2.5 w-2.5" /> : <Unlock className="h-2.5 w-2.5" />}
@@ -987,13 +987,13 @@ export function Timeline() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); e.preventDefault(); setTrackVisible(track, !isVisible) }}
-                    className={`min-w-[22px] min-h-[22px] flex items-center justify-center rounded cursor-pointer transition-colors ${!isVisible ? "text-[var(--text-muted)]/50" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+                    className={`min-w-[22px] min-h-[22px] flex items-center justify-center rounded cursor-pointer transition-colors ${!isVisible ? "text-slate-500/50" : "text-slate-500 hover:text-slate-100"}`}
                     title={isVisible ? "隐藏轨道" : "显示轨道"}
                   >
                     {isVisible ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />}
                   </button>
                 </div>
-                <div className={`text-xs font-medium truncate ${!isVisible ? "text-[var(--text-muted)]/50" : "text-[var(--text-primary)]"}`}>{track}</div>
+                <div className={`text-xs font-medium truncate ${!isVisible ? "text-slate-500/50" : "text-slate-100"}`}>{track}</div>
               </div>
             )
           })}
@@ -1030,7 +1030,7 @@ export function Timeline() {
               
               return Array.from({ length: numSegments }).map((_, i) => (
                 <div key={i} className="shrink-0 border-r border-slate-600" style={{ width: `${segmentWidth}px` }}>
-                  <div className="px-2 text-[10px] text-[var(--text-muted)]">
+                  <div className="px-2 text-[10px] text-slate-500">
                     {formatRulerTime(i * secondsPerSegment)}
                   </div>
                 </div>
@@ -1086,8 +1086,8 @@ export function Timeline() {
                   <div
                     className={`absolute z-30 mx-1 my-1.5 h-9 rounded-lg border-2 pointer-events-none transition-all shadow-2xl ${
                       dragPreview.isSnapped 
-                        ? "border-solid border-green-400 bg-green-400/40 ring-2 ring-green-400/50 ring-offset-1 ring-offset-[var(--bg-primary)]" 
-                        : "border-dashed border-blue-400 bg-blue-400/30 ring-2 ring-blue-400/40 ring-offset-1 ring-offset-[var(--bg-primary)] animate-pulse"
+                        ? "border-solid border-green-400 bg-green-400/40 ring-2 ring-green-400/50 ring-offset-1 ring-offset-slate-950" 
+                        : "border-dashed border-blue-400 bg-blue-400/30 ring-2 ring-blue-400/40 ring-offset-1 ring-offset-slate-950 animate-pulse"
                     }`}
                     style={{ left: `${dragPreview.x}px`, width: `${dragPreview.duration}px` }}
                   >
@@ -1191,22 +1191,22 @@ export function Timeline() {
                                 className="h-6 w-10 object-cover rounded-sm shrink-0"
                               />
                             ) : (
-                              <Film className="h-3 w-3 text-[var(--accent-on)]/80 shrink-0" />
+                              <Film className="h-3 w-3 text-white/80 shrink-0" />
                             )}
-                            <div className="text-[10px] font-medium text-[var(--accent-on)] truncate">
+                            <div className="text-[10px] font-medium text-white truncate">
                               {clip.label}
                             </div>
                         </div>
                       ) : (
                         <div className="h-full">
                           <div className="flex h-full items-center gap-1.5 px-2">
-                              <Volume2 className="h-3 w-3 shrink-0 text-[var(--text-primary)]/60" />
+                              <Volume2 className="h-3 w-3 shrink-0 text-slate-100/60" />
                             {/* Simple waveform visualization */}
                             <div className="flex h-full flex-1 items-center gap-px">
                                 {Array.from({ length: Math.min(40, Math.floor(clip.duration / 8)) }).map((_, i) => (
                                 <div
                                   key={i}
-                                  className="flex-1 bg-[var(--text-primary)]/60"
+                                  className="flex-1 bg-slate-100/60"
                                   style={{ height: `${30 + Math.random() * 70}%` }}
                                 />
                               ))}
@@ -1264,7 +1264,7 @@ export function Timeline() {
             >
               {/* Draggable playhead handle */}
               <div 
-                className="absolute -top-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-red-500 ring-2 ring-[var(--bg-primary)] shadow-lg cursor-ew-resize hover:scale-125 transition-transform select-none"
+                className="absolute -top-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-red-500 ring-2 ring-slate-950 shadow-lg cursor-ew-resize hover:scale-125 transition-transform select-none"
                 onMouseDown={(e) => {
                   e.stopPropagation()
                   e.preventDefault() // Prevent text selection
@@ -1289,7 +1289,7 @@ export function Timeline() {
       {/* Empty state hint */}
       {timelineClips.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center text-[var(--text-muted)]/50">
+          <div className="text-center text-slate-500/50">
             <Film className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">拖拽媒体到此处开始编辑</p>
           </div>
@@ -1304,7 +1304,7 @@ export function Timeline() {
           onClick={(e) => e.stopPropagation()}
         >
           <button
-            className="w-full px-3 py-2 text-sm text-left hover:bg-[var(--accent-bg)] hover:text-[var(--accent)] flex items-center gap-2 cursor-pointer"
+            className="w-full px-3 py-2 text-sm text-left hover:bg-blue-500/10 hover:text-blue-500 flex items-center gap-2 cursor-pointer"
             onClick={() => {
               const clip = timelineClips.find(c => c.id === contextMenu.clipId)
               if (clip) {
@@ -1316,10 +1316,10 @@ export function Timeline() {
           >
             <Scissors className="h-3.5 w-3.5" />
             在播放头处分割
-            <span className="ml-auto text-xs text-[var(--text-muted)]">S</span>
+            <span className="ml-auto text-xs text-slate-500">S</span>
           </button>
           <button
-            className="w-full px-3 py-2 text-sm text-left hover:bg-[var(--accent-bg)] hover:text-[var(--accent)] flex items-center gap-2 cursor-pointer"
+            className="w-full px-3 py-2 text-sm text-left hover:bg-blue-500/10 hover:text-blue-500 flex items-center gap-2 cursor-pointer"
             onClick={() => {
               copyClip(contextMenu.clipId)
               setContextMenu(null)
@@ -1327,10 +1327,10 @@ export function Timeline() {
           >
             <Copy className="h-3.5 w-3.5" />
             复制
-            <span className="ml-auto text-xs text-[var(--text-muted)]">Ctrl+C</span>
+            <span className="ml-auto text-xs text-slate-500">Ctrl+C</span>
           </button>
           <button
-            className="w-full px-3 py-2 text-sm text-left hover:bg-[var(--accent-bg)] hover:text-[var(--accent)] flex items-center gap-2 cursor-pointer"
+            className="w-full px-3 py-2 text-sm text-left hover:bg-blue-500/10 hover:text-blue-500 flex items-center gap-2 cursor-pointer"
             onClick={() => {
               copyClip(contextMenu.clipId)
               pasteClip()
@@ -1339,10 +1339,10 @@ export function Timeline() {
           >
             <CopyPlus className="h-3.5 w-3.5" />
             复制
-            <span className="ml-auto text-xs text-[var(--text-muted)]">Ctrl+D</span>
+            <span className="ml-auto text-xs text-slate-500">Ctrl+D</span>
           </button>
           <button
-            className="w-full px-3 py-2 text-sm text-left hover:bg-[var(--accent-bg)] hover:text-[var(--accent)] flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 text-sm text-left hover:bg-blue-500/10 hover:text-blue-500 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => {
               pasteClip()
               setContextMenu(null)
@@ -1351,11 +1351,11 @@ export function Timeline() {
           >
             <Clipboard className="h-3.5 w-3.5" />
             粘贴
-            <span className="ml-auto text-xs text-[var(--text-muted)]">Ctrl+V</span>
+            <span className="ml-auto text-xs text-slate-500">Ctrl+V</span>
           </button>
           <div className="h-px bg-slate-400 my-1" />
           <button
-            className="w-full px-3 py-2 text-sm text-left hover:bg-[var(--error-bg)] hover:text-[var(--error-text)] flex items-center gap-2 cursor-pointer"
+            className="w-full px-3 py-2 text-sm text-left hover:bg-red-950/50 hover:text-red-400 flex items-center gap-2 cursor-pointer"
             onClick={() => {
               removeClip(contextMenu.clipId)
               setContextMenu(null)
@@ -1363,7 +1363,7 @@ export function Timeline() {
           >
             <Trash2 className="h-3.5 w-3.5" />
             删除
-            <span className="ml-auto text-xs text-[var(--text-muted)]">Del</span>
+            <span className="ml-auto text-xs text-slate-500">Del</span>
           </button>
         </div>
       )}

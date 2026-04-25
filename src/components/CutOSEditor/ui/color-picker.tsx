@@ -29,18 +29,18 @@ export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="flex items-center gap-2 rounded border border-slate-600 bg-[var(--bg-primary)] px-2 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex items-center gap-2 rounded border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <div
           className="h-5 w-5 rounded border border-slate-600"
           style={{ backgroundColor: value }}
         />
-        <span className="text-[var(--text-muted)]">{value.toUpperCase()}</span>
-        <Eye className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+        <span className="text-slate-500">{value.toUpperCase()}</span>
+        <Eye className="h-3.5 w-3.5 text-slate-500" />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-slate-600 bg-[var(--bg-surface)] p-4 shadow-xl">
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-slate-600 bg-slate-900 p-4 shadow-xl">
           <div className="space-y-3">
             <div className="flex gap-3">
               <div
@@ -48,7 +48,7 @@ export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
                 style={{ backgroundColor: value }}
               />
               <div className="flex-1">
-                <p className="mb-1 text-xs font-medium text-[var(--text-primary)]">颜色</p>
+                <p className="mb-1 text-xs font-medium text-slate-100">颜色</p>
                 <input
                   type="text"
                   value={value || '#00FF00'}
@@ -64,14 +64,14 @@ export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
                       onChange(value || '#00FF00');
                     }
                   }}
-                  className="w-full rounded-md border border-slate-600 bg-[var(--bg-primary)] px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  className="w-full rounded-md border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   placeholder="#00FF00"
                   disabled={disabled}
                 />
               </div>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-[var(--text-muted)]">选择颜色:</label>
+              <label className="mb-1 block text-xs text-slate-500">选择颜色:</label>
               <input
                 type="color"
                 value={value || '#00FF00'}

@@ -690,9 +690,9 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
       <div className="border-b border-slate-600 p-3">
         <div className="relative">
           {isSearching ? (
-            <Loader2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--accent)] animate-spin" />
+            <Loader2 className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-blue-500 animate-spin" />
           ) : (
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--text-muted)]" />
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-500" />
           )}
           <input
             type="text"
@@ -704,13 +704,13 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
         </div>
         {/* NLP Search hint */}
         {hasIndexedMedia && searchQuery.length > 0 && filteredFiles.length === 0 && !isSearching && !showNlpResults && (
-          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-500">
             <Zap className="h-3 w-3" />
             <span>试试自然语言："人走路"、"日落场景"等</span>
           </div>
         )}
         {indexingCount > 0 && (
-          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-[var(--text-muted)]">
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-500">
             <Loader2 className="h-3 w-3 animate-spin" />
             <span>正在为 AI 搜索索引 {indexingCount} 个视频...</span>
           </div>
@@ -719,7 +719,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
 
       {/* Drop zone & media grid */}
       <div
-        className={`flex-1 overflow-y-auto p-3 pt-0 scrollbar-thin transition-colors ${isDragOver ? "bg-[var(--accent-bg)]" : ""
+        className={`flex-1 overflow-y-auto p-3 pt-0 scrollbar-thin transition-colors ${isDragOver ? "bg-blue-500/10" : ""
           }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -738,22 +738,22 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
           /* Empty state - drop zone */
           <div
             className={`flex h-full flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors cursor-pointer ${isDragOver
-                ? "border-[var(--accent)] bg-[var(--accent-bg)]"
-                : "border-slate-600 hover:border-[var(--text-muted)]"
+                ? "border-blue-500 bg-blue-500/10"
+                : "border-slate-600 hover:border-slate-500"
               }`}
             onClick={() => fileInputRef.current?.click()}
           >
             <Upload
-              className={`h-10 w-10 mb-3 transition-colors ${isDragOver ? "text-[var(--accent)]" : "text-[var(--text-muted)]"
+              className={`h-10 w-10 mb-3 transition-colors ${isDragOver ? "text-blue-500" : "text-slate-500"
                 }`}
             />
-            <p className="text-sm font-medium text-[var(--text-primary)] mb-1">
+            <p className="text-sm font-medium text-slate-100 mb-1">
               拖放视频到此处
             </p>
-            <p className="text-xs text-[var(--text-muted)]">
+            <p className="text-xs text-slate-500">
               或点击浏览
             </p>
-            <p className="text-[10px] text-[var(--text-muted)]/60 mt-2">
+            <p className="text-[10px] text-slate-500/60 mt-2">
               MP4, MOV, WebM, AVI
             </p>
           </div>
@@ -764,7 +764,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
             <div className="flex pt-2 gap-2 sticky top-0 z-10 bg-slate-800">
               <motion.button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-600 py-2 text-xs text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-600 py-2 text-xs text-slate-500 hover:border-blue-500 hover:text-blue-500 transition-colors cursor-pointer"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -773,7 +773,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
               </motion.button>
               <motion.button
                 onClick={() => setIsVideoSelectorOpen(true)}
-                className="flex-1 flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-600 py-2 text-xs text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-600 py-2 text-xs text-slate-500 hover:border-blue-500 hover:text-blue-500 transition-colors cursor-pointer"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -800,8 +800,8 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                   whileHover={{ scale: media.isUploading ? 1 : 1.02, y: media.isUploading ? 0 : -2 }}
                   className={`group relative aspect-video overflow-hidden rounded border bg-slate-700 ${
                     media.isUploading
-                      ? "border-[var(--accent)]/50 opacity-70"
-                      : "border-slate-600 hover:border-[var(--accent)] cursor-grab active:cursor-grabbing"
+                      ? "border-blue-500/50 opacity-70"
+                      : "border-slate-600 hover:border-blue-500 cursor-grab active:cursor-grabbing"
                   }`}
                   draggable={!media.isUploading}
                   onDragStart={(e) => !media.isUploading && handleMediaDragStart(e as unknown as React.DragEvent<Element>, media)}
@@ -814,7 +814,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center">
-                      <Film className="h-8 w-8 text-[var(--text-muted)]" />
+                      <Film className="h-8 w-8 text-slate-500" />
                     </div>
                   )}
 
@@ -944,7 +944,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
             </AnimatePresence>
 
             {filteredFiles.length === 0 && searchQuery && !showNlpResults && !isSearching && (
-              <div className="text-center py-8 text-xs text-[var(--text-muted)]">
+              <div className="text-center py-8 text-xs text-slate-500">
                 没有匹配"{searchQuery}"的媒体
                 {nlpAvailable && hasIndexedMedia && (
                   <div className="mt-2 text-[10px]">
@@ -957,8 +957,8 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
             {/* NLP Search Results - 仅 projectId 存在时显示 */}
             {nlpAvailable && showNlpResults && nlpResults.length > 0 && (
               <div className="mt-2 space-y-2">
-                <div className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--text-muted)]">
-                  <Zap className="h-3 w-3 text-[var(--accent)]" />
+                <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500">
+                  <Zap className="h-3 w-3 text-blue-500" />
                   <span>AI 找到 {nlpResults.length} 个匹配片段</span>
                 </div>
                 <AnimatePresence mode="popLayout">
@@ -970,7 +970,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.2, delay: index * 0.05 }}
-                      className="group relative overflow-hidden rounded border border-[var(--accent)]/30 bg-[var(--accent-bg)] hover:border-[var(--accent)] hover:bg-[var(--accent-bg)] transition-colors cursor-pointer"
+                      className="group relative overflow-hidden rounded border border-blue-500/30 bg-blue-500/10 hover:border-blue-500 hover:bg-blue-500/10 transition-colors cursor-pointer"
                       draggable={!!result.media}
                       onDragStart={(e) => handleNlpResultDragStart(e as unknown as React.DragEvent<Element>, result)}
                       onClick={() => handlePreviewResult(result)}
@@ -978,14 +978,14 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                       <div className="flex gap-2 p-2">
                         {/* Drag handle */}
                         <div 
-                          className="flex items-center text-[var(--text-muted)]/50 group-hover:text-[var(--accent)]/70 transition-colors cursor-grab active:cursor-grabbing"
+                          className="flex items-center text-slate-500/50 group-hover:text-blue-500/70 transition-colors cursor-grab active:cursor-grabbing"
                           onMouseDown={(e) => e.stopPropagation()}
                         >
                           <GripVertical className="h-4 w-4" />
                         </div>
                         
                         {/* Thumbnail with play overlay */}
-                        <div className="relative w-16 h-10 rounded overflow-hidden bg-[var(--bg-deep)] shrink-0">
+                        <div className="relative w-16 h-10 rounded overflow-hidden bg-slate-800 shrink-0">
                           {result.media?.thumbnail ? (
                             <img
                               src={result.media.thumbnail}
@@ -994,7 +994,7 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                             />
                           ) : (
                             <div className="flex h-full items-center justify-center">
-                              <Film className="h-4 w-4 text-[var(--text-muted)]" />
+                              <Film className="h-4 w-4 text-slate-500" />
                             </div>
                           )}
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
@@ -1004,22 +1004,22 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
                         
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-medium text-[var(--text-primary)] truncate">
+                          <div className="text-[11px] font-medium text-slate-100 truncate">
                             {result.media?.name}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <div className="flex items-center gap-1 text-[10px] text-[var(--accent)]">
+                            <div className="flex items-center gap-1 text-[10px] text-blue-500">
                               <Clock className="h-3 w-3" />
                               <span>{formatTime(result.start)} - {formatTime(result.end)}</span>
                             </div>
-                            <div className="text-[9px] text-[var(--text-muted)]">
+                            <div className="text-[9px] text-slate-500">
                               Rank #{result.rank}
                             </div>
                           </div>
                         </div>
                         
                         {/* Click to preview hint */}
-                        <div className="flex items-center text-[9px] text-[var(--text-muted)]/60 group-hover:text-[var(--accent)]/60 transition-colors whitespace-nowrap">
+                        <div className="flex items-center text-[9px] text-slate-500/60 group-hover:text-blue-500/60 transition-colors whitespace-nowrap">
                           点击预览
                         </div>
                       </div>
@@ -1046,22 +1046,22 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative max-w-2xl w-full mx-4 bg-[var(--bg-primary)] rounded-lg overflow-hidden shadow-2xl"
+              className="relative max-w-2xl w-full mx-4 bg-slate-950 rounded-lg overflow-hidden shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center justify-between p-3 border-b">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{previewResult.media.name}</div>
-                  <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
                     <Clock className="h-3 w-3" />
                     <span>{formatTime(previewResult.start)} - {formatTime(previewResult.end)}</span>
-                    <span className="text-[var(--text-muted)]/60">({Math.round(previewResult.end - previewResult.start)}s)</span>
+                    <span className="text-slate-500/60">({Math.round(previewResult.end - previewResult.start)}s)</span>
                   </div>
                 </div>
                 <button
                   onClick={() => setPreviewResult(null)}
-                  className="p-1.5 rounded-full hover:bg-[var(--bg-deep)] transition-colors"
+                  className="p-1.5 rounded-full hover:bg-slate-800 transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1085,11 +1085,11 @@ function MediaTab({ mediaFiles, onFilesAdded, onRemoveFile, projectId, onReindex
               
               {/* Footer with drag hint */}
               <div className="p-3 border-t flex items-center justify-between">
-                <div className="text-xs text-[var(--text-muted)]">
+                <div className="text-xs text-slate-500">
                   按 Esc 或点击外部关闭
                 </div>
                 <div 
-                  className="flex items-center gap-2 text-xs text-[var(--accent)] cursor-grab active:cursor-grabbing px-3 py-1.5 rounded border border-[var(--accent)]/30 hover:bg-[var(--accent-bg)] transition-colors"
+                  className="flex items-center gap-2 text-xs text-blue-500 cursor-grab active:cursor-grabbing px-3 py-1.5 rounded border border-blue-500/30 hover:bg-blue-500/10 transition-colors"
                   draggable
                   onDragStart={(e) => handleNlpResultDragStart(e as unknown as React.DragEvent<Element>, previewResult)}
                 >
@@ -1148,7 +1148,7 @@ function EffectsTab() {
   if (!selectedClip) {
     return (
       <div className="flex h-full items-center justify-center p-3">
-        <p className="text-xs text-[var(--text-muted)]">选择一个片段进行编辑</p>
+        <p className="text-xs text-slate-500">选择一个片段进行编辑</p>
       </div>
     )
   }
@@ -1233,7 +1233,7 @@ function EffectsTab() {
     <div className="h-full overflow-y-auto scrollbar-thin">
       <div className="px-3 py-2 border-b border-slate-600 flex items-center justify-between">
         <motion.span
-          className="text-xs font-medium text-[var(--text-primary)] truncate max-w-[60%]"
+          className="text-xs font-medium text-slate-100 truncate max-w-[60%]"
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -1242,7 +1242,7 @@ function EffectsTab() {
         </motion.span>
         <motion.button
           onClick={resetAll}
-          className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+          className="text-xs text-slate-500 hover:text-slate-100 cursor-pointer"
           whileHover={{ scale: 1.05, x: -2 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -1261,29 +1261,29 @@ function EffectsTab() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-[var(--text-muted)] mb-1 block">位置 X</label>
+                  <label className="text-xs text-slate-500 mb-1 block">位置 X</label>
                   <input
                     type="number"
                     value={transform.positionX}
                     onChange={(e) => handleTransformChange("positionX", parseInt(e.target.value) || 0)}
-                    className="w-full rounded border border-[var(--border-secondary)] bg-[var(--bg-primary)] px-2 py-1 text-xs text-[var(--text-primary)]"
+                    className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-[var(--text-muted)] mb-1 block">位置 Y</label>
+                  <label className="text-xs text-slate-500 mb-1 block">位置 Y</label>
                   <input
                     type="number"
                     value={transform.positionY}
                     onChange={(e) => handleTransformChange("positionY", parseInt(e.target.value) || 0)}
-                    className="w-full rounded border border-[var(--border-secondary)] bg-[var(--bg-primary)] px-2 py-1 text-xs text-[var(--text-primary)]"
+                    className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1 text-xs text-slate-100"
                   />
                 </div>
               </div>
               
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-[var(--text-muted)]">缩放</span>
-                  <span className="text-[var(--text-muted)]">{transform.scale}%</span>
+                  <span className="text-slate-500">缩放</span>
+                  <span className="text-slate-500">{transform.scale}%</span>
                 </div>
                 <input
                   type="range"
@@ -1297,8 +1297,8 @@ function EffectsTab() {
 
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-[var(--text-muted)]">不透明度</span>
-                  <span className="text-[var(--text-muted)]">{transform.opacity}%</span>
+                  <span className="text-slate-500">不透明度</span>
+                  <span className="text-slate-500">{transform.opacity}%</span>
                 </div>
                 <input
                   type="range"
@@ -1318,7 +1318,7 @@ function EffectsTab() {
           <AccordionTrigger className="px-3 py-2 text-xs font-medium hover:no-underline">
             <div className="flex items-center justify-between w-full pr-2">
               <span>预设</span>
-              <span className="text-[var(--text-muted)] font-normal">{currentPresetLabel}</span>
+              <span className="text-slate-500 font-normal">{currentPresetLabel}</span>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-3 pb-3">
@@ -1329,8 +1329,8 @@ function EffectsTab() {
                   onClick={() => handlePresetChange(preset.id)}
                   className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors cursor-pointer ${
                     effects.preset === preset.id
-                      ? "bg-[var(--accent-bg)] text-[var(--accent)]"
-                      : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+                      ? "bg-blue-500/10 text-blue-500"
+                      : "text-slate-500 hover:bg-slate-900 hover:text-slate-100"
                   }`}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -1351,7 +1351,7 @@ function EffectsTab() {
                   </motion.span>
                   {effects.preset === preset.id && (
                     <motion.div
-                      className="inline-block ml-2 w-1.5 h-1.5 rounded-full bg-[var(--accent)]"
+                      className="inline-block ml-2 w-1.5 h-1.5 rounded-full bg-blue-500"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", stiffness: 500, damping: 20 }}
@@ -1372,8 +1372,8 @@ function EffectsTab() {
             <div className="space-y-3">
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">模糊</span>
-                  <span className="text-[var(--text-muted)]">{effects.blur}px</span>
+                  <span className="text-slate-500">模糊</span>
+                  <span className="text-slate-500">{effects.blur}px</span>
                 </div>
                 <input
                   type="range"
@@ -1387,8 +1387,8 @@ function EffectsTab() {
               
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">亮度</span>
-                  <span className="text-[var(--text-muted)]">{effects.brightness}%</span>
+                  <span className="text-slate-500">亮度</span>
+                  <span className="text-slate-500">{effects.brightness}%</span>
                 </div>
                 <input
                   type="range"
@@ -1402,8 +1402,8 @@ function EffectsTab() {
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">对比度</span>
-                  <span className="text-[var(--text-muted)]">{effects.contrast}%</span>
+                  <span className="text-slate-500">对比度</span>
+                  <span className="text-slate-500">{effects.contrast}%</span>
                 </div>
                 <input
                   type="range"
@@ -1417,8 +1417,8 @@ function EffectsTab() {
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">饱和度</span>
-                  <span className="text-[var(--text-muted)]">{effects.saturate}%</span>
+                  <span className="text-slate-500">饱和度</span>
+                  <span className="text-slate-500">{effects.saturate}%</span>
                 </div>
                 <input
                   type="range"
@@ -1432,8 +1432,8 @@ function EffectsTab() {
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">色相旋转</span>
-                  <span className="text-[var(--text-muted)]">{effects.hueRotate}°</span>
+                  <span className="text-slate-500">色相旋转</span>
+                  <span className="text-slate-500">{effects.hueRotate}°</span>
                 </div>
                 <input
                   type="range"
@@ -1459,8 +1459,8 @@ function EffectsTab() {
               onClick={() => handleChromakeyToggle(!(effects.chromakey?.enabled ?? false))}
               className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs transition-colors cursor-pointer ${
                 effects.chromakey?.enabled
-                  ? "bg-[var(--accent-bg)] text-[var(--accent)] hover:bg-[var(--accent)]/20"
-                  : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+                  ? "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
+                  : "text-slate-500 hover:bg-slate-900 hover:text-slate-100"
               }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -1503,7 +1503,7 @@ function EffectsTab() {
           <AccordionContent className="px-3 pb-3">
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-[var(--text-muted)] mb-1 block">键颜色</label>
+                <label className="text-xs text-slate-500 mb-1 block">键颜色</label>
                 <ColorPicker
                   value={effects.chromakey?.keyColor ?? "#00FF00"}
                   onChange={(color) => handleChromakeyChange("keyColor", color)}
@@ -1513,8 +1513,8 @@ function EffectsTab() {
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">相似度</span>
-                  <span className="text-[var(--text-muted)]">{((effects.chromakey?.similarity ?? 0.4) * 100).toFixed(0)}%</span>
+                  <span className="text-slate-500">相似度</span>
+                  <span className="text-slate-500">{((effects.chromakey?.similarity ?? 0.4) * 100).toFixed(0)}%</span>
                 </div>
                 <input
                   type="range"
@@ -1526,13 +1526,13 @@ function EffectsTab() {
                   className="w-full accent-primary"
                   disabled={!effects.chromakey?.enabled}
                 />
-                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">颜色需要多接近才会被移除</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">颜色需要多接近才会被移除</p>
               </div>
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">平滑度</span>
-                  <span className="text-[var(--text-muted)]">{((effects.chromakey?.smoothness ?? 0.1) * 100).toFixed(0)}%</span>
+                  <span className="text-slate-500">平滑度</span>
+                  <span className="text-slate-500">{((effects.chromakey?.smoothness ?? 0.1) * 100).toFixed(0)}%</span>
                 </div>
                 <input
                   type="range"
@@ -1544,13 +1544,13 @@ function EffectsTab() {
                   className="w-full accent-primary"
                   disabled={!effects.chromakey?.enabled}
                 />
-                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">边缘柔化</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">边缘柔化</p>
               </div>
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)]">溢出抑制</span>
-                  <span className="text-[var(--text-muted)]">{((effects.chromakey?.spill ?? 0.3) * 100).toFixed(0)}%</span>
+                  <span className="text-slate-500">溢出抑制</span>
+                  <span className="text-slate-500">{((effects.chromakey?.spill ?? 0.3) * 100).toFixed(0)}%</span>
                 </div>
                 <input
                   type="range"
@@ -1562,7 +1562,7 @@ function EffectsTab() {
                   className="w-full accent-primary"
                   disabled={!effects.chromakey?.enabled}
                 />
-                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">去除边缘的颜色溢出</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">去除边缘的颜色溢出</p>
               </div>
             </div>
           </AccordionContent>
@@ -1582,8 +1582,8 @@ function EffectsTab() {
               onClick={() => setShowCaptions(!showCaptions)}
               className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs transition-colors cursor-pointer ${
                 showCaptions
-                  ? "bg-[var(--accent-bg)] text-[var(--accent)] hover:bg-[var(--accent)]/20"
-                  : "text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+                  ? "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
+                  : "text-slate-500 hover:bg-slate-900 hover:text-slate-100"
               }`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -1669,7 +1669,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
   
   if (!media) {
     return (
-      <p className="text-xs text-[var(--text-muted)]">未找到媒体</p>
+      <p className="text-xs text-slate-500">未找到媒体</p>
     )
   }
 
@@ -1679,7 +1679,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
 
   if (!isVideoType) {
     return (
-      <p className="text-xs text-[var(--text-muted)]">字幕仅对带音频的视频片段可用</p>
+      <p className="text-xs text-slate-500">字幕仅对带音频的视频片段可用</p>
     )
   }
 
@@ -1695,17 +1695,17 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
   return (
     <div className="space-y-3">
       {!media.storageUrl ? (
-        <p className="text-xs text-[var(--text-muted)]">请先将媒体上传到云端以生成字幕</p>
+        <p className="text-xs text-slate-500">请先将媒体上传到云端以生成字幕</p>
       ) : (
         <>
           {/* Language Selector */}
           <div>
-            <label className="text-xs text-[var(--text-muted)] mb-1.5 block">语言</label>
+            <label className="text-xs text-slate-500 mb-1.5 block">语言</label>
             <select
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
               disabled={isGenerating}
-              className="w-full rounded border border-[var(--border-secondary)] bg-[var(--bg-primary)] px-2 py-1.5 text-xs text-[var(--text-primary)] disabled:opacity-50"
+              className="w-full rounded border border-slate-600 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 disabled:opacity-50"
             >
               {LANGUAGES.map((lang) => (
                 <option key={lang.code} value={lang.code}>
@@ -1713,7 +1713,7 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
                 </option>
               ))}
             </select>
-            <p className="text-[10px] text-[var(--text-muted)] mt-1">指定语言可提高准确度</p>
+            <p className="text-[10px] text-slate-500 mt-1">指定语言可提高准确度</p>
           </div>
 
           <motion.button
@@ -1721,8 +1721,8 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
             disabled={isGenerating}
             className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-medium transition-colors cursor-pointer ${
               isGenerating
-                ? "bg-[var(--bg-secondary)] text-[var(--text-muted)] cursor-not-allowed"
-                : "bg-[var(--accent)] text-[var(--accent-on)] hover:bg-[var(--accent)]/90"
+                ? "bg-slate-900 text-slate-500 cursor-not-allowed"
+                : "bg-blue-500 text-white hover:bg-blue-500/90"
             }`}
             whileHover={!isGenerating ? { scale: 1.02 } : {}}
             whileTap={!isGenerating ? { scale: 0.98 } : {}}
@@ -1771,11 +1771,11 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
             <div className="space-y-3">
               {/* Caption Style Selector */}
               <div>
-                <label className="text-xs text-[var(--text-muted)] mb-1.5 block">风格</label>
-                <div className="relative flex rounded-md border border-slate-600 bg-[var(--bg-secondary)]/30 p-0.5">
+                <label className="text-xs text-slate-500 mb-1.5 block">风格</label>
+                <div className="relative flex rounded-md border border-slate-600 bg-slate-900/30 p-0.5">
                   {/* Animated background indicator */}
                   <motion.div
-                    className="absolute inset-y-0.5 rounded bg-[var(--accent)]"
+                    className="absolute inset-y-0.5 rounded bg-blue-500"
                     initial={false}
                     animate={{
                       x: captionStyle === "classic" ? "2px" : "calc(100% + 2px)",
@@ -1792,8 +1792,8 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
                     onClick={() => setCaptionStyle("classic")}
                     className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded transition-colors cursor-pointer ${
                       captionStyle === "classic"
-                        ? "text-[var(--accent-on)]"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        ? "text-white"
+                        : "text-slate-500 hover:text-slate-100"
                     }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -1805,8 +1805,8 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
                     onClick={() => setCaptionStyle("tiktok")}
                     className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded transition-colors cursor-pointer ${
                       captionStyle === "tiktok"
-                        ? "text-[var(--accent-on)]"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                        ? "text-white"
+                        : "text-slate-500 hover:text-slate-100"
                     }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -1818,12 +1818,12 @@ function CaptionsSection({ selectedClip, mediaFiles, generateCaptions, captionSt
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[var(--text-muted)]">检测到的词数</span>
-                <span className="text-[var(--text-primary)] font-medium">{media.captions!.length}</span>
+                <span className="text-slate-500">检测到的词数</span>
+                <span className="text-slate-100 font-medium">{media.captions!.length}</span>
               </div>
               
-              <div className="max-h-32 overflow-y-auto rounded border border-slate-600 bg-[var(--bg-secondary)]/30 p-2">
-                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+              <div className="max-h-32 overflow-y-auto rounded border border-slate-600 bg-slate-900/30 p-2">
+                <p className="text-xs text-slate-500 leading-relaxed">
                   {media.captions!.map((c) => c.word).join(" ")}
                 </p>
               </div>

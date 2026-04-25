@@ -22,12 +22,12 @@ const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose,isMobi
   if (media.length === 0 || clips.length === 0) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-        <div className="rounded-lg border border-slate-600 bg-[var(--bg-primary)] p-6 shadow-xl max-w-md">
-          <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">AI 剪辑</h3>
-          <p className="mb-4 text-sm text-[var(--text-secondary)]">
+        <div className="rounded-lg border border-slate-600 bg-slate-950 p-6 shadow-xl max-w-md">
+          <h3 className="mb-2 text-lg font-semibold text-slate-100">AI 剪辑</h3>
+          <p className="mb-4 text-sm text-slate-300">
             暂无已完成的视频镜头，请先在导演阶段生成视频片段。
           </p>
-          <button onClick={onClose} className='h-12 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] hover:bg-[var(--btn-primary-hover)] border border-[var(--btn-primary-bg)] shadow-lg shadow-[var(--btn-primary-shadow)] rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all'>
+          <button onClick={onClose} className='w-32 h-12 bg-blue-600 text-white hover:bg-blue-500 border border-blue-600 shadow-lg shadow-blue-600/20 rounded-lg flex items-center justify-center gap-2 font-bold text-xs uppercase tracking-widest transition-all'>
             关闭
           </button>
         </div>
@@ -36,7 +36,7 @@ const CutOSEditor: React.FC<CutOSEditorProps> = ({ project, open, onClose,isMobi
   }
 
   return (
-    <div className="absolute top-14 inset-0 z-50 flex flex-col bg-[var(--bg-primary)]">
+    <div className="absolute top-14 inset-0 z-50 flex flex-col bg-slate-950">
       <EditorShell
         initialData={{ media, clips, projectResolution }}
         projectTitle={project.title}

@@ -142,14 +142,14 @@ function EditorContent({
     : '1920×1080 • 24 fps';
 
   return (
-    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-[var(--bg-primary)]">
+    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-slate-950">
       {/* Top Bar - 与 CutOS 一致 */}
       <div className="h-12 border-b border-slate-600 bg-slate-800 md:px-4 px-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-[var(--text-primary)] line-clamp-2">
+          <span className="text-sm font-semibold text-slate-100 line-clamp-2">
             {projectTitle || 'AI 剪辑'}
           </span>
-          <span className="text-xs text-[var(--text-muted)]">{resolutionDisplay}</span>
+          <span className="text-xs text-slate-500">{resolutionDisplay}</span>
         </div>
         <div className="flex items-center gap-2">
           <Button

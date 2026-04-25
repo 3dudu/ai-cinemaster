@@ -158,11 +158,11 @@ function AgentTab() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-slate-600 px-3 py-2">
-        <span className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">AI 助手</span>
+        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">AI 助手</span>
         <motion.button
           onClick={handleNewChat}
           disabled={isLoading || messages.length === 0}
-          className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1 rounded px-2 py-1 text-[10px] font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           title="开始新对话"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -173,11 +173,11 @@ function AgentTab() {
       </div>
 
       <div className="border-b border-slate-600 p-3">
-        <div className="mb-2 text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">智能增强</div>
+        <div className="mb-2 text-[10px] font-medium text-slate-400 uppercase tracking-wider">智能增强</div>
         <motion.button
           onClick={() => setShowAutoEnhanceModal(true)}
           disabled={isLoading || timelineClips.length === 0}
-          className="w-full flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-[var(--accent)]/20 to-[var(--accent)]/10 border border-slate-200/30 px-3 py-2.5 text-[11px] font-medium text-[var(--accent)] hover:from-[var(--accent)]/30 hover:to-[var(--accent)]/20 hover:border-slate-200/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+          className="w-full flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-blue-500/20 to-blue-500/10 border border-slate-200/30 px-3 py-2.5 text-[11px] font-medium text-blue-500 hover:from-blue-500/30 hover:to-blue-500/20 hover:border-slate-200/50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
           whileHover={{ scale: isLoading || timelineClips.length === 0 ? 1 : 1.02 }}
           whileTap={{ scale: isLoading || timelineClips.length === 0 ? 1 : 0.98 }}
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -205,7 +205,7 @@ function AgentTab() {
         <AnimatePresence>
           {isLoadingHistory && (
             <motion.div className="flex justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div className="flex items-center gap-2 text-xs text-[var(--text-tertiary)]">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 加载聊天记录...
               </div>
@@ -249,8 +249,8 @@ function AgentTab() {
                 <motion.div
                   className={`max-w-[85%] rounded-lg text-xs ${
                     message.role === "user"
-                      ? "bg-[var(--accent)] text-[var(--accent-on)] px-3 py-2"
-                      : "bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-slate-600"
+                      ? "bg-blue-500 text-white px-3 py-2"
+                      : "bg-slate-900 text-slate-100 border border-slate-600"
                   }`}
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
@@ -293,7 +293,7 @@ function AgentTab() {
                       {message.content}
                       {isStreaming && (
                         <motion.span
-                          className="inline-block w-1.5 h-3 ml-0.5 bg-[var(--text-primary)]/70"
+                          className="inline-block w-1.5 h-3 ml-0.5 bg-slate-100/70"
                           animate={{ opacity: [1, 0.3, 1] }}
                           transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
                         />
@@ -304,7 +304,7 @@ function AgentTab() {
                   {!hasContent && !hasToolCalls && isStreaming && (
                     <div className="px-3 py-2">
                       <motion.span
-                        className="inline-block w-1.5 h-3 bg-[var(--text-primary)]/70"
+                        className="inline-block w-1.5 h-3 bg-slate-100/70"
                         animate={{ opacity: [1, 0.3, 1] }}
                         transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
                       />
@@ -325,7 +325,7 @@ function AgentTab() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             >
-              <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-slate-600 flex items-center gap-2">
+              <div className="max-w-[85%] rounded-lg px-3 py-2 text-xs bg-slate-900 text-slate-100 border border-slate-600 flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span>思考中...</span>
               </div>
@@ -349,7 +349,7 @@ function AgentTab() {
           {input.trim() ? (
             <motion.button
               type="submit"
-              className="flex items-center justify-center rounded-md bg-[var(--accent)] px-3 py-2.5 text-[var(--accent-on)] hover:bg-[var(--accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex items-center justify-center rounded-md bg-blue-500 px-3 py-2.5 text-white hover:bg-blue-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={!input.trim() || isLoading}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -383,8 +383,8 @@ function AgentTab() {
                 type="button"
                 onClick={toggleRecording}
                 disabled={isLoading || isTranscribing}
-                className={`relative flex items-center justify-center rounded-md px-3 py-2.5 text-[var(--accent-on)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
-                  isRecording ? "bg-red-500" : "bg-[var(--accent)]"
+                className={`relative flex items-center justify-center rounded-md px-3 py-2.5 text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+                  isRecording ? "bg-red-500" : "bg-blue-500"
                 }`}
                 title={isRecording ? "停止录制" : "开始语音录制"}
                 whileHover={{ scale: 1.05 }}
@@ -448,7 +448,7 @@ function AgentTab() {
         <AnimatePresence>
           {transcriptionError && (
             <motion.div
-              className="mt-2 flex items-center gap-2 rounded-md bg-[var(--error-bg)] border border-[var(--error-border)] px-3 py-2 text-[10px] text-[var(--error-text)]"
+              className="mt-2 flex items-center gap-2 rounded-md bg-red-950/50 border border-red-800/50 px-3 py-2 text-[10px] text-red-400"
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -456,7 +456,7 @@ function AgentTab() {
             >
               <AlertCircle className="h-3 w-3 flex-shrink-0" />
               <span className="flex-1">{transcriptionError}</span>
-              <button type="button" onClick={() => setTranscriptionError(null)} className="text-[var(--error-text)]/60 hover:text-[var(--error-text)]">
+              <button type="button" onClick={() => setTranscriptionError(null)} className="text-red-400/60 hover:text-red-400">
                 ✕
               </button>
             </motion.div>
@@ -465,7 +465,7 @@ function AgentTab() {
         <AnimatePresence>
           {isTranscribing && !transcriptionError && (
             <motion.div
-              className="mt-2 flex items-center gap-2 text-[10px] text-[var(--text-tertiary)]"
+              className="mt-2 flex items-center gap-2 text-[10px] text-slate-400"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -489,7 +489,7 @@ function AgentTab() {
           <DialogFooter className="gap-2 sm:gap-2">
             <motion.button
               onClick={() => setShowNewChatDialog(false)}
-              className="inline-flex items-center justify-center rounded-md border border-[var(--border-secondary)] bg-[var(--bg-primary)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--accent-bg)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center rounded-md border border-slate-600 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-blue-500/10 hover:text-blue-500 transition-colors cursor-pointer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -498,7 +498,7 @@ function AgentTab() {
             </motion.button>
             <motion.button
               onClick={confirmNewChat}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--error)] px-4 py-2 text-sm font-medium text-[var(--accent-on)] hover:bg-[var(--error)]/90 transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-500/90 transition-colors cursor-pointer"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}

@@ -1177,7 +1177,7 @@ export function VideoPreview() {
               )}
               {/* Debug indicator when eyedropper is active */}
               {isEyedropperActive && (
-                <div className="absolute top-2 left-2 z-20 rounded bg-slate-500/90 px-2 py-1 text-xs text-[var(--accent-on)]">
+                <div className="absolute top-2 left-2 z-20 rounded bg-slate-500/90 px-2 py-1 text-xs text-white">
                   点击视频以取样颜色
                 </div>
               )}
