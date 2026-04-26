@@ -1,10 +1,11 @@
-import { Calendar, ChevronLeft, ChevronRight, Download, Edit3, Film, Loader2, Play, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
+import { BookOpen, Calendar, ChevronLeft, ChevronRight, Download, Edit3, Film, Loader2, Play, Plus, Settings, Trash2, Upload, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { createSeriesEpisode, getEffectiveScriptData, importProjectAsEpisode } from '../../services/seriesService';
 import { deleteProjectFromDB, exportProjectToFile, getEpisodesBySeriesId, importFromFile, saveProjectToDB, saveSeriesToDB } from '../../services/storageService';
 import { ProjectState, Segment, SeriesRecord } from '../../types';
 import { useDialog } from '../dialog';
 import EpisodePreviewModal from './EpisodePreviewModal';
+import NovelImportModal from './NovelImportModal';
 import ProjectSettingsModal from './ProjectSettingsModal';
 import SegmentPreviewModal from './SegmentPreviewModal';
 import SeriesSettingsModal from './SeriesSettingsModal';
@@ -31,6 +32,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProjectSettingsModal, setShowProjectSettingsModal] = useState(false);
+  const [showNovelImportModal, setShowNovelImportModal] = useState(false);
   const [editingEpisode, setEditingEpisode] = useState<ProjectState | null>(null);
 
   // Video preview state
@@ -170,15 +172,35 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
         }
       }
 
+      // Filter out deleted episode from local list
+      const remainingEpisodes = episodes.filter(ep => ep.id !== projectId);
+
+      // If deleted episode is current, switch to another one
+      let newCurrentId = series.currentEpisodeId;
+      if (series.currentEpisodeId === projectId && remainingEpisodes.length > 0) {
+        // Prefer the one after deleted index, otherwise fallback to last
+        const deletedIndex = series.episodeOrder.indexOf(projectId);
+        const nextEp = remainingEpisodes.find(ep =>
+          series.episodeOrder.indexOf(ep.id) > deletedIndex
+        ) || remainingEpisodes[remainingEpisodes.length - 1];
+        newCurrentId = nextEp.id;
+        onSwitchEpisode(nextEp);
+      } else if (remainingEpisodes.length === 0) {
+        newCurrentId = '';
+        onClose();
+      }
+
       // Update series
       const updatedSeries: SeriesRecord = {
         ...series,
         episodeOrder: series.episodeOrder.filter(id => id !== projectId),
+        currentEpisodeId: newCurrentId,
         updatedAt: Date.now()
       };
 
       await saveSeriesToDB(updatedSeries);
       onSeriesUpdate(updatedSeries);
+      setEpisodes(remainingEpisodes);
       setDeleteConfirmId(null);
 
       dialog.toast({
@@ -189,7 +211,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
       console.error('Delete episode failed:', error);
       dialog.toast({ message: '删除分集失败', type: 'error' });
     }
-  }, [series, onSeriesUpdate, dialog]);
+  }, [series, onSeriesUpdate, dialog,onSwitchEpisode]);
 
   // Handle move episode - ✅ Use useCallback
   const handleMoveEpisode = useCallback((episodeId: string, direction: 'forward' | 'backward') => {
@@ -361,7 +383,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
             return (
               <div
                 key={ep.id}
-                onClick={() => handleOpenEpisode(ep)}
+                onClick={() => deleteConfirmId !== ep.id && handleOpenEpisode(ep)}
                 className={`group relative bg-slate-800 border rounded-xl overflow-hidden transition-all hover:border-slate-500/50 cursor-pointer flex flex-col h-full ${
                   isDeleting ? 'border-red-500/50' : 'border-slate-600'
                 }`}
@@ -451,15 +473,13 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                     <Calendar className="w-3 h-3" />
                     {formatDate(ep.lastModified)}
                   </div>
-                  {series.currentEpisodeId != ep.id && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(ep.id); }}
-                    className="p-1.5 hover:bg-red-600/20 text-slate-500 hover:text-red-400 rounded-lg transition-all relative z-20"
-                    title="删除分集"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                  )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(ep.id); }}
+                        className="p-1.5 hover:bg-red-600/20 text-slate-500 hover:text-red-400 rounded-lg transition-all relative"
+                        title="删除分集"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                       {/* Preview Episode Button */}
                       <button
                         onClick={(e) => handlePreviewEpisode(ep, e)}
@@ -524,7 +544,7 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
             className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg transition-colors"
           >
             <Settings className="w-4 h-4" />
-            设置
+            {isMobile ? '': '设置'}
           </button>
           <button
             onClick={handleImportEpisode}
@@ -532,7 +552,14 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            导入单集
+            {isMobile ? '': '导入单集'}
+          </button>
+          <button
+            onClick={() => setShowNovelImportModal(true)}
+            className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-blue-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+          >
+            <BookOpen className="w-4 h-4" />
+            小说拆集
           </button>
           <button
             onClick={onClose}
@@ -559,6 +586,14 @@ const SeriesManagerModal: React.FC<SeriesManagerModalProps> = ({
   onClose={() => setShowSettingsModal(false)}
   series={series}
   onSave={handleSaveSeriesSettings}
+/>
+
+{/* Novel Import / AI Episode Split Modal */}
+<NovelImportModal
+  isOpen={showNovelImportModal}
+  onClose={() => setShowNovelImportModal(false)}
+  series={series}
+  onSeriesUpdate={onSeriesUpdate}
 />
 
 {/* Video Preview Modal */}

@@ -1,5 +1,6 @@
 import { AlertCircle, Aperture, BookOpen, BrainCircuit, ChevronDown, ChevronUp, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { formatNaturalDuration, parseDurationSeconds, parseEpisodesFromScript } from '../lib/utils';
 import { PromptTemplateGroup } from '../prompt/promptTemplate';
 import { TemplateGroupService } from '../prompt/templateGroupService';
 import { getEnabledConfigByType } from '../services/modelConfigService';
@@ -544,16 +545,33 @@ const StageScript: React.FC<Props> = ({
     try {
       ModelService.setCurrentProjectProviders(project.modelProviders);
       const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
+      const finalDurationStr = getFinalDuration();
+      const secondsPerEpisode = parseDurationSeconds(finalDurationStr);
+      const totalSeconds = 1 * secondsPerEpisode;
+      const totalDurationStr = formatNaturalDuration(totalSeconds);
 
       const generatedScript = await ModelService.generateScript(
         scriptPrompt,
         finalGenre || project.scriptData?.genre || '剧情片',
-        getFinalDuration(),
+        finalDurationStr,
         localLanguage,
-        localGlobalSettings
+        localGlobalSettings,
+        1,totalDurationStr
       );
       if(generatedScript){
-        setLocalScript(generatedScript);
+        const epMatch = localTitle.match(/第\s*(\d+)\s*集/);
+        const startFrom = epMatch ? Math.max(1, parseInt(epMatch[1]) - 1) : 1;
+        const parsedEpisodes = parseEpisodesFromScript(generatedScript, startFrom);
+        if(parsedEpisodes.length > 0){
+          setLocalScript(parsedEpisodes[0].content);
+          if(localTitle.includes("未命名")){
+            setLocalTitle(parsedEpisodes[0].title);
+          }
+        } else {
+          setLocalScript(generatedScript);
+        }
+        dialog.toast({ message: '剧本生成成功', type: 'success' });
+        setActiveTab('script');
       }else{
         dialog.alert({
           title: '错误',
@@ -616,7 +634,7 @@ const StageScript: React.FC<Props> = ({
         scriptData.targetDuration = finalDuration;
         scriptData.language = localLanguage;
   
-        if (localTitle && localTitle !== "未命名项目") {
+        if (localTitle && !localTitle.includes("未命名")) {
           scriptData.title = localTitle;
         }
         scriptData.genre = finalGenre;
@@ -734,7 +752,7 @@ const StageScript: React.FC<Props> = ({
         scriptData.targetDuration = finalDuration;
         scriptData.language = localLanguage;
   
-        if (localTitle && localTitle !== "未命名项目") {
+        if (localTitle && !localTitle.includes("未命名")) {
           scriptData.title = localTitle;
         }
         scriptData.genre = finalGenre;
@@ -841,7 +859,7 @@ const StageScript: React.FC<Props> = ({
       
       scriptData.targetDuration = finalDuration;
       scriptData.language = localLanguage;
-      if (localTitle && localTitle !== "未命名项目") {
+      if (localTitle && !localTitle.includes("未命名")) {
         scriptData.title = localTitle;
       }
       scriptData.genre = finalGenre;
@@ -981,12 +999,12 @@ const StageScript: React.FC<Props> = ({
 
            {/* Tab Content */}
            <div className={`flex-1 overflow-y-auto md:px-4 px-2 pb-2 ${isMobile ? '' : 'min-h-0'}`}>
-              <div className={`mx-auto ${isMobile ? 'h-[600px]' : 'h-full'} flex flex-col py-2`}>
+              <div className={`mx-auto ${isMobile ? 'h-[600px]' : 'h-full'} flex flex-col pb-2`}>
                  {storyInputMode === 'ai' ? (
                     <textarea
                        value={scriptPrompt}
                        onChange={(e) => setScriptPrompt(e.target.value)}
-                       className="px-2 flex-1 rounded-lg bg-slate-800 text-slate-200 font-serif text-lg leading-loose focus:outline-none resize-none placeholder:text-slate-600"
+                       className="px-2 flex-1 bg-slate-800 text-slate-200 font-serif text-lg leading-loose focus:outline-none resize-none placeholder:text-slate-600"
                        placeholder="输入简单提示词（如：一个关于青春校园的励志故事，主角是一个性格内向的高中生...）"
                        spellCheck={false}
                        onKeyDown={(e) => {
@@ -1000,7 +1018,7 @@ const StageScript: React.FC<Props> = ({
                     <textarea
                         value={localScript}
                         onChange={(e) => setLocalScript(e.target.value)}
-                        className="px-2 flex-1 rounded-lg bg-slate-800 text-slate-200 font-serif text-lg leading-loose focus:outline-none resize-none placeholder:text-slate-600"
+                        className="px-2 flex-1 bg-slate-800 text-slate-200 font-serif text-lg leading-loose focus:outline-none resize-none placeholder:text-slate-600"
                         placeholder="在此输入故事大纲或直接粘贴剧本..."
                         spellCheck={false}
                     />

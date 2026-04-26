@@ -634,11 +634,13 @@ export class ModelService {
     genre: string = "剧情片",
     targetDuration: string = "60s",
     language: string = "中文",
-    story: string = ''
+    story: string = '',
+    episodeCount?: number,
+    totalDuration?: string
   ): Promise<string> {
     const provider = await this.getEnabledLLMProvider(this.currentProjectModelProviders);
     //console.log(`使用 ${provider} 生成剧本`);
-    const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language,story);
+    const generationPrompt = renderTemplate('GENERATE_SCRIPT', prompt, targetDuration, genre, language, story, episodeCount || 10, totalDuration || '');
 
     let script = '';
     switch (provider.provider) {
