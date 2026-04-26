@@ -124,25 +124,22 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         setLocalText2imageProvider('');
         setLocalImage2videoProvider('');
       }
+    }
+  }, [isOpen, series]);
+  
+  useEffect(() => {
+    if (isOpen) {
       // 匹配模板组
-      const finalStyle = (() => {
-        const currentStyle = series.visualStyle || '真人写实';
-        const isCustomStyle = !STYLE_OPTIONS.some(opt => opt.value === currentStyle);
-        return isCustomStyle ? currentStyle : currentStyle;
-      })();
-      const finalGenre = (() => {
-        const currentGenre = series.genre || '剧情片';
-        const isCustomGenre = !GENRE_OPTIONS.some(opt => opt.value === currentGenre);
-        return isCustomGenre ? currentGenre : currentGenre;
-      })();
+      const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
+      const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
       const matchedGroup = TemplateGroupService.matchGroup({
         visualStyle: finalStyle,
         genre: finalGenre,
-        globalSettings: series.globalSettings || ''
+        globalSettings: localGlobalSettings || ''
       });
       setMatchedTemplateGroup(matchedGroup);
     }
-  }, [isOpen, series]);
+  },[localStyle,localGenre,localGlobalSettings,customStyleInput,customGenreInput])
 
   const saveSettings = () => {
     const finalDuration = localDuration === 'custom' ? customDurationInput : localDuration;

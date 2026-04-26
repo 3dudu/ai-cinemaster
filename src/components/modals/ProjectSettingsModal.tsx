@@ -129,16 +129,9 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       setLocalGlobalSettings(project.globalSettings || '');
 
       // 匹配模板组
-      const finalStyle = (() => {
-        const currentStyle = project.visualStyle || '真人写实';
-        const isCustomStyle = !STYLE_OPTIONS.some(opt => opt.value === currentStyle);
-        return isCustomStyle ? currentStyle : currentStyle;
-      })();
-      const finalGenre = (() => {
-        const currentGenre = project.genre || '剧情片';
-        const isCustomGenre = !GENRE_OPTIONS.some(opt => opt.value === currentGenre);
-        return isCustomGenre ? currentGenre : currentGenre;
-      })();
+      const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
+      const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
+
       const matchedGroup = TemplateGroupService.matchGroup({
         visualStyle: finalStyle,
         genre: finalGenre,

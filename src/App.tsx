@@ -127,19 +127,21 @@ function App() {
 
   const handleOpenProject = async (proj: ProjectState) => {
     // 设置项目的模型供应商配置
-    setProject(proj);
-    ModelService.setCurrentProjectProviders(proj.modelProviders);
-    // If project belongs to a series, load the series
-    if (proj.seriesRefId) {
-      try {
-        const loadedSeries = await loadSeriesFromDB(proj.seriesRefId);
-        setSeries(loadedSeries);
-      } catch (err) {
-        console.error('Failed to load series:', err);
+    if(proj){
+      setProject(proj);
+      ModelService.setCurrentProjectProviders(proj.modelProviders);
+      // If project belongs to a series, load the series
+      if (proj.seriesRefId) {
+        try {
+          const loadedSeries = await loadSeriesFromDB(proj.seriesRefId);
+          setSeries(loadedSeries);
+        } catch (err) {
+          console.error('Failed to load series:', err);
+          setSeries(null);
+        }
+      } else {
         setSeries(null);
       }
-    } else {
-      setSeries(null);
     }
   };
 

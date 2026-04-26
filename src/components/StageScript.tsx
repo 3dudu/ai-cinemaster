@@ -32,6 +32,7 @@ const StageScript: React.FC<Props> = ({
 }) => {
   const dialog = useDialog();
   const [activeTab, setActiveTab] = useState<TabMode>(project.scriptData ? 'script' : 'story');
+  const [storyInputMode, setStoryInputMode] = useState<'ai' | 'manual'>('manual');
 
   const [localScript, setLocalScript] = useState(project.rawScript);
   const [localTitle, setLocalTitle] = useState(project.title);
@@ -132,8 +133,8 @@ const StageScript: React.FC<Props> = ({
     // initSystemModelProviders();
 
     // 匹配模板组
-    const finalStyle = isCustomStyle ? currentStyle : currentStyle;
-    const finalGenre = isCustomGenre ? currentGenre : currentGenre;
+    const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
+    const finalGenre = localGenre === 'custom' ? customGenreInput : localGenre;
     const matchedGroup = TemplateGroupService.matchGroup({
       visualStyle: finalStyle || '真人写实',
       genre: finalGenre || '剧情片',
@@ -938,48 +939,73 @@ const StageScript: React.FC<Props> = ({
            )}
         </div>
 
-        {/* AI Script Generation Input */}
-        <div className="border-b border-slate-600/50 bg-slate-700 md:p-4 p-2">
-           <div className="mx-auto">
-              <div className="flex gap-2">
-                 <input
-                    type="text"
-                    value={scriptPrompt}
-                    onChange={(e) => setScriptPrompt(e.target.value)}
-                    className="flex-1 bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2 text-sm rounded-lg focus:border-slate-500 focus:outline-none transition-all placeholder:text-slate-600"
-                    placeholder="输入简单提示词（如：一个关于青春校园的励志故事）..."
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleGenerateScript();
-                      }
-                    }}
-                 />
+        {/* Script Input Area with Tab Switch */}
+        <div className="flex-1 overflow-hidden bg-slate-700 flex flex-col">
+           {/* Tab Bar */}
+           <div className="flex border-b border-slate-600/50 px-4 pt-3 shrink-0 items-end">
+              <button
+                 onClick={() => setStoryInputMode('manual')}
+                 className={`px-4 py-2 text-sm font-medium transition-all rounded-t-lg ${
+                   storyInputMode === 'manual'
+                     ? 'bg-slate-800 text-slate-100 -mb-[1px] border-b border-transparent'
+                     : 'text-slate-400 hover:text-slate-300'
+                 }`}
+              >
+                 <span className="inline-flex items-center gap-1.5"><ScrollText className="w-3.5 h-3.5" />已有剧本</span>
+              </button>
+              <button
+                 onClick={() => setStoryInputMode('ai')}
+                 className={`px-4 py-2 text-sm font-medium transition-all rounded-t-lg ml-1 ${
+                   storyInputMode === 'ai'
+                     ? 'bg-slate-800 text-slate-100 -mb-[1px] border-b border-transparent'
+                     : 'text-slate-400 hover:text-slate-300'
+                 }`}
+              >
+                 <span className="inline-flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" />AI 生成</span>
+              </button>
+              {storyInputMode === 'ai' && (
                  <button
                     onClick={handleGenerateScript}
                     disabled={isGeneratingScript || !scriptPrompt.trim()}
-                    className={`px-5 py-2 rounded-lg text-xs font-bold tracking-wider transition-all flex items-center gap-2 shrink-0 ${
+                    className={`ml-auto px-4 py-1.5 mb-[7px] rounded-md text-xs font-bold tracking-wider transition-all inline-flex items-center gap-1.5 shrink-0 ${
                       isGeneratingScript
-                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                        : 'bg-slate-600 text-slate-50 hover:bg-slate-500 shadow-lg shadow-slate-600/20'
-                    } ${!scriptPrompt.trim() ? 'opacity-50' : ''}`}
+                        ? 'bg-blue-900/50 text-blue-400 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-600/20'
+                    } ${!scriptPrompt.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                  >
                     <Sparkles className={`w-3.5 h-3.5 ${isGeneratingScript ? 'animate-spin' : ''}`} />
                     {isGeneratingScript ? '生成中...' : 'AI 生成剧本'}
                  </button>
-              </div>
+              )}
            </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto md:px-4 px-2 bg-slate-700">
-           <div className={`mx-auto ${isMobile ? 'h-[600px]' : 'h-full'} flex flex-col py-2`}>
-              <textarea
-                  value={localScript}
-                  onChange={(e) => setLocalScript(e.target.value)}
-                  className="px-2 flex-1 rounded-lg bg-slate-800 text-slate-200 font-serif text-lg leading-loose focus:outline-none resize-none placeholder:text-slate-600"
-                  placeholder="在此输入故事大纲或直接粘贴剧本..."
-                  spellCheck={false}
-              />
+           {/* Tab Content */}
+           <div className={`flex-1 overflow-y-auto md:px-4 px-2 pb-2 ${isMobile ? '' : 'min-h-0'}`}>
+              <div className={`mx-auto ${isMobile ? 'h-[600px]' : 'h-full'} flex flex-col py-2`}>
+                 {storyInputMode === 'ai' ? (
+                    <textarea
+                       value={scriptPrompt}
+                       onChange={(e) => setScriptPrompt(e.target.value)}
+                       className="px-2 flex-1 rounded-lg bg-slate-800 text-slate-200 font-serif text-lg leading-loose focus:outline-none resize-none placeholder:text-slate-600"
+                       placeholder="输入简单提示词（如：一个关于青春校园的励志故事，主角是一个性格内向的高中生...）"
+                       spellCheck={false}
+                       onKeyDown={(e) => {
+                         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                           e.preventDefault();
+                           handleGenerateScript();
+                         }
+                       }}
+                    />
+                 ) : (
+                    <textarea
+                        value={localScript}
+                        onChange={(e) => setLocalScript(e.target.value)}
+                        className="px-2 flex-1 rounded-lg bg-slate-800 text-slate-200 font-serif text-lg leading-loose focus:outline-none resize-none placeholder:text-slate-600"
+                        placeholder="在此输入故事大纲或直接粘贴剧本..."
+                        spellCheck={false}
+                    />
+                 )}
+              </div>
            </div>
         </div>
 
