@@ -124,7 +124,6 @@ export const TEMPLATE_LIST: TemplateInfo[] = [
   { key: 'SYSTEM_VIDEO_DIRECTOR', name: '🤖 10-分镜模式-导演系统提示词', description: ' 用于视频拍摄提示词生成的系统提示词' },
   { key: 'SYSTEM_SCRIPT_IMPORTER', name: '🤖 S11-导入模式-影视策划系统提示词', description: ' 用于规划拍摄场景角色的系统提示词' },
   { key: 'SYSTEM_SCRIPTWRITER', name: '🤖 S12-编剧系统提示词-写剧本', description: ' 用于剧本生成的系统提示词' },
-  { key: 'SYSTEM_SCRIPTWRITER', name: '🤖 S12-编剧系统提示词-写剧本', description: ' 用于剧本生成的系统提示词' },
 
   { key: 'GENERATE_SEGMENT_PROMPT', name: '📋 O1-片段模式-导演-片段视频文字分镜提示词润色', description: ' 导演-片段视频文字分镜提示词润色', hasParams: true },
   { key: 'GENERATE_CHARACTER_PROMPT', name: '📋 O2-视觉设计师-角色提示词润色', description: ' 为图片模型生成角色提示词', hasParams: true },
