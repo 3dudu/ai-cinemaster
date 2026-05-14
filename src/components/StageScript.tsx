@@ -1,4 +1,4 @@
-import { AlertCircle, Aperture, BookOpen, BrainCircuit, ChevronDown, ChevronUp, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2 } from 'lucide-react';
+import { AlertCircle, Aperture, BookOpen, BrainCircuit, ChevronDown, ChevronUp, Clock, Edit, Film, Image, List, MapPin, Plus, ScrollText, Sparkles, TextQuote, Trash, Users, Wand2, Server } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { formatNaturalDuration, parseDurationSeconds, parseEpisodesFromScript } from '../lib/utils';
 import { PromptTemplateGroup } from '../prompt/promptTemplate';
@@ -13,6 +13,7 @@ import { useDialog } from './dialog';
 import { DURATION_OPTIONS, GENRE_OPTIONS, IMAGE_COUNT_OPTIONS, IMAGE_SIZE_OPTIONS, LANGUAGE_OPTIONS, STYLE_OPTIONS } from './modals/ProjectSettingsModal';
 import ShotEditModal from './modals/ShotEditModal';
 import StoryParagraphsModal from './modals/StoryParagraphsModal';
+import ScriptServiceModal from './modals/ScriptServiceModal';
 
 interface Props {
   project: ProjectState;
@@ -71,6 +72,7 @@ const StageScript: React.FC<Props> = ({
   const [addingShotForSceneId, setAddingShotForSceneId] = useState<string | null>(null);
   const [storyParagraphsModalOpen, setStoryParagraphsModalOpen] = useState(false);
   const [editingStoryParagraphsSceneId, setEditingStoryParagraphsSceneId] = useState<string | null>(null);
+  const [scriptServiceModalOpen, setScriptServiceModalOpen] = useState(false);
 
   const [localLlmProvider, setLocalLlmProvider] = useState(project.modelProviders?.llm || '');
   const [localText2imageProvider, setLocalText2imageProvider] = useState(project.modelProviders?.text2image || '');
@@ -980,6 +982,14 @@ const StageScript: React.FC<Props> = ({
                  }`}
               >
                  <span className="inline-flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" />AI 生成</span>
+              </button>
+              <button
+                 onClick={() => setScriptServiceModalOpen(true)}
+                 className={`px-4 py-2 text-sm font-medium transition-all rounded-t-lg ml-1 ${
+                   'text-slate-400 hover:text-slate-300'
+                 }`}
+              >
+                 <span className="inline-flex items-center gap-1.5"><Server className="w-3.5 h-3.5" />服务获取</span>
               </button>
               {storyInputMode === 'ai' && (
                  <button
@@ -2035,6 +2045,10 @@ const StageScript: React.FC<Props> = ({
       {activeTab === 'story' ? renderStoryInput() : renderScriptBreakdown()}
       {renderEditShotModal()}
       {renderStoryParagraphsModal()}
+      <ScriptServiceModal
+        isOpen={scriptServiceModalOpen}
+        onClose={() => setScriptServiceModalOpen(false)}
+      />
     </div>
   );
 };

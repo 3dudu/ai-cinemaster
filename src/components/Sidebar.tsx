@@ -39,8 +39,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentStage, setStage, onExit, onOpe
   const [previewIndex, setPreviewIndex] = useState(0);
 
   const navItems = [
-    { id: 'assets', label: '角色与场景', icon: Drama, sub: '角色布景' },
     { id: 'script', label: '剧本与故事', icon: BookOpen, sub: '制作脚本' },
+    { id: 'assets', label: '角色与场景', icon: Drama, sub: '角色布景' },
     { id: 'director', label: '导演工作台', icon: Clapperboard, sub: '拍摄制作' },
     { id: 'segments', label: '片段编辑器', icon: ListVideo, sub: '片段管理' },
     { id: 'export', label: '成片与导出', icon: Film, sub: '剪辑合成' },
