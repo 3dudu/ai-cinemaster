@@ -8,6 +8,7 @@ import {
   FileText,
   LogIn,
   LogOut,
+  RefreshCw,
   Server,
   X,
   Eye,
@@ -375,12 +376,21 @@ const ScriptServiceModal: React.FC<ScriptServiceModalProps> = ({ isOpen, onClose
               <p className="text-xs text-slate-400 mt-0.5">共 {total} 条记录</p>
             </div>
           </div>
-          <button
-            onClick={handleRelogin}
-            className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-800 transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />重新登录
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchScripts(page)}
+              disabled={loading}
+              className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-800 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />刷新
+            </button>
+            <button
+              onClick={handleRelogin}
+              className="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-700 text-slate-300 text-xs font-medium hover:bg-slate-800 transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />重新登录
+            </button>
+          </div>
         </div>
 
         {/* Content */}
