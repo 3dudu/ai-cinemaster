@@ -5,15 +5,15 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  EyeOff,
   FileText,
   LogIn,
   LogOut,
   RefreshCw,
   Server,
-  X,
-  Eye,
-  EyeOff,
   Users,
+  X,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -151,7 +151,7 @@ const ScriptServiceModal: React.FC<ScriptServiceModalProps> = ({ isOpen, onClose
     setLoading(true);
     try {
       const res = await fetch(
-        `${url}/api/scripts?status=completed&page=${pageNum}&pageSize=${pageSize}`,
+        `${url}/api/scripts/all?status=completed&page=${pageNum}&pageSize=${pageSize}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.status === 401) {
