@@ -45,6 +45,7 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const [showModelSettings, setShowModelSettings] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [showSeriesSettings, setShowSeriesSettings] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -101,8 +102,10 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   const handleCreateStandalone = useCallback(() => {
     setShowCreateDialog(false);
     const newProject = createNewProjectState();
-    onOpenProject(newProject);
-  }, [onOpenProject]);
+    setCurrentProject(newProject);
+    setIsCreatingProject(true); // Mark as creation flow
+    setShowProjectSettings(true); // Open settings first
+  }, []);
 
   const handleCreateSeries = useCallback(() => {
     setShowCreateDialog(false);
@@ -355,9 +358,14 @@ const Dashboard: React.FC<Props> = ({ onOpenProject, isMobile=false, onClearKey 
   }, []);
 
   const closeProjectSettings = useCallback(() => {
+    // If was creating a new project, open it now that settings are saved
+    if (isCreatingProject && currentProject) {
+      onOpenProject(currentProject);
+    }
     setShowProjectSettings(false);
     setCurrentProject(null);
-  }, []);
+    setIsCreatingProject(false);
+  }, [isCreatingProject, currentProject, onOpenProject]);
 
   const handleUpdateProject = useCallback(async (updates: Partial<ProjectState>) => {
     if (!currentProject) return;

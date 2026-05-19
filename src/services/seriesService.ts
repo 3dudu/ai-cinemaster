@@ -76,8 +76,28 @@ export const createNewSeries = (title: string, options?: {
 };
 /**
  * Create a new episode for a series
+ * @param series - The parent series record
+ * @param options - Optional overrides for this specific episode
  */
-export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
+export const createSeriesEpisode = (
+  series: SeriesRecord,
+  options?: {
+    rawScript?: string;        // Override rawScript with specific chapter content
+    episodeIndex?: number;     // Episode index number (1-based)
+  }
+): ProjectState => {
+  // If episodeScriptMappings exist and episodeIndex provided, build rawScript from mapped chapters
+  let finalRawScript = options?.rawScript || series.rawScript || `标题：示例剧本`;
+  if (!options?.rawScript && options?.episodeIndex && series.episodeScriptMappings) {
+    const mapping = series.episodeScriptMappings.find(m => m.episodeIndex === options.episodeIndex);
+    if (mapping) {
+      // Try to parse chapters from series rawScript if available
+      // Otherwise fall back to default behavior
+      // Note: In practice, Dashboard should pass the constructed rawScript for each episode
+      finalRawScript = `${series.title} - 第${options.episodeIndex}集\n\n（对应章节：第${mapping.chapterNumbers.join('-')}章）\n\n${series.rawScript}`;
+    }
+  }
+
   return {
     id: generateId('serie_proj'),
     title: `${series.title} - 第${series.episodeOrder.length + 1}集`,
@@ -97,7 +117,7 @@ export const createSeriesEpisode = (series: SeriesRecord): ProjectState => {
     globalSettings: series.globalSettings || '',
     scriptData: null,
     isParsingScript: false,
-    rawScript: series.rawScript || `标题：示例剧本`,
+    rawScript: finalRawScript,
     isSegmentMode: false,
     segments: [],
     segmentDuration: 15,

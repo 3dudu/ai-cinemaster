@@ -190,6 +190,11 @@ export interface SeriesLibrary {
   props: Properties[];
 }
 
+export interface EpisodeScriptMapping {
+  episodeIndex: number;
+  chapterNumbers: number[];
+}
+
 export interface SeriesRecord {
   id: string;
   title: string;
@@ -212,6 +217,7 @@ export interface SeriesRecord {
   currentEpisodeId: string;
   version: 1;
   globalSettings?: string; // 全局设定（画面风格、历史年代等）
+  episodeScriptMappings?: EpisodeScriptMapping[]; // 连续剧分集章节映射
 }
 
 // Unified export bundle format (v2)

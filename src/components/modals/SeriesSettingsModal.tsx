@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronUp, Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { BookOpen, ChevronDown, ChevronUp, Film, Image as ImageIcon, Settings, Sparkles, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { PromptTemplateGroup } from '../../prompt/promptTemplate';
 import { TemplateGroupService } from '../../prompt/templateGroupService';
 import { getEnabledConfigByType } from '../../services/modelConfigService';
@@ -8,6 +8,7 @@ import { createNewSeries } from '../../services/seriesService';
 import { getAllModelConfigs } from '../../services/storageService';
 import { SeriesRecord } from '../../types';
 import CustomSelect from '../common/CustomSelect';
+import ScriptServiceModal, { ChapterItem as ServiceChapterItem, ScriptItem as ServiceScriptItem } from './ScriptServiceModal';
 
 import {
   DURATION_OPTIONS,
@@ -43,6 +44,11 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
   const [localImage2videoProvider, setLocalImage2videoProvider] = useState('');
   const [showModelProviders, setShowModelProviders] = useState(false);
   const [matchedTemplateGroup, setMatchedTemplateGroup] = useState<PromptTemplateGroup | null>(null);
+  const [showScriptService, setShowScriptService] = useState(false);
+  // Script import state for series
+  const [importedScript, setImportedScript] = useState<ServiceScriptItem | null>(null);
+  const [importedChapters, setImportedChapters] = useState<ServiceChapterItem[]>([]);
+  const [chaptersPerEpisode, setChaptersPerEpisode] = useState(3); // default: 3 chapters per episode
 
   // Load model configs when modal opens
   useEffect(() => {
@@ -123,6 +129,10 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         setLocalLlmProvider('');
         setLocalText2imageProvider('');
         setLocalImage2videoProvider('');
+        // Reset script import state
+        setImportedScript(null);
+        setImportedChapters([]);
+        setChaptersPerEpisode(3);
       }
     }
   }, [isOpen, series]);
@@ -141,6 +151,42 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
     }
   },[localStyle,localGenre,localGlobalSettings,customStyleInput,customGenreInput])
 
+  // Generate episode mappings from imported chapters
+  const generateEpisodeMappings = useCallback((): { totalEpisodes: number; mappings: Array<{ episodeIndex: number; chapterNumbers: number[]; label: string }> } => {
+    if (importedChapters.length === 0) return { totalEpisodes: 0, mappings: [] };
+
+    const sorted = [...importedChapters].sort((a, b) => a.chapter_number - b.chapter_number);
+    const mappings: Array<{ episodeIndex: number; chapterNumbers: number[]; label: string }> = [];
+    let epIndex = 1;
+    for (let i = 0; i < sorted.length; i += chaptersPerEpisode) {
+      const chunk = sorted.slice(i, i + chaptersPerEpisode);
+      mappings.push({
+        episodeIndex: epIndex,
+        chapterNumbers: chunk.map(ch => ch.chapter_number),
+        label: `第${epIndex}集 (第${chunk[0].chapter_number}-${chunk[chunk.length - 1].chapter_number}章)`
+      });
+      epIndex++;
+    }
+    return { totalEpisodes: epIndex - 1, mappings };
+  }, [importedChapters, chaptersPerEpisode]);
+
+  const handleImportScriptForSeries = (script: ServiceScriptItem, chapters: ServiceChapterItem[]) => {
+    setImportedScript(script);
+    setImportedChapters(chapters);
+    // Auto-set title to script topic if default
+    if (localTitle === '未命名剧集') {
+      setLocalTitle(script.topic);
+    }
+  };
+
+  // Build full rawScript from imported chapters
+  const buildRawScriptFromChapters = (): string => {
+    return importedChapters
+      .sort((a, b) => a.chapter_number - b.chapter_number)
+      .map(ch => `【第${ch.chapter_number}章 ${ch.chapter_title}】\n${ch.chapter_content}`)
+      .join('\n\n');
+  };
+
   const saveSettings = () => {
     const finalDuration = localDuration === 'custom' ? customDurationInput : localDuration;
     const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
@@ -150,6 +196,15 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
       text2image: localText2imageProvider,
       image2video: localImage2videoProvider
     };
+
+    // Build rawScript and episode mappings from imported script data
+    let rawScriptValue: string | undefined;
+    let episodeMappings: any[] | undefined;
+    if (importedChapters.length > 0) {
+      rawScriptValue = buildRawScriptFromChapters();
+      const { mappings } = generateEpisodeMappings();
+      episodeMappings = mappings.map(m => ({ episodeIndex: m.episodeIndex, chapterNumbers: m.chapterNumbers }));
+    }
 
     if (series) {
       // 编辑模式
@@ -164,6 +219,8 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         imageCount: localImageCount,
         globalSettings: localGlobalSettings,
         modelProviders: newModelProviders,
+        ...(rawScriptValue !== undefined && { rawScript: rawScriptValue }),
+        ...(episodeMappings !== undefined && { episodeScriptMappings: episodeMappings }),
         updatedAt: Date.now()
       });
     } else {
@@ -175,9 +232,13 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
         genre: finalGenre,
         imageSize: localImageSize,
         imageCount: localImageCount,
-        globalSettings: localGlobalSettings
+        globalSettings: localGlobalSettings,
+        ...(rawScriptValue !== undefined && { rawScript: rawScriptValue })
       });
       newSeries.modelProviders = newModelProviders;
+      if (episodeMappings) {
+        newSeries.episodeScriptMappings = episodeMappings;
+      }
       onSave(newSeries);
     }
 
@@ -297,6 +358,61 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
               设置整个剧的画面风格、历史年代等全局统一设定，新分集将继承此设置
             </p>
           </div>
+
+          {/* Script Import Section (for new series) */}
+          {!series && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[12px] font-bold text-slate-500 tracking-widest">剧本导入</label>
+                <button
+                  onClick={() => setShowScriptService(true)}
+                  className="px-3 py-1 text-[11px] font-medium bg-blue-900/30 text-blue-300 border border-blue-700/50 rounded-md hover:bg-blue-900/50 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <BookOpen className="w-3 h-3" /> 从剧本服务导入
+                </button>
+              </div>
+
+              {importedScript && importedChapters.length > 0 ? (
+                <div className="bg-slate-900/50 border border-blue-800/30 rounded-lg p-3 space-y-3">
+                  {/* Imported script info */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-blue-300">{importedScript.topic}</span>
+                    <span className="text-[10px] text-slate-500">共 {importedChapters.length} 章</span>
+                  </div>
+
+                  {/* Chapters per episode control */}
+                  <div className="flex items-center gap-3">
+                    <label className="text-[11px] text-slate-400 whitespace-nowrap">每集章节数:</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={Math.max(importedChapters.length, 1)}
+                      value={chaptersPerEpisode}
+                      onChange={(e) => setChaptersPerEpisode(Math.max(1, Math.min(importedChapters.length, parseInt(e.target.value) || 1)))}
+                      className="w-16 bg-slate-800 border border-slate-600 text-slate-50 px-2 py-1 text-sm rounded focus:border-slate-500 focus:outline-none text-center"
+                    />
+                    <span className="text-[11px] text-slate-500">
+                      → 共 {generateEpisodeMappings().totalEpisodes} 集
+                    </span>
+                  </div>
+
+                  {/* Episode mapping preview */}
+                  {generateEpisodeMappings().mappings.length > 0 && (
+                    <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                      {generateEpisodeMappings().mappings.map(m => (
+                        <div key={m.episodeIndex} className="text-[11px] text-slate-300 font-mono flex items-center gap-2 bg-slate-800/60 rounded px-2 py-1">
+                          <span className="text-blue-400 font-bold shrink-0">EP{String(m.episodeIndex).padStart(2, '0')}</span>
+                          <span>第{m.chapterNumbers[0]}-{m.chapterNumbers[m.chapterNumbers.length - 1]}章 ({m.chapterNumbers.length}章)</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500">未导入剧本，可手动输入或从剧本服务选择</p>
+              )}
+            </div>
+          )}
 
           {/* Matched Template Group */}
           {matchedTemplateGroup && (
@@ -469,6 +585,14 @@ const SeriesSettingsModal: React.FC<SeriesSettingsModalProps> = ({ isOpen, onClo
           </button>
         </div>
       </div>
+
+      {/* Script Service Modal for series script selection */}
+      <ScriptServiceModal
+        isOpen={showScriptService}
+        onClose={() => setShowScriptService(false)}
+        mode="select-script"
+        onSelectScript={handleImportScriptForSeries}
+      />
     </div>
   );
 };

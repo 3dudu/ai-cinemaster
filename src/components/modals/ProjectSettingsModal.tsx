@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Clock, Film, Image as ImageIcon, RefreshCw, Settings, Sparkles, X } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, Clock, Film, Image as ImageIcon, RefreshCw, Settings, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { PromptTemplateGroup } from '../../prompt/promptTemplate';
 import { TemplateGroupService } from '../../prompt/templateGroupService';
@@ -7,6 +7,7 @@ import { ModelService } from '../../services/modelService';
 import { getAllModelConfigs } from '../../services/storageService';
 import { ProjectState } from '../../types';
 import CustomSelect from '../common/CustomSelect';
+import ScriptServiceModal, { SelectedChapter } from './ScriptServiceModal';
 
 export const DURATION_OPTIONS = [
   { label: '30秒 (广告)', value: '30s' },
@@ -97,6 +98,8 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
   const [localGlobalSettings, setLocalGlobalSettings] = useState(project?.globalSettings || '');
   const [showModelProviders, setShowModelProviders] = useState(false);
   const [matchedTemplateGroup, setMatchedTemplateGroup] = useState<PromptTemplateGroup | null>(null);
+  const [localRawScript, setLocalRawScript] = useState(project?.rawScript || '');
+  const [showScriptService, setShowScriptService] = useState(false);
 
   // Load model configs when modal opens
   useEffect(() => {
@@ -127,6 +130,7 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
 
       setLocalSegmentDuration(project.segmentDuration || 15);
       setLocalGlobalSettings(project.globalSettings || '');
+      setLocalRawScript(project.rawScript || '');
 
       // 匹配模板组
       const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
@@ -179,6 +183,15 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
     updateProject({ seed: newSeed });
   };
 
+  const handleImportFromScriptService = (chapters: SelectedChapter[]) => {
+    // 拼接选中的章节内容为 rawScript
+    const scriptText = chapters
+      .sort((a, b) => a.chapter_number - b.chapter_number)
+      .map(ch => `【第${ch.chapter_number}章 ${ch.chapter_title}】\n${ch.chapter_content}`)
+      .join('\n\n');
+    setLocalRawScript(scriptText);
+  };
+
   const saveSettings = () => {
     const finalDuration = localDuration === 'custom' ? customDurationInput : localDuration;
     const finalStyle = localStyle === 'custom' ? customStyleInput : localStyle;
@@ -200,7 +213,8 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
       imageCount: localImageCount,
       segmentDuration: localSegmentDuration,
       globalSettings: localGlobalSettings,
-      modelProviders: newModelProviders
+      modelProviders: newModelProviders,
+      rawScript: localRawScript
     });
 
     // Apply model provider configuration
@@ -250,6 +264,26 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* RawScript / Script Import Section */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[12px] font-bold text-slate-500 tracking-widest">剧本内容</label>
+              <button
+                onClick={() => setShowScriptService(true)}
+                className="px-3 py-1 text-[11px] font-medium bg-blue-900/30 text-blue-300 border border-blue-700/50 rounded-md hover:bg-blue-900/50 transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <BookOpen className="w-3 h-3" /> 从剧本服务导入
+              </button>
+            </div>
+            <textarea
+              value={localRawScript}
+              onChange={(e) => setLocalRawScript(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-600 text-slate-50 px-4 py-2.5 text-sm rounded-md focus:border-slate-500 focus:outline-none transition-all min-h-[100px] max-h-[200px]"
+              placeholder="粘贴或输入剧本内容，也可通过「从剧本服务导入」获取..."
+              rows={5}
+            />
           </div>
           {/* Language and Visual Style in one row */}
           <div className="grid grid-cols-2 gap-3">
@@ -531,6 +565,14 @@ const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onC
           </button>
         </div>
       </div>
+
+      {/* Script Service Modal for chapter selection */}
+      <ScriptServiceModal
+        isOpen={showScriptService}
+        onClose={() => setShowScriptService(false)}
+        mode="select-chapters"
+        onSelectChapters={handleImportFromScriptService}
+      />
     </div>
   );
 };
